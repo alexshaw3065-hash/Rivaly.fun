@@ -92,9 +92,15 @@ The one emotion Rivaly should own is **anticipation** — the feeling just befor
 
 Borrow mechanisms, not identities: speed/accessibility/payments from betting platforms (SportyBet, Stake), transparency/probability from prediction markets (Polymarket, Kalshi), identity/rivalry/sharing from social products. Reject sportsbook UX (odds tables, casino aesthetic), intimidating trading-terminal UX, and crypto UX (seed phrases, gas anxiety, wallet complexity) — crypto is infrastructure, never a user-facing requirement. Full version: [docs/masterplan/09-competitive-research.md](docs/masterplan/09-competitive-research.md)
 
+## Tech Stack
+
+- **App:** Next.js (App Router, TypeScript, Tailwind v4), dark-first theme. Deployed on Vercel.
+- **Backend:** Supabase — Postgres, Auth, RLS, Realtime, Storage. Client/server helpers live in `src/lib/supabase/`; no project is linked yet (see `.env.example`).
+- **Repo:** [github.com/alexshaw3065-hash/Rivaly.fun](https://github.com/alexshaw3065-hash/Rivaly.fun)
+- **Planned, not yet wired up:** Redis (cache, rate limits, queues — e.g. live pool/leaderboard state, settlement job queues) and Cloudinary (media — avatars, room/match images, video). Add these when a concrete feature needs them, not preemptively; V1 scope ([08-v1-scope.md](docs/masterplan/08-v1-scope.md)) doesn't require either yet.
+
 ## Working Conventions
 
-- This repository is greenfield — no tech stack has been chosen yet. When one is chosen, document it here.
 - Before adding any feature or screen, check it against the Rivaly Test above and against [08-v1-scope.md](docs/masterplan/08-v1-scope.md); most things wait.
 - When something in the codebase seems to drift from these principles, say so explicitly rather than quietly following the drift.
 - Keep this file and `docs/masterplan/` in sync if the founder revises the masterplan — update the relevant section here and in the corresponding `docs/masterplan/*.md` file together.
