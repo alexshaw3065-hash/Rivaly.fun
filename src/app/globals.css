@@ -1,36 +1,47 @@
 @import "tailwindcss";
 
 /*
- * Rivaly is dark-first: "Black. Premium. Apple. Night football."
- * See docs/masterplan/06-emotion-design.md for the color psychology this
- * palette comes from. Accent colors carry meaning — don't repurpose them:
- *   green  -> money, success
- *   purple -> community, identity
- *   red    -> rival, danger
- * Loud only for the moments that deserve it (goals, wins, whales) —
- * everywhere else stays calm and minimal.
+ * Rivaly brand palette. Dark-first: "Black. Premium. Apple. Night football."
+ * See docs/masterplan/06-emotion-design.md for the color psychology.
+ * Accent colors carry meaning — don't repurpose them:
+ *   blue   -> rival / identity (the challenge)
+ *   green  -> money, victory, success
+ *   purple -> creator / reputation only, used very sparingly
+ *   red    -> danger / error
+ * Loud only for the moments that deserve it — everywhere else stays calm.
  */
 :root {
-  --background: #0a0a0a;
-  --surface: #151515;
-  --foreground: #f5f5f5;
-  --muted: #8a8a8a;
-  --border: #262626;
+  --background: #0a0a0b; /* Deep Black */
+  --surface: #141416;
+  --surface-2: #1c1c1f;
+  --foreground: #f5f5f7;
+  --muted: #8a8a92;
+  --border: #26262b;
 
-  --accent-green: #22c55e;
-  --accent-purple: #a855f7;
-  --accent-red: #ef4444;
+  --rival-blue: #2563ff; /* Rival Blue */
+  --victory-green: #10d68a; /* Victory Green */
+  --creator-purple: #a855f7; /* creator/reputation only */
+
+  --success: #22c55e;
+  --warning: #f59e0b; /* amber */
+  --error: #ef4444;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-border: var(--border);
-  --color-accent-green: var(--accent-green);
-  --color-accent-purple: var(--accent-purple);
-  --color-accent-red: var(--accent-red);
+
+  --color-rival-blue: var(--rival-blue);
+  --color-victory-green: var(--victory-green);
+  --color-creator-purple: var(--creator-purple);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -39,4 +50,66 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatGlow {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-14px) scale(1.04);
+    opacity: 0.85;
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+.animate-rise {
+  opacity: 0;
+  animation: riseIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Respect users who ask for less motion — see design principle 4.22. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
