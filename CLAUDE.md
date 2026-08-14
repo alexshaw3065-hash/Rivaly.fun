@@ -92,6 +92,13 @@ The one emotion Rivaly should own is **anticipation** — the feeling just befor
 
 Borrow mechanisms, not identities: speed/accessibility/payments from betting platforms (SportyBet, Stake), transparency/probability from prediction markets (Polymarket, Kalshi), identity/rivalry/sharing from social products. Reject sportsbook UX (odds tables, casino aesthetic), intimidating trading-terminal UX, and crypto UX (seed phrases, gas anxiety, wallet complexity) — crypto is infrastructure, never a user-facing requirement. Full version: [docs/masterplan/09-competitive-research.md](docs/masterplan/09-competitive-research.md)
 
+## Visual Craft References
+
+Two references govern execution quality on top of the Design Principles above — apply them to every screen, not just the waitlist:
+
+- [docs/design-references/anti-slop-design-law.md](docs/design-references/anti-slop-design-law.md) — the pols.dev anti-slop law. A long, specific catalog of generic-AI-design tells (glowy gradient pills, random floating cards, blue-purple gradients, pulsing glow dots, the default SaaS section stack, and dozens more) and what premium execution looks like instead. Treat it as a design-quality lens, not a literal checklist to run top to bottom — the point is making a real creative decision, not just avoiding every listed pattern.
+- [docs/design-references/rivaly-redesign-brief.md](docs/design-references/rivaly-redesign-brief.md) — the founder's design-direction brief: visual language (premium/editorial/restrained), the "show, don't explain" rule (a real prediction card beats a paragraph every time), and a reference landing-page narrative structure. Where its specific structure (e.g. a multi-section scroll) conflicts with a settled product decision (e.g. the waitlist's single-viewport layout), the settled decision wins — this is direction, not a literal template.
+
 ## Tech Stack
 
 - **App:** Next.js (App Router, TypeScript, Tailwind v4), dark-first theme. Deployed on Vercel.
