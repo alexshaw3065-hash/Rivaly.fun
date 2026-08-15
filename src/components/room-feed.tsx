@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { rooms as allRooms, matchById } from "@/lib/mock-data";
 import { RoomCard } from "./room-card";
 import type { Match, Room } from "@/lib/types";
@@ -69,7 +70,17 @@ function buildRows(items: Room[]): FeedRow[] {
 // memoize it (useCallback, deps on the actual filter criteria) — a fresh
 // function identity every render would make every render look like "the
 // filter changed" and reset pagination in a loop.
-export function RoomFeed({ extraFilter }: { extraFilter?: (room: Room) => boolean }) {
+//
+// chipRowEnd renders past the (horizontally-scrolling) filter chips, e.g.
+// Search's advanced-search/wishlist icons on desktop — the caller owns any
+// responsive visibility on the node it passes in (see search/page.tsx).
+export function RoomFeed({
+  extraFilter,
+  chipRowEnd,
+}: {
+  extraFilter?: (room: Room) => boolean;
+  chipRowEnd?: ReactNode;
+}) {
   const [tab, setTab] = useState<FilterTab>("trending");
   const [prevTab, setPrevTab] = useState(tab);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -120,23 +131,26 @@ export function RoomFeed({ extraFilter }: { extraFilter?: (room: Room) => boolea
 
   return (
     <div>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-        {filters.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setTab(f.id)}
-            className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
-            style={{
-              borderColor: tab === f.id ? "var(--foreground)" : "var(--border)",
-              color: tab === f.id ? "var(--foreground)" : "var(--muted)",
-              background: tab === f.id ? "var(--surface-elevated)" : "transparent",
-              transition:
-                "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-3">
+        <div className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setTab(f.id)}
+              className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
+              style={{
+                borderColor: tab === f.id ? "var(--foreground)" : "var(--border)",
+                color: tab === f.id ? "var(--foreground)" : "var(--muted)",
+                background: tab === f.id ? "var(--surface-elevated)" : "transparent",
+                transition:
+                  "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {chipRowEnd}
       </div>
 
       <div className="mt-6 flex flex-col gap-4">

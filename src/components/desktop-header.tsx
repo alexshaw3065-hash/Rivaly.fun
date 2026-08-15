@@ -13,6 +13,10 @@ import { Avatar } from "./avatar";
 // for why Home takes the same shortcut approach on mobile). Suppressed on
 // /search itself, where the real functional search input already lives in
 // the page — two stacked search bars would fight for the same job.
+//
+// "Create room" lives here, not the sidebar — the sidebar is pure nav
+// (Home/Search/Following/Wallet); this is the one primary action, same
+// role the old desktop top bar's button played.
 export function DesktopHeader({
   pathname,
   selfUsername,
@@ -38,7 +42,13 @@ export function DesktopHeader({
           </Link>
         )}
 
-        <div className="ml-auto flex shrink-0 items-center gap-4">
+        <div className="ml-auto flex shrink-0 items-center gap-5">
+          <Link
+            href="/rooms/create"
+            className="shrink-0 rounded-md bg-foreground px-3.5 py-2 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
+          >
+            Create room
+          </Link>
           <TopBarIcons />
           <ThemeToggle />
           <Link href={`/profile/${selfUsername}`} className="shrink-0">

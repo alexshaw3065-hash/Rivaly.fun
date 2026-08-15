@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, SearchIcon, FollowingIcon, WalletIcon, PlusIcon, ChevronIcon } from "./icons";
+import { HomeIcon, SearchIcon, FollowingIcon, WalletIcon, ChevronIcon } from "./icons";
 import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-collapsed";
 
 // Desktop-only (hidden md:flex) collapsible left rail — fixed positioned,
@@ -54,17 +54,6 @@ export function Sidebar() {
             </Link>
           );
         })}
-
-        <Link
-          href="/rooms/create"
-          aria-label="Create room"
-          className="mt-2 flex items-center gap-3 rounded-md bg-foreground px-3 py-2.5 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
-        >
-          <span className="shrink-0">
-            <PlusIcon />
-          </span>
-          {!collapsed && <span className="truncate">Create room</span>}
-        </Link>
       </nav>
 
       <div className="shrink-0 px-3 pb-5">

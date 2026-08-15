@@ -115,7 +115,11 @@ export default function SearchPage() {
             className="min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted focus:outline-none"
           />
         </div>
-        <div className="flex shrink-0 items-center gap-3">
+        {/* On desktop, no-query mode moves these two down onto the filter-
+            chip row (chipRowEnd below) — this row stays mobile-only then.
+            With a query there's no chip row to move them to, so they stay
+            here on every viewport. */}
+        <div className={`flex shrink-0 items-center gap-3 ${!q ? "md:hidden" : ""}`}>
           <button
             onClick={() => setShowAdvancedPanel((v) => !v)}
             aria-label="Advanced search"
@@ -222,7 +226,31 @@ export default function SearchPage() {
 
       {!q ? (
         <div className="mt-10">
-          <RoomFeed extraFilter={roomMatchesAllFilters} />
+          <RoomFeed
+            extraFilter={roomMatchesAllFilters}
+            chipRowEnd={
+              <div className="hidden shrink-0 items-center gap-3 md:flex">
+                <button
+                  onClick={() => setShowAdvancedPanel((v) => !v)}
+                  aria-label="Advanced search"
+                  aria-pressed={showAdvancedPanel || hasAdvancedFilters}
+                  style={{
+                    color: iconButtonColor(showAdvancedPanel || hasAdvancedFilters),
+                    transition: "color 150ms ease",
+                  }}
+                >
+                  <SlidersIcon />
+                </button>
+                <Link
+                  href="/wishlist"
+                  aria-label="Wishlist"
+                  className="hover-link text-muted transition-colors"
+                >
+                  <BookmarkIcon />
+                </Link>
+              </div>
+            }
+          />
         </div>
       ) : !hasResults ? (
         <p className="mt-10 text-sm text-muted">No results for &ldquo;{query}&rdquo;.</p>
