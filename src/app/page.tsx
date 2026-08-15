@@ -36,7 +36,7 @@ export default function Home() {
       </section>
 
       <section className="mt-12 min-w-0">
-        <h2 className="font-display text-xl font-semibold text-foreground">Rivals</h2>
+        <h2 className="font-display text-xl font-semibold text-foreground">Top rivals</h2>
         <div className="no-scrollbar mt-5 flex min-w-0 gap-3 overflow-x-auto pb-1">
           {rivals.map((profile, i) => (
             <div key={profile.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>

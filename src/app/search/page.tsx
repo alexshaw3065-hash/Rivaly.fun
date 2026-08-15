@@ -7,31 +7,65 @@ import { RoomCard } from "@/components/room-card";
 import { MatchChip } from "@/components/match-chip";
 import { PersonRow } from "@/components/person-row";
 import { RoomFeed } from "@/components/room-feed";
-import { SearchIcon, TagIcon, SlidersIcon, BookmarkIcon } from "@/components/icons";
-import type { Room } from "@/lib/types";
+import { BottomSheet } from "@/components/bottom-sheet";
+import { SearchIcon, SlidersIcon, TagIcon, BookmarkIcon } from "@/components/icons";
+import type { Room, Match } from "@/lib/types";
 
-// Scope per docs/masterplan/07-product-blueprint.md#411-search, narrowed to
-// Rooms / Matches / People per V1 scope (Creators and Competitions are the
-// same underlying data, not separate result types, until V1 grows). Recent
-// searches are cut for this pass — nothing to persist them against yet.
-type Tab = "all" | "rooms" | "matches" | "people";
+// Scope per docs/masterplan/07-product-blueprint.md#411-search. Rooms/
+// Matches are the two browse modes (per the founder's FOMO reference —
+// Tokens/Perps as a content-type switcher, not a query-result filter), so
+// they now govern both the no-query browse view and query results. People
+// results aren't behind a tab — they just show up when relevant, since
+// there's no "browse all people" mode to switch into.
+type Tab = "rooms" | "matches";
 type RoomStatusFilter = "" | "open" | "live" | "settled";
 
-const leagues = Array.from(new Set(matches.map((m) => m.competition)));
+// Two extra entries beyond what's in mock data — real tournaments users
+// would expect to filter by even before any room/match references them.
+const leagues = [...new Set(matches.map((m) => m.competition)), "World Cup", "Friendlies"];
 
 function iconButtonColor(active: boolean) {
   return active ? "var(--rival-blue)" : "var(--muted)";
 }
 
+function Checkbox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border"
+      style={{
+        borderColor: checked ? "var(--rival-blue)" : "var(--border-strong)",
+        background: checked ? "var(--rival-blue)" : "transparent",
+        transition: "background-color 150ms ease, border-color 150ms ease",
+      }}
+    >
+      {checked && (
+        <svg viewBox="0 0 12 12" width="10" height="10" fill="none" aria-hidden>
+          <path d="M2 6.2 4.8 9 10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 export default function SearchPage() {
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<Tab>("all");
-  const [showLeaguePanel, setShowLeaguePanel] = useState(false);
+  const [tab, setTab] = useState<Tab>("rooms");
+  const [showLeagueSheet, setShowLeagueSheet] = useState(false);
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
   const [league, setLeague] = useState<string | null>(null);
+  const [draftLeague, setDraftLeague] = useState<string | null>(null);
+  const [prevSheetOpen, setPrevSheetOpen] = useState(false);
   const [entryMin, setEntryMin] = useState("");
   const [entryMax, setEntryMax] = useState("");
   const [status, setStatus] = useState<RoomStatusFilter>("");
+
+  // Reset the sheet's draft selection to the applied league each time it
+  // opens — computed during render (see room-feed.tsx for why, same
+  // pattern) rather than a useEffect.
+  if (showLeagueSheet !== prevSheetOpen) {
+    setPrevSheetOpen(showLeagueSheet);
+    if (showLeagueSheet) setDraftLeague(league);
+  }
 
   const q = query.trim().toLowerCase();
   const hasAdvancedFilters = Boolean(league || entryMin || entryMax || status);
@@ -49,6 +83,11 @@ export default function SearchPage() {
     [league, entryMin, entryMax, status],
   );
 
+  const matchMatchesLeague = useCallback(
+    (m: Match) => !league || m.competition === league,
+    [league],
+  );
+
   const matchedRooms = useMemo(
     () =>
       q
@@ -59,14 +98,16 @@ export default function SearchPage() {
   const matchedMatches = useMemo(
     () =>
       q
-        ? matches.filter(
-            (m) =>
-              m.homeTeam.toLowerCase().includes(q) ||
-              m.awayTeam.toLowerCase().includes(q) ||
-              m.competition.toLowerCase().includes(q),
-          )
+        ? matches
+            .filter(
+              (m) =>
+                m.homeTeam.toLowerCase().includes(q) ||
+                m.awayTeam.toLowerCase().includes(q) ||
+                m.competition.toLowerCase().includes(q),
+            )
+            .filter(matchMatchesLeague)
         : [],
-    [q],
+    [q, matchMatchesLeague],
   );
   const matchedPeople = useMemo(
     () =>
@@ -79,9 +120,7 @@ export default function SearchPage() {
     [q],
   );
 
-  const showRooms = tab === "all" || tab === "rooms";
-  const showMatches = tab === "all" || tab === "matches";
-  const showPeople = tab === "all" || tab === "people";
+  const browseMatches = useMemo(() => matches.filter(matchMatchesLeague), [matchMatchesLeague]);
   const hasResults = matchedRooms.length + matchedMatches.length + matchedPeople.length > 0;
 
   // No autoFocus on this input, and every text/number input in the app is
@@ -128,46 +167,6 @@ export default function SearchPage() {
           </Link>
         </div>
       </div>
-
-      <div className="mt-4 flex items-center gap-2">
-        <button
-          onClick={() => setShowLeaguePanel((v) => !v)}
-          aria-pressed={showLeaguePanel || Boolean(league)}
-          className="flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
-          style={{
-            borderColor: showLeaguePanel || league ? "var(--rival-blue)" : "var(--border)",
-            color: iconButtonColor(showLeaguePanel || Boolean(league)),
-            background: showLeaguePanel || league ? "var(--rival-blue-dim)" : "transparent",
-            transition: "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
-          }}
-        >
-          <TagIcon />
-          {league ?? "Leagues"}
-        </button>
-      </div>
-
-      {showLeaguePanel && (
-        <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
-          {leagues.map((l) => {
-            const active = league === l;
-            return (
-              <button
-                key={l}
-                onClick={() => setLeague(active ? null : l)}
-                className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
-                style={{
-                  borderColor: active ? "var(--rival-blue)" : "var(--border)",
-                  color: active ? "var(--rival-blue)" : "var(--foreground)",
-                  background: active ? "var(--rival-blue-dim)" : "transparent",
-                  transition: "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
-                }}
-              >
-                {l}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {showAdvancedPanel && (
         <div className="mt-4 flex flex-col gap-4 rounded-lg border border-border bg-surface p-4">
@@ -252,8 +251,21 @@ export default function SearchPage() {
         </div>
       )}
 
-      <div className="mt-5 flex gap-5 border-b border-border">
-        {(["all", "rooms", "matches", "people"] as const).map((t) => (
+      {/* Filter icon + Rooms/Matches — the content-type switcher, styled
+          after the founder's FOMO reference (their filter-icon-leading-
+          Tokens/Perps tab row). Tapping the icon opens the league sheet
+          below rather than an inline chip row. */}
+      <div className="mt-5 flex items-center gap-4 border-b border-border">
+        <button
+          onClick={() => setShowLeagueSheet(true)}
+          aria-label="Filter by league"
+          aria-pressed={Boolean(league)}
+          className="pb-2.5"
+          style={{ color: iconButtonColor(Boolean(league)), transition: "color 150ms ease" }}
+        >
+          <TagIcon />
+        </button>
+        {(["rooms", "matches"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -266,17 +278,65 @@ export default function SearchPage() {
             {t}
           </button>
         ))}
+        {league && (
+          <span className="ml-auto shrink-0 pb-2.5 font-mono text-xs text-rival-blue">{league}</span>
+        )}
       </div>
 
-      {!q ? (
-        <div className="mt-10">
-          <RoomFeed extraFilter={roomMatchesFilters} />
+      <BottomSheet open={showLeagueSheet} onClose={() => setShowLeagueSheet(false)} title="Filter by league">
+        <div className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
+          <button
+            onClick={() => setDraftLeague(null)}
+            className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
+          >
+            <span className="text-sm text-foreground">All leagues</span>
+            <Checkbox checked={draftLeague === null} />
+          </button>
+          {leagues.map((l) => (
+            <button
+              key={l}
+              onClick={() => setDraftLeague(l)}
+              className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
+            >
+              <span className="text-sm text-foreground">{l}</span>
+              <Checkbox checked={draftLeague === l} />
+            </button>
+          ))}
         </div>
+        <button
+          onClick={() => {
+            setLeague(draftLeague);
+            setShowLeagueSheet(false);
+          }}
+          className="mt-5 w-full rounded-md bg-foreground py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
+        >
+          Confirm
+        </button>
+      </BottomSheet>
+
+      {!q ? (
+        tab === "rooms" ? (
+          <div className="mt-10">
+            <RoomFeed extraFilter={roomMatchesFilters} />
+          </div>
+        ) : (
+          <div className="mt-10">
+            {browseMatches.length === 0 ? (
+              <p className="text-sm text-muted">No matches for this league yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {browseMatches.map((m) => (
+                  <MatchChip key={m.id} match={m} />
+                ))}
+              </div>
+            )}
+          </div>
+        )
       ) : !hasResults ? (
         <p className="mt-10 text-sm text-muted">No results for &ldquo;{query}&rdquo;.</p>
       ) : (
         <div className="mt-10 flex flex-col gap-10">
-          {showRooms && matchedRooms.length > 0 && (
+          {tab === "rooms" && matchedRooms.length > 0 && (
             <section>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Rooms</p>
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -286,17 +346,17 @@ export default function SearchPage() {
               </div>
             </section>
           )}
-          {showMatches && matchedMatches.length > 0 && (
+          {tab === "matches" && matchedMatches.length > 0 && (
             <section>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Matches</p>
-              <div className="no-scrollbar mt-3 flex min-w-0 gap-3 overflow-x-auto pb-1">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {matchedMatches.map((m) => (
                   <MatchChip key={m.id} match={m} />
                 ))}
               </div>
             </section>
           )}
-          {showPeople && matchedPeople.length > 0 && (
+          {matchedPeople.length > 0 && (
             <section>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">People</p>
               <div className="mt-3 flex flex-col gap-2">
