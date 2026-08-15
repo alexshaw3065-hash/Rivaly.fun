@@ -45,7 +45,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500&display=swap"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground pb-16 md:pb-0">
+      {/* overflow-x-hidden is a safety net, not the fix: body is a flex
+          column, so a flex item (each page's <main>) needs its own
+          min-w-0 or it won't shrink below a wide descendant's intrinsic
+          width (e.g. a horizontally-scrolling card row) — classic flexbox
+          min-width:auto blowout. This just catches it if a future page
+          forgets that. */}
+      <body className="min-h-full flex flex-col overflow-x-hidden bg-background text-foreground pb-16 md:pb-0">
         <Nav />
         {children}
       </body>

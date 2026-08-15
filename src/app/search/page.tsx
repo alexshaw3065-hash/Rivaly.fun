@@ -51,7 +51,7 @@ export default function SearchPage() {
   const hasResults = matchedRooms.length + matchedMatches.length + matchedPeople.length > 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main className="mx-auto min-w-0 max-w-5xl px-6 py-12">
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}

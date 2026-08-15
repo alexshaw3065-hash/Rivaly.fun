@@ -130,6 +130,9 @@ body {
   .hover-link-danger:hover {
     color: var(--danger-red);
   }
+  .hover-border:hover {
+    border-color: var(--border-strong);
+  }
 }
 
 /* Applied for one frame by ThemeToggle while it flips the `.light` class.
