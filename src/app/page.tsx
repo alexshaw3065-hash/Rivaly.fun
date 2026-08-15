@@ -1,27 +1,26 @@
 import Link from "next/link";
 import { ExplodingCarousel } from "@/components/exploding-carousel";
-import { RivalCard } from "@/components/rival-card";
+import { SearchBarLink } from "@/components/search-bar-link";
+import { RivalCard, GoatedRivalCard } from "@/components/rival-card";
 import { RoomFeed } from "@/components/room-feed";
-import { explodingRooms, matchById, topRivals } from "@/lib/mock-data";
+import { explodingRooms, matchById, topRivals, goatedRivals } from "@/lib/mock-data";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
 // "Exploding Now" carousel (one card at a time — swipe or auto-advance,
-// see exploding-carousel.tsx), a "Top Rivals" P/L strip, then a
+// see exploding-carousel.tsx), "Top Rivals" (weekly-style P/L) and "Goated
+// Rivals" (all-time career winnings) strips — two distinct leaderboards per
+// the FOMO "Weekly Top Trades" / "Hall of Fame" reference — then a
 // filter-chip'd, league-grouped, infinite-scrolling feed (Polymarket
 // reference for the load-more-on-scroll + closing-moment pattern — see
 // room-feed.tsx).
 export default function Home() {
   const exploding = explodingRooms(6).map((room) => ({ room, match: matchById(room.matchId)! }));
-  const rivals = topRivals(8);
+  const rivals = topRivals(5);
+  const goated = goatedRivals(4);
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-6">
-      <Link
-        href="/search"
-        className="hover-border block w-full rounded-full border border-border bg-surface px-4 py-3 text-sm text-muted transition-colors"
-      >
-        Search rooms, matches, people…
-      </Link>
+      <SearchBarLink />
 
       <section className="mt-9 min-w-0">
         <div className="flex items-center justify-between">
@@ -41,6 +40,17 @@ export default function Home() {
           {rivals.map((profile, i) => (
             <div key={profile.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>
               <RivalCard profile={profile} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-12 min-w-0">
+        <h2 className="font-display text-xl font-semibold text-foreground">🏆 Goated rivals</h2>
+        <div className="mt-5 flex min-w-0 gap-3 overflow-x-auto pb-1">
+          {goated.map((profile, i) => (
+            <div key={profile.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>
+              <GoatedRivalCard profile={profile} />
             </div>
           ))}
         </div>

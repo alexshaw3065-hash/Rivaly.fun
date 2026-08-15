@@ -1,14 +1,7 @@
 "use client";
 
 import { useSavedRoomIds, toggleSavedRoom } from "@/lib/use-saved-rooms";
-
-function BookmarkIcon({ filled }: { filled: boolean }) {
-  return (
-    <svg viewBox="0 0 20 20" width="17" height="17" fill={filled ? "currentColor" : "none"} aria-hidden>
-      <path d="M5.5 3.5h9a1 1 0 0 1 1 1V17l-5.5-3.4L4 17V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
+import { BookmarkIcon } from "./icons";
 
 // The save/wishlist affordance seen on every Polymarket card — bare mark,
 // no filled tile, matches the rest of the app's icon-free-by-default

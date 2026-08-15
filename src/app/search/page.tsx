@@ -7,6 +7,7 @@ import { RoomCard } from "@/components/room-card";
 import { MatchChip } from "@/components/match-chip";
 import { PersonRow } from "@/components/person-row";
 import { RoomFeed } from "@/components/room-feed";
+import { SearchIcon, TagIcon, SlidersIcon, BookmarkIcon } from "@/components/icons";
 import type { Room } from "@/lib/types";
 
 // Scope per docs/masterplan/07-product-blueprint.md#411-search, narrowed to
@@ -17,43 +18,6 @@ type Tab = "all" | "rooms" | "matches" | "people";
 type RoomStatusFilter = "" | "open" | "live" | "settled";
 
 const leagues = Array.from(new Set(matches.map((m) => m.competition)));
-
-function BookmarkIcon() {
-  return (
-    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
-      <path
-        d="M5.5 3.5h9a1 1 0 0 1 1 1V17l-5.5-3.4L4 17V4.5a1 1 0 0 1 1-1Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function TagIcon() {
-  return (
-    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
-      <path
-        d="M10.6 3.5H16a.5.5 0 0 1 .5.5v5.4a1 1 0 0 1-.3.7l-6.7 6.7a1 1 0 0 1-1.4 0l-4.4-4.4a1 1 0 0 1 0-1.4l6.7-6.7a1 1 0 0 1 .2-.2Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <circle cx="13.2" cy="6.8" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function SlidersIcon() {
-  return (
-    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
-      <path d="M3 6h8M14 6h3M3 14h3M8 14h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="11" cy="6" r="1.6" fill="var(--surface)" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="6" cy="14" r="1.6" fill="var(--surface)" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
 
 function iconButtonColor(active: boolean) {
   return active ? "var(--rival-blue)" : "var(--muted)";
@@ -122,31 +86,23 @@ export default function SearchPage() {
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-12">
-      <div className="flex items-end gap-3">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search rooms, matches, people…"
-          autoFocus
-          className="min-w-0 flex-1 border-b border-border bg-transparent pb-3 font-display text-2xl font-semibold text-foreground placeholder:text-muted/50 focus:border-foreground focus:outline-none md:text-3xl"
+      <div className="flex items-center gap-3">
+        <div
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-surface px-4 py-3 focus-within:border-border-strong"
           style={{ transition: "border-color 150ms ease" }}
-        />
-        <div className="flex shrink-0 items-center gap-3 pb-3.5">
-          <Link
-            href="/wishlist"
-            aria-label="Wishlist"
-            className="hover-link text-muted transition-colors"
-          >
-            <BookmarkIcon />
-          </Link>
-          <button
-            onClick={() => setShowLeaguePanel((v) => !v)}
-            aria-label="Browse by league"
-            aria-pressed={showLeaguePanel || Boolean(league)}
-            style={{ color: iconButtonColor(showLeaguePanel || Boolean(league)), transition: "color 150ms ease" }}
-          >
-            <TagIcon />
-          </button>
+        >
+          <span className="shrink-0 text-muted">
+            <SearchIcon />
+          </span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search rooms, matches, people…"
+            autoFocus
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+          />
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
           <button
             onClick={() => setShowAdvancedPanel((v) => !v)}
             aria-label="Advanced search"
@@ -158,7 +114,31 @@ export default function SearchPage() {
           >
             <SlidersIcon />
           </button>
+          <Link
+            href="/wishlist"
+            aria-label="Wishlist"
+            className="hover-link text-muted transition-colors"
+          >
+            <BookmarkIcon />
+          </Link>
         </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          onClick={() => setShowLeaguePanel((v) => !v)}
+          aria-pressed={showLeaguePanel || Boolean(league)}
+          className="flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
+          style={{
+            borderColor: showLeaguePanel || league ? "var(--rival-blue)" : "var(--border)",
+            color: iconButtonColor(showLeaguePanel || Boolean(league)),
+            background: showLeaguePanel || league ? "var(--rival-blue-dim)" : "transparent",
+            transition: "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
+          }}
+        >
+          <TagIcon />
+          {league ?? "Leagues"}
+        </button>
       </div>
 
       {showLeaguePanel && (

@@ -194,6 +194,13 @@ export function topRivals(count: number): Profile[] {
   return [...profiles].sort((a, b) => rivalPnlCents(b) - rivalPnlCents(a)).slice(0, count);
 }
 
+// All-time career leaders (totalWinningsCents), not the weekly-style P/L
+// topRivals uses — a genuinely different ranking, per the FOMO "Hall of
+// Fame" reference (distinct from "Weekly Top Trades").
+export function goatedRivals(count: number): Profile[] {
+  return [...profiles].sort((a, b) => b.totalWinningsCents - a.totalWinningsCents).slice(0, count);
+}
+
 export type NotificationKind =
   | "friend_joined"
   | "challenge_received"

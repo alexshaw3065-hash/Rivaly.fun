@@ -74,7 +74,7 @@ export function Nav() {
             Create room
           </Link>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2.5 md:ml-0 md:gap-4">
+          <div className="ml-auto flex shrink-0 items-center gap-3 md:ml-0 md:gap-4">
             <TopBarIcons />
             <ThemeToggle />
             <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
