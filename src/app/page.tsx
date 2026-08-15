@@ -1,18 +1,17 @@
 import Link from "next/link";
-import { ExplodingRoomCard } from "@/components/exploding-room-card";
+import { ExplodingCarousel } from "@/components/exploding-carousel";
 import { RivalCard } from "@/components/rival-card";
 import { RoomFeed } from "@/components/room-feed";
 import { explodingRooms, matchById, topRivals } from "@/lib/mock-data";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
-// "Exploding Now" hero of big scrollable room cards (the momentum-driven
-// signature artifact — see exploding-room-card.tsx), a "For Rivals" P/L
-// strip, then a filter-chip'd, league-grouped, infinite-scrolling feed
-// (Polymarket reference for the load-more-on-scroll + closing-moment
-// pattern — see room-feed.tsx). Supersedes the older single-hero-match +
-// static-sections layout.
+// "Exploding Now" carousel (one card at a time — swipe or auto-advance,
+// see exploding-carousel.tsx), a "Top Rivals" P/L strip, then a
+// filter-chip'd, league-grouped, infinite-scrolling feed (Polymarket
+// reference for the load-more-on-scroll + closing-moment pattern — see
+// room-feed.tsx).
 export default function Home() {
-  const exploding = explodingRooms(6);
+  const exploding = explodingRooms(6).map((room) => ({ room, match: matchById(room.matchId)! }));
   const rivals = topRivals(8);
 
   return (
@@ -31,17 +30,13 @@ export default function Home() {
             View all →
           </Link>
         </div>
-        <div className="mt-5 flex min-w-0 gap-3.5 overflow-x-auto pb-1">
-          {exploding.map((room, i) => (
-            <div key={room.id} className="stagger-in" style={{ animationDelay: `${i * 50}ms` }}>
-              <ExplodingRoomCard room={room} match={matchById(room.matchId)!} />
-            </div>
-          ))}
+        <div className="mt-5">
+          <ExplodingCarousel items={exploding} />
         </div>
       </section>
 
       <section className="mt-12 min-w-0">
-        <h2 className="font-display text-xl font-semibold text-foreground">For rivals</h2>
+        <h2 className="font-display text-xl font-semibold text-foreground">Top rivals</h2>
         <div className="mt-5 flex min-w-0 gap-3 overflow-x-auto pb-1">
           {rivals.map((profile, i) => (
             <div key={profile.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>

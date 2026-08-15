@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notifications, wallet, formatMoney } from "@/lib/mock-data";
+import { notifications, wallet, formatMoneyCompact } from "@/lib/mock-data";
 
 // Hand-drawn, not pulled from an icon pack — see anti-slop-design-law.md on
 // generic outline icons. Bare marks, no filled tile behind them.
@@ -39,7 +39,7 @@ export function TopBarIcons() {
   const hasUnread = notifications.some((n) => !n.read);
 
   return (
-    <div className="flex items-center gap-3.5">
+    <div className="flex items-center gap-2.5 md:gap-3.5">
       <Link
         href="/invite"
         aria-label="Invite rivals"
@@ -64,9 +64,9 @@ export function TopBarIcons() {
 
       <Link
         href="/wallet"
-        className="hover-border rounded-md border border-border px-2.5 py-1 font-mono text-xs text-foreground transition-colors"
+        className="hover-border rounded-md border border-border px-2 py-1 font-mono text-xs text-foreground transition-colors"
       >
-        {formatMoney(wallet.balanceCents)}
+        {formatMoneyCompact(wallet.balanceCents)}
       </Link>
     </div>
   );

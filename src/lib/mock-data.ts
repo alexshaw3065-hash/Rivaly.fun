@@ -136,6 +136,15 @@ export function formatMoney(cents: number): string {
   return `₦${Math.round(cents / 100).toLocaleString("en-NG")}`;
 }
 
+// Compact form for tight spaces (the mobile top bar's balance chip) —
+// ₦45,000 -> ₦45K, ₦1,250,000 -> ₦1.3M.
+export function formatMoneyCompact(cents: number): string {
+  const naira = Math.round(cents / 100);
+  if (naira >= 1_000_000) return `₦${(naira / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (naira >= 1_000) return `₦${(naira / 1_000).toFixed(0)}K`;
+  return `₦${naira}`;
+}
+
 export function formatSignedMoney(cents: number): string {
   const sign = cents >= 0 ? "+" : "−";
   return `${sign}₦${Math.round(Math.abs(cents) / 100).toLocaleString("en-NG")}`;

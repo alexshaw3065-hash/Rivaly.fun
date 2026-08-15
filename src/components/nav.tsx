@@ -40,8 +40,8 @@ export function Nav() {
   return (
     <>
       <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-4">
-          <Link href="/" className="font-display text-lg font-bold tracking-tight text-foreground">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-4 md:gap-6 md:px-6">
+          <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground md:text-lg">
             Rivaly
           </Link>
 
@@ -74,7 +74,7 @@ export function Nav() {
             Create room
           </Link>
 
-          <div className="ml-auto flex shrink-0 items-center gap-4 md:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-2.5 md:ml-0 md:gap-4">
             <TopBarIcons />
             <ThemeToggle />
             <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">

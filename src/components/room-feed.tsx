@@ -62,7 +62,14 @@ function buildRows(items: Room[]): FeedRow[] {
 // on scroll (IntersectionObserver on a sentinel, not a "load more" click),
 // and end in a real closing moment once the (finite, mock) data runs out —
 // brand mark + "Back to top" — rather than looping forever.
-export function RoomFeed() {
+//
+// extraFilter is how Search layers its advanced-filter panel (league, entry
+// range, status) on top of the same Trending/New/Live/Closing-soon/All
+// mechanism, rather than duplicating this whole component. Callers MUST
+// memoize it (useCallback, deps on the actual filter criteria) — a fresh
+// function identity every render would make every render look like "the
+// filter changed" and reset pagination in a loop.
+export function RoomFeed({ extraFilter }: { extraFilter?: (room: Room) => boolean }) {
   const [tab, setTab] = useState<FilterTab>("trending");
   const [prevTab, setPrevTab] = useState(tab);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -78,9 +85,18 @@ export function RoomFeed() {
     setVisibleCount(PAGE_SIZE);
   }
 
-  const filtered = useMemo(() => applyFilter(tab), [tab]);
+  const base = useMemo(() => applyFilter(tab), [tab]);
+  const filtered = useMemo(() => (extraFilter ? base.filter(extraFilter) : base), [base, extraFilter]);
   const rows = useMemo(() => buildRows(filtered.slice(0, visibleCount)), [filtered, visibleCount]);
   const done = visibleCount >= filtered.length;
+
+  // extraFilter changing (e.g. the advanced panel was edited) needs the
+  // same pagination reset as a tab change.
+  const [prevFiltered, setPrevFiltered] = useState(filtered);
+  if (filtered !== prevFiltered) {
+    setPrevFiltered(filtered);
+    if (visibleCount !== PAGE_SIZE) setVisibleCount(PAGE_SIZE);
+  }
 
   useEffect(() => {
     if (done) return;

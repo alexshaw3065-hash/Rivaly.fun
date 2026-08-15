@@ -3,6 +3,7 @@ import type { Match, Room } from "@/lib/types";
 import { formatMoney, splitPct, momentumCount } from "@/lib/mock-data";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
+import { BookmarkButton } from "./bookmark-button";
 
 // The page's one signature artifact (see anti-slop-design-law.md) — not
 // just a bigger RoomCard. The self-colored top rule + momentum stat are
@@ -15,7 +16,7 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
   return (
     <Link
       href={`/rooms/${room.id}`}
-      className="flex w-[280px] shrink-0 flex-col gap-4 rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
+      className="flex h-full flex-col gap-4 rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
     >
       <span className="block h-[3px] w-9 rounded-full" style={{ background: "var(--rival-blue)" }} />
 
@@ -40,7 +41,10 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
 
       <div className="flex items-center justify-between border-t border-border pt-3.5 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
-        <span className="text-rival-green">+{momentum} this hour</span>
+        <div className="flex items-center gap-3">
+          <span className="text-rival-green">+{momentum} this hour</span>
+          <BookmarkButton roomId={room.id} />
+        </div>
       </div>
     </Link>
   );
