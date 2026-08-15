@@ -1,9 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { ExplodingCarousel } from "@/components/exploding-carousel";
 import { SearchBarLink } from "@/components/search-bar-link";
 import { RivalCard, GoatedRivalCard } from "@/components/rival-card";
 import { RivalDivider } from "@/components/rival-divider";
-import { RoomFeed } from "@/components/room-feed";
+import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
 import { explodingRooms, matchById, topRivals, goatedRivals } from "@/lib/mock-data";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
@@ -11,13 +14,14 @@ import { explodingRooms, matchById, topRivals, goatedRivals } from "@/lib/mock-d
 // see exploding-carousel.tsx), one continuous "Top Rivals" / "Goated
 // Rivals" scroll row (weekly-style P/L into all-time career winnings,
 // split by a divider rather than stacked as two sections — per founder
-// feedback referencing the FOMO app), then a filter-chip'd, league-grouped,
-// infinite-scrolling feed (Polymarket reference for the load-more-on-
-// scroll + closing-moment pattern — see room-feed.tsx).
+// feedback referencing the FOMO app), then the same [filter icon][Rooms]
+// [Matches] browser Search uses (see rooms-matches-browser.tsx) so both
+// pages share one league-filtered, infinite-scrolling browse experience.
 export default function Home() {
   const exploding = explodingRooms(6).map((room) => ({ room, match: matchById(room.matchId)! }));
   const rivals = topRivals(5);
   const goated = goatedRivals(4);
+  const [league, setLeague] = useState<string | null>(null);
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-6">
@@ -57,7 +61,7 @@ export default function Home() {
       </section>
 
       <section className="mt-12 min-w-0">
-        <RoomFeed />
+        <RoomsMatchesBrowser league={league} onLeagueChange={setLeague} />
       </section>
     </main>
   );

@@ -201,6 +201,11 @@ export function goatedRivals(count: number): Profile[] {
   return [...profiles].sort((a, b) => b.totalWinningsCents - a.totalWinningsCents).slice(0, count);
 }
 
+// Two entries beyond what's in mock data — real tournaments users would
+// expect to filter by even before any room/match references them. Shared
+// by Home and Search's league bottom sheet (rooms-matches-browser.tsx).
+export const leagues = [...new Set(matches.map((m) => m.competition)), "World Cup", "Friendlies"];
+
 export type NotificationKind =
   | "friend_joined"
   | "challenge_received"

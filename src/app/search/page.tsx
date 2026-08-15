@@ -2,77 +2,43 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { rooms, matches, profiles, matchById } from "@/lib/mock-data";
+import { rooms, matches, profiles, matchById, leagues } from "@/lib/mock-data";
 import { RoomCard } from "@/components/room-card";
 import { MatchChip } from "@/components/match-chip";
 import { PersonRow } from "@/components/person-row";
-import { RoomFeed } from "@/components/room-feed";
-import { BottomSheet } from "@/components/bottom-sheet";
-import { SearchIcon, SlidersIcon, TagIcon, BookmarkIcon } from "@/components/icons";
-import type { Room, Match } from "@/lib/types";
+import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
+import { SearchIcon, SlidersIcon, BookmarkIcon } from "@/components/icons";
+import type { Room } from "@/lib/types";
 
-// Scope per docs/masterplan/07-product-blueprint.md#411-search. Rooms/
-// Matches are the two browse modes (per the founder's FOMO reference —
-// Tokens/Perps as a content-type switcher, not a query-result filter), so
-// they now govern both the no-query browse view and query results. People
-// results aren't behind a tab — they just show up when relevant, since
-// there's no "browse all people" mode to switch into.
-type Tab = "rooms" | "matches";
+// Scope per docs/masterplan/07-product-blueprint.md#411-search. With no
+// query, the whole browse experience (filter icon, Rooms/Matches tabs,
+// league sheet, feed) is delegated to RoomsMatchesBrowser — the same
+// component Home uses — so there's exactly one place that logic lives.
+// With a query, there's no Rooms/Matches tab at all: every matching
+// section (rooms, matches, people) just shows if it has results, since
+// searching implies "show me anything relevant," not "let me switch modes."
 type RoomStatusFilter = "" | "open" | "live" | "settled";
-
-// Two extra entries beyond what's in mock data — real tournaments users
-// would expect to filter by even before any room/match references them.
-const leagues = [...new Set(matches.map((m) => m.competition)), "World Cup", "Friendlies"];
 
 function iconButtonColor(active: boolean) {
   return active ? "var(--rival-blue)" : "var(--muted)";
 }
 
-function Checkbox({ checked }: { checked: boolean }) {
-  return (
-    <span
-      className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border"
-      style={{
-        borderColor: checked ? "var(--rival-blue)" : "var(--border-strong)",
-        background: checked ? "var(--rival-blue)" : "transparent",
-        transition: "background-color 150ms ease, border-color 150ms ease",
-      }}
-    >
-      {checked && (
-        <svg viewBox="0 0 12 12" width="10" height="10" fill="none" aria-hidden>
-          <path d="M2 6.2 4.8 9 10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
-    </span>
-  );
-}
-
 export default function SearchPage() {
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<Tab>("rooms");
-  const [showLeagueSheet, setShowLeagueSheet] = useState(false);
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
   const [league, setLeague] = useState<string | null>(null);
-  const [draftLeague, setDraftLeague] = useState<string | null>(null);
-  const [prevSheetOpen, setPrevSheetOpen] = useState(false);
   const [entryMin, setEntryMin] = useState("");
   const [entryMax, setEntryMax] = useState("");
   const [status, setStatus] = useState<RoomStatusFilter>("");
 
-  // Reset the sheet's draft selection to the applied league each time it
-  // opens — computed during render (see room-feed.tsx for why, same
-  // pattern) rather than a useEffect.
-  if (showLeagueSheet !== prevSheetOpen) {
-    setPrevSheetOpen(showLeagueSheet);
-    if (showLeagueSheet) setDraftLeague(league);
-  }
-
   const q = query.trim().toLowerCase();
   const hasAdvancedFilters = Boolean(league || entryMin || entryMax || status);
 
-  const roomMatchesFilters = useCallback(
+  // Entry-amount/status only — league is applied separately depending on
+  // mode (RoomsMatchesBrowser handles it itself in browse mode; query mode
+  // below applies it directly since RoomsMatchesBrowser isn't rendered then).
+  const entryStatusFilter = useCallback(
     (room: Room) => {
-      if (league && matchById(room.matchId)?.competition !== league) return false;
       const min = entryMin ? Number(entryMin) * 100 : null;
       const max = entryMax ? Number(entryMax) * 100 : null;
       if (min != null && room.entryAmountCents < min) return false;
@@ -80,34 +46,36 @@ export default function SearchPage() {
       if (status && room.status !== status) return false;
       return true;
     },
-    [league, entryMin, entryMax, status],
+    [entryMin, entryMax, status],
   );
 
-  const matchMatchesLeague = useCallback(
-    (m: Match) => !league || m.competition === league,
-    [league],
+  const roomMatchesAllFilters = useCallback(
+    (room: Room) => {
+      if (league && matchById(room.matchId)?.competition !== league) return false;
+      return entryStatusFilter(room);
+    },
+    [league, entryStatusFilter],
   );
 
   const matchedRooms = useMemo(
     () =>
       q
-        ? rooms.filter((r) => r.prediction.toLowerCase().includes(q)).filter(roomMatchesFilters)
+        ? rooms.filter((r) => r.prediction.toLowerCase().includes(q)).filter(roomMatchesAllFilters)
         : [],
-    [q, roomMatchesFilters],
+    [q, roomMatchesAllFilters],
   );
   const matchedMatches = useMemo(
     () =>
       q
-        ? matches
-            .filter(
-              (m) =>
-                m.homeTeam.toLowerCase().includes(q) ||
+        ? matches.filter(
+            (m) =>
+              (m.homeTeam.toLowerCase().includes(q) ||
                 m.awayTeam.toLowerCase().includes(q) ||
-                m.competition.toLowerCase().includes(q),
-            )
-            .filter(matchMatchesLeague)
+                m.competition.toLowerCase().includes(q)) &&
+              (!league || m.competition === league),
+          )
         : [],
-    [q, matchMatchesLeague],
+    [q, league],
   );
   const matchedPeople = useMemo(
     () =>
@@ -120,7 +88,6 @@ export default function SearchPage() {
     [q],
   );
 
-  const browseMatches = useMemo(() => matches.filter(matchMatchesLeague), [matchMatchesLeague]);
   const hasResults = matchedRooms.length + matchedMatches.length + matchedPeople.length > 0;
 
   // No autoFocus on this input, and every text/number input in the app is
@@ -251,92 +218,15 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Filter icon + Rooms/Matches — the content-type switcher, styled
-          after the founder's FOMO reference (their filter-icon-leading-
-          Tokens/Perps tab row). Tapping the icon opens the league sheet
-          below rather than an inline chip row. */}
-      <div className="mt-5 flex items-center gap-4 border-b border-border">
-        <button
-          onClick={() => setShowLeagueSheet(true)}
-          aria-label="Filter by league"
-          aria-pressed={Boolean(league)}
-          className="pb-2.5"
-          style={{ color: iconButtonColor(Boolean(league)), transition: "color 150ms ease" }}
-        >
-          <TagIcon />
-        </button>
-        {(["rooms", "matches"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="-mb-px border-b-2 pb-2.5 text-sm capitalize transition-colors duration-150"
-            style={{
-              borderColor: tab === t ? "var(--foreground)" : "transparent",
-              color: tab === t ? "var(--foreground)" : "var(--muted)",
-            }}
-          >
-            {t}
-          </button>
-        ))}
-        {league && (
-          <span className="ml-auto shrink-0 pb-2.5 font-mono text-xs text-rival-blue">{league}</span>
-        )}
-      </div>
-
-      <BottomSheet open={showLeagueSheet} onClose={() => setShowLeagueSheet(false)} title="Filter by league">
-        <div className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
-          <button
-            onClick={() => setDraftLeague(null)}
-            className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
-          >
-            <span className="text-sm text-foreground">All leagues</span>
-            <Checkbox checked={draftLeague === null} />
-          </button>
-          {leagues.map((l) => (
-            <button
-              key={l}
-              onClick={() => setDraftLeague(l)}
-              className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
-            >
-              <span className="text-sm text-foreground">{l}</span>
-              <Checkbox checked={draftLeague === l} />
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => {
-            setLeague(draftLeague);
-            setShowLeagueSheet(false);
-          }}
-          className="mt-5 w-full rounded-md bg-foreground py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
-        >
-          Confirm
-        </button>
-      </BottomSheet>
-
       {!q ? (
-        tab === "rooms" ? (
-          <div className="mt-10">
-            <RoomFeed extraFilter={roomMatchesFilters} />
-          </div>
-        ) : (
-          <div className="mt-10">
-            {browseMatches.length === 0 ? (
-              <p className="text-sm text-muted">No matches for this league yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {browseMatches.map((m) => (
-                  <MatchChip key={m.id} match={m} />
-                ))}
-              </div>
-            )}
-          </div>
-        )
+        <div className="mt-5">
+          <RoomsMatchesBrowser league={league} onLeagueChange={setLeague} extraRoomFilter={entryStatusFilter} />
+        </div>
       ) : !hasResults ? (
         <p className="mt-10 text-sm text-muted">No results for &ldquo;{query}&rdquo;.</p>
       ) : (
         <div className="mt-10 flex flex-col gap-10">
-          {tab === "rooms" && matchedRooms.length > 0 && (
+          {matchedRooms.length > 0 && (
             <section>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Rooms</p>
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -346,7 +236,7 @@ export default function SearchPage() {
               </div>
             </section>
           )}
-          {tab === "matches" && matchedMatches.length > 0 && (
+          {matchedMatches.length > 0 && (
             <section>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Matches</p>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
