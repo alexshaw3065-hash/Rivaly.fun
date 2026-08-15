@@ -60,7 +60,7 @@ export function ChatComposer({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Say something…"
-          className="flex-1 rounded-md border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
+          className="flex-1 rounded-md border border-border bg-surface px-3.5 py-2.5 text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
           style={{ transition: "border-color 150ms ease" }}
         />
         <button

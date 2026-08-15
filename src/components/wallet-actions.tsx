@@ -51,8 +51,7 @@ export function WalletActions({ initialBalanceCents }: { initialBalanceCents: nu
             type="number"
             min="0"
             placeholder="Amount in ₦"
-            autoFocus
-            className="w-40 rounded-md border border-border bg-surface px-3.5 py-2.5 font-mono text-sm text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
+            className="w-40 rounded-md border border-border bg-surface px-3.5 py-2.5 font-mono text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
             style={{ transition: "border-color 150ms ease" }}
           />
           <button

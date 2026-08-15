@@ -84,6 +84,12 @@ export default function SearchPage() {
   const showPeople = tab === "all" || tab === "people";
   const hasResults = matchedRooms.length + matchedMatches.length + matchedPeople.length > 0;
 
+  // No autoFocus on this input, and every text/number input in the app is
+  // text-base (16px) or larger — mobile Safari/Chrome auto-zoom the whole
+  // page in on focusing a field smaller than 16px so it stays legible, and
+  // that zoom level then persists across client-side navigation. This
+  // input had both (autoFocus + text-sm) and was the actual cause of the
+  // "loads zoomed in, has to be pinched out" bug reported on a real device.
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-12">
       <div className="flex items-center gap-3">
@@ -98,8 +104,7 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search rooms, matches, people…"
-            autoFocus
-            className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted focus:outline-none"
           />
         </div>
         <div className="flex shrink-0 items-center gap-3">
@@ -171,7 +176,7 @@ export default function SearchPage() {
             <select
               value={league ?? ""}
               onChange={(e) => setLeague(e.target.value || null)}
-              className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-border-strong focus:outline-none"
+              className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 text-base text-foreground focus:border-border-strong focus:outline-none"
             >
               <option value="">Any league</option>
               {leagues.map((l) => (
@@ -191,7 +196,7 @@ export default function SearchPage() {
                 value={entryMin}
                 onChange={(e) => setEntryMin(e.target.value)}
                 placeholder="0"
-                className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
+                className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
               />
             </div>
             <div className="flex-1">
@@ -202,7 +207,7 @@ export default function SearchPage() {
                 value={entryMax}
                 onChange={(e) => setEntryMax(e.target.value)}
                 placeholder="No max"
-                className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
+                className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
               />
             </div>
           </div>
