@@ -26,13 +26,13 @@ function iconButtonColor(active: boolean) {
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
-  const [league, setLeague] = useState<string | null>(null);
+  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
   const [entryMin, setEntryMin] = useState("");
   const [entryMax, setEntryMax] = useState("");
   const [status, setStatus] = useState<RoomStatusFilter>("");
 
   const q = query.trim().toLowerCase();
-  const hasAdvancedFilters = Boolean(league || entryMin || entryMax || status);
+  const hasAdvancedFilters = selectedLeagues.length > 0 || Boolean(entryMin || entryMax || status);
 
   // Entry-amount/status only — league is applied separately depending on
   // mode (RoomsMatchesBrowser handles it itself in browse mode; query mode
@@ -51,10 +51,13 @@ export default function SearchPage() {
 
   const roomMatchesAllFilters = useCallback(
     (room: Room) => {
-      if (league && matchById(room.matchId)?.competition !== league) return false;
+      if (selectedLeagues.length > 0) {
+        const competition = matchById(room.matchId)?.competition;
+        if (!competition || !selectedLeagues.includes(competition)) return false;
+      }
       return entryStatusFilter(room);
     },
-    [league, entryStatusFilter],
+    [selectedLeagues, entryStatusFilter],
   );
 
   const matchedRooms = useMemo(
@@ -72,10 +75,10 @@ export default function SearchPage() {
               (m.homeTeam.toLowerCase().includes(q) ||
                 m.awayTeam.toLowerCase().includes(q) ||
                 m.competition.toLowerCase().includes(q)) &&
-              (!league || m.competition === league),
+              (selectedLeagues.length === 0 || selectedLeagues.includes(m.competition)),
           )
         : [],
-    [q, league],
+    [q, selectedLeagues],
   );
   const matchedPeople = useMemo(
     () =>
@@ -140,8 +143,8 @@ export default function SearchPage() {
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted">League</p>
             <select
-              value={league ?? ""}
-              onChange={(e) => setLeague(e.target.value || null)}
+              value={selectedLeagues.length === 1 ? selectedLeagues[0] : ""}
+              onChange={(e) => setSelectedLeagues(e.target.value ? [e.target.value] : [])}
               className="mt-2 w-full rounded-md border border-border bg-surface px-3 py-2 text-base text-foreground focus:border-border-strong focus:outline-none"
             >
               <option value="">Any league</option>
@@ -205,7 +208,7 @@ export default function SearchPage() {
           {hasAdvancedFilters && (
             <button
               onClick={() => {
-                setLeague(null);
+                setSelectedLeagues([]);
                 setEntryMin("");
                 setEntryMax("");
                 setStatus("");
@@ -220,7 +223,11 @@ export default function SearchPage() {
 
       {!q ? (
         <div className="mt-5">
-          <RoomsMatchesBrowser league={league} onLeagueChange={setLeague} extraRoomFilter={entryStatusFilter} />
+          <RoomsMatchesBrowser
+            selectedLeagues={selectedLeagues}
+            onLeaguesChange={setSelectedLeagues}
+            extraRoomFilter={entryStatusFilter}
+          />
         </div>
       ) : !hasResults ? (
         <p className="mt-10 text-sm text-muted">No results for &ldquo;{query}&rdquo;.</p>

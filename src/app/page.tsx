@@ -21,7 +21,7 @@ export default function Home() {
   const exploding = explodingRooms(6).map((room) => ({ room, match: matchById(room.matchId)! }));
   const rivals = topRivals(5);
   const goated = goatedRivals(4);
-  const [league, setLeague] = useState<string | null>(null);
+  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-6">
@@ -61,7 +61,7 @@ export default function Home() {
       </section>
 
       <section className="mt-12 min-w-0">
-        <RoomsMatchesBrowser league={league} onLeagueChange={setLeague} />
+        <RoomsMatchesBrowser selectedLeagues={selectedLeagues} onLeaguesChange={setSelectedLeagues} />
       </section>
     </main>
   );

@@ -62,6 +62,21 @@ export function TagIcon() {
   );
 }
 
+// The classic funnel — wide intake narrowing to a single output — reads as
+// "filter" more universally than the tag mark did for the league picker.
+export function FilterIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden>
+      <path
+        d="M3 4.5h14L11.5 11v5.3l-3 1.5V11L3 4.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function SlidersIcon() {
   return (
     <svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden>

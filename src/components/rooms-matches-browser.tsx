@@ -5,16 +5,20 @@ import { matches, matchById, leagues } from "@/lib/mock-data";
 import { RoomFeed } from "./room-feed";
 import { MatchChip } from "./match-chip";
 import { BottomSheet } from "./bottom-sheet";
-import { TagIcon } from "./icons";
+import { FilterIcon } from "./icons";
 import type { Room, Match } from "@/lib/types";
 
 // The [filter icon][Rooms][Matches] content-type switcher, per the
 // founder's FOMO reference (their filter-icon-leading Tokens/Perps row).
 // Shared by Home and Search's no-query browse view so the pattern — and
-// its league-filtering behavior — only lives in one place. `league` is
-// owned by the parent (not this component) because Search's advanced-
+// its league-filtering behavior — only lives in one place. `selectedLeagues`
+// is owned by the parent (not this component) because Search's advanced-
 // search panel also reads/writes it via its own League <select>; Home just
 // keeps a plain useState for it since it has no other UI touching league.
+//
+// Multi-select: "All leagues" is exclusive (picking it clears everything
+// else); specific leagues toggle independently and combine with each
+// other — an empty array means "All leagues."
 type Tab = "rooms" | "matches";
 
 function iconButtonColor(active: boolean) {
@@ -40,38 +44,55 @@ function Checkbox({ checked }: { checked: boolean }) {
   );
 }
 
+function summarizeLeagues(selected: string[]): string | null {
+  if (selected.length === 0) return null;
+  if (selected.length === 1) return selected[0];
+  return `${selected.length} leagues`;
+}
+
 export function RoomsMatchesBrowser({
-  league,
-  onLeagueChange,
+  selectedLeagues,
+  onLeaguesChange,
   extraRoomFilter,
 }: {
-  league: string | null;
-  onLeagueChange: (league: string | null) => void;
+  selectedLeagues: string[];
+  onLeaguesChange: (leagues: string[]) => void;
   extraRoomFilter?: (room: Room) => boolean;
 }) {
   const [tab, setTab] = useState<Tab>("rooms");
   const [showSheet, setShowSheet] = useState(false);
-  const [draftLeague, setDraftLeague] = useState(league);
+  const [draftLeagues, setDraftLeagues] = useState(selectedLeagues);
   const [prevOpen, setPrevOpen] = useState(showSheet);
 
-  // Reset the sheet's draft selection to the applied league each time it
+  // Reset the sheet's draft selection to the applied leagues each time it
   // opens — computed during render (see room-feed.tsx for why) rather
   // than a useEffect.
   if (showSheet !== prevOpen) {
     setPrevOpen(showSheet);
-    if (showSheet) setDraftLeague(league);
+    if (showSheet) setDraftLeagues(selectedLeagues);
   }
 
-  const roomMatchesLeague = useCallback(
+  function toggleDraftLeague(l: string) {
+    setDraftLeagues((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
+  }
+
+  const roomMatchesLeagues = useCallback(
     (room: Room) => {
-      if (league && matchById(room.matchId)?.competition !== league) return false;
+      if (selectedLeagues.length > 0) {
+        const competition = matchById(room.matchId)?.competition;
+        if (!competition || !selectedLeagues.includes(competition)) return false;
+      }
       return extraRoomFilter ? extraRoomFilter(room) : true;
     },
-    [league, extraRoomFilter],
+    [selectedLeagues, extraRoomFilter],
   );
 
-  const matchMatchesLeague = useCallback((m: Match) => !league || m.competition === league, [league]);
-  const browseMatches = useMemo(() => matches.filter(matchMatchesLeague), [matchMatchesLeague]);
+  const matchMatchesLeagues = useCallback(
+    (m: Match) => selectedLeagues.length === 0 || selectedLeagues.includes(m.competition),
+    [selectedLeagues],
+  );
+  const browseMatches = useMemo(() => matches.filter(matchMatchesLeagues), [matchMatchesLeagues]);
+  const summary = summarizeLeagues(selectedLeagues);
 
   return (
     <div>
@@ -79,11 +100,11 @@ export function RoomsMatchesBrowser({
         <button
           onClick={() => setShowSheet(true)}
           aria-label="Filter by league"
-          aria-pressed={Boolean(league)}
+          aria-pressed={selectedLeagues.length > 0}
           className="pb-2.5"
-          style={{ color: iconButtonColor(Boolean(league)), transition: "color 150ms ease" }}
+          style={{ color: iconButtonColor(selectedLeagues.length > 0), transition: "color 150ms ease" }}
         >
-          <TagIcon />
+          <FilterIcon />
         </button>
         {(["rooms", "matches"] as const).map((t) => (
           <button
@@ -98,34 +119,34 @@ export function RoomsMatchesBrowser({
             {t}
           </button>
         ))}
-        {league && (
-          <span className="ml-auto shrink-0 pb-2.5 font-mono text-xs text-rival-blue">{league}</span>
+        {summary && (
+          <span className="ml-auto shrink-0 pb-2.5 font-mono text-xs text-rival-blue">{summary}</span>
         )}
       </div>
 
       <BottomSheet open={showSheet} onClose={() => setShowSheet(false)} title="Filter by league">
         <div className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
           <button
-            onClick={() => setDraftLeague(null)}
+            onClick={() => setDraftLeagues([])}
             className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
           >
             <span className="text-sm text-foreground">All leagues</span>
-            <Checkbox checked={draftLeague === null} />
+            <Checkbox checked={draftLeagues.length === 0} />
           </button>
           {leagues.map((l) => (
             <button
               key={l}
-              onClick={() => setDraftLeague(l)}
+              onClick={() => toggleDraftLeague(l)}
               className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
             >
               <span className="text-sm text-foreground">{l}</span>
-              <Checkbox checked={draftLeague === l} />
+              <Checkbox checked={draftLeagues.includes(l)} />
             </button>
           ))}
         </div>
         <button
           onClick={() => {
-            onLeagueChange(draftLeague);
+            onLeaguesChange(draftLeagues);
             setShowSheet(false);
           }}
           className="mt-5 w-full rounded-md bg-foreground py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
@@ -136,7 +157,7 @@ export function RoomsMatchesBrowser({
 
       {tab === "rooms" ? (
         <div className="mt-10">
-          <RoomFeed extraFilter={roomMatchesLeague} />
+          <RoomFeed extraFilter={roomMatchesLeagues} />
         </div>
       ) : (
         <div className="mt-10">
