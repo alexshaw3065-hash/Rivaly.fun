@@ -147,7 +147,7 @@ export default function SearchPage() {
       </div>
 
       {showLeaguePanel && (
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
           {leagues.map((l) => {
             const active = league === l;
             return (
@@ -289,7 +289,7 @@ export default function SearchPage() {
           {showMatches && matchedMatches.length > 0 && (
             <section>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Matches</p>
-              <div className="mt-3 flex min-w-0 gap-3 overflow-x-auto pb-1">
+              <div className="no-scrollbar mt-3 flex min-w-0 gap-3 overflow-x-auto pb-1">
                 {matchedMatches.map((m) => (
                   <MatchChip key={m.id} match={m} />
                 ))}

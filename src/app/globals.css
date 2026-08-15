@@ -79,6 +79,19 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* For every horizontally-scrolling row (rival cards, filter chips, league
+   tags, match chips) — the raw browser scrollbar track reads as a desktop
+   affordance bolted onto a mobile-native gesture. Partial-card-peek at the
+   edge already signals "swipe for more" (how Instagram/Twitter rows work);
+   scroll still works, just without the visible track. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Safety net, not the fix: mobile Safari/Chrome auto-zoom the whole page in
    when a focused input/select/textarea renders below 16px, so it stays
    legible — and that zoom persists across client-side navigation. Every

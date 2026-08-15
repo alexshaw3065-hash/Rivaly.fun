@@ -2,17 +2,18 @@ import Link from "next/link";
 import { ExplodingCarousel } from "@/components/exploding-carousel";
 import { SearchBarLink } from "@/components/search-bar-link";
 import { RivalCard, GoatedRivalCard } from "@/components/rival-card";
+import { RivalDivider } from "@/components/rival-divider";
 import { RoomFeed } from "@/components/room-feed";
 import { explodingRooms, matchById, topRivals, goatedRivals } from "@/lib/mock-data";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
 // "Exploding Now" carousel (one card at a time — swipe or auto-advance,
-// see exploding-carousel.tsx), "Top Rivals" (weekly-style P/L) and "Goated
-// Rivals" (all-time career winnings) strips — two distinct leaderboards per
-// the FOMO "Weekly Top Trades" / "Hall of Fame" reference — then a
-// filter-chip'd, league-grouped, infinite-scrolling feed (Polymarket
-// reference for the load-more-on-scroll + closing-moment pattern — see
-// room-feed.tsx).
+// see exploding-carousel.tsx), one continuous "Top Rivals" / "Goated
+// Rivals" scroll row (weekly-style P/L into all-time career winnings,
+// split by a divider rather than stacked as two sections — per founder
+// feedback referencing the FOMO app), then a filter-chip'd, league-grouped,
+// infinite-scrolling feed (Polymarket reference for the load-more-on-
+// scroll + closing-moment pattern — see room-feed.tsx).
 export default function Home() {
   const exploding = explodingRooms(6).map((room) => ({ room, match: matchById(room.matchId)! }));
   const rivals = topRivals(5);
@@ -35,21 +36,20 @@ export default function Home() {
       </section>
 
       <section className="mt-12 min-w-0">
-        <h2 className="font-display text-xl font-semibold text-foreground">Top rivals</h2>
-        <div className="mt-5 flex min-w-0 gap-3 overflow-x-auto pb-1">
+        <h2 className="font-display text-xl font-semibold text-foreground">Rivals</h2>
+        <div className="no-scrollbar mt-5 flex min-w-0 gap-3 overflow-x-auto pb-1">
           {rivals.map((profile, i) => (
             <div key={profile.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>
               <RivalCard profile={profile} />
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className="mt-12 min-w-0">
-        <h2 className="font-display text-xl font-semibold text-foreground">🏆 Goated rivals</h2>
-        <div className="mt-5 flex min-w-0 gap-3 overflow-x-auto pb-1">
+          <RivalDivider />
           {goated.map((profile, i) => (
-            <div key={profile.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>
+            <div
+              key={profile.id}
+              className="stagger-in"
+              style={{ animationDelay: `${(rivals.length + i) * 40}ms` }}
+            >
               <GoatedRivalCard profile={profile} />
             </div>
           ))}

@@ -120,7 +120,7 @@ export function RoomFeed({ extraFilter }: { extraFilter?: (room: Room) => boolea
 
   return (
     <div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {filters.map((f) => (
           <button
             key={f.id}
