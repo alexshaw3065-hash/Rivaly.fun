@@ -6,17 +6,16 @@ import { rooms, matches, profiles, matchById, leagues } from "@/lib/mock-data";
 import { RoomCard } from "@/components/room-card";
 import { MatchChip } from "@/components/match-chip";
 import { PersonRow } from "@/components/person-row";
-import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
+import { RoomFeed } from "@/components/room-feed";
 import { SearchIcon, SlidersIcon, BookmarkIcon } from "@/components/icons";
 import type { Room } from "@/lib/types";
 
-// Scope per docs/masterplan/07-product-blueprint.md#411-search. With no
-// query, the whole browse experience (filter icon, Rooms/Matches tabs,
-// league sheet, feed) is delegated to RoomsMatchesBrowser — the same
-// component Home uses — so there's exactly one place that logic lives.
-// With a query, there's no Rooms/Matches tab at all: every matching
-// section (rooms, matches, people) just shows if it has results, since
-// searching implies "show me anything relevant," not "let me switch modes."
+// Scope per docs/masterplan/07-product-blueprint.md#411-search. The
+// Rooms/Matches/Packs browser lives on Home only (per founder direction) —
+// Search stays a plain search: search bar + advanced filters (league,
+// entry range, status) over a single RoomFeed, no tab switcher. With a
+// query, every matching section (rooms, matches, people) just shows if it
+// has results, since searching implies "show me anything relevant."
 type RoomStatusFilter = "" | "open" | "live" | "settled";
 
 function iconButtonColor(active: boolean) {
@@ -222,12 +221,8 @@ export default function SearchPage() {
       )}
 
       {!q ? (
-        <div className="mt-5">
-          <RoomsMatchesBrowser
-            selectedLeagues={selectedLeagues}
-            onLeaguesChange={setSelectedLeagues}
-            extraRoomFilter={entryStatusFilter}
-          />
+        <div className="mt-10">
+          <RoomFeed extraFilter={roomMatchesAllFilters} />
         </div>
       ) : !hasResults ? (
         <p className="mt-10 text-sm text-muted">No results for &ldquo;{query}&rdquo;.</p>

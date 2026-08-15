@@ -1,25 +1,25 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { matches, matchById, leagues } from "@/lib/mock-data";
+import { matches, matchById, leagues, packs } from "@/lib/mock-data";
 import { RoomFeed } from "./room-feed";
 import { MatchChip } from "./match-chip";
+import { PackCard } from "./pack-card";
 import { BottomSheet } from "./bottom-sheet";
 import { FilterIcon } from "./icons";
-import type { Room, Match } from "@/lib/types";
+import type { Room, Match, Pack } from "@/lib/types";
 
-// The [filter icon][Rooms][Matches] content-type switcher, per the
+// The [filter icon][Rooms][Matches][Packs] content-type switcher, per the
 // founder's FOMO reference (their filter-icon-leading Tokens/Perps row).
-// Shared by Home and Search's no-query browse view so the pattern — and
-// its league-filtering behavior — only lives in one place. `selectedLeagues`
-// is owned by the parent (not this component) because Search's advanced-
-// search panel also reads/writes it via its own League <select>; Home just
-// keeps a plain useState for it since it has no other UI touching league.
+// Home-only (per founder direction — Search stays a plain search, see
+// search/page.tsx) so the league-filtering behavior only lives in one
+// place. `selectedLeagues` is still owned by the parent rather than this
+// component, matching Home's plain useState for it.
 //
 // Multi-select: "All leagues" is exclusive (picking it clears everything
 // else); specific leagues toggle independently and combine with each
 // other — an empty array means "All leagues."
-type Tab = "rooms" | "matches";
+type Tab = "rooms" | "matches" | "packs";
 
 function iconButtonColor(active: boolean) {
   return active ? "var(--rival-blue)" : "var(--muted)";
@@ -92,6 +92,20 @@ export function RoomsMatchesBrowser({
     [selectedLeagues],
   );
   const browseMatches = useMemo(() => matches.filter(matchMatchesLeagues), [matchMatchesLeagues]);
+
+  // A pack matches the league filter if any of its legs does — it's still
+  // relevant to "show me Premier League stuff" even if one leg is Serie A.
+  const packMatchesLeagues = useCallback(
+    (p: Pack) =>
+      selectedLeagues.length === 0 ||
+      p.legs.some((leg) => {
+        const competition = matchById(leg.matchId)?.competition;
+        return competition && selectedLeagues.includes(competition);
+      }),
+    [selectedLeagues],
+  );
+  const browsePacks = useMemo(() => packs.filter(packMatchesLeagues), [packMatchesLeagues]);
+
   const summary = summarizeLeagues(selectedLeagues);
 
   return (
@@ -106,7 +120,7 @@ export function RoomsMatchesBrowser({
         >
           <FilterIcon />
         </button>
-        {(["rooms", "matches"] as const).map((t) => (
+        {(["rooms", "matches", "packs"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -159,7 +173,7 @@ export function RoomsMatchesBrowser({
         <div className="mt-10">
           <RoomFeed extraFilter={roomMatchesLeagues} />
         </div>
-      ) : (
+      ) : tab === "matches" ? (
         <div className="mt-10">
           {browseMatches.length === 0 ? (
             <p className="text-sm text-muted">No matches for this league yet.</p>
@@ -167,6 +181,18 @@ export function RoomsMatchesBrowser({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {browseMatches.map((m) => (
                 <MatchChip key={m.id} match={m} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-10">
+          {browsePacks.length === 0 ? (
+            <p className="text-sm text-muted">No packs for this league yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {browsePacks.map((p) => (
+                <PackCard key={p.id} pack={p} />
               ))}
             </div>
           )}

@@ -4,7 +4,7 @@
  * a Supabase project is linked — every screen should already work with
  * this data with zero prop-shape changes.
  */
-import type { Match, Room, Profile, ChatMessage, Transaction, Wallet } from "./types";
+import type { Match, Room, Profile, ChatMessage, Transaction, Wallet, Pack } from "./types";
 
 export const matches: Match[] = [
   { id: "m1", competition: "Premier League", homeTeam: "Arsenal", awayTeam: "Chelsea", kickoffAt: "2026-08-15T19:30:00Z", status: "live", homeScore: 2, awayScore: 1 },
@@ -59,6 +59,89 @@ export const rooms: Room[] = [
   { id: "r23", creatorId: "u6", matchId: "m4", prediction: "Under 2.5 goals", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 9_500_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-5U41", createdAt: "2026-08-15T10:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
   { id: "r24", creatorId: "u1", matchId: "m5", prediction: "Dortmund hold on for a draw", entryAmountCents: 2_000_00, visibility: "public", status: "live", poolTotalCents: 58_000_00, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-6D53", createdAt: "2026-08-15T18:35:00Z", settledAt: null },
 ];
+
+// Combo/parlay-style bundles — a curated statement of conviction across
+// several matches, not a sportsbook bet-slip. See Pack in types.ts.
+export const packs: Pack[] = [
+  {
+    id: "p1",
+    creatorId: "u5",
+    legs: [
+      { matchId: "m1", prediction: "Arsenal scores 3+" },
+      { matchId: "m5", prediction: "Bayern win by 2+" },
+      { matchId: "m10", prediction: "Real Madrid progress" },
+    ],
+    entryAmountCents: 2_000_00,
+    poolTotalCents: 96_000_00,
+    participantCount: 18,
+    payoutMultiplier: 4.8,
+    status: "live",
+    createdAt: "2026-08-15T17:00:00Z",
+  },
+  {
+    id: "p2",
+    creatorId: "u3",
+    legs: [
+      { matchId: "m2", prediction: "Man City win by 2+" },
+      { matchId: "m7", prediction: "Man United win" },
+    ],
+    entryAmountCents: 1_000_00,
+    poolTotalCents: 41_000_00,
+    participantCount: 27,
+    payoutMultiplier: 2.6,
+    status: "open",
+    createdAt: "2026-08-15T16:00:00Z",
+  },
+  {
+    id: "p3",
+    creatorId: "u9",
+    legs: [
+      { matchId: "m8", prediction: "Napoli win at home" },
+      { matchId: "m6", prediction: "PSG keep a clean sheet" },
+      { matchId: "m10", prediction: "Real Madrid progress" },
+      { matchId: "m3", prediction: "El Clasico ends in a draw" },
+    ],
+    entryAmountCents: 3_000_00,
+    poolTotalCents: 132_000_00,
+    participantCount: 14,
+    payoutMultiplier: 7.2,
+    status: "open",
+    createdAt: "2026-08-15T14:30:00Z",
+  },
+  {
+    id: "p4",
+    creatorId: "u1",
+    legs: [
+      { matchId: "m4", prediction: "Enyimba win at home" },
+      { matchId: "m12", prediction: "Sporting Lagos win" },
+    ],
+    entryAmountCents: 500_00,
+    poolTotalCents: 18_500_00,
+    participantCount: 22,
+    payoutMultiplier: 3.1,
+    status: "settled",
+    createdAt: "2026-08-15T09:00:00Z",
+  },
+  {
+    id: "p5",
+    creatorId: "u7",
+    legs: [
+      { matchId: "m11", prediction: "Chelsea beat Liverpool" },
+      { matchId: "m9", prediction: "Kano Pillars hold Enyimba to a draw" },
+      { matchId: "m2", prediction: "Man City win by 2+" },
+    ],
+    entryAmountCents: 1_500_00,
+    poolTotalCents: 54_000_00,
+    participantCount: 19,
+    payoutMultiplier: 5.4,
+    status: "open",
+    createdAt: "2026-08-14T22:00:00Z",
+  },
+];
+
+export function packById(id: string): Pack | undefined {
+  return packs.find((p) => p.id === id);
+}
 
 function msg(
   id: string,

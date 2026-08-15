@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 // never removes it, so a missing/blocked script still renders dark, matching
 // the fallback baked into :root. Runs before paint to avoid a flash of the
 // wrong theme; kept inline rather than in an external file so it blocks.
-const themeInitScript = `(function(){try{if(localStorage.getItem('rivaly-theme')==='light'){document.documentElement.classList.add('light');}}catch(e){}})();`;
+const themeInitScript = `(function(){try{if(localStorage.getItem('rivaly-theme')==='light'){document.documentElement.classList.add('light');}if(localStorage.getItem('rivaly-sidebar-collapsed')==='true'){document.documentElement.classList.add('sidebar-collapsed');}}catch(e){}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -45,22 +45,25 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500&display=swap"
         />
       </head>
-      {/* Deliberately NOT display:flex. Nav's own pieces are all sticky/
-          fixed positioned, so it never needed flex for layout — but making
-          body a flex column turned <main> into a flex item whose
-          cross-axis (width) stretch-resolution goes through the flex
-          algorithm instead of plain block "fill the containing block."
-          With certain deeply-nested content (a flex row with overflow-x:
-          auto and flex-shrink:0 children — Top Rivals, Goated Rivals, the
-          Exploding Now carousel track) that resolution fell back to
-          shrink-to-fit instead of the viewport width, blowing <main> out
-          to however wide its widest row's content was — confirmed by
-          toggling body to display:block live and watching <main> snap
-          from 1024px back to 375px. Plain block flow doesn't have this
-          failure mode at all. overflow-x-hidden stays as a cheap backstop. */}
+      {/* Deliberately NOT display:flex. Nav's sidebar/header/bottom-bar are
+          all fixed or sticky positioned (never flex siblings of the page
+          content), and the content-shell div Nav wraps children in
+          (nav.tsx) only ever uses padding to make room for them — but
+          making body itself a flex column once turned <main> into a flex
+          item whose cross-axis (width) stretch-resolution goes through the
+          flex algorithm instead of plain block "fill the containing
+          block." With certain deeply-nested content (a flex row with
+          overflow-x:auto and flex-shrink:0 children — Top Rivals, Goated
+          Rivals, the Exploding Now carousel track) that resolution fell
+          back to shrink-to-fit instead of the viewport width, blowing
+          <main> out to however wide its widest row's content was —
+          confirmed by toggling body to display:block live and watching
+          <main> snap from 1024px back to 375px. Plain block flow doesn't
+          have this failure mode at all, so nothing in this tree — body,
+          Nav, or content-shell — should ever go back to flex for layout.
+          overflow-x-hidden stays as a cheap backstop. */}
       <body className="min-h-full overflow-x-hidden bg-background text-foreground pb-16 md:pb-0">
-        <Nav />
-        {children}
+        <Nav>{children}</Nav>
       </body>
     </html>
   );

@@ -11,6 +11,7 @@ export type RoomId = string;
 export type MatchId = string;
 export type EntryId = string;
 export type TransactionId = string;
+export type PackId = string;
 
 export interface Profile {
   id: UserId;
@@ -98,6 +99,30 @@ export interface Wallet {
 export interface Follow {
   followerId: UserId;
   followingId: UserId;
+  createdAt: string;
+}
+
+/**
+ * A "pack" bundles 2-4 individual predictions (each tied to its own match)
+ * into a single conviction ticket — per masterplan 07-product-blueprint.md
+ * §5.8 "Express Predictions." Framed as "I have conviction across these
+ * events," not a sportsbook bet-slip builder: no odds math shown per leg,
+ * just the combined payout multiplier if every leg hits.
+ */
+export interface PackLeg {
+  matchId: MatchId;
+  prediction: string;
+}
+
+export interface Pack {
+  id: PackId;
+  creatorId: UserId;
+  legs: PackLeg[];
+  entryAmountCents: number;
+  poolTotalCents: number;
+  participantCount: number;
+  payoutMultiplier: number; // combined return if every leg hits, e.g. 4.2
+  status: RoomStatus;
   createdAt: string;
 }
 

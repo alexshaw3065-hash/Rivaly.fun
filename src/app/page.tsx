@@ -25,9 +25,13 @@ export default function Home() {
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-6">
-      <SearchBarLink />
+      {/* md:hidden — desktop already has a search bar in DesktopHeader
+          (nav.tsx/desktop-header.tsx); this is the mobile-only shortcut. */}
+      <div className="md:hidden">
+        <SearchBarLink />
+      </div>
 
-      <section className="mt-9 min-w-0">
+      <section className="mt-9 min-w-0 md:mt-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold text-foreground">🔥 Exploding now</h2>
           <Link href="/search" className="hover-link text-sm text-muted transition-colors">

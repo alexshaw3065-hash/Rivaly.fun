@@ -1,28 +1,23 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "./avatar";
 import { ThemeToggle } from "./theme-toggle";
 import { TopBarIcons } from "./top-bar-icons";
+import { Sidebar } from "./sidebar";
+import { DesktopHeader } from "./desktop-header";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
 //
-// Two physical navs, not one responsive one: 95% of the target audience is
-// mobile (docs/masterplan/09-competitive-research.md#1), so mobile gets a
-// real bottom tab bar — the one-handed pattern the research calls for —
-// rather than a squeezed-down version of the desktop link row.
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/search", label: "Search" },
-  { href: "/following", label: "Following" },
-  { href: "/wallet", label: "Wallet" },
-];
-
-// No Create tab here — the floating + (X's compose-button pattern) is the
-// one entry point on mobile, matching the reference video. Desktop keeps an
-// explicit "Create room" button since there's no FAB there.
+// Two physically different navs, not one responsive one: 95% of the target
+// audience is mobile (docs/masterplan/09-competitive-research.md#1), so
+// mobile keeps its own top bar + bottom tab bar (the one-handed pattern the
+// research calls for) untouched, while desktop gets a collapsible left
+// sidebar + top header (sidebar.tsx, desktop-header.tsx) per the founder's
+// Polymarket-style direction — not a squeezed-down version of the mobile bar.
 const tabs = [
   { href: "/", label: "Home" },
   { href: "/search", label: "Search" },
@@ -34,47 +29,18 @@ const tabs = [
 const SELF_USERNAME = "victorj";
 const SELF_NAME = "Victor";
 
-export function Nav() {
+export function Nav({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
     <>
-      <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-4 md:gap-6 md:px-6">
-          <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground md:text-lg">
+      {/* Mobile top bar — unchanged, md:hidden. */}
+      <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
+        <div className="flex items-center gap-3 px-4 py-4">
+          <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
             Rivaly
           </Link>
-
-          <div className="hidden flex-1 items-center gap-6 text-sm md:flex">
-            {links.map((link) => {
-              const active = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="relative py-1 transition-colors duration-150"
-                  style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
-                >
-                  {link.label}
-                  {active && (
-                    <span
-                      className="absolute -bottom-[17px] left-0 right-0 h-[2px]"
-                      style={{ background: "var(--foreground)" }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          <Link
-            href="/rooms/create"
-            className="hidden shrink-0 rounded-md bg-foreground px-3.5 py-2 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97] md:inline-block"
-          >
-            Create room
-          </Link>
-
-          <div className="ml-auto flex shrink-0 items-center gap-3 md:ml-0 md:gap-4">
+          <div className="ml-auto flex shrink-0 items-center gap-3">
             <TopBarIcons />
             <ThemeToggle />
             <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
@@ -83,6 +49,15 @@ export function Nav() {
           </div>
         </div>
       </nav>
+
+      <Sidebar />
+      <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
+
+      {/* Fixed positioning throughout (sidebar, header, mobile bars) means
+          this wrapper only ever needs padding, never flex, to make room for
+          them — see the body comment in layout.tsx for why flex is off the
+          table here. */}
+      <div className="content-shell md:pl-[var(--sidebar-width)] md:pt-16">{children}</div>
 
       {/* Floating create button — mobile only, matches the X compose-button
           reference exactly. Sits above the bottom tab bar. */}

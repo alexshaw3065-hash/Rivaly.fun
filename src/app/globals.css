@@ -37,6 +37,22 @@
   --danger-red: #ef4444;
 
   --font-display: "Cabinet Grotesk", var(--font-geist-sans), sans-serif;
+
+  /* Desktop-only shell metrics. Read by nav.tsx's sidebar/header (fixed-
+     positioned, never flex — see the body comment in layout.tsx) and by
+     the content wrapper's padding, so all three stay in lockstep off one
+     source of truth instead of three hardcoded numbers. */
+  --sidebar-width-expanded: 240px;
+  --sidebar-width-collapsed: 72px;
+  --sidebar-width: var(--sidebar-width-expanded);
+  --header-height: 64px;
+}
+
+/* Set on <html> by the blocking script in layout.tsx (mirrors the `.light`
+   theme class) so the collapsed width applies before first paint — no
+   post-hydration snap from expanded to collapsed. */
+:root.sidebar-collapsed {
+  --sidebar-width: var(--sidebar-width-collapsed);
 }
 
 :root.light {
@@ -193,6 +209,21 @@ body {
 .theme-switching,
 .theme-switching * {
   transition: none !important;
+}
+
+/* Sidebar/header/content all key off --sidebar-width, so the collapse
+   toggle just flips one CSS var (see the .sidebar-collapsed rule above)
+   and these three transition in lockstep. */
+.sidebar-shell {
+  width: var(--sidebar-width);
+  transition: width 200ms ease;
+}
+.header-shell {
+  left: var(--sidebar-width);
+  transition: left 200ms ease;
+}
+.content-shell {
+  transition: padding-left 200ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {

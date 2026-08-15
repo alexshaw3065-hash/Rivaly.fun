@@ -95,3 +95,54 @@ export function SearchIcon() {
     </svg>
   );
 }
+
+// Sidebar nav marks — same bare-mark, hand-drawn convention as the icons
+// above, sized for the collapsible desktop sidebar (nav.tsx).
+export function HomeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
+      <path d="M3.5 9.6 10 4l6.5 5.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.5 8.3V16h9V8.3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M8 16v-4.2h4V16" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function FollowingIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
+      <circle cx="7.3" cy="7" r="2.6" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M2.8 16c.4-2.8 2.2-4.3 4.5-4.3s4.1 1.5 4.5 4.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13 4.3c1.3.3 2.2 1.4 2.2 2.9s-.9 2.6-2.2 2.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M13.2 11.8c1.9.4 3.2 1.8 3.6 4.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function WalletIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
+      <path d="M3 6.5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 15 6.5V7H4.5A1.5 1.5 0 0 1 3 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M3 6.5v8A1.5 1.5 0 0 0 4.5 16H16a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H4.5A1.5 1.5 0 0 1 3 5.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx="13.6" cy="11" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Points left at rest; nav.tsx rotates it 180° when the sidebar is
+// collapsed so it always points the direction the toggle will expand to.
+export function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <path d="M12 5 7.5 10l4.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function PlusIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
+      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
