@@ -45,13 +45,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500&display=swap"
         />
       </head>
-      {/* overflow-x-hidden is a safety net, not the fix: body is a flex
-          column, so a flex item (each page's <main>) needs its own
-          min-w-0 or it won't shrink below a wide descendant's intrinsic
-          width (e.g. a horizontally-scrolling card row) — classic flexbox
-          min-width:auto blowout. This just catches it if a future page
-          forgets that. */}
-      <body className="min-h-full flex flex-col overflow-x-hidden bg-background text-foreground pb-16 md:pb-0">
+      {/* Deliberately NOT display:flex. Nav's own pieces are all sticky/
+          fixed positioned, so it never needed flex for layout — but making
+          body a flex column turned <main> into a flex item whose
+          cross-axis (width) stretch-resolution goes through the flex
+          algorithm instead of plain block "fill the containing block."
+          With certain deeply-nested content (a flex row with overflow-x:
+          auto and flex-shrink:0 children — Top Rivals, Goated Rivals, the
+          Exploding Now carousel track) that resolution fell back to
+          shrink-to-fit instead of the viewport width, blowing <main> out
+          to however wide its widest row's content was — confirmed by
+          toggling body to display:block live and watching <main> snap
+          from 1024px back to 375px. Plain block flow doesn't have this
+          failure mode at all. overflow-x-hidden stays as a cheap backstop. */}
+      <body className="min-h-full overflow-x-hidden bg-background text-foreground pb-16 md:pb-0">
         <Nav />
         {children}
       </body>
