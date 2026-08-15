@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "./avatar";
+import { ThemeToggle } from "./theme-toggle";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
@@ -70,9 +71,12 @@ export function Nav() {
             Create room
           </Link>
 
-          <Link href={`/profile/${SELF_USERNAME}`} className="ml-auto shrink-0 md:ml-0">
-            <Avatar name={SELF_NAME} size={32} />
-          </Link>
+          <div className="ml-auto flex shrink-0 items-center gap-4 md:ml-0">
+            <ThemeToggle />
+            <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
+              <Avatar name={SELF_NAME} size={32} />
+            </Link>
+          </div>
         </div>
       </nav>
 

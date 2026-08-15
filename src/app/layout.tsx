@@ -24,13 +24,21 @@ export const metadata: Metadata = {
   description: "Back your football opinion. Predict against people, not the house.",
 };
 
+// Dark is the brand default (see globals.css) — this only ever adds `.light`,
+// never removes it, so a missing/blocked script still renders dark, matching
+// the fallback baked into :root. Runs before paint to avoid a flash of the
+// wrong theme; kept inline rather than in an external file so it blocks.
+const themeInitScript = `(function(){try{if(localStorage.getItem('rivaly-theme')==='light'){document.documentElement.classList.add('light');}}catch(e){}})();`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="preconnect" href="https://api.fontshare.com" />
         <link
           rel="stylesheet"

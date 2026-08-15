@@ -1,14 +1,25 @@
 @import "tailwindcss";
 
 /*
- * Rivaly is dark-first: "Black. Premium. Apple. Night football."
- * Per docs/design-references/rivaly-redesign-brief.md: true near-black,
- * Rivaly blue + Rivaly green as the two opposing sides (this is the core
- * product mechanic, not decoration), no purple/gold/rainbow gradients.
- * Red is kept as a strictly functional danger/live signal, never decorative.
- * Depth comes from surface layering + borders, not a colored background tint.
- * Loud only for the moments that deserve it (goals, wins, whales) —
- * everywhere else stays calm and minimal.
+ * Rivaly is dark-first: "Black. Premium. Apple. Night football." Dark is
+ * the default brand identity and the no-JS/before-hydration fallback (see
+ * the blocking script in layout.tsx) — light is an explicit opt-in via the
+ * ThemeToggle in Nav, applied as a `.light` class on <html>, not a second
+ * "equal" theme picked by system preference.
+ *
+ * Per docs/design-references/rivaly-redesign-brief.md: Rivaly blue + Rivaly
+ * green as the two opposing sides (this is the core product mechanic, not
+ * decoration), no purple/gold/rainbow gradients. Red is kept as a strictly
+ * functional danger/live signal, never decorative. Depth comes from surface
+ * layering + borders, not a colored background tint. Loud only for the
+ * moments that deserve it (goals, wins, whales) — everywhere else calm.
+ *
+ * Light-mode neutrals are a clean near-white + warm-neutral surface tint,
+ * deliberately not the reflexive "#f3f4f6 slop gray" or a cream/beige
+ * editorial background flagged in anti-slop-design-law.md — same layering
+ * logic as dark, inverted. Accent hues are deepened slightly in light mode
+ * (not just reused at the same value) so text usages (e.g. Wallet's +amount,
+ * LiveBadge) clear AA contrast against white.
  */
 :root {
   --background: #0a0a0a;
@@ -26,6 +37,22 @@
   --danger-red: #ef4444;
 
   --font-display: "Cabinet Grotesk", var(--font-geist-sans), sans-serif;
+}
+
+:root.light {
+  --background: #ffffff;
+  --surface: #f4f4f2;
+  --surface-elevated: #ebebe8;
+  --foreground: #0a0a0a;
+  --muted: #67675f;
+  --border: #e3e3df;
+  --border-strong: #c9c9c3;
+
+  --rival-blue: #2a4fdb;
+  --rival-blue-dim: #e8edff;
+  --rival-green: #128a4e;
+  --rival-green-dim: #e3f5ea;
+  --danger-red: #dc2626;
 }
 
 @theme inline {
@@ -47,7 +74,7 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
@@ -103,6 +130,18 @@ body {
   .hover-link-danger:hover {
     color: var(--danger-red);
   }
+}
+
+/* Applied for one frame by ThemeToggle while it flips the `.light` class.
+   Chromium fails to recompute a transitioning color property when only the
+   var() it references changes (not the element's own declared value) — the
+   computed style gets stuck at the pre-toggle color indefinitely. Rather
+   than audit every transition-colors usage in the app for this, force every
+   element to resolve the new theme instantly, then let normal transitions
+   (hover, press, etc.) resume right after. */
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
