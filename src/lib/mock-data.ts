@@ -289,11 +289,14 @@ export function goatedRivals(count: number): Profile[] {
 // by Home and Search's league bottom sheet (rooms-matches-browser.tsx).
 export const leagues = [...new Set(matches.map((m) => m.competition)), "World Cup", "Friendlies"];
 
-// Curated shortcuts for the Search page's idle "rollup" state — a jump
-// straight into a league (or "live right now"), not a real query. `id` is
-// what gets stored if the user bookmarks the topic (see use-saved-items.ts);
-// `league` is what RoomFeed's extraFilter matches against, omitted for the
-// one non-league topic ("Live now" spans every league).
+// Curated shortcuts for the Search page's idle "rollup" state — the
+// "Discussions" row (per the founder's hand sketch: UCL night, Live now,
+// EPL weekend, LaLiga, efc…). These read as moments people are already
+// talking about, not a dry league picklist — a jump straight into that
+// moment, not a real query. `id` is what gets stored if the user bookmarks
+// the topic (see use-saved-items.ts); `league` is what RoomFeed's
+// extraFilter matches against, omitted for the one non-league topic
+// ("Live now" spans every league).
 export interface SearchTopic {
   id: string;
   label: string;
@@ -302,12 +305,12 @@ export interface SearchTopic {
 
 export const searchTopics: SearchTopic[] = [
   { id: "live", label: "Live now" },
-  { id: "premier-league", label: "Premier League", league: "Premier League" },
-  { id: "champions-league", label: "Champions League", league: "Champions League" },
+  { id: "champions-league", label: "UCL night", league: "Champions League" },
+  { id: "premier-league", label: "EPL weekend", league: "Premier League" },
   { id: "la-liga", label: "La Liga", league: "La Liga" },
   { id: "bundesliga", label: "Bundesliga", league: "Bundesliga" },
-  { id: "serie-a", label: "Serie A", league: "Serie A" },
-  { id: "npfl", label: "NPFL", league: "NPFL" },
+  { id: "serie-a", label: "Serie A night", league: "Serie A" },
+  { id: "npfl", label: "NPFL derby", league: "NPFL" },
 ];
 
 export type NotificationKind =

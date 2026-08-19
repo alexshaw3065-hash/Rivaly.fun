@@ -20,10 +20,19 @@ export default function WishlistPage() {
     .map((it) => matchById(it.id))
     .filter((m): m is NonNullable<typeof m> => Boolean(m));
 
+  // Curated topics resolve against searchTopics; an ad-hoc saved search
+  // (bookmarked from the results header, id prefixed "q:" — see
+  // search-results-list.tsx) has no catalog entry, so its own text is the
+  // label.
   const savedTopics = savedItems
     .filter((it) => it.type === "topic")
-    .map((it) => searchTopics.find((t) => t.id === it.id))
-    .filter((t): t is NonNullable<typeof t> => Boolean(t));
+    .map(
+      (it) =>
+        searchTopics.find((t) => t.id === it.id) ?? {
+          id: it.id,
+          label: it.id.startsWith("q:") ? it.id.slice(2) : it.id,
+        },
+    );
 
   const hasAnything = savedRooms.length + savedMatches.length + savedTopics.length > 0;
 
@@ -48,7 +57,7 @@ export default function WishlistPage() {
         <div className="mt-8 flex flex-col gap-10">
           {savedTopics.length > 0 && (
             <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Topics</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Discussions</p>
               <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
                 {savedTopics.map((topic) => (
                   <div

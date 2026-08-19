@@ -68,26 +68,32 @@ export function SearchRollup({
       )}
 
       <section>
+        {/* Six, not the old five — see room-feed.tsx for why each one is
+            there. Still a horizontally-scrolling row: six pills read fine
+            on one line and a scroll here doesn't hide anything important
+            (unlike Discussions below, where every item matters). */}
         <p className="text-xs font-medium uppercase tracking-wide text-muted">Browse</p>
         <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-          {filters
-            .filter((f) => f.id !== "all")
-            .map((f) => (
-              <button
-                key={f.id}
-                onClick={() => onSelectTab(f.id)}
-                className="shrink-0 rounded-full border border-border px-3.5 py-1.5 text-sm text-foreground transition-colors duration-150 active:scale-[0.97]"
-                style={{ transition: "transform 150ms ease-out, border-color 150ms ease" }}
-              >
-                {f.label}
-              </button>
-            ))}
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => onSelectTab(f.id)}
+              className="shrink-0 rounded-full border border-border px-3.5 py-1.5 text-sm text-foreground transition-colors duration-150 active:scale-[0.97]"
+              style={{ transition: "transform 150ms ease-out, border-color 150ms ease" }}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </section>
 
       <section>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">Topics</p>
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+        {/* flex-wrap, not overflow-x-auto — the founder's sketch lays these
+            out so nothing needs a horizontal swipe to discover; there are
+            few enough (7) that wrapping to two or three rows still reads
+            as one glanceable group. */}
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">Discussions</p>
+        <div className="mt-3 flex flex-wrap gap-2">
           {searchTopics.map((topic) => (
             <div
               key={topic.id}

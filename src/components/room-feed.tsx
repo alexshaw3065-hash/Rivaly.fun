@@ -2,18 +2,30 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { rooms as allRooms, matchById } from "@/lib/mock-data";
+import { rooms as allRooms, matchById, momentumCount, splitPct } from "@/lib/mock-data";
 import { RoomCard } from "./room-card";
 import type { Match, Room } from "@/lib/types";
 
-export type FilterTab = "trending" | "new" | "live" | "closing" | "all";
+// Six, not five — matches the founder's Polymarket reference (their Browse
+// row is New/Trending/Popular/Liquid/Ending Soon/Competitive), but every
+// label and signal here is Rivaly's own rather than a straight port: no
+// "Liquid" (that's a trading-pair concept, not a prediction-room one).
+// "Big pools" takes over what Trending used to mean (sort by pool size);
+// Trending itself becomes momentum (recent joins relative to room size) —
+// the same signal explodingRooms() uses for Home's hero carousel, so
+// "trending" means the same thing everywhere in the app. "Too close to
+// call" is Rivaly's answer to Polymarket's "Competitive": the rooms where
+// the Yes/No split is nearest 50/50 — the ones that best embody "who
+// thinks differently than you," not just a copy of a finance concept.
+export type FilterTab = "trending" | "new" | "live" | "closing" | "pools" | "close-call";
 
 export const filters: { id: FilterTab; label: string }[] = [
   { id: "trending", label: "Trending" },
   { id: "new", label: "New" },
   { id: "live", label: "Live" },
   { id: "closing", label: "Closing soon" },
-  { id: "all", label: "All" },
+  { id: "pools", label: "Big pools" },
+  { id: "close-call", label: "Too close to call" },
 ];
 
 const PAGE_SIZE = 6;
@@ -26,7 +38,9 @@ function applyFilter(tab: FilterTab): Room[] {
     case "new":
       return [...openRooms].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
     case "trending":
-      return [...openRooms].sort((a, b) => b.poolTotalCents - a.poolTotalCents);
+      return [...openRooms].sort(
+        (a, b) => momentumCount(b) / b.participantCount - momentumCount(a) / a.participantCount,
+      );
     case "closing":
       return [...openRooms]
         .filter((r) => matchById(r.matchId)?.status === "scheduled")
@@ -35,11 +49,14 @@ function applyFilter(tab: FilterTab): Room[] {
           const kb = matchById(b.matchId)?.kickoffAt ?? "";
           return +new Date(ka) - +new Date(kb);
         });
-    case "all":
-    default:
-      return [...openRooms].sort((a, b) =>
-        (matchById(a.matchId)?.competition ?? "").localeCompare(matchById(b.matchId)?.competition ?? ""),
+    case "pools":
+      return [...openRooms].sort((a, b) => b.poolTotalCents - a.poolTotalCents);
+    case "close-call":
+      return [...openRooms].sort(
+        (a, b) => Math.abs(splitPct(a) - 50) - Math.abs(splitPct(b) - 50),
       );
+    default:
+      return openRooms;
   }
 }
 
@@ -65,8 +82,8 @@ function buildRows(items: Room[]): FeedRow[] {
 // brand mark + "Back to top" — rather than looping forever.
 //
 // extraFilter is how Search layers its advanced-filter panel (league, entry
-// range, status) on top of the same Trending/New/Live/Closing-soon/All
-// mechanism, rather than duplicating this whole component. Callers MUST
+// range, status) on top of the same six-tab mechanism above, rather than
+// duplicating this whole component. Callers MUST
 // memoize it (useCallback, deps on the actual filter criteria) — a fresh
 // function identity every render would make every render look like "the
 // filter changed" and reset pagination in a loop.

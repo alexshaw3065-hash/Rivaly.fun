@@ -31,24 +31,33 @@ const SELF_NAME = "Victor";
 
 export function Nav({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  // Mobile Search is a full takeover (its own roll-up-sheet chrome, see
+  // search/page.tsx) rather than a page under the normal app frame — per
+  // the founder's Polymarket/FOMO reference, a search screen shouldn't
+  // carry the ambient top bar and tab bar with it. Desktop is unaffected;
+  // the sidebar/header there stay put on every route.
+  const isMobileSearchTakeover = pathname === "/search";
 
   return (
     <>
-      {/* Mobile top bar — unchanged, md:hidden. */}
-      <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
-        <div className="flex items-center gap-3 px-4 py-4">
-          <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
-            Rivaly
-          </Link>
-          <div className="ml-auto flex shrink-0 items-center gap-3">
-            <TopBarIcons />
-            <ThemeToggle />
-            <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
-              <Avatar name={SELF_NAME} size={32} />
+      {/* Mobile top bar — hidden during the Search takeover, otherwise
+          unchanged. md:hidden. */}
+      {!isMobileSearchTakeover && (
+        <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
+          <div className="flex items-center gap-3 px-4 py-4">
+            <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
+              Rivaly
             </Link>
+            <div className="ml-auto flex shrink-0 items-center gap-3">
+              <TopBarIcons />
+              <ThemeToggle />
+              <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
+                <Avatar name={SELF_NAME} size={32} />
+              </Link>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       <Sidebar />
       <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
@@ -59,41 +68,45 @@ export function Nav({ children }: { children: ReactNode }) {
           table here. */}
       <div className="content-shell md:pl-[var(--sidebar-width)] md:pt-16">{children}</div>
 
-      {/* Floating create button — mobile only, matches the X compose-button
-          reference exactly. Sits above the bottom tab bar. */}
-      <Link
-        href="/rooms/create"
-        aria-label="Create room"
-        className="fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
-        style={{
-          background: "var(--rival-blue)",
-          boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)",
-        }}
-      >
-        +
-      </Link>
+      {!isMobileSearchTakeover && (
+        <>
+          {/* Floating create button — mobile only, matches the X compose-
+              button reference exactly. Sits above the bottom tab bar. */}
+          <Link
+            href="/rooms/create"
+            aria-label="Create room"
+            className="fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
+            style={{
+              background: "var(--rival-blue)",
+              boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)",
+            }}
+          >
+            +
+          </Link>
 
-      <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm md:hidden">
-        <div className="mx-auto flex max-w-5xl items-stretch justify-around">
-          {tabs.map((tab) => {
-            const active = pathname === tab.href;
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium"
-                style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: active ? "var(--rival-blue)" : "transparent" }}
-                />
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+          <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm md:hidden">
+            <div className="mx-auto flex max-w-5xl items-stretch justify-around">
+              {tabs.map((tab) => {
+                const active = pathname === tab.href;
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium"
+                    style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: active ? "var(--rival-blue)" : "transparent" }}
+                    />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      )}
     </>
   );
 }

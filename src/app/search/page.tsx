@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { rooms, matches, profiles, matchById, leagues, type SearchTopic } from "@/lib/mock-data";
 import { RoomFeed, type FilterTab } from "@/components/room-feed";
 import { SearchRollup } from "@/components/search-rollup";
@@ -33,6 +34,7 @@ function iconButtonColor(active: boolean) {
 }
 
 export default function SearchPage() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
@@ -119,7 +121,7 @@ export default function SearchPage() {
       setSelectedLeagues([topic.league]);
       setStatus("");
     }
-    setBrowse({ tab: "all", topic });
+    setBrowse({ tab: "trending", topic });
   }
 
   function handleSelectRecent(term: string) {
@@ -161,9 +163,64 @@ export default function SearchPage() {
   // that zoom level then persists across client-side navigation. This
   // input had both (autoFocus + text-sm) and was the actual cause of the
   // "loads zoomed in, has to be pinched out" bug reported on a real device.
+  const searchInput = (
+    <div
+      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-surface px-4 py-3 focus-within:border-border-strong"
+      style={{ transition: "border-color 150ms ease" }}
+    >
+      <span className="shrink-0 text-muted">
+        <SearchIcon />
+      </span>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commitSearch();
+        }}
+        onBlur={commitSearch}
+        placeholder="Search rooms, matches, people…"
+        className="min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted focus:outline-none"
+      />
+    </div>
+  );
+
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-6 py-12">
-      <div className="flex items-center gap-3">
+    <main className="mx-auto min-w-0 max-w-5xl px-6 pb-40 pt-3 md:pb-12 md:pt-12">
+      {/* Mobile roll-up-sheet chrome — a drag handle + an explicit close,
+          per the founder's Polymarket/FOMO reference. This takes over the
+          screen (nav.tsx hides the app's own top bar and bottom tab bar on
+          this route) rather than sitting under them, so it needs its own
+          way out: close always returns Home, back only appears mid-browse.
+          The actual input isn't up here — it's pinned to the bottom of the
+          screen instead (composer-style), see the fixed bar below. */}
+      <div className="md:hidden">
+        <div className="flex justify-center">
+          <span className="h-1 w-9 rounded-full" style={{ background: "var(--border-strong)" }} />
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          {mode === "browse" ? (
+            <button
+              onClick={handleBack}
+              aria-label="Back to search"
+              className="hover-link flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors"
+            >
+              ← Back
+            </button>
+          ) : (
+            <span />
+          )}
+          <button
+            onClick={() => router.push("/")}
+            aria-label="Close search"
+            className="hover-link text-lg leading-none text-muted transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop keeps the search bar up top, unchanged from before. */}
+      <div className="hidden items-center gap-3 md:flex">
         {mode === "browse" && (
           <button
             onClick={handleBack}
@@ -173,28 +230,10 @@ export default function SearchPage() {
             ←
           </button>
         )}
-        <div
-          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-surface px-4 py-3 focus-within:border-border-strong"
-          style={{ transition: "border-color 150ms ease" }}
-        >
-          <span className="shrink-0 text-muted">
-            <SearchIcon />
-          </span>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitSearch();
-            }}
-            onBlur={commitSearch}
-            placeholder="Search rooms, matches, people…"
-            className="min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted focus:outline-none"
-          />
-        </div>
-        {/* On desktop, browse mode moves these two down onto RoomFeed's
-            filter-chip row (chipRowEnd below) — this row stays mobile-only
-            then. Idle and query modes have no chip row to move them to, so
-            they stay here on every viewport. */}
+        {searchInput}
+        {/* Browse mode moves these two down onto RoomFeed's filter-chip row
+            (chipRowEnd below) instead — idle and query modes have no chip
+            row to move them to, so they stay here. */}
         <div className={`flex shrink-0 items-center gap-3 ${mode === "browse" ? "md:hidden" : ""}`}>
           {advancedSearchIcons}
         </div>
@@ -275,7 +314,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      <div className="mt-10">
+      <div className="mt-6 md:mt-10">
         {mode === "idle" && (
           <SearchRollup
             onSelectRecent={handleSelectRecent}
@@ -294,6 +333,18 @@ export default function SearchPage() {
         {mode === "query" && (
           <SearchResultsList query={query} rooms={matchedRooms} matches={matchedMatches} people={matchedPeople} />
         )}
+      </div>
+
+      {/* Mobile-only, pinned above where the (now-hidden) bottom tab bar
+          would sit — the actual search input, composer-style, per the
+          founder's FOMO reference. Always shows the advanced-search/
+          wishlist icons next to it (mobile has no chip row to move them to
+          in any mode, unlike desktop — see chipRowEnd above). */}
+      <div className="fixed inset-x-0 bottom-16 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm md:hidden">
+        <div className="flex items-center gap-3">
+          {searchInput}
+          <div className="flex shrink-0 items-center gap-3">{advancedSearchIcons}</div>
+        </div>
       </div>
     </main>
   );
