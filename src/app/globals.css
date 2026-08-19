@@ -95,14 +95,38 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Stops mobile Chrome's native pull-to-refresh from engaging when a page
+   is scrolled to the very top and the user keeps pulling down — without
+   this, it fires at the same time as (and independently of) Search's
+   drag-to-dismiss gesture (search/page.tsx), reading as "the page
+   randomly reloads while I'm scrolling." overscroll-behavior is the
+   correct fix for this class of bug: it tells the browser not to hand
+   the gesture off to its own default behavior once our content can't
+   scroll any further, rather than trying to fight it with
+   preventDefault() in a touch handler (which needs a non-passive native
+   listener to even work, and still wouldn't stop every browser's refresh
+   gesture). Nothing in Rivaly relies on native pull-to-refresh.
+   Global, not scoped to the search sheet, because the browser evaluates
+   this at the point where the gesture is decided (the document's own
+   scroll boundary), not the element under the finger. */
+html {
+  overscroll-behavior-y: contain;
+}
+
 /* For every horizontally-scrolling row (rival cards, filter chips, league
    tags, match chips) — the raw browser scrollbar track reads as a desktop
    affordance bolted onto a mobile-native gesture. Partial-card-peek at the
-   edge already signals "swipe for more" (how Instagram/Twitter rows work);
-   scroll still works, just without the visible track. */
+   edge alone wasn't reading as "swipe for more" (founder feedback on the
+   Browse row cutting off flush against the edge with no cue), so a soft
+   fade into the background now backs it up — the same trick Instagram/
+   Twitter rows use. Real content still sits right up to the edge; only
+   the very end of the row visually dissolves, which is what actually
+   signals "this continues" rather than "this is where it ends." */
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
