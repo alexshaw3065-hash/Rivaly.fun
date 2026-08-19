@@ -115,21 +115,25 @@ html {
 
 /* For every horizontally-scrolling row (rival cards, filter chips, league
    tags, match chips) — the raw browser scrollbar track reads as a desktop
-   affordance bolted onto a mobile-native gesture. Partial-card-peek at the
-   edge alone wasn't reading as "swipe for more" (founder feedback on the
-   Browse row cutting off flush against the edge with no cue), so a soft
-   fade into the background now backs it up — the same trick Instagram/
-   Twitter rows use. Real content still sits right up to the edge; only
-   the very end of the row visually dissolves, which is what actually
-   signals "this continues" rather than "this is where it ends." */
+   affordance bolted onto a mobile-native gesture. */
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
-  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* The "there's more, keep scrolling" cue for scroll-fade-row.tsx. A first
+   pass tried mask-image on the scrolling content itself, but every chip
+   row in this app (Browse, Discussions, league pills) is an outline-only
+   pill with no fill — fading a transparent background fades nothing
+   visible. This is a real overlay instead: solid pixels of its own,
+   fading from transparent to the page background, so it reads regardless
+   of what's underneath. Static, not scroll-position-aware — simpler, and
+   every row it's used on has enough content to always overflow anyway. */
+.scroll-fade-edge {
+  background: linear-gradient(to right, transparent, var(--background));
 }
 
 /* Search's mobile roll-up sheet (search/page.tsx) — covers nearly the full

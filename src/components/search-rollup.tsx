@@ -5,6 +5,7 @@ import { useRecentSearches, removeRecentSearch, clearRecentSearches } from "@/li
 import { BookmarkButton } from "./bookmark-button";
 import { SearchIcon } from "./icons";
 import { filters, type FilterTab } from "./room-feed";
+import { ScrollFadeRow } from "./scroll-fade-row";
 
 // The idle state of Search — no query typed yet — per the founder's
 // Polymarket reference: Recents, then quick browse shortcuts, instead of
@@ -73,7 +74,7 @@ export function SearchRollup({
             on one line and a scroll here doesn't hide anything important
             (unlike Discussions below, where every item matters). */}
         <p className="text-xs font-medium uppercase tracking-wide text-muted">Browse</p>
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+        <ScrollFadeRow wrapperClassName="mt-3" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
           {filters.map((f) => (
             <button
               key={f.id}
@@ -84,7 +85,7 @@ export function SearchRollup({
               {f.label}
             </button>
           ))}
-        </div>
+        </ScrollFadeRow>
       </section>
 
       <section>
