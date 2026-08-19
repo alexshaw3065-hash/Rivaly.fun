@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { rooms, matches, profiles, matchById, leagues, type SearchTopic } from "@/lib/mock-data";
 import { RoomFeed, type FilterTab } from "@/components/room-feed";
 import { SearchRollup } from "@/components/search-rollup";
@@ -34,7 +33,6 @@ function iconButtonColor(active: boolean) {
 }
 
 export default function SearchPage() {
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
@@ -185,37 +183,32 @@ export default function SearchPage() {
   );
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-6 pb-40 pt-3 md:pb-12 md:pt-12">
-      {/* Mobile roll-up-sheet chrome — a drag handle + an explicit close,
-          per the founder's Polymarket/FOMO reference. This takes over the
-          screen (nav.tsx hides the app's own top bar and bottom tab bar on
-          this route) rather than sitting under them, so it needs its own
-          way out: close always returns Home, back only appears mid-browse.
-          The actual input isn't up here — it's pinned to the bottom of the
-          screen instead (composer-style), see the fixed bar below. */}
+    <main className="mx-auto min-w-0 max-w-5xl px-6 pb-12 pt-3 md:pb-12 md:pt-12">
+      {/* Mobile roll-up-sheet chrome — a drag handle above the search bar
+          itself, per the founder's video of Polymarket's real behavior:
+          the input is the top element of the sheet's own content, and the
+          app's normal top bar + bottom tab bar stay visible and reachable
+          the whole time (nav.tsx doesn't hide anything on this route —
+          an earlier version did, and got called out for it explicitly). */}
       <div className="md:hidden">
         <div className="flex justify-center">
           <span className="h-1 w-9 rounded-full" style={{ background: "var(--border-strong)" }} />
         </div>
-        <div className="mt-3 flex items-center justify-between">
-          {mode === "browse" ? (
+        <div className="mt-3 flex items-center gap-3">
+          {mode === "browse" && (
             <button
               onClick={handleBack}
               aria-label="Back to search"
-              className="hover-link flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors"
+              className="hover-link shrink-0 text-foreground transition-colors"
             >
-              ← Back
+              ←
             </button>
-          ) : (
-            <span />
           )}
-          <button
-            onClick={() => router.push("/")}
-            aria-label="Close search"
-            className="hover-link text-lg leading-none text-muted transition-colors"
-          >
-            ✕
-          </button>
+          {searchInput}
+          {/* Always visible on mobile — unlike desktop, there's no
+              RoomFeed chip row (chipRowEnd, md:flex-only below) for browse
+              mode to move these onto instead. */}
+          <div className="flex shrink-0 items-center gap-3">{advancedSearchIcons}</div>
         </div>
       </div>
 
@@ -333,18 +326,6 @@ export default function SearchPage() {
         {mode === "query" && (
           <SearchResultsList query={query} rooms={matchedRooms} matches={matchedMatches} people={matchedPeople} />
         )}
-      </div>
-
-      {/* Mobile-only, pinned above where the (now-hidden) bottom tab bar
-          would sit — the actual search input, composer-style, per the
-          founder's FOMO reference. Always shows the advanced-search/
-          wishlist icons next to it (mobile has no chip row to move them to
-          in any mode, unlike desktop — see chipRowEnd above). */}
-      <div className="fixed inset-x-0 bottom-16 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm md:hidden">
-        <div className="flex items-center gap-3">
-          {searchInput}
-          <div className="flex shrink-0 items-center gap-3">{advancedSearchIcons}</div>
-        </div>
       </div>
     </main>
   );
