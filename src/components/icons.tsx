@@ -146,3 +146,34 @@ export function PlusIcon() {
     </svg>
   );
 }
+
+// A stack of two prediction cards — the "bets to place" metaphor for the
+// Rooms nav tab, distinct from a generic grid/list glyph. The back card's
+// fill punches through the front card's stroke where they overlap, same
+// trick SlidersIcon uses for its track dots — matches whatever surface the
+// icon sits on (nav bars, all on --background).
+export function RoomsIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
+      <rect x="6.2" y="2.6" width="10" height="7.2" rx="1.3" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="3.2" y="7.3" width="11" height="9.6" rx="1.6" fill="var(--background)" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M6 11.3h4.2M6 13.9h6.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Bow + shaft + teeth — for the "Join private room" invite-code affordance.
+export function KeyIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden>
+      <circle cx="6.8" cy="7" r="3.1" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M9.1 9.3 16 16.2M12.8 12.5l1.9 1.9M15.1 10.2l1.9 1.9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

@@ -1,6 +1,6 @@
-import { wallet, transactions, rooms, matchById, formatMoney, roomById } from "@/lib/mock-data";
+import Link from "next/link";
+import { wallet, transactions, formatMoney, roomById, roomsByCreator, roomsJoinedBy, SELF_USER_ID } from "@/lib/mock-data";
 import { WalletActions } from "@/components/wallet-actions";
-import { RoomCard } from "@/components/room-card";
 
 // Per docs/masterplan/07-product-blueprint.md#48-wallet — often overlooked
 // but critical to trust. The user should never wonder "where is my money?"
@@ -19,8 +19,11 @@ function formatDate(iso: string): string {
 }
 
 export default function WalletPage() {
-  const currentRooms = rooms.filter((r) => r.status === "open" || r.status === "live");
-  const completedRooms = rooms.filter((r) => r.status === "settled");
+  const mine = [...roomsByCreator(SELF_USER_ID), ...roomsJoinedBy(SELF_USER_ID)].filter(
+    (r, i, arr) => arr.findIndex((x) => x.id === r.id) === i,
+  );
+  const activeCount = mine.filter((r) => r.status !== "settled").length;
+  const completedCount = mine.filter((r) => r.status === "settled").length;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -41,15 +44,23 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {currentRooms.length > 0 && (
-        <div className="mt-10">
-          <p className="font-display text-xl font-semibold text-foreground">Current rooms</p>
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {currentRooms.map((room) => (
-              <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
-            ))}
+      {/* Rooms tab (My Rooms sub-tab) is the real home for this now — a
+          full Room/Matches grid here just duplicated it, and worse, wasn't
+          even scoped to you (it rendered every room in the app). This
+          stays focused on what Wallet is actually for: money. */}
+      {mine.length > 0 && (
+        <Link
+          href="/rooms?tab=mine"
+          className="hover-border mt-8 flex items-center justify-between rounded-lg border border-border bg-surface px-5 py-4 transition-colors"
+        >
+          <div>
+            <p className="text-sm font-medium text-foreground">Your rooms</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {activeCount} active · {completedCount} completed
+            </p>
           </div>
-        </div>
+          <span className="text-sm text-muted">View my rooms →</span>
+        </Link>
       )}
 
       <div className="mt-10">
@@ -79,16 +90,6 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {completedRooms.length > 0 && (
-        <div className="mt-10">
-          <p className="font-display text-xl font-semibold text-foreground">Completed rooms</p>
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {completedRooms.map((room) => (
-              <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   );
 }

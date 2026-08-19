@@ -4,7 +4,12 @@
  * a Supabase project is linked — every screen should already work with
  * this data with zero prop-shape changes.
  */
-import type { Match, Room, Profile, ChatMessage, Transaction, Wallet, Pack } from "./types";
+import type { Match, Room, Profile, ChatMessage, Transaction, Wallet, Pack, Entry, Follow } from "./types";
+
+// The self-profile stand-in until auth exists. Kept next to `wallet` since
+// wallet.userId already encodes this — exported explicitly so the Rooms
+// tab (My Rooms, Following) doesn't have to guess or re-derive it.
+export const SELF_USER_ID = "u3";
 
 export const matches: Match[] = [
   { id: "m1", competition: "Premier League", homeTeam: "Arsenal", awayTeam: "Chelsea", kickoffAt: "2026-08-15T19:30:00Z", status: "live", homeScore: 2, awayScore: 1 },
@@ -215,6 +220,45 @@ export function roomsByCreator(userId: string): Room[] {
   return rooms.filter((r) => r.creatorId === userId);
 }
 
+// Who you follow (self only, for now — see SELF_USER_ID). Powers Rooms >
+// Following (rooms created/joined by people you follow) — the existing
+// /following activity feed predates this and stays as its own thing.
+export const follows: Follow[] = [
+  { followerId: SELF_USER_ID, followingId: "u1", createdAt: "2025-11-10T00:00:00Z" },
+  { followerId: SELF_USER_ID, followingId: "u5", createdAt: "2025-09-20T00:00:00Z" },
+  { followerId: SELF_USER_ID, followingId: "u9", createdAt: "2025-10-15T00:00:00Z" },
+  { followerId: SELF_USER_ID, followingId: "u7", createdAt: "2026-01-05T00:00:00Z" },
+];
+
+export function followedProfileIds(): string[] {
+  return follows.filter((f) => f.followerId === SELF_USER_ID).map((f) => f.followingId);
+}
+
+// Backs the Entry type (previously declared but never instantiated).
+// Amounts/sides match the existing `transactions` entries for self so the
+// two datasets don't disagree with each other.
+export const entries: Entry[] = [
+  { id: "e1", roomId: "r1", userId: SELF_USER_ID, side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T18:02:00Z", isWinner: null, payoutCents: null },
+  { id: "e2", roomId: "r4", userId: SELF_USER_ID, side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:05:00Z", isWinner: true, payoutCents: 1_467_00 },
+  { id: "e3", roomId: "r23", userId: SELF_USER_ID, side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:30:00Z", isWinner: false, payoutCents: null },
+  { id: "e4", roomId: "r5", userId: "u1", side: "yes", amountCents: 3_000_00, createdAt: "2026-08-15T18:31:00Z", isWinner: null, payoutCents: null },
+  { id: "e5", roomId: "r8", userId: "u1", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T17:52:00Z", isWinner: null, payoutCents: null },
+  { id: "e6", roomId: "r2", userId: "u5", side: "yes", amountCents: 5_000_00, createdAt: "2026-08-15T16:25:00Z", isWinner: null, payoutCents: null },
+  { id: "e7", roomId: "r12", userId: "u5", side: "yes", amountCents: 5_000_00, createdAt: "2026-08-14T20:10:00Z", isWinner: null, payoutCents: null },
+  { id: "e8", roomId: "r1", userId: "u9", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T18:05:00Z", isWinner: null, payoutCents: null },
+  { id: "e9", roomId: "r16", userId: "u9", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T17:35:00Z", isWinner: null, payoutCents: null },
+  { id: "e10", roomId: "r4", userId: "u7", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:20:00Z", isWinner: true, payoutCents: 1_467_00 },
+];
+
+export function entriesByUser(userId: string): Entry[] {
+  return entries.filter((e) => e.userId === userId);
+}
+
+export function roomsJoinedBy(userId: string): Room[] {
+  const roomIds = new Set(entriesByUser(userId).map((e) => e.roomId));
+  return rooms.filter((r) => roomIds.has(r.id));
+}
+
 export function formatMoney(cents: number): string {
   return `₦${Math.round(cents / 100).toLocaleString("en-NG")}`;
 }
@@ -256,32 +300,6 @@ export function explodingRooms(count: number): Room[] {
     .filter((r) => r.status !== "settled")
     .sort((a, b) => momentumCount(b) / b.participantCount - momentumCount(a) / a.participantCount)
     .slice(0, count);
-}
-
-// Net profit/loss for the "For Rivals" strip on Home. Deliberately separate
-// from Profile.totalWinningsCents (a cumulative, always-positive stat used
-// on the Profile screen) — P/L can go negative, which is the point: it's
-// what makes a rival worth challenging or avoiding. Deterministic per
-// profile id so it doesn't reshuffle on every render.
-export function rivalPnlCents(profile: Profile): number {
-  const seed = profile.id.charCodeAt(profile.id.length - 1);
-  const sign = seed % 3 === 0 ? -1 : 1;
-  // Scaled off their real totalWinnings so the ordering still tracks who's
-  // actually good (a modulo here would erase that and collide on round
-  // numbers — Sarah's 79% accuracy should not be showing up worst).
-  const magnitude = Math.round(profile.totalWinningsCents * 0.08) + 20_000;
-  return sign * magnitude;
-}
-
-export function topRivals(count: number): Profile[] {
-  return [...profiles].sort((a, b) => rivalPnlCents(b) - rivalPnlCents(a)).slice(0, count);
-}
-
-// All-time career leaders (totalWinningsCents), not the weekly-style P/L
-// topRivals uses — a genuinely different ranking, per the FOMO "Hall of
-// Fame" reference (distinct from "Weekly Top Trades").
-export function goatedRivals(count: number): Profile[] {
-  return [...profiles].sort((a, b) => b.totalWinningsCents - a.totalWinningsCents).slice(0, count);
 }
 
 // Two entries beyond what's in mock data — real tournaments users would
