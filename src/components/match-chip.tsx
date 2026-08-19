@@ -1,5 +1,6 @@
 import type { Match } from "@/lib/types";
 import { LiveBadge } from "./live-badge";
+import { BookmarkButton } from "./bookmark-button";
 
 function formatKickoff(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -12,13 +13,16 @@ export function MatchChip({ match }: { match: Match }) {
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
           {match.competition}
         </span>
-        {match.status === "live" ? (
-          <LiveBadge />
-        ) : (
-          <span className="font-mono text-[10px] text-muted">
-            {match.status === "finished" ? "FT" : formatKickoff(match.kickoffAt)}
-          </span>
-        )}
+        <div className="flex items-center gap-2.5">
+          {match.status === "live" ? (
+            <LiveBadge />
+          ) : (
+            <span className="font-mono text-[10px] text-muted">
+              {match.status === "finished" ? "FT" : formatKickoff(match.kickoffAt)}
+            </span>
+          )}
+          <BookmarkButton type="match" id={match.id} label="match" />
+        </div>
       </div>
       <div className="flex items-center justify-between text-sm font-medium text-foreground">
         <span>{match.homeTeam}</span>

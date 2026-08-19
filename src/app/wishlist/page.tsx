@@ -1,25 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useSavedRoomIds } from "@/lib/use-saved-rooms";
-import { roomById, matchById } from "@/lib/mock-data";
+import { useSavedItems } from "@/lib/use-saved-items";
+import { roomById, matchById, searchTopics } from "@/lib/mock-data";
 import { RoomCard } from "@/components/room-card";
+import { MatchChip } from "@/components/match-chip";
+import { BookmarkButton } from "@/components/bookmark-button";
 
 export default function WishlistPage() {
-  const savedIds = useSavedRoomIds();
-  const savedRooms = savedIds
-    .map((id) => roomById(id))
+  const savedItems = useSavedItems();
+
+  const savedRooms = savedItems
+    .filter((it) => it.type === "room")
+    .map((it) => roomById(it.id))
     .filter((r): r is NonNullable<typeof r> => Boolean(r));
+
+  const savedMatches = savedItems
+    .filter((it) => it.type === "match")
+    .map((it) => matchById(it.id))
+    .filter((m): m is NonNullable<typeof m> => Boolean(m));
+
+  const savedTopics = savedItems
+    .filter((it) => it.type === "topic")
+    .map((it) => searchTopics.find((t) => t.id === it.id))
+    .filter((t): t is NonNullable<typeof t> => Boolean(t));
+
+  const hasAnything = savedRooms.length + savedMatches.length + savedTopics.length > 0;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
       <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Wishlist</h1>
-      <p className="mt-1 text-sm text-muted">Rooms you&rsquo;ve bookmarked to come back to.</p>
+      <p className="mt-1 text-sm text-muted">Rooms, matches, and topics you&rsquo;ve bookmarked to come back to.</p>
 
-      {savedRooms.length === 0 ? (
+      {!hasAnything ? (
         <div className="mt-10 rounded-lg border border-border bg-surface p-8 text-center">
           <p className="text-sm text-muted">
-            Nothing saved yet. Tap the bookmark on any room to add it here.
+            Nothing saved yet. Tap the bookmark on any room, match, or search topic to add it here.
           </p>
           <Link
             href="/"
@@ -29,10 +45,47 @@ export default function WishlistPage() {
           </Link>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {savedRooms.map((room) => (
-            <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
-          ))}
+        <div className="mt-8 flex flex-col gap-10">
+          {savedTopics.length > 0 && (
+            <section>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Topics</p>
+              <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+                {savedTopics.map((topic) => (
+                  <div
+                    key={topic.id}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-border py-1.5 pl-3.5 pr-2"
+                  >
+                    <Link href="/search" className="text-sm text-foreground">
+                      {topic.label}
+                    </Link>
+                    <BookmarkButton type="topic" id={topic.id} label={topic.label} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {savedRooms.length > 0 && (
+            <section>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Rooms</p>
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {savedRooms.map((room) => (
+                  <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {savedMatches.length > 0 && (
+            <section>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Matches</p>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {savedMatches.map((match) => (
+                  <MatchChip key={match.id} match={match} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </main>

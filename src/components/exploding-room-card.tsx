@@ -43,7 +43,7 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
         <span>{formatMoney(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
           <span className="text-rival-green">+{momentum} this hour</span>
-          <BookmarkButton roomId={room.id} />
+          <BookmarkButton id={room.id} label="room" />
         </div>
       </div>
     </Link>

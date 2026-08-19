@@ -2,21 +2,31 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { rooms, matches, profiles, matchById, leagues } from "@/lib/mock-data";
-import { RoomCard } from "@/components/room-card";
-import { MatchChip } from "@/components/match-chip";
-import { PersonRow } from "@/components/person-row";
-import { RoomFeed } from "@/components/room-feed";
+import { rooms, matches, profiles, matchById, leagues, type SearchTopic } from "@/lib/mock-data";
+import { RoomFeed, type FilterTab } from "@/components/room-feed";
+import { SearchRollup } from "@/components/search-rollup";
+import { SearchResultsList } from "@/components/search-results-list";
 import { SearchIcon, SlidersIcon, BookmarkIcon } from "@/components/icons";
+import { addRecentSearch } from "@/lib/use-recent-searches";
 import type { Room } from "@/lib/types";
 
-// Scope per docs/masterplan/07-product-blueprint.md#411-search. The
-// Rooms/Matches/Packs browser lives on Home only (per founder direction) —
-// Search stays a plain search: search bar + advanced filters (league,
-// entry range, status) over a single RoomFeed, no tab switcher. With a
-// query, every matching section (rooms, matches, people) just shows if it
-// has results, since searching implies "show me anything relevant."
+// Scope per docs/masterplan/07-product-blueprint.md#411-search, updated
+// for the founder's Polymarket/FOMO reference (2026-08-16): Search is a
+// three-state launcher, not a permanent room feed —
+//   idle   (no query, nothing browsed yet) -> SearchRollup: Recents,
+//           browse shortcuts, topic shortcuts. Home's Rooms tab already
+//           owns "show me everything"; Search's job is "get me to the
+//           thing I'm thinking of," fast, then get out of the way.
+//   browse (a rollup chip/topic was tapped)  -> RoomFeed, filtered.
+//   query  (typing)                          -> SearchResultsList, live.
+// A "Back" affordance returns browse -> idle; clearing the input returns
+// query -> whichever of idle/browse was underneath it.
 type RoomStatusFilter = "" | "open" | "live" | "settled";
+
+interface BrowseState {
+  tab: FilterTab;
+  topic?: SearchTopic;
+}
 
 function iconButtonColor(active: boolean) {
   return active ? "var(--rival-blue)" : "var(--muted)";
@@ -29,13 +39,12 @@ export default function SearchPage() {
   const [entryMin, setEntryMin] = useState("");
   const [entryMax, setEntryMax] = useState("");
   const [status, setStatus] = useState<RoomStatusFilter>("");
+  const [browse, setBrowse] = useState<BrowseState | null>(null);
 
   const q = query.trim().toLowerCase();
+  const mode: "idle" | "browse" | "query" = q ? "query" : browse ? "browse" : "idle";
   const hasAdvancedFilters = selectedLeagues.length > 0 || Boolean(entryMin || entryMax || status);
 
-  // Entry-amount/status only — league is applied separately depending on
-  // mode (RoomsMatchesBrowser handles it itself in browse mode; query mode
-  // below applies it directly since RoomsMatchesBrowser isn't rendered then).
   const entryStatusFilter = useCallback(
     (room: Room) => {
       const min = entryMin ? Number(entryMin) * 100 : null;
@@ -90,7 +99,61 @@ export default function SearchPage() {
     [q],
   );
 
-  const hasResults = matchedRooms.length + matchedMatches.length + matchedPeople.length > 0;
+  function resetBrowseFilters() {
+    setSelectedLeagues([]);
+    setEntryMin("");
+    setEntryMax("");
+    setStatus("");
+    setShowAdvancedPanel(false);
+  }
+
+  function handleSelectTab(tab: FilterTab) {
+    setBrowse({ tab });
+  }
+
+  function handleSelectTopic(topic: SearchTopic) {
+    if (topic.id === "live") {
+      setStatus("live");
+      setSelectedLeagues([]);
+    } else if (topic.league) {
+      setSelectedLeagues([topic.league]);
+      setStatus("");
+    }
+    setBrowse({ tab: "all", topic });
+  }
+
+  function handleSelectRecent(term: string) {
+    addRecentSearch(term);
+    setQuery(term);
+  }
+
+  function handleBack() {
+    setBrowse(null);
+    resetBrowseFilters();
+  }
+
+  function commitSearch() {
+    if (query.trim()) addRecentSearch(query);
+  }
+
+  const advancedSearchIcons = (
+    <>
+      <button
+        onClick={() => setShowAdvancedPanel((v) => !v)}
+        aria-label="Advanced search"
+        aria-pressed={showAdvancedPanel || hasAdvancedFilters}
+        style={{
+          color: iconButtonColor(showAdvancedPanel || hasAdvancedFilters),
+          transition: "color 150ms ease",
+        }}
+      >
+        <SlidersIcon />
+      </button>
+      <Link href="/wishlist" aria-label="Wishlist" className="hover-link text-muted transition-colors">
+        <BookmarkIcon />
+      </Link>
+    </>
+  );
 
   // No autoFocus on this input, and every text/number input in the app is
   // text-base (16px) or larger — mobile Safari/Chrome auto-zoom the whole
@@ -101,6 +164,15 @@ export default function SearchPage() {
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-12">
       <div className="flex items-center gap-3">
+        {mode === "browse" && (
+          <button
+            onClick={handleBack}
+            aria-label="Back to search"
+            className="hover-link shrink-0 text-foreground transition-colors"
+          >
+            ←
+          </button>
+        )}
         <div
           className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-surface px-4 py-3 focus-within:border-border-strong"
           style={{ transition: "border-color 150ms ease" }}
@@ -111,33 +183,20 @@ export default function SearchPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitSearch();
+            }}
+            onBlur={commitSearch}
             placeholder="Search rooms, matches, people…"
             className="min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted focus:outline-none"
           />
         </div>
-        {/* On desktop, no-query mode moves these two down onto the filter-
-            chip row (chipRowEnd below) — this row stays mobile-only then.
-            With a query there's no chip row to move them to, so they stay
-            here on every viewport. */}
-        <div className={`flex shrink-0 items-center gap-3 ${!q ? "md:hidden" : ""}`}>
-          <button
-            onClick={() => setShowAdvancedPanel((v) => !v)}
-            aria-label="Advanced search"
-            aria-pressed={showAdvancedPanel || hasAdvancedFilters}
-            style={{
-              color: iconButtonColor(showAdvancedPanel || hasAdvancedFilters),
-              transition: "color 150ms ease",
-            }}
-          >
-            <SlidersIcon />
-          </button>
-          <Link
-            href="/wishlist"
-            aria-label="Wishlist"
-            className="hover-link text-muted transition-colors"
-          >
-            <BookmarkIcon />
-          </Link>
+        {/* On desktop, browse mode moves these two down onto RoomFeed's
+            filter-chip row (chipRowEnd below) — this row stays mobile-only
+            then. Idle and query modes have no chip row to move them to, so
+            they stay here on every viewport. */}
+        <div className={`flex shrink-0 items-center gap-3 ${mode === "browse" ? "md:hidden" : ""}`}>
+          {advancedSearchIcons}
         </div>
       </div>
 
@@ -209,85 +268,33 @@ export default function SearchPage() {
           </div>
 
           {hasAdvancedFilters && (
-            <button
-              onClick={() => {
-                setSelectedLeagues([]);
-                setEntryMin("");
-                setEntryMax("");
-                setStatus("");
-              }}
-              className="hover-link self-start text-sm text-muted transition-colors"
-            >
+            <button onClick={resetBrowseFilters} className="hover-link self-start text-sm text-muted transition-colors">
               Clear filters
             </button>
           )}
         </div>
       )}
 
-      {!q ? (
-        <div className="mt-10">
-          <RoomFeed
-            extraFilter={roomMatchesAllFilters}
-            chipRowEnd={
-              <div className="hidden shrink-0 items-center gap-3 md:flex">
-                <button
-                  onClick={() => setShowAdvancedPanel((v) => !v)}
-                  aria-label="Advanced search"
-                  aria-pressed={showAdvancedPanel || hasAdvancedFilters}
-                  style={{
-                    color: iconButtonColor(showAdvancedPanel || hasAdvancedFilters),
-                    transition: "color 150ms ease",
-                  }}
-                >
-                  <SlidersIcon />
-                </button>
-                <Link
-                  href="/wishlist"
-                  aria-label="Wishlist"
-                  className="hover-link text-muted transition-colors"
-                >
-                  <BookmarkIcon />
-                </Link>
-              </div>
-            }
+      <div className="mt-10">
+        {mode === "idle" && (
+          <SearchRollup
+            onSelectRecent={handleSelectRecent}
+            onSelectTab={handleSelectTab}
+            onSelectTopic={handleSelectTopic}
           />
-        </div>
-      ) : !hasResults ? (
-        <p className="mt-10 text-sm text-muted">No results for &ldquo;{query}&rdquo;.</p>
-      ) : (
-        <div className="mt-10 flex flex-col gap-10">
-          {matchedRooms.length > 0 && (
-            <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Rooms</p>
-              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {matchedRooms.map((room) => (
-                  <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
-                ))}
-              </div>
-            </section>
-          )}
-          {matchedMatches.length > 0 && (
-            <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Matches</p>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {matchedMatches.map((m) => (
-                  <MatchChip key={m.id} match={m} />
-                ))}
-              </div>
-            </section>
-          )}
-          {matchedPeople.length > 0 && (
-            <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">People</p>
-              <div className="mt-3 flex flex-col gap-2">
-                {matchedPeople.map((p) => (
-                  <PersonRow key={p.id} profile={p} />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      )}
+        )}
+        {mode === "browse" && (
+          <RoomFeed
+            key={browse?.topic?.id ?? browse?.tab}
+            extraFilter={roomMatchesAllFilters}
+            initialTab={browse?.tab}
+            chipRowEnd={<div className="hidden shrink-0 items-center gap-3 md:flex">{advancedSearchIcons}</div>}
+          />
+        )}
+        {mode === "query" && (
+          <SearchResultsList query={query} rooms={matchedRooms} matches={matchedMatches} people={matchedPeople} />
+        )}
+      </div>
     </main>
   );
 }

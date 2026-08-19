@@ -34,7 +34,7 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
         <span>{formatMoney(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
           <span>{room.participantCount} rivals</span>
-          <BookmarkButton roomId={room.id} />
+          <BookmarkButton id={room.id} label="room" />
         </div>
       </div>
     </Link>

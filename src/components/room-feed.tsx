@@ -6,9 +6,9 @@ import { rooms as allRooms, matchById } from "@/lib/mock-data";
 import { RoomCard } from "./room-card";
 import type { Match, Room } from "@/lib/types";
 
-type FilterTab = "trending" | "new" | "live" | "closing" | "all";
+export type FilterTab = "trending" | "new" | "live" | "closing" | "all";
 
-const filters: { id: FilterTab; label: string }[] = [
+export const filters: { id: FilterTab; label: string }[] = [
   { id: "trending", label: "Trending" },
   { id: "new", label: "New" },
   { id: "live", label: "Live" },
@@ -77,11 +77,13 @@ function buildRows(items: Room[]): FeedRow[] {
 export function RoomFeed({
   extraFilter,
   chipRowEnd,
+  initialTab = "trending",
 }: {
   extraFilter?: (room: Room) => boolean;
   chipRowEnd?: ReactNode;
+  initialTab?: FilterTab;
 }) {
-  const [tab, setTab] = useState<FilterTab>("trending");
+  const [tab, setTab] = useState<FilterTab>(initialTab);
   const [prevTab, setPrevTab] = useState(tab);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadingRef = useRef(false);
