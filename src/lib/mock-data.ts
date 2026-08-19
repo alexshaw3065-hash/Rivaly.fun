@@ -302,6 +302,32 @@ export function explodingRooms(count: number): Room[] {
     .slice(0, count);
 }
 
+// Net profit/loss for the "For Rivals" strip on Home. Deliberately separate
+// from Profile.totalWinningsCents (a cumulative, always-positive stat used
+// on the Profile screen) — P/L can go negative, which is the point: it's
+// what makes a rival worth challenging or avoiding. Deterministic per
+// profile id so it doesn't reshuffle on every render.
+export function rivalPnlCents(profile: Profile): number {
+  const seed = profile.id.charCodeAt(profile.id.length - 1);
+  const sign = seed % 3 === 0 ? -1 : 1;
+  // Scaled off their real totalWinnings so the ordering still tracks who's
+  // actually good (a modulo here would erase that and collide on round
+  // numbers — Sarah's 79% accuracy should not be showing up worst).
+  const magnitude = Math.round(profile.totalWinningsCents * 0.08) + 20_000;
+  return sign * magnitude;
+}
+
+export function topRivals(count: number): Profile[] {
+  return [...profiles].sort((a, b) => rivalPnlCents(b) - rivalPnlCents(a)).slice(0, count);
+}
+
+// All-time career leaders (totalWinningsCents), not the weekly-style P/L
+// topRivals uses — a genuinely different ranking, per the FOMO "Hall of
+// Fame" reference (distinct from "Weekly Top Trades").
+export function goatedRivals(count: number): Profile[] {
+  return [...profiles].sort((a, b) => b.totalWinningsCents - a.totalWinningsCents).slice(0, count);
+}
+
 // Two entries beyond what's in mock data — real tournaments users would
 // expect to filter by even before any room/match references them. Shared
 // by Home and Search's league bottom sheet (rooms-matches-browser.tsx).
