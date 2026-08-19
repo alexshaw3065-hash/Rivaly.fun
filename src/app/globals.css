@@ -108,6 +108,24 @@ body {
   display: none;
 }
 
+/* Search's mobile roll-up sheet (search/page.tsx) — covers nearly the full
+   screen (tall min-height) and sits above the fixed bottom tab bar
+   (z-index over its z-10), leaving only the app's own sticky top bar
+   visible above it, per the founder's reference video of Polymarket's
+   real behavior. 64px matches the mobile top bar's rendered height, the
+   same unit the bottom tab bar's body padding already uses elsewhere.
+   Scoped to the mobile breakpoint only — desktop stays plain in-flow
+   content with none of this. */
+@media (max-width: 767px) {
+  .search-sheet {
+    position: relative;
+    z-index: 20;
+    min-height: calc(100dvh - 64px);
+    background: var(--background);
+    border-radius: 20px 20px 0 0;
+  }
+}
+
 /* Safety net, not the fix: mobile Safari/Chrome auto-zoom the whole page in
    when a focused input/select/textarea renders below 16px, so it stays
    legible — and that zoom persists across client-side navigation. Every

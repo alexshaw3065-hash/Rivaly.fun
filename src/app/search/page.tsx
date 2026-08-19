@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { rooms, matches, profiles, matchById, leagues, type SearchTopic } from "@/lib/mock-data";
 import { RoomFeed, type FilterTab } from "@/components/room-feed";
 import { SearchRollup } from "@/components/search-rollup";
@@ -33,6 +34,7 @@ function iconButtonColor(active: boolean) {
 }
 
 export default function SearchPage() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
@@ -40,6 +42,37 @@ export default function SearchPage() {
   const [entryMax, setEntryMax] = useState("");
   const [status, setStatus] = useState<RoomStatusFilter>("");
   const [browse, setBrowse] = useState<BrowseState | null>(null);
+
+  // Drag-to-dismiss (mobile only — touch events never fire on desktop, so
+  // dragY stays 0 there and the transform below is a permanent no-op).
+  // Only starts a drag when the page itself is already scrolled to the
+  // very top, same rule real bottom sheets use, so it can't hijack a
+  // normal scroll through browse/query results mid-list.
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+
+  function onTouchStart(e: React.TouchEvent) {
+    if (window.scrollY > 0) return;
+    dragStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (!isDragging) return;
+    if (window.scrollY > 0) {
+      setIsDragging(false);
+      setDragY(0);
+      return;
+    }
+    setDragY(Math.max(e.touches[0].clientY - dragStartY.current, 0));
+  }
+  function onTouchEnd() {
+    if (isDragging && dragY > 100) {
+      router.push("/");
+    }
+    setIsDragging(false);
+    setDragY(0);
+  }
 
   const q = query.trim().toLowerCase();
   const mode: "idle" | "browse" | "query" = q ? "query" : browse ? "browse" : "idle";
@@ -183,18 +216,36 @@ export default function SearchPage() {
   );
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-6 pb-12 pt-3 md:pb-12 md:pt-12">
-      {/* Mobile roll-up-sheet chrome — a drag handle above the search bar
-          itself, per the founder's video of Polymarket's real behavior:
-          the input is the top element of the sheet's own content, and the
-          app's normal top bar + bottom tab bar stay visible and reachable
-          the whole time (nav.tsx doesn't hide anything on this route —
-          an earlier version did, and got called out for it explicitly). */}
-      <div className="md:hidden">
-        <div className="flex justify-center">
+    <main className="mx-auto min-w-0 max-w-5xl px-6 md:pb-12 md:pt-12">
+      {/* The roll-up sheet, per the founder's video of Polymarket's real
+          behavior: on mobile it covers nearly the full screen (tall
+          min-height + a z-index above the fixed bottom tab bar — see
+          .search-sheet in globals.css), leaving only the app's own sticky
+          top bar visible above it, and it's dismissible by dragging/
+          scrolling down from the very top (onTouchStart/Move/End below) or
+          tapping the handle. Desktop resets all of that back to plain
+          in-flow content (.search-sheet only applies under 768px) — the
+          transform/transition stay harmless no-ops there since touch
+          events never fire and dragY never leaves 0. */}
+      <div
+        className="search-sheet"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateY(${dragY}px)`,
+          transition: isDragging ? "none" : "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+        }}
+      >
+        <button
+          onClick={() => router.push("/")}
+          aria-label="Close search"
+          className="flex w-full justify-center py-2 md:hidden"
+        >
           <span className="h-1 w-9 rounded-full" style={{ background: "var(--border-strong)" }} />
-        </div>
-        <div className="mt-3 flex items-center gap-3">
+        </button>
+
+        <div className="flex items-center gap-3">
           {mode === "browse" && (
             <button
               onClick={handleBack}
@@ -205,34 +256,15 @@ export default function SearchPage() {
             </button>
           )}
           {searchInput}
-          {/* Always visible on mobile — unlike desktop, there's no
-              RoomFeed chip row (chipRowEnd, md:flex-only below) for browse
-              mode to move these onto instead. */}
-          <div className="flex shrink-0 items-center gap-3">{advancedSearchIcons}</div>
+          {/* Browse mode moves these two down onto RoomFeed's filter-chip
+              row (chipRowEnd below) on desktop instead — mobile has no chip
+              row to move them to in any mode, so they always stay here. */}
+          <div className={`flex shrink-0 items-center gap-3 ${mode === "browse" ? "md:hidden" : ""}`}>
+            {advancedSearchIcons}
+          </div>
         </div>
-      </div>
 
-      {/* Desktop keeps the search bar up top, unchanged from before. */}
-      <div className="hidden items-center gap-3 md:flex">
-        {mode === "browse" && (
-          <button
-            onClick={handleBack}
-            aria-label="Back to search"
-            className="hover-link shrink-0 text-foreground transition-colors"
-          >
-            ←
-          </button>
-        )}
-        {searchInput}
-        {/* Browse mode moves these two down onto RoomFeed's filter-chip row
-            (chipRowEnd below) instead — idle and query modes have no chip
-            row to move them to, so they stay here. */}
-        <div className={`flex shrink-0 items-center gap-3 ${mode === "browse" ? "md:hidden" : ""}`}>
-          {advancedSearchIcons}
-        </div>
-      </div>
-
-      {showAdvancedPanel && (
+        {showAdvancedPanel && (
         <div className="mt-4 flex flex-col gap-4 rounded-lg border border-border bg-surface p-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted">League</p>
@@ -307,25 +339,26 @@ export default function SearchPage() {
         </div>
       )}
 
-      <div className="mt-6 md:mt-10">
-        {mode === "idle" && (
-          <SearchRollup
-            onSelectRecent={handleSelectRecent}
-            onSelectTab={handleSelectTab}
-            onSelectTopic={handleSelectTopic}
-          />
-        )}
-        {mode === "browse" && (
-          <RoomFeed
-            key={browse?.topic?.id ?? browse?.tab}
-            extraFilter={roomMatchesAllFilters}
-            initialTab={browse?.tab}
-            chipRowEnd={<div className="hidden shrink-0 items-center gap-3 md:flex">{advancedSearchIcons}</div>}
-          />
-        )}
-        {mode === "query" && (
-          <SearchResultsList query={query} rooms={matchedRooms} matches={matchedMatches} people={matchedPeople} />
-        )}
+        <div className="mt-6 md:mt-10">
+          {mode === "idle" && (
+            <SearchRollup
+              onSelectRecent={handleSelectRecent}
+              onSelectTab={handleSelectTab}
+              onSelectTopic={handleSelectTopic}
+            />
+          )}
+          {mode === "browse" && (
+            <RoomFeed
+              key={browse?.topic?.id ?? browse?.tab}
+              extraFilter={roomMatchesAllFilters}
+              initialTab={browse?.tab}
+              chipRowEnd={<div className="hidden shrink-0 items-center gap-3 md:flex">{advancedSearchIcons}</div>}
+            />
+          )}
+          {mode === "query" && (
+            <SearchResultsList query={query} rooms={matchedRooms} matches={matchedMatches} people={matchedPeople} />
+          )}
+        </div>
       </div>
     </main>
   );
