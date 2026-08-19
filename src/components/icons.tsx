@@ -177,3 +177,24 @@ export function KeyIcon() {
     </svg>
   );
 }
+
+// Plain circle-i — explains what a tab/section means, on hover (desktop,
+// via the native title attribute wherever it's used) or tap (everywhere).
+export function InfoIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 9v4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="10" cy="6.6" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Small chevron-down for the Discover filter's "More" dropdown trigger.
+export function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="14" height="14" fill="none" aria-hidden>
+      <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   SELF_USER_ID,
   roomsByCreator,
@@ -8,6 +11,8 @@ import {
 } from "@/lib/mock-data";
 import { RoomCard } from "./room-card";
 import type { Room } from "@/lib/types";
+
+type SubTab = "created" | "joined" | "completed";
 
 function CompletedRoomCard({ room }: { room: Room }) {
   const entry = entriesByUser(SELF_USER_ID).find((e) => e.roomId === room.id);
@@ -26,10 +31,18 @@ function CompletedRoomCard({ room }: { room: Room }) {
   );
 }
 
+const emptyCopy: Record<SubTab, string> = {
+  created: "You haven't created a room yet.",
+  joined: "You haven't joined a room yet.",
+  completed: "Nothing's settled yet.",
+};
+
 // My Rooms: everything with your name on it, split the way people
 // actually think about their own activity — what you started, what you
 // joined in on, and how it all turned out.
 export function RoomsMineFeed() {
+  const [sub, setSub] = useState<SubTab>("created");
+
   const created = roomsByCreator(SELF_USER_ID);
   const joined = roomsJoinedBy(SELF_USER_ID).filter((r) => r.creatorId !== SELF_USER_ID);
 
@@ -55,39 +68,38 @@ export function RoomsMineFeed() {
     );
   }
 
+  const current = sub === "created" ? activeCreated : sub === "joined" ? activeJoined : completed;
+
   return (
-    <div className="flex flex-col gap-10">
-      {activeCreated.length > 0 && (
-        <section>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Created</p>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activeCreated.map((room) => (
-              <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
-            ))}
-          </div>
-        </section>
-      )}
+    <div>
+      <div className="flex gap-5">
+        {(["created", "joined", "completed"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSub(s)}
+            className="-mb-px border-b-2 pb-2 text-sm font-medium capitalize transition-colors duration-150"
+            style={{
+              borderColor: sub === s ? "var(--foreground)" : "transparent",
+              color: sub === s ? "var(--foreground)" : "var(--muted)",
+            }}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
 
-      {activeJoined.length > 0 && (
-        <section>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Joined</p>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activeJoined.map((room) => (
-              <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {completed.length > 0 && (
-        <section>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Completed</p>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {completed.map((room) => (
+      {current.length > 0 ? (
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {current.map((room) =>
+            sub === "completed" ? (
               <CompletedRoomCard key={room.id} room={room} />
-            ))}
-          </div>
-        </section>
+            ) : (
+              <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
+            ),
+          )}
+        </div>
+      ) : (
+        <p className="mt-6 text-sm text-muted">{emptyCopy[sub]}</p>
       )}
     </div>
   );

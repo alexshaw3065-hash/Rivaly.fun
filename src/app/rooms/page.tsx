@@ -2,7 +2,9 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { RoomFeed } from "@/components/room-feed";
+import { RoomFeed, type FilterTab } from "@/components/room-feed";
+import { RoomsExplodingSection } from "@/components/rooms-exploding-section";
+import { DiscoverFilterMenu } from "@/components/discover-filter-menu";
 import { RoomsLiveFeed } from "@/components/rooms-live-feed";
 import { RoomsFollowingFeed } from "@/components/rooms-following-feed";
 import { RoomsMineFeed } from "@/components/rooms-mine-feed";
@@ -10,11 +12,11 @@ import { JoinPrivateRoomButton } from "@/components/join-private-room-button";
 
 type RoomsTab = "discover" | "live" | "following" | "mine";
 
-const tabs: { id: RoomsTab; label: string; hint: string }[] = [
-  { id: "discover", label: "Discover", hint: "Trending, new, and live — everything worth a bet, in one place." },
-  { id: "live", label: "Live", hint: "What's happening right now, and what's about to." },
-  { id: "following", label: "Following", hint: "Rooms from the rivals you follow." },
-  { id: "mine", label: "My Rooms", hint: "Everything you've created, joined, or settled." },
+const tabs: { id: RoomsTab; label: string }[] = [
+  { id: "discover", label: "Discover" },
+  { id: "live", label: "Live" },
+  { id: "following", label: "Following" },
+  { id: "mine", label: "My Rooms" },
 ];
 
 // The third nav tab (Home, Search, Rooms, Following, Wallet) — where you
@@ -25,6 +27,8 @@ const tabs: { id: RoomsTab; label: string; hint: string }[] = [
 // the social payoff (rooms from people you actually follow), and My Rooms
 // is the personal ledger (Created/Joined/Completed). Join Private Room
 // sits apart from these four as a one-off action, not a browsing surface.
+// No per-tab hint copy — the founder's call: the tabs and their content
+// speak for themselves.
 // useSearchParams needs a Suspense boundary around whatever reads it (Next
 // bails out of static rendering otherwise) — split into a thin wrapper so
 // the actual page doesn't have to care.
@@ -44,12 +48,11 @@ function RoomsPageContent() {
   const requestedTab = searchParams.get("tab");
   const initialTab = tabs.some((t) => t.id === requestedTab) ? (requestedTab as RoomsTab) : "discover";
   const [tab, setTab] = useState<RoomsTab>(initialTab);
-  const active = tabs.find((t) => t.id === tab)!;
+  const [discoverTab, setDiscoverTab] = useState<FilterTab>("trending");
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-6 md:py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Rooms</h1>
+      <div className="flex justify-end">
         <JoinPrivateRoomButton />
       </div>
 
@@ -69,10 +72,18 @@ function RoomsPageContent() {
         ))}
       </div>
 
-      <p className="mt-3 text-sm text-muted">{active.hint}</p>
-
       <div className="mt-8">
-        {tab === "discover" && <RoomFeed />}
+        {tab === "discover" && (
+          <div className="flex flex-col gap-10">
+            <RoomsExplodingSection />
+            <section>
+              <DiscoverFilterMenu selected={discoverTab} onSelect={setDiscoverTab} />
+              <div className="mt-6">
+                <RoomFeed tab={discoverTab} onTabChange={setDiscoverTab} hideChips />
+              </div>
+            </section>
+          </div>
+        )}
         {tab === "live" && <RoomsLiveFeed />}
         {tab === "following" && <RoomsFollowingFeed />}
         {tab === "mine" && <RoomsMineFeed />}

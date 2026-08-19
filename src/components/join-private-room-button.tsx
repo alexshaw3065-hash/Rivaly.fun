@@ -40,10 +40,11 @@ export function JoinPrivateRoomButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="Join private room"
-        className="hover-link shrink-0 text-muted transition-colors"
+        className="flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-transform duration-150 ease-out active:scale-[0.97]"
+        style={{ background: "var(--rival-blue-dim)", color: "var(--rival-blue)" }}
       >
         <KeyIcon />
+        Join private room
       </button>
 
       <BottomSheet open={open} onClose={close} title="Join private room">

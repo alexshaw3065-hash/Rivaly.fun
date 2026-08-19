@@ -17,7 +17,7 @@ import type { Match, Room } from "@/lib/types";
 // call" is Rivaly's answer to Polymarket's "Competitive": the rooms where
 // the Yes/No split is nearest 50/50 — the ones that best embody "who
 // thinks differently than you," not just a copy of a finance concept.
-export type FilterTab = "trending" | "new" | "live" | "closing" | "pools" | "close-call";
+export type FilterTab = "trending" | "new" | "live" | "closing" | "pools" | "close-call" | "personal";
 
 export const filters: { id: FilterTab; label: string }[] = [
   { id: "trending", label: "Trending" },
@@ -26,6 +26,7 @@ export const filters: { id: FilterTab; label: string }[] = [
   { id: "closing", label: "Closing soon" },
   { id: "pools", label: "Big pools" },
   { id: "close-call", label: "Too close to call" },
+  { id: "personal", label: "For You" },
 ];
 
 const PAGE_SIZE = 6;
@@ -37,7 +38,11 @@ function applyFilter(tab: FilterTab): Room[] {
       return openRooms.filter((r) => matchById(r.matchId)?.status === "live");
     case "new":
       return [...openRooms].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+    // "For You" aliases to the same momentum sort as Trending until there's
+    // real user-preference data to personalize with — no point faking a
+    // signal that doesn't exist yet.
     case "trending":
+    case "personal":
       return [...openRooms].sort(
         (a, b) => momentumCount(b) / b.participantCount - momentumCount(a) / a.participantCount,
       );
@@ -91,16 +96,29 @@ function buildRows(items: Room[]): FeedRow[] {
 // chipRowEnd renders past the (horizontally-scrolling) filter chips, e.g.
 // Search's advanced-search/wishlist icons on desktop — the caller owns any
 // responsive visibility on the node it passes in (see search/page.tsx).
+// Controlled/uncontrolled hybrid: pass `tab` + `onTabChange` when a caller
+// wants to drive the filter with its own UI (Rooms > Discover's pump.fun-
+// style pill + dropdown, which needs `hideChips` too, since it replaces
+// this row entirely instead of sitting next to it). Every other caller
+// (Search, Home) keeps the plain uncontrolled chip row, untouched.
 export function RoomFeed({
   extraFilter,
   chipRowEnd,
   initialTab = "trending",
+  tab: controlledTab,
+  onTabChange,
+  hideChips = false,
 }: {
   extraFilter?: (room: Room) => boolean;
   chipRowEnd?: ReactNode;
   initialTab?: FilterTab;
+  tab?: FilterTab;
+  onTabChange?: (tab: FilterTab) => void;
+  hideChips?: boolean;
 }) {
-  const [tab, setTab] = useState<FilterTab>(initialTab);
+  const [internalTab, setInternalTab] = useState<FilterTab>(initialTab);
+  const tab = controlledTab ?? internalTab;
+  const setTab = onTabChange ?? setInternalTab;
   const [prevTab, setPrevTab] = useState(tab);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadingRef = useRef(false);
@@ -150,29 +168,31 @@ export function RoomFeed({
 
   return (
     <div>
-      <div className="flex items-center gap-3">
-        <div className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
-          {filters.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setTab(f.id)}
-              className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
-              style={{
-                borderColor: tab === f.id ? "var(--foreground)" : "var(--border)",
-                color: tab === f.id ? "var(--foreground)" : "var(--muted)",
-                background: tab === f.id ? "var(--surface-elevated)" : "transparent",
-                transition:
-                  "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+      {!hideChips && (
+        <div className="flex items-center gap-3">
+          <div className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+            {filters.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setTab(f.id)}
+                className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
+                style={{
+                  borderColor: tab === f.id ? "var(--foreground)" : "var(--border)",
+                  color: tab === f.id ? "var(--foreground)" : "var(--muted)",
+                  background: tab === f.id ? "var(--surface-elevated)" : "transparent",
+                  transition:
+                    "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {chipRowEnd}
         </div>
-        {chipRowEnd}
-      </div>
+      )}
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className={hideChips ? "flex flex-col gap-4" : "mt-6 flex flex-col gap-4"}>
         {rows.map(({ room, match, showHeader }, i) => (
           <div key={room.id}>
             {showHeader && (
