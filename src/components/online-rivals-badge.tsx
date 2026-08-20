@@ -8,8 +8,14 @@ import { BottomSheet } from "./bottom-sheet";
 
 // "N rivals online" — a real, honest count (everyone in the mock roster
 // besides you; swap for a real presence system later) rather than an
-// invented number tuned to look impressive. Tappable, per the founder's
-// spec, not just decorative.
+// invented number tuned to look impressive. Deliberately small and
+// ambient — an "online now" signal reads best as a quiet pulse you notice
+// in passing (Discord's status dots, Twitter Spaces' "listening" pill),
+// not a headline competing with primary navigation. Sits inline next to
+// Feed's Global/Following toggle rather than floating alone at the top of
+// every Arena tab, so it only shows up where presence is actually
+// relevant — you're about to see what people are doing, not on Leagues or
+// Leaderboard where it has nothing to do with the content.
 export function OnlineRivalsBadge() {
   const [open, setOpen] = useState(false);
   const online = profiles.filter((p) => p.id !== SELF_USER_ID);
@@ -18,14 +24,14 @@ export function OnlineRivalsBadge() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hover-border flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface py-1.5 pl-1.5 pr-3 transition-colors"
+        className="hover-link flex shrink-0 items-center gap-1.5 text-muted transition-colors"
       >
-        <div className="flex -space-x-2">
-          {online.slice(0, 4).map((p) => (
-            <Avatar key={p.id} name={p.displayName} size={22} />
+        <div className="flex -space-x-1.5">
+          {online.slice(0, 3).map((p) => (
+            <Avatar key={p.id} name={p.displayName} size={16} />
           ))}
         </div>
-        <span className="text-xs font-medium text-foreground">{online.length} online</span>
+        <span className="text-xs">{online.length} online</span>
       </button>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Rivals online now">

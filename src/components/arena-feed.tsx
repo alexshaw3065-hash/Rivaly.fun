@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildArenaFeed, arenaItemSubjectId, followedProfileIds } from "@/lib/mock-data";
 import { ArenaFeedCard } from "./arena-feed-card";
+import { OnlineRivalsBadge } from "./online-rivals-badge";
 
 type FeedScope = "global" | "following";
 const PAGE_SIZE = 6;
@@ -61,20 +62,25 @@ export function ArenaFeed() {
 
   return (
     <div>
-      <div className="flex gap-5 border-b border-border">
-        {(["global", "following"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setScope(s)}
-            className="-mb-px border-b-2 pb-2.5 text-sm font-medium capitalize transition-colors duration-150"
-            style={{
-              borderColor: scope === s ? "var(--foreground)" : "transparent",
-              color: scope === s ? "var(--foreground)" : "var(--muted)",
-            }}
-          >
-            {s === "global" ? "Global" : "Following"}
-          </button>
-        ))}
+      <div className="flex items-center justify-between border-b border-border">
+        <div className="flex gap-5">
+          {(["global", "following"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setScope(s)}
+              className="-mb-px border-b-2 pb-2.5 text-sm font-medium capitalize transition-colors duration-150"
+              style={{
+                borderColor: scope === s ? "var(--foreground)" : "transparent",
+                color: scope === s ? "var(--foreground)" : "var(--muted)",
+              }}
+            >
+              {s === "global" ? "Global" : "Following"}
+            </button>
+          ))}
+        </div>
+        <div className="pb-2.5">
+          <OnlineRivalsBadge />
+        </div>
       </div>
 
       <div className="mt-6 flex flex-col gap-4">

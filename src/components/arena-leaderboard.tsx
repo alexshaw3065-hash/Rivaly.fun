@@ -49,9 +49,55 @@ function ranked(filter: Filter): { profile: Profile; value: string }[] {
   }
 }
 
+const PODIUM_HEIGHT: Record<1 | 2 | 3, number> = { 1: 92, 2: 68, 3: 52 };
+const PODIUM_ORDER: Record<1 | 2 | 3, number> = { 1: 2, 2: 1, 3: 3 }; // visual left-to-right: 2nd, 1st, 3rd
+
+function PodiumSpot({ rank, profile, value }: { rank: 1 | 2 | 3; profile: Profile; value: string }) {
+  const isSelf = profile.id === SELF_USER_ID;
+  return (
+    <Link
+      href={`/profile/${profile.username}`}
+      className="flex flex-1 flex-col items-center gap-2"
+      style={{ order: PODIUM_ORDER[rank] }}
+    >
+      <div className="relative">
+        {rank === 1 && <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xl">👑</span>}
+        <Avatar name={profile.displayName} size={rank === 1 ? 52 : 44} />
+      </div>
+      <p className="max-w-full truncate text-xs font-medium text-foreground">
+        {profile.displayName}
+        {isSelf && <span className="text-muted"> (you)</span>}
+      </p>
+      <p className="font-mono text-[11px] text-muted">{value}</p>
+      <div
+        className="flex w-full items-start justify-center rounded-t-md pt-1.5"
+        style={{
+          height: PODIUM_HEIGHT[rank],
+          background: rank === 1 ? "var(--rival-blue-dim)" : "var(--surface-elevated)",
+          border: "1px solid var(--border)",
+          borderBottom: "none",
+        }}
+      >
+        <span
+          className="font-mono text-lg font-bold"
+          style={{ color: rank === 1 ? "var(--rival-blue)" : "var(--muted)" }}
+        >
+          {rank}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+// Top 3 get the podium moment (per the founder's reference — a real "loud
+// where it matters" beat, not decoration: it's the same three ranks every
+// filter recomputes for real, per the ethical no-fabricated-numbers rule).
+// 4th place and below is a plain ranked list underneath.
 export function ArenaLeaderboard() {
   const [filter, setFilter] = useState<Filter>("global");
   const rows = ranked(filter);
+  const podium = rows.slice(0, 3);
+  const rest = rows.slice(3);
 
   return (
     <div>
@@ -74,8 +120,16 @@ export function ArenaLeaderboard() {
         ))}
       </div>
 
-      <div className="mt-5 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
-        {rows.map(({ profile, value }, i) => {
+      {podium.length === 3 && (
+        <div className="mt-8 flex items-end gap-3 px-2">
+          <PodiumSpot rank={2} profile={podium[1].profile} value={podium[1].value} />
+          <PodiumSpot rank={1} profile={podium[0].profile} value={podium[0].value} />
+          <PodiumSpot rank={3} profile={podium[2].profile} value={podium[2].value} />
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+        {rest.map(({ profile, value }, i) => {
           const isSelf = profile.id === SELF_USER_ID;
           return (
             <Link
@@ -84,7 +138,7 @@ export function ArenaLeaderboard() {
               className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-elevated"
               style={isSelf ? { background: "var(--surface-elevated)" } : undefined}
             >
-              <span className="w-5 shrink-0 font-mono text-xs text-muted">{i + 1}</span>
+              <span className="w-5 shrink-0 font-mono text-xs text-muted">{i + 4}</span>
               <Avatar name={profile.displayName} size={28} />
               <p className="min-w-0 flex-1 truncate text-sm text-foreground">
                 {profile.displayName}
