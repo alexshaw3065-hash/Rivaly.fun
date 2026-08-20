@@ -15,6 +15,7 @@ import type {
   Entry,
   Follow,
   Post,
+  PostReply,
   ArenaFeedItem,
   PredictionLeague,
 } from "./types";
@@ -673,4 +674,64 @@ export function buildArenaFeed(): ArenaFeedItem[] {
   feed.push(...hotRoomItems.slice(hotIndex));
 
   return feed;
+}
+
+export interface BalancePoint {
+  createdAt: string;
+  balanceCents: number;
+}
+
+// Real running-balance series built by walking the actual `transactions`
+// array chronologically, ending exactly at the current `wallet.balanceCents`
+// — a genuine derived series, not a decorative curve shaped to look nice.
+// Self-only: `transactions` only has rows for SELF_USER_ID.
+export function balanceHistory(): BalancePoint[] {
+  const sorted = [...transactions].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+  const totalDelta = sorted.reduce((sum, t) => sum + t.amountCents, 0);
+  let running = wallet.balanceCents - totalDelta;
+  const points: BalancePoint[] = [];
+  for (const t of sorted) {
+    running += t.amountCents;
+    points.push({ createdAt: t.createdAt, balanceCents: running });
+  }
+  return points;
+}
+
+export interface AuthoredReply {
+  post: Post;
+  reply: PostReply;
+}
+
+// Every reply a profile has actually posted, across all Posts, with its
+// parent post for context — powers Profile's Replies tab.
+export function repliesByAuthor(profileId: string): AuthoredReply[] {
+  const result: AuthoredReply[] = [];
+  for (const post of posts) {
+    for (const reply of post.replies) {
+      if (reply.authorId === profileId) result.push({ post, reply });
+    }
+  }
+  return result.sort((a, b) => +new Date(b.reply.createdAt) - +new Date(a.reply.createdAt));
+}
+
+// Mirrors buildArenaFeed()'s item-construction logic but scoped to one
+// author's own Entries and Posts, so it plugs directly into the same
+// ArenaFeedCard switcher — a personal activity log, not the global feed.
+export function activityForProfile(id: string): ArenaFeedItem[] {
+  const entryItems: ArenaFeedItem[] = entriesByUser(id).map((e) =>
+    e.isWinner === null
+      ? { id: `ra-${e.id}`, kind: "rival_activity", entryId: e.id, createdAt: e.createdAt }
+      : { id: `wl-${e.id}`, kind: "win_loss", entryId: e.id, createdAt: e.createdAt },
+  );
+
+  const postItems: ArenaFeedItem[] = posts
+    .filter((p) => p.authorId === id)
+    .map((p) => ({
+      id: `post-${p.id}`,
+      kind: p.roomId ? "thesis" : "banter",
+      postId: p.id,
+      createdAt: p.createdAt,
+    }));
+
+  return [...entryItems, ...postItems].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 }

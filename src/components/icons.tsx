@@ -188,6 +188,19 @@ export function ChevronDownIcon() {
   );
 }
 
+// Three nodes off a shared spine — the standard "share" construction, kept
+// to the same bare hand-drawn stroke weight as the rest of this file.
+export function ShareIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden>
+      <circle cx="15" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="5" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="15" cy="15" r="2.2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7 8.8 13 6M7 11.2l6 2.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // A stadium bowl seen from the side — two opposing stands (the arcs) around
 // the pitch (the center dot) — for the Arena nav tab. Deliberately not a
 // trophy (that reads as "you already won something"; Arena is the crowd,
