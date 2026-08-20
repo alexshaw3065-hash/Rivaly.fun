@@ -217,16 +217,16 @@ export default function SearchPage() {
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 md:pb-12 md:pt-12">
-      {/* The roll-up sheet, per the founder's video of Polymarket's real
-          behavior: on mobile it covers nearly the full screen (tall
-          min-height + a z-index above the fixed bottom tab bar — see
-          .search-sheet in globals.css), leaving only the app's own sticky
-          top bar visible above it, and it's dismissible by dragging/
-          scrolling down from the very top (onTouchStart/Move/End below) or
-          tapping the handle. Desktop resets all of that back to plain
-          in-flow content (.search-sheet only applies under 768px) — the
-          transform/transition stay harmless no-ops there since touch
-          events never fire and dragY never leaves 0. */}
+      {/* The roll-up sheet, per the founder's side-by-side comparison
+          against Polymarket's real app: on mobile it's a true full-screen
+          takeover (100dvh + a z-index above the fixed bottom tab bar, top
+          bar hidden outright by nav.tsx — see .search-sheet in
+          globals.css), no app chrome peeking through anywhere. Dismissible
+          by dragging/scrolling down from the very top (onTouchStart/Move/
+          End below) or tapping the handle. Desktop resets all of that back
+          to plain in-flow content (.search-sheet only applies under
+          768px) — the transform/transition stay harmless no-ops there
+          since touch events never fire and dragY never leaves 0. */}
       <div
         className="search-sheet"
         onTouchStart={onTouchStart}
@@ -245,7 +245,7 @@ export default function SearchPage() {
           <span className="h-1 w-9 rounded-full" style={{ background: "var(--border-strong)" }} />
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="mt-2 flex items-center gap-3 md:mt-0">
           {mode === "browse" && (
             <button
               onClick={handleBack}

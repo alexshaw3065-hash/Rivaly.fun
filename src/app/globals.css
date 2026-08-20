@@ -136,19 +136,19 @@ html {
   background: linear-gradient(to right, transparent, var(--background));
 }
 
-/* Search's mobile roll-up sheet (search/page.tsx) — covers nearly the full
-   screen (tall min-height) and sits above the fixed bottom tab bar
-   (z-index over its z-10), leaving only the app's own sticky top bar
-   visible above it, per the founder's reference video of Polymarket's
-   real behavior. 64px matches the mobile top bar's rendered height, the
-   same unit the bottom tab bar's body padding already uses elsewhere.
-   Scoped to the mobile breakpoint only — desktop stays plain in-flow
-   content with none of this. */
+/* Search's mobile roll-up sheet (search/page.tsx) — a true full-screen
+   takeover, edge to edge, with zero app chrome peeking through anywhere
+   (not even the top bar — nav.tsx hides it on this route). Matches the
+   founder's side-by-side comparison against Polymarket's actual app: any
+   sliver of the top bar or avatar showing through reads as a bug, not a
+   "nice peek." The way out is the drag-to-dismiss gesture / handle tap,
+   not a visible ambient nav. Scoped to the mobile breakpoint only —
+   desktop stays plain in-flow content with none of this. */
 @media (max-width: 767px) {
   .search-sheet {
     position: relative;
     z-index: 20;
-    min-height: calc(100dvh - 64px);
+    min-height: 100dvh;
     background: var(--background);
     border-radius: 20px 20px 0 0;
   }

@@ -32,29 +32,35 @@ const SELF_NAME = "Victor";
 
 export function Nav({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  // Mobile Search is a true full-screen takeover (search/page.tsx's
+  // .search-sheet) — no sliver of the top bar or avatar should peek
+  // through anywhere, per the founder's side-by-side comparison against
+  // Polymarket's actual app. The bottom tab bar/FAB stay mounted (the
+  // sheet's own z-index visually covers them, same as before) — only the
+  // top bar needs hiding outright, since it sits in normal flow above the
+  // sheet rather than being coverable by it.
+  const isMobileSearchTakeover = pathname === "/search";
 
   return (
     <>
-      {/* Mobile top bar — unchanged, md:hidden. Search (mobile) is its own
-          roll-up-sheet chrome layered inside the page (see search/page.tsx),
-          not a takeover — the founder's own reference video of Polymarket
-          shows their top nav staying visible while the search sheet is
-          open, and explicitly called out our bottom tab bar disappearing
-          as wrong. The app's nav stays reachable on every route. */}
-      <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
-        <div className="flex items-center gap-3 px-4 py-4">
-          <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
-            Rivaly
-          </Link>
-          <div className="ml-auto flex shrink-0 items-center gap-3">
-            <TopBarIcons />
-            <ThemeToggle />
-            <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
-              <Avatar name={SELF_NAME} size={32} />
+      {/* Mobile top bar — md:hidden, hidden outright during the Search
+          takeover. */}
+      {!isMobileSearchTakeover && (
+        <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
+          <div className="flex items-center gap-3 px-4 py-4">
+            <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
+              Rivaly
             </Link>
+            <div className="ml-auto flex shrink-0 items-center gap-3">
+              <TopBarIcons />
+              <ThemeToggle />
+              <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
+                <Avatar name={SELF_NAME} size={32} />
+              </Link>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       <Sidebar />
       <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
