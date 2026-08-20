@@ -1,4 +1,4 @@
-const RING_COLORS = ["var(--rival-blue)", "var(--rival-green)", "var(--border-strong)"];
+export const RING_COLORS = ["var(--rival-blue)", "var(--rival-green)", "var(--border-strong)"];
 
 // Exported so other profile-header pieces (the banner color) can derive a
 // deterministic value from the same name without duplicating the hash.
@@ -11,12 +11,16 @@ export function hashToIndex(input: string, mod: number): number {
 export function Avatar({
   name,
   size = 32,
+  ringColor,
 }: {
   name: string;
   size?: number;
+  // Lets a profile owner pick their own ring color (see profile-edit-sheet)
+  // instead of always taking the deterministic hash-derived default.
+  ringColor?: string;
 }) {
   const initial = name.trim().charAt(0).toUpperCase() || "?";
-  const ring = RING_COLORS[hashToIndex(name, RING_COLORS.length)];
+  const ring = ringColor ?? RING_COLORS[hashToIndex(name, RING_COLORS.length)];
   return (
     <div
       className="flex shrink-0 items-center justify-center rounded-full bg-surface-elevated font-medium text-foreground"

@@ -4,66 +4,95 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
 import { formatMoney, formatMoneyCompact, repliesByAuthor, activityForProfile } from "@/lib/mock-data";
-import { Avatar, hashToIndex } from "./avatar";
+import { Avatar, RING_COLORS, hashToIndex } from "./avatar";
 import { FollowButton } from "./follow-button";
-import { ShareIcon, LinkIcon } from "./icons";
+import { ShareIcon, LinkIcon, PencilIcon, SettingsIcon, GiftIcon } from "./icons";
 import { ProfileAchievements } from "./profile-achievements";
 import { ProfilePnl } from "./profile-pnl";
 import { ProfilePositions, allPositions, type PositionFilter } from "./profile-positions";
 import { ProfileReplies } from "./profile-replies";
 import { ProfileActivity } from "./profile-activity";
 import { ScrollFadeRow } from "./scroll-fade-row";
+import { ProfileEditSheet, BANNER_COLORS } from "./profile-edit-sheet";
+import { ProfileSettingsSheet } from "./profile-settings-sheet";
 
 type ProfileTab = "position" | "replies" | "activity";
 
-// A flat color panel behind the avatar, deterministic per profile (same
-// hash Avatar's ring color already uses) — a real cover *treatment*, not a
-// fake photo. Kept inside the app's blue/green/neutral system, never a
-// gradient (see globals.css's "no purple/gold/rainbow gradients" rule).
-const BANNER_COLORS = ["var(--surface-elevated)", "var(--rival-blue-dim)", "var(--rival-green-dim)"];
+function IconButton({
+  onClick,
+  title,
+  children,
+}: {
+  onClick: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground backdrop-blur-sm transition-transform duration-150 ease-out active:scale-[0.94]"
+      style={{ background: "rgba(10,10,10,0.35)" }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function ShareButton() {
   const [copied, setCopied] = useState(false);
   return (
-    <button
+    <IconButton
       onClick={() => {
         navigator.clipboard.writeText(window.location.href).then(() => {
           setCopied(true);
           window.setTimeout(() => setCopied(false), 1500);
         });
       }}
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground backdrop-blur-sm transition-transform duration-150 ease-out active:scale-[0.94]"
-      style={{ background: "rgba(10,10,10,0.35)" }}
       title={copied ? "Copied" : "Copy profile link"}
     >
       <ShareIcon />
-    </button>
+    </IconButton>
   );
 }
 
-// Reddit-style header: banner → avatar overlapping it → name+Edit →
-// username/followers → bio → connect socials → achievements. Follow/
-// Challenge (or Edit's counterpart for a self view) float over the banner's
-// top-right corner, same "actions on the cover" convention as X/Twitter —
-// there's no room beside the avatar for them anymore once it overlaps the
-// banner instead of sitting inline with the name.
+// Reddit-style header: banner → avatar overlapping it → name+edit-pencil →
+// username/followers → bio → connect socials → achievements. On your own
+// profile the banner's top-right corner carries Share/Settings/Invite
+// (referral) icons; on someone else's it carries Share plus Follow/
+// Challenge — same "actions on the cover" convention as X/Twitter, since
+// there's no room beside the avatar for them once it overlaps the banner.
 function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean }) {
-  const [editingBio, setEditingBio] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [bio, setBio] = useState(profile.bio ?? "");
+  const [ringColor, setRingColor] = useState(RING_COLORS[hashToIndex(profile.id, RING_COLORS.length)]);
+  const [bannerColor, setBannerColor] = useState(BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)]);
   const [editingSocial, setEditingSocial] = useState(false);
   const [socialHandle, setSocialHandle] = useState(profile.socialHandle ?? "");
 
-  const bannerColor = BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)];
-
   return (
     <div>
-      <div
-        className="relative h-24 rounded-t-lg md:h-32"
-        style={{ background: bannerColor }}
-      >
+      <div className="relative h-24 rounded-t-lg md:h-32" style={{ background: bannerColor }}>
         <div className="absolute right-3 top-3 flex items-center gap-2">
           <ShareButton />
-          {!isSelf && (
+          {isSelf ? (
+            <>
+              <IconButton onClick={() => setSettingsOpen(true)} title="Settings">
+                <SettingsIcon />
+              </IconButton>
+              <Link
+                href="/invite"
+                title="Invite rivals, earn a referral bonus"
+                aria-label="Invite rivals, earn a referral bonus"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground backdrop-blur-sm transition-transform duration-150 ease-out active:scale-[0.94]"
+                style={{ background: "rgba(10,10,10,0.35)" }}
+              >
+                <GiftIcon />
+              </Link>
+            </>
+          ) : (
             <>
               <FollowButton />
               <Link
@@ -81,7 +110,7 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
       <div className="px-1">
         <div className="-mt-10 flex items-end justify-between">
           <div className="rounded-full p-1" style={{ background: "var(--background)" }}>
-            <Avatar name={profile.displayName} size={80} />
+            <Avatar name={profile.displayName} size={80} ringColor={ringColor} />
           </div>
         </div>
 
@@ -91,10 +120,11 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
           </h1>
           {isSelf && (
             <button
-              onClick={() => setEditingBio((v) => !v)}
-              className="hover-link text-sm text-muted transition-colors"
+              onClick={() => setEditOpen(true)}
+              aria-label="Edit profile"
+              className="text-muted transition-colors hover:text-foreground"
             >
-              Edit
+              <PencilIcon />
             </button>
           )}
         </div>
@@ -112,28 +142,11 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
           </span>
         </div>
 
-        {editingBio ? (
-          <div className="mt-3 flex max-w-md flex-col gap-2">
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Add a bio..."
-              rows={2}
-              className="w-full resize-none rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-border-strong"
-            />
-            <button
-              onClick={() => setEditingBio(false)}
-              className="self-start rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background active:scale-[0.97]"
-              style={{ transition: "transform 150ms ease-out" }}
-            >
-              Save
-            </button>
-          </div>
-        ) : bio ? (
+        {bio ? (
           <p className="mt-3 max-w-md text-sm text-foreground">{bio}</p>
         ) : isSelf ? (
           <button
-            onClick={() => setEditingBio(true)}
+            onClick={() => setEditOpen(true)}
             className="hover-link mt-3 text-sm text-muted transition-colors"
           >
             + Add a bio
@@ -178,6 +191,27 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
           <ProfileAchievements profile={profile} />
         </div>
       </div>
+
+      {isSelf && (
+        <>
+          <ProfileEditSheet
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            displayName={profile.displayName}
+            bio={bio}
+            onBioChange={setBio}
+            ringColor={ringColor}
+            onRingColorChange={setRingColor}
+            bannerColor={bannerColor}
+            onBannerColorChange={setBannerColor}
+          />
+          <ProfileSettingsSheet
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            createdAt={profile.createdAt}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -227,10 +261,10 @@ export function ProfileView({ profile, isSelf }: { profile: Profile; isSelf: boo
         {/* One no-wrap scrollable strip, not a justify-between split — a
             split row clips/overlaps once Position+Replies+Activity's real
             counts push past the available width (hit this on a 375px
-            viewport). A single segmented Open/Closed control (not two
-            separate pills) plus a right-edge fade keeps everything on one
-            line at typical widths and still discoverable if it ever needs
-            to scroll. */}
+            viewport). Open/Closed keeps its original two-separate-pill
+            look, just right-aligned onto the same line as the tabs (only
+            when Position is active) with a scroll-fade hint for when it
+            doesn't all fit. */}
         <ScrollFadeRow
           wrapperClassName="border-b border-border"
           className="no-scrollbar flex items-center gap-4 overflow-x-auto"
@@ -250,17 +284,17 @@ export function ProfileView({ profile, isSelf }: { profile: Profile; isSelf: boo
           ))}
 
           {tab === "position" && (
-            <div
-              className="mb-2.5 ml-auto flex shrink-0 rounded-full border border-border p-0.5 text-xs"
-            >
+            <div className="mb-2.5 ml-auto flex shrink-0 gap-1">
               {(["open", "closed"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setPositionFilter(f)}
-                  className="rounded-full px-2.5 py-1 capitalize transition-colors duration-150"
+                  className="rounded-full border px-2.5 py-1 text-xs capitalize active:scale-[0.97]"
                   style={{
-                    color: positionFilter === f ? "var(--background)" : "var(--muted)",
-                    background: positionFilter === f ? "var(--foreground)" : "transparent",
+                    borderColor: positionFilter === f ? "var(--foreground)" : "var(--border)",
+                    color: positionFilter === f ? "var(--foreground)" : "var(--muted)",
+                    background: positionFilter === f ? "var(--surface-elevated)" : "transparent",
+                    transition: "transform 150ms ease-out, border-color 150ms ease, color 150ms ease",
                   }}
                 >
                   {f}

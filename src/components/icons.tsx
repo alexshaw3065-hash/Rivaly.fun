@@ -218,6 +218,38 @@ export function LinkIcon() {
   );
 }
 
+// A tilted pencil — replaces the old plain "Edit" text link next to your
+// own name so the affordance reads as an icon action, matching the share/
+// settings/gift icons it now sits alongside on the banner.
+export function PencilIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <path
+        d="M12.9 3.6 16.4 7.1 6.9 16.6 3 17.4l.8-3.9 9.1-9.9Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M11.3 5.2 14.8 8.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// A simple gear — account settings, reached from your own profile banner.
+export function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="2.6" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M10 3.2v1.9M10 14.9v1.9M16.8 10h-1.9M5.1 10H3.2M14.9 5.1l-1.3 1.3M6.4 13.6l-1.3 1.3M14.9 14.9l-1.3-1.3M6.4 6.4 5.1 5.1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 // A stadium bowl seen from the side — two opposing stands (the arcs) around
 // the pitch (the center dot) — for the Arena nav tab. Deliberately not a
 // trophy (that reads as "you already won something"; Arena is the crowd,
