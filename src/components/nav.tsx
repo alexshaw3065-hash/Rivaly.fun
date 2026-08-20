@@ -8,6 +8,8 @@ import { ThemeToggle } from "./theme-toggle";
 import { TopBarIcons } from "./top-bar-icons";
 import { Sidebar } from "./sidebar";
 import { DesktopHeader } from "./desktop-header";
+import { MobileSearchOverlay } from "./mobile-search-overlay";
+import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-store";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
@@ -32,38 +34,31 @@ const SELF_NAME = "Victor";
 
 export function Nav({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  // Mobile Search is a true full-screen takeover (search/page.tsx's
-  // .search-sheet) — no sliver of the top bar or avatar should peek
-  // through anywhere, per the founder's side-by-side comparison against
-  // Polymarket's actual app. The bottom tab bar/FAB stay mounted (the
-  // sheet's own z-index visually covers them, same as before) — only the
-  // top bar needs hiding outright, since it sits in normal flow above the
-  // sheet rather than being coverable by it.
-  const isMobileSearchTakeover = pathname === "/search";
+  const searchOpen = useSearchOverlayOpen();
 
   return (
     <>
-      {/* Mobile top bar — md:hidden, hidden outright during the Search
-          takeover. */}
-      {!isMobileSearchTakeover && (
-        <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
-          <div className="flex items-center gap-3 px-4 py-4">
-            <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
-              Rivaly
+      {/* Mobile top bar — md:hidden, unaffected by the search overlay (it's
+          a fixed sheet layered on top, not a route change — see
+          mobile-search-overlay.tsx). */}
+      <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
+        <div className="flex items-center gap-3 px-4 py-4">
+          <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
+            Rivaly
+          </Link>
+          <div className="ml-auto flex shrink-0 items-center gap-3">
+            <TopBarIcons />
+            <ThemeToggle />
+            <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
+              <Avatar name={SELF_NAME} size={32} />
             </Link>
-            <div className="ml-auto flex shrink-0 items-center gap-3">
-              <TopBarIcons />
-              <ThemeToggle />
-              <Link href={`/profile/${SELF_USERNAME}`} className="shrink-0">
-                <Avatar name={SELF_NAME} size={32} />
-              </Link>
-            </div>
           </div>
-        </nav>
-      )}
+        </div>
+      </nav>
 
       <Sidebar />
       <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
+      <MobileSearchOverlay />
 
       {/* Fixed positioning throughout (sidebar, header, mobile bars) means
           this wrapper only ever needs padding, never flex, to make room for
@@ -88,7 +83,31 @@ export function Nav({ children }: { children: ReactNode }) {
       <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm md:hidden">
         <div className="mx-auto flex max-w-5xl items-stretch justify-around">
           {tabs.map((tab) => {
-            const active = pathname === tab.href;
+            const isSearch = tab.href === "/search";
+            const active = isSearch ? searchOpen || pathname === "/search" : pathname === tab.href;
+            const dot = (
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: active ? "var(--rival-blue)" : "transparent" }}
+              />
+            );
+            // Search opens the overlay in place (mobile-search-overlay.tsx)
+            // instead of navigating — that's what lets dismissing it drop
+            // you back exactly where you were, on whatever page/tab you
+            // were already looking at.
+            if (isSearch) {
+              return (
+                <button
+                  key={tab.href}
+                  onClick={openSearchOverlay}
+                  className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium"
+                  style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
+                >
+                  {dot}
+                  {tab.label}
+                </button>
+              );
+            }
             return (
               <Link
                 key={tab.href}
@@ -96,10 +115,7 @@ export function Nav({ children }: { children: ReactNode }) {
                 className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium"
                 style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
               >
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: active ? "var(--rival-blue)" : "transparent" }}
-                />
+                {dot}
                 {tab.label}
               </Link>
             );

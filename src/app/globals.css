@@ -136,23 +136,11 @@ html {
   background: linear-gradient(to right, transparent, var(--background));
 }
 
-/* Search's mobile roll-up sheet (search/page.tsx) — a true full-screen
-   takeover, edge to edge, with zero app chrome peeking through anywhere
-   (not even the top bar — nav.tsx hides it on this route). Matches the
-   founder's side-by-side comparison against Polymarket's actual app: any
-   sliver of the top bar or avatar showing through reads as a bug, not a
-   "nice peek." The way out is the drag-to-dismiss gesture / handle tap,
-   not a visible ambient nav. Scoped to the mobile breakpoint only —
-   desktop stays plain in-flow content with none of this. */
-@media (max-width: 767px) {
-  .search-sheet {
-    position: relative;
-    z-index: 20;
-    min-height: 100dvh;
-    background: var(--background);
-    border-radius: 20px 20px 0 0;
-  }
-}
+/* Search's mobile sheet is a real overlay now (mobile-search-overlay.tsx,
+   position: fixed with inline styles) rather than a page styled to look
+   like one, so it no longer needs a dedicated CSS class here — the fixed
+   positioning keeps it correct across mobile browser dvh/chrome quirks in
+   a way min-height never fully did. */
 
 /* Safety net, not the fix: mobile Safari/Chrome auto-zoom the whole page in
    when a focused input/select/textarea renders below 16px, so it stays
