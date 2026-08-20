@@ -136,3 +136,78 @@ export interface ChatMessage {
   body: string;
   createdAt: string;
 }
+
+/**
+ * Arena's banter/thesis content — see docs/masterplan/07-product-blueprint.md
+ * §4.13 (Arena, formerly "Following"). `roomId` is set for thesis posts (a
+ * conviction argument attached to a real room) and null for plain banter.
+ * Replies are user-generated peer roasting, not system copy — the platform's
+ * own voice never mocks anyone (docs/masterplan/06-emotion-design.md's
+ * Losing rule).
+ */
+export interface PostReply {
+  authorId: UserId;
+  body: string;
+  createdAt: string;
+}
+
+export interface Post {
+  id: string;
+  authorId: UserId;
+  body: string;
+  roomId: RoomId | null;
+  createdAt: string;
+  roastCount: number;
+  replies: PostReply[];
+}
+
+/**
+ * Arena Feed items reference existing data (entries, rooms, posts) rather
+ * than duplicating it — every number a card shows is traceable back to a
+ * real field, never fabricated. See buildArenaFeed() in mock-data.ts.
+ */
+export type ArenaFeedItemKind = "win_loss" | "hot_room" | "rival_activity" | "banter" | "thesis";
+
+interface ArenaFeedItemBase {
+  id: string;
+  createdAt: string;
+}
+
+export interface ArenaWinLossItem extends ArenaFeedItemBase {
+  kind: "win_loss";
+  entryId: EntryId;
+}
+
+export interface ArenaHotRoomItem extends ArenaFeedItemBase {
+  kind: "hot_room";
+  roomId: RoomId;
+}
+
+export interface ArenaRivalActivityItem extends ArenaFeedItemBase {
+  kind: "rival_activity";
+  entryId: EntryId;
+}
+
+export interface ArenaPostItem extends ArenaFeedItemBase {
+  kind: "banter" | "thesis";
+  postId: string;
+}
+
+export type ArenaFeedItem =
+  | ArenaWinLossItem
+  | ArenaHotRoomItem
+  | ArenaRivalActivityItem
+  | ArenaPostItem;
+
+/**
+ * Points-only (no entry fee, no prize pool) FPL-style league — see
+ * docs/masterplan/08-v1-scope.md. Joined the same way private rooms are:
+ * an invite code.
+ */
+export interface PredictionLeague {
+  id: string;
+  name: string;
+  code: string;
+  memberIds: UserId[];
+  createdAt: string;
+}

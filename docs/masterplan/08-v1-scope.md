@@ -33,11 +33,43 @@ That's Rivaly's "create token."
 - ✅ **Search** — rooms, matches, users.
 - ✅ **Profile** — minimal: history, followers, accuracy.
 - ✅ **Wallet** — deposit, withdraw, balance.
-- ✅ **Following** — worth including. Rivaly's vision depends on people following creators and friends; it's a core network effect, not a nice-to-have.
+- ✅ **Arena** (2026-08-20 revision, supersedes the earlier "Following" line) —
+  the fourth nav tab. Feed (Global/Following social feed — win/loss cards,
+  hot-room alerts, rival activity, banter/thesis posts), Leagues
+  (points-only, FPL-style: standings, gameweek cadence, join by code — see
+  §7 below for why this is scoped separately from Tournaments), and a full
+  Leaderboard (§4.12). Still the same core network effect the old
+  "Following" line was protecting — people following creators and friends —
+  just built out into the real social/engagement layer the product needs to
+  bring people back daily, per the founder's explicit direction and the
+  research behind it (see the Arena implementation plan).
 
 ## Leave Out of V1
 
-❌ Communities · ❌ Club/team fan groups (e.g. "Arsenal Fans") · ❌ Shortcuts · ❌ Voice chat · ❌ Streaming · ❌ Tournaments · ❌ AI · ❌ Complex achievements · ❌ Creator monetization
+❌ Communities · ❌ Club/team fan groups (e.g. "Arsenal Fans") · ❌ Tribes/
+Clans (group trading, copy-trading, shared audience-building — see §7
+below) · ❌ Shortcuts · ❌ Voice chat · ❌ Streaming · ❌ Money-entry
+Tournaments (real entry fees, prize pools) · ❌ AI · ❌ Complex achievements
+· ❌ Creator monetization
+
+### §7 — Leagues vs. Tournaments (2026-08-20 clarification)
+
+Arena's Leagues shipped in V1 despite Tournaments being excluded above,
+because they're not the same thing: Leagues here are **points-only** — no
+entry fee, no prize pool, just standings and bragging rights, same shape as
+Fantasy Premier League's free-to-play core game. Real-money entry/prize
+pools (what "Tournaments" actually meant in this list) stay excluded. This
+distinction matters for future scope decisions: adding money to Leagues
+later is a Tournaments-scope change, not a Leagues one.
+
+Tribes/Clans were scoped for this pass and explicitly cut, deferred to V2.
+The founder's fuller vision for it — closer to FOMO app's Clans than a
+simple group: one-tap trade mirroring off a live feed card, a "thesis" tab
+showing a poster's reasoning *and* their verified P&L before you commit,
+clans built around a few top/whale predictors that smaller users can watch
+and follow into rooms — is preserved in
+[07-product-blueprint.md](07-product-blueprint.md)'s V2 section rather than
+lost.
 
 ## The Lesson From Pump.fun's Loop
 

@@ -108,17 +108,6 @@ export function HomeIcon() {
   );
 }
 
-export function FollowingIcon() {
-  return (
-    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
-      <circle cx="7.3" cy="7" r="2.6" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M2.8 16c.4-2.8 2.2-4.3 4.5-4.3s4.1 1.5 4.5 4.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M13 4.3c1.3.3 2.2 1.4 2.2 2.9s-.9 2.6-2.2 2.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M13.2 11.8c1.9.4 3.2 1.8 3.6 4.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function WalletIcon() {
   return (
     <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
@@ -195,6 +184,21 @@ export function ChevronDownIcon() {
   return (
     <svg viewBox="0 0 20 20" width="14" height="14" fill="none" aria-hidden>
       <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// A stadium bowl seen from the side — two opposing stands (the arcs) around
+// the pitch (the center dot) — for the Arena nav tab. Deliberately not a
+// trophy (that reads as "you already won something"; Arena is the crowd,
+// not the prize).
+export function ArenaIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>
+      <path d="M3 7c0-2.2 3.1-4 7-4s7 1.8 7 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M3 13c0 2.2 3.1 4 7 4s7-1.8 7-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M3 7v6M17 7v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="10" cy="10" r="1.4" fill="currentColor" />
     </svg>
   );
 }

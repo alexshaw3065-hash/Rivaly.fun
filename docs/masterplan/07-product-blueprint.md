@@ -69,9 +69,36 @@ Friend joined · Challenge received · Goal scored · Whale entered · Room fill
 
 Global · Friends · Weekly · Monthly · Creators · Most Accurate · Highest Earnings · Biggest Upsets
 
-## 4.13 Following
+## 4.13 Arena (2026-08-20 revision, formerly "Following")
 
-Feed: New Rooms · Friends Online · Challenges · Big Wins · Posts (future)
+The fourth nav tab — Rivaly's social/engagement hub, built around the
+psychology of what actually brings people back daily without tipping into
+addictive dark patterns (see the Arena implementation plan for the full
+research citations). One hard rule governs every number shown here: it must
+trace back to a real field (a real entry, a real participant count, a real
+follow relationship) — never a fabricated count invented to look more
+urgent than it is.
+
+**Feed** — Global (everyone) / Following (people you follow) toggle over an
+infinite-scrolling, real-stopping-point feed (same IntersectionObserver +
+closing-moment pattern as Home/Rooms' RoomFeed, not a bottomless loop).
+Content types, mixed for variety rather than shown as separate sections:
+win/loss receipt cards (real PnL), hot-room alerts (real momentum data),
+rival activity (a followed profile's live entry), and banter/thesis posts
+(short text, roast replies, a thesis post can attach to a real room).
+
+**Leagues** — points-only, FPL-style: standings, a weekly "gameweek" points
+delta alongside season points, joined by invite code (same pattern as
+private rooms). No entry fee, no prize pool — see
+[08-v1-scope.md §7](08-v1-scope.md) for why this is explicitly a different
+thing from "Tournaments."
+
+**Leaderboard** — the full ranked board, filterable by Global (P/L) / This
+Gameweek / Most Accurate / Highest Earnings — a superset view of what
+Home's "Top rivals" teases in miniature.
+
+**Online rivals badge** — a real, honest count + avatar stack, tappable to
+see who; shown in Arena's header.
 
 ## 4.14 Settings
 
@@ -119,8 +146,33 @@ Creator leaves · Nobody joins · Match postponed · Cancelled · Refund · Dupl
 
 ## 4.25 Future Components (Not V1)
 
-Streaming · Tournaments · Voice Rooms · Creator Monetization · Communities · Fantasy · AI Copilot
+Streaming · Money-entry Tournaments · Voice Rooms · Creator Monetization ·
+Communities · Tribes/Clans (see below) · AI Copilot
 
 ### V2 Ideas (post-V1, not now)
 
-Streaming · Voice rooms · Tournaments · Communities · AI summaries · Creator monetization · Reputation levels · Fantasy integrations
+Streaming · Voice rooms · Money-entry Tournaments (Arena's Leagues are
+points-only and already shipped — see [08-v1-scope.md §7](08-v1-scope.md))
+· Communities · AI summaries · Creator monetization · Reputation levels
+
+### Tribes/Clans — the fuller vision (2026-08-20, captured for V2 so it
+isn't lost)
+
+Scoped out of the Arena pass explicitly (founder's call — "leave it for
+version 2"), but the vision is more specific than a generic group feature,
+closer to FOMO app's Clans than a simple community:
+
+- **One-tap trade mirroring** — a clan/tribe member's room entry appears as
+  a live card in the tribe's feed; tapping it takes you straight into that
+  same room to enter yourself. Manual confirmation, not automatic
+  copy-trading — no money moves without you tapping to confirm it (keeps
+  "trust must be visible" intact).
+- **A "thesis" tab** — before following someone into a room, you can see
+  their reasoning and their verified track record (real prediction
+  accuracy/P&L), not just the pick itself.
+- **Built around top predictors, not just friend groups** — the framing the
+  founder gave: "imagine a tribe of top whales making money and small
+  people can look at the rooms they're entering and also enter." Closer to
+  a creator-led following than a peer group chat.
+- **Shared audience-building** — tribes compound visibility/leaderboard
+  presence together, not just shared chat.

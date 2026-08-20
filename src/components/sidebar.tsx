@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, SearchIcon, RoomsIcon, FollowingIcon, WalletIcon, ChevronIcon } from "./icons";
+import { HomeIcon, SearchIcon, RoomsIcon, ArenaIcon, WalletIcon, ChevronIcon } from "./icons";
 import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-collapsed";
 
 // Desktop-only (hidden md:flex) collapsible left rail — fixed positioned,
@@ -15,7 +15,7 @@ const links = [
   { href: "/", label: "Home", Icon: HomeIcon },
   { href: "/search", label: "Search", Icon: SearchIcon },
   { href: "/rooms", label: "Rooms", Icon: RoomsIcon },
-  { href: "/following", label: "Following", Icon: FollowingIcon },
+  { href: "/arena", label: "Arena", Icon: ArenaIcon },
   { href: "/wallet", label: "Wallet", Icon: WalletIcon },
 ];
 

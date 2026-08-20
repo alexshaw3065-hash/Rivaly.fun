@@ -24,7 +24,7 @@ const tabs = [
   { href: "/", label: "Home" },
   { href: "/search", label: "Search" },
   { href: "/rooms", label: "Rooms" },
-  { href: "/following", label: "Following" },
+  { href: "/arena", label: "Arena" },
   { href: "/wallet", label: "Wallet" },
 ];
 

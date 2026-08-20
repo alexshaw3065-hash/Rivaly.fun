@@ -72,9 +72,9 @@ If several answers are "No," redesign or cut it.
 
 Rivaly's one thing: **"I want to put my football opinion up against someone else's in under 30 seconds."** Everything in V1 serves that.
 
-**Build:** Home (live matches, trending rooms) · Room (chat, pool, predictions, join/leave, settlement) · Create Room (fast) · Search (rooms, matches, users) · Profile (minimal: history, followers, accuracy) · Wallet (deposit, withdraw, balance) · Following (core network effect, not a nice-to-have).
+**Build:** Home (live matches, trending rooms) · Room (chat, pool, predictions, join/leave, settlement) · Create Room (fast) · Search (rooms, matches, users) · Profile (minimal: history, followers, accuracy) · Wallet (deposit, withdraw, balance) · Arena (formerly "Following" — the social/engagement hub: Feed, points-only Leagues, Leaderboard; see [docs/masterplan/08-v1-scope.md](docs/masterplan/08-v1-scope.md) for the 2026-08-20 revision and its psychology-research rationale).
 
-**Do not build yet:** Communities, club/fan groups, voice chat, streaming, tournaments, AI features, complex achievements, creator monetization. These are V2+ — see [docs/masterplan/07-product-blueprint.md](docs/masterplan/07-product-blueprint.md) for the full long-term surface area.
+**Do not build yet:** Communities, club/fan groups, Tribes/Clans (copy-trading, shared audience — a fuller vision is captured in the blueprint's V2 section), voice chat, streaming, money-entry tournaments, AI features, complex achievements, creator monetization. These are V2+ — see [docs/masterplan/07-product-blueprint.md](docs/masterplan/07-product-blueprint.md) for the full long-term surface area.
 
 Core loop: `Create Room → Challenge Friends → People Join → Live Match → Chat Explodes → Winner Paid → Screenshots → People Share → New Users → More Rooms`
 

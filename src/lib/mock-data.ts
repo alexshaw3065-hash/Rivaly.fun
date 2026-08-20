@@ -4,7 +4,20 @@
  * a Supabase project is linked — every screen should already work with
  * this data with zero prop-shape changes.
  */
-import type { Match, Room, Profile, ChatMessage, Transaction, Wallet, Pack, Entry, Follow } from "./types";
+import type {
+  Match,
+  Room,
+  Profile,
+  ChatMessage,
+  Transaction,
+  Wallet,
+  Pack,
+  Entry,
+  Follow,
+  Post,
+  ArenaFeedItem,
+  PredictionLeague,
+} from "./types";
 
 // The self-profile stand-in until auth exists. Kept next to `wallet` since
 // wallet.userId already encodes this — exported explicitly so the Rooms
@@ -221,8 +234,10 @@ export function roomsByCreator(userId: string): Room[] {
 }
 
 // Who you follow (self only, for now — see SELF_USER_ID). Powers Rooms >
-// Following (rooms created/joined by people you follow) — the existing
-// /following activity feed predates this and stays as its own thing.
+// Following (rooms created/joined by people you follow) and Arena's Feed >
+// Following toggle (arenaItemSubjectId below) — two different lenses on the
+// same graph, per the founder's own reasoning for keeping "Following"
+// scoped multiple ways rather than one shared page.
 export const follows: Follow[] = [
   { followerId: SELF_USER_ID, followingId: "u1", createdAt: "2025-11-10T00:00:00Z" },
   { followerId: SELF_USER_ID, followingId: "u5", createdAt: "2025-09-20T00:00:00Z" },
@@ -248,6 +263,13 @@ export const entries: Entry[] = [
   { id: "e8", roomId: "r1", userId: "u9", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T18:05:00Z", isWinner: null, payoutCents: null },
   { id: "e9", roomId: "r16", userId: "u9", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T17:35:00Z", isWinner: null, payoutCents: null },
   { id: "e10", roomId: "r4", userId: "u7", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:20:00Z", isWinner: true, payoutCents: 1_467_00 },
+  // A settled room realistically has more than one or two participants —
+  // these round out win_loss variety for Arena's feed (see buildArenaFeed
+  // below) across profiles beyond just self + one followed rival.
+  { id: "e11", roomId: "r4", userId: "u4", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T10:40:00Z", isWinner: true, payoutCents: 2_934_00 },
+  { id: "e12", roomId: "r4", userId: "u9", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T10:50:00Z", isWinner: true, payoutCents: 5_868_00 },
+  { id: "e13", roomId: "r23", userId: "u2", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:35:00Z", isWinner: false, payoutCents: null },
+  { id: "e14", roomId: "r23", userId: "u8", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T10:45:00Z", isWinner: false, payoutCents: null },
 ];
 
 export function entriesByUser(userId: string): Entry[] {
@@ -387,3 +409,268 @@ export const notifications: NotificationItem[] = [
   { id: "n7", kind: "settlement_complete", actorId: null, roomId: "r4", body: "Enyimba win at home settled — you won ₦1,467", createdAt: "2026-08-15T19:10:00Z", read: true },
   { id: "n8", kind: "new_follower", actorId: "u8", roomId: null, body: "Marcus started following you", createdAt: "2026-08-14T09:00:00Z", read: true },
 ];
+
+// ============================================================================
+// Arena — the fourth nav tab (formerly "Following"). See
+// docs/masterplan/07-product-blueprint.md §4.13 and the Arena implementation
+// plan for the full research/scope rationale. Every social-proof/urgency
+// number surfaced from this section must trace back to a real field here —
+// never a fabricated count.
+// ============================================================================
+
+// Banter (roomId null) and thesis (roomId set — a conviction argument
+// attached to a real room) posts. Text + emoji only, no image pipeline yet.
+export const posts: Post[] = [
+  {
+    id: "post1",
+    authorId: "u1",
+    body: "Arsenal fans deserve a trophy just for showing up every week 😭",
+    roomId: null,
+    createdAt: "2026-08-15T19:05:00Z",
+    roastCount: 14,
+    replies: [
+      { authorId: "u2", body: "the trophy is called suffering", createdAt: "2026-08-15T19:07:00Z" },
+      { authorId: "u9", body: "at least you show up lol", createdAt: "2026-08-15T19:11:00Z" },
+    ],
+  },
+  {
+    id: "post2",
+    authorId: "u5",
+    body: "Bayern could play with 9 men and still win by 2. not up for debate",
+    roomId: "r5",
+    createdAt: "2026-08-15T18:32:00Z",
+    roastCount: 9,
+    replies: [{ authorId: "u7", body: "the arrogance 😭 respect it though", createdAt: "2026-08-15T18:40:00Z" }],
+  },
+  {
+    id: "post3",
+    authorId: "u7",
+    body: "Enyimba's away form is genuinely a crime against football",
+    roomId: null,
+    createdAt: "2026-08-15T11:00:00Z",
+    roastCount: 6,
+    replies: [],
+  },
+  {
+    id: "post4",
+    authorId: "u9",
+    body: "Man City missing two starters at the back and Madrid have pace to burn on the counter. I'm not fading this.",
+    roomId: "r12",
+    createdAt: "2026-08-14T21:00:00Z",
+    roastCount: 21,
+    replies: [
+      { authorId: "u3", body: "took the words out my mouth", createdAt: "2026-08-14T21:05:00Z" },
+      { authorId: "u1", body: "City still find a way somehow", createdAt: "2026-08-14T21:20:00Z" },
+    ],
+  },
+  {
+    id: "post5",
+    authorId: "u4",
+    body: "Spurs finished 4th in my heart every season, that's the real table",
+    roomId: null,
+    createdAt: "2026-08-15T13:00:00Z",
+    roastCount: 11,
+    replies: [{ authorId: "u6", body: "bro really said that with his chest", createdAt: "2026-08-15T13:04:00Z" }],
+  },
+  {
+    id: "post6",
+    authorId: "u2",
+    body: "El Clasico is for the culture, the football is secondary at this point",
+    roomId: "r3",
+    createdAt: "2026-08-15T12:15:00Z",
+    roastCount: 4,
+    replies: [],
+  },
+  {
+    id: "post7",
+    authorId: "u1",
+    body: "Chelsea's press has no legs left after 60 minutes lately. Arsenal feasts late, every time.",
+    roomId: "r1",
+    createdAt: "2026-08-15T18:10:00Z",
+    roastCount: 17,
+    replies: [{ authorId: "u2", body: "we'll see about that 👀", createdAt: "2026-08-15T18:15:00Z" }],
+  },
+  {
+    id: "post8",
+    authorId: "u6",
+    body: "NPFL upsets have taken my last 3 rooms. genuinely cursed",
+    roomId: null,
+    createdAt: "2026-08-15T09:00:00Z",
+    roastCount: 8,
+    replies: [{ authorId: "u7", body: "read the room next time 😂", createdAt: "2026-08-15T09:10:00Z" }],
+  },
+  {
+    id: "post9",
+    authorId: "u9",
+    body: "Champions League nights just hit different, no cap",
+    roomId: null,
+    createdAt: "2026-08-14T20:30:00Z",
+    roastCount: 5,
+    replies: [],
+  },
+  {
+    id: "post10",
+    authorId: "u5",
+    body: "Dortmund's back line has shipped 2+ in 4 of their last 5. This isn't close.",
+    roomId: "r5",
+    createdAt: "2026-08-15T18:35:00Z",
+    roastCount: 12,
+    replies: [],
+  },
+];
+
+export function postById(id: string): Post | undefined {
+  return posts.find((p) => p.id === id);
+}
+
+// Points-only leagues (no entry fee, no prize pool — see the Arena
+// implementation plan's masterplan-scope resolution). Global auto-includes
+// every profile; the rest are joined by code, same pattern as private rooms.
+export const predictionLeagues: PredictionLeague[] = [
+  {
+    id: "l1",
+    name: "Global League",
+    code: "GLOBAL",
+    memberIds: profiles.map((p) => p.id),
+    createdAt: "2025-08-01T00:00:00Z",
+  },
+  {
+    id: "l2",
+    name: "Naija Ballers",
+    code: "LEAGUE-9F21",
+    memberIds: ["u1", "u6", "u7", "u9"],
+    createdAt: "2026-07-01T00:00:00Z",
+  },
+  {
+    id: "l3",
+    name: "Rivaly OGs",
+    code: "LEAGUE-4K80",
+    memberIds: ["u5", "u2", "u4"],
+    createdAt: "2026-06-15T00:00:00Z",
+  },
+];
+
+export function leagueById(id: string): PredictionLeague | undefined {
+  return predictionLeagues.find((l) => l.id === id);
+}
+
+export function leagueByCode(code: string): PredictionLeague | undefined {
+  return predictionLeagues.find((l) => l.code.toUpperCase() === code.toUpperCase());
+}
+
+export function leaguesForUser(userId: string): PredictionLeague[] {
+  return predictionLeagues.filter((l) => l.memberIds.includes(userId));
+}
+
+// Season points: scales with accuracy x volume (the FPL equivalent of
+// "returns x matches played"), plus a real bonus per recorded settled win —
+// every input here is an existing Profile/Entry field, nothing invented.
+const GAMEWEEK_CUTOFF = "2026-08-15T00:00:00Z";
+
+export function pointsForProfile(profile: Profile): number {
+  const base = Math.round(profile.predictionAccuracy * profile.roomsCreated * 12);
+  const winBonus = entriesByUser(profile.id).filter((e) => e.isWinner === true).length * 8;
+  return base + winBonus;
+}
+
+// This gameweek's points — just the real wins recorded since the cutoff,
+// deliberately smaller than season points (mirrors FPL's per-gameweek vs
+// overall-rank split).
+export function gameweekPointsForProfile(profile: Profile): number {
+  return entriesByUser(profile.id).filter((e) => e.isWinner === true && e.createdAt >= GAMEWEEK_CUTOFF).length * 8;
+}
+
+export interface LeagueStanding {
+  profile: Profile;
+  seasonPoints: number;
+  gameweekPoints: number;
+}
+
+export function leagueStandings(league: PredictionLeague): LeagueStanding[] {
+  return league.memberIds
+    .map(profileById)
+    .filter((p): p is Profile => Boolean(p))
+    .map((profile) => ({
+      profile,
+      seasonPoints: pointsForProfile(profile),
+      gameweekPoints: gameweekPointsForProfile(profile),
+    }))
+    .sort((a, b) => b.seasonPoints - a.seasonPoints);
+}
+
+// Which profile a feed item is "about," for the Global/Following toggle —
+// resolves through the real underlying record for every item kind rather
+// than storing a duplicate authorId on the feed item itself.
+export function arenaItemSubjectId(item: ArenaFeedItem): string | null {
+  switch (item.kind) {
+    case "win_loss":
+    case "rival_activity": {
+      const entry = entries.find((e) => e.id === item.entryId);
+      return entry?.userId ?? null;
+    }
+    case "hot_room": {
+      const room = roomById(item.roomId);
+      return room?.creatorId ?? null;
+    }
+    case "banter":
+    case "thesis": {
+      const post = postById(item.postId);
+      return post?.authorId ?? null;
+    }
+  }
+}
+
+// Builds the Feed from real data only, then interleaves a hot-room card
+// every 4-7 organic items (deterministic cycle, not random-per-render) —
+// the one "high-urgency" beat, built entirely from real momentum data
+// (explodingRooms/momentumCount, already used by Home and Rooms>Discover).
+// See the Arena plan's ethical guardrails: every number here traces to a
+// real field, and the feed ends (buildArenaFeed returns a finite array) —
+// callers paginate it the same way RoomFeed already does, closing moment
+// included, rather than looping forever.
+export function buildArenaFeed(): ArenaFeedItem[] {
+  const winLossItems: ArenaFeedItem[] = entries
+    .filter((e) => e.isWinner !== null)
+    .map((e) => ({ id: `wl-${e.id}`, kind: "win_loss", entryId: e.id, createdAt: e.createdAt }));
+
+  const rivalItems: ArenaFeedItem[] = entries
+    .filter((e) => e.isWinner === null && followedProfileIds().includes(e.userId))
+    .map((e) => ({ id: `ra-${e.id}`, kind: "rival_activity", entryId: e.id, createdAt: e.createdAt }));
+
+  const postItems: ArenaFeedItem[] = posts.map((p) => ({
+    id: `post-${p.id}`,
+    kind: p.roomId ? "thesis" : "banter",
+    postId: p.id,
+    createdAt: p.createdAt,
+  }));
+
+  const hotRoomItems: ArenaFeedItem[] = explodingRooms(10).map((r) => ({
+    id: `hr-${r.id}`,
+    kind: "hot_room",
+    roomId: r.id,
+    createdAt: r.createdAt,
+  }));
+
+  const organic = [...winLossItems, ...rivalItems, ...postItems].sort(
+    (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt),
+  );
+
+  const cadence = [4, 5, 6, 7];
+  const feed: ArenaFeedItem[] = [];
+  let hotIndex = 0;
+  let sinceLastHot = 0;
+  let cadenceIndex = 0;
+  for (const item of organic) {
+    feed.push(item);
+    sinceLastHot++;
+    if (sinceLastHot >= cadence[cadenceIndex % cadence.length] && hotIndex < hotRoomItems.length) {
+      feed.push(hotRoomItems[hotIndex]);
+      hotIndex++;
+      cadenceIndex++;
+      sinceLastHot = 0;
+    }
+  }
+  feed.push(...hotRoomItems.slice(hotIndex));
+
+  return feed;
+}
