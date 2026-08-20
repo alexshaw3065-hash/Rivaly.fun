@@ -7,7 +7,13 @@ import { formatMoney } from "@/lib/mock-data";
 // payment rail is wired up yet. Swap for a real provider call (see
 // docs/masterplan/09-competitive-research.md#5.2c — local payment
 // infrastructure, not crypto complexity, should sit behind this button).
-export function WalletActions({ initialBalanceCents }: { initialBalanceCents: number }) {
+export function WalletActions({
+  initialBalanceCents,
+  centered = false,
+}: {
+  initialBalanceCents: number;
+  centered?: boolean;
+}) {
   const [balance, setBalance] = useState(initialBalanceCents);
   const [mode, setMode] = useState<"deposit" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
@@ -22,13 +28,13 @@ export function WalletActions({ initialBalanceCents }: { initialBalanceCents: nu
   }
 
   return (
-    <div>
+    <div className={centered ? "flex flex-col items-center text-center" : undefined}>
       <p className="font-mono text-4xl font-medium text-foreground md:text-5xl">
         {formatMoney(balance)}
       </p>
       <p className="mt-1 text-sm text-muted">Available balance</p>
 
-      <div className="mt-5 flex gap-2">
+      <div className={`mt-5 flex gap-2 ${centered ? "justify-center" : ""}`}>
         <button
           onClick={() => setMode(mode === "deposit" ? null : "deposit")}
           className="rounded-md bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
@@ -44,7 +50,7 @@ export function WalletActions({ initialBalanceCents }: { initialBalanceCents: nu
       </div>
 
       {mode && (
-        <div className="mt-3 flex items-center gap-2">
+        <div className={`mt-3 flex items-center gap-2 ${centered ? "justify-center" : ""}`}>
           <input
             value={amount}
             onChange={(e) => setAmount(e.target.value)}

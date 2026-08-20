@@ -2,8 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, SearchIcon, RoomsIcon, ArenaIcon, WalletIcon, ChevronIcon } from "./icons";
+import { HomeIcon, SearchIcon, RoomsIcon, ArenaIcon, ChevronIcon } from "./icons";
+import { Avatar } from "./avatar";
 import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-collapsed";
+
+// The self-profile stand-in until auth exists — see src/lib/mock-data.ts.
+const SELF_USERNAME = "victorj";
+const SELF_NAME = "Victor";
 
 // Desktop-only (hidden md:flex) collapsible left rail — fixed positioned,
 // deliberately not a flex sibling of <main>, so it can never reintroduce
@@ -11,12 +16,17 @@ import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-coll
 // state lives in the `.sidebar-collapsed` class on <html> (see
 // use-sidebar-collapsed.ts) so width, icons-vs-labels, and the collapse
 // arrow all read off one source of truth.
+//
+// Wallet's balance/deposit/withdraw now lives on Profile too (see
+// profile-pnl.tsx), so this last slot points at Profile instead of the
+// standalone /wallet page — the small avatar stands in for its icon, same
+// "this one is you" convention the mobile top bar already uses.
 const links = [
   { href: "/", label: "Home", Icon: HomeIcon },
   { href: "/search", label: "Search", Icon: SearchIcon },
   { href: "/rooms", label: "Rooms", Icon: RoomsIcon },
   { href: "/arena", label: "Arena", Icon: ArenaIcon },
-  { href: "/wallet", label: "Wallet", Icon: WalletIcon },
+  { href: `/profile/${SELF_USERNAME}`, label: "Profile", Icon: null },
 ];
 
 export function Sidebar() {
@@ -49,7 +59,7 @@ export function Sidebar() {
               }}
             >
               <span className="shrink-0">
-                <Icon />
+                {Icon ? <Icon /> : <Avatar name={SELF_NAME} size={18} />}
               </span>
               {!collapsed && <span className="truncate">{label}</span>}
             </Link>

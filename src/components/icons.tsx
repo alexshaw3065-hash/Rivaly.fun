@@ -201,6 +201,23 @@ export function ShareIcon() {
   );
 }
 
+// Two interlocking loops — a generic "connected account" mark, not tied to
+// any one platform's brand, since Profile's social field can hold any
+// handle a user adds.
+export function LinkIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <path
+        d="M8.3 11.7 11.7 8.3M8.9 6.3l1-1a2.6 2.6 0 0 1 3.7 3.7l-1 1M11.1 13.7l-1 1a2.6 2.6 0 0 1-3.7-3.7l1-1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // A stadium bowl seen from the side — two opposing stands (the arcs) around
 // the pitch (the center dot) — for the Arena nav tab. Deliberately not a
 // trophy (that reads as "you already won something"; Arena is the crowd,

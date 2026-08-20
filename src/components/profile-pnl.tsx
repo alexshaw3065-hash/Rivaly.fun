@@ -59,7 +59,10 @@ export function ProfilePnl() {
       )}
 
       <div className="mt-5 border-t border-border pt-5">
-        <WalletActions initialBalanceCents={balances[balances.length - 1] ?? wallet.balanceCents} />
+        <WalletActions
+          initialBalanceCents={balances[balances.length - 1] ?? wallet.balanceCents}
+          centered
+        />
       </div>
     </div>
   );

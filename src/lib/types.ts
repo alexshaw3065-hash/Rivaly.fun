@@ -19,6 +19,7 @@ export interface Profile {
   displayName: string;
   avatarUrl: string | null;
   bio: string | null;
+  socialHandle: string | null;
   followerCount: number;
   followingCount: number;
   roomsCreated: number;
