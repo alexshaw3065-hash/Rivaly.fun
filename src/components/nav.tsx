@@ -53,10 +53,10 @@ export function Nav({ children }: { children: ReactNode }) {
             <Image
               src="/rivaly-logo.png"
               alt="Rivaly"
-              width={98}
-              height={39}
+              width={160}
+              height={64}
               priority
-              className="brand-logo h-6 w-auto"
+              className="brand-logo h-8 w-auto"
             />
           </Link>
           <div className="ml-auto flex shrink-0 items-center gap-3">

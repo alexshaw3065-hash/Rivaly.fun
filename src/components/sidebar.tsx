@@ -46,10 +46,10 @@ export function Sidebar() {
           <Image
             src="/rivaly-logo.png"
             alt="Rivaly"
-            width={98}
-            height={39}
+            width={160}
+            height={64}
             priority
-            className="brand-logo h-6 w-auto"
+            className="brand-logo h-8 w-auto"
           />
         )}
       </Link>
