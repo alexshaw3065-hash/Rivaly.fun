@@ -9,11 +9,15 @@ export function BottomSheet({
   open,
   onClose,
   title,
+  headerAction,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  // Optional right-aligned action next to the title (e.g. a "Save" button)
+  // — every existing caller keeps its centered-title-only look unchanged.
+  headerAction?: React.ReactNode;
   children: React.ReactNode;
 }) {
   useEffect(() => {
@@ -41,7 +45,10 @@ export function BottomSheet({
       />
       <div className="sheet-panel relative w-full max-w-lg rounded-t-2xl border-t border-border bg-surface p-5 pb-8">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ background: "var(--border-strong)" }} />
-        <h2 className="text-center font-display text-lg font-semibold text-foreground">{title}</h2>
+        <div className="relative flex items-center justify-center">
+          <h2 className="font-display text-lg font-semibold text-foreground">{title}</h2>
+          {headerAction && <div className="absolute right-0">{headerAction}</div>}
+        </div>
         <div className="mt-5">{children}</div>
       </div>
     </div>

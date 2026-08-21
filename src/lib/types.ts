@@ -13,13 +13,23 @@ export type EntryId = string;
 export type TransactionId = string;
 export type PackId = string;
 
+// The set a profile can connect — kept small and deliberately football/
+// crypto-adjacent rather than Reddit's full 20-platform list (Shopify,
+// OnlyFans, Kickstarter, etc. don't fit Rivaly).
+export type SocialPlatform = "x" | "discord" | "telegram" | "instagram" | "tiktok" | "youtube";
+
+export interface SocialLink {
+  platform: SocialPlatform;
+  handle: string;
+}
+
 export interface Profile {
   id: UserId;
   username: string;
   displayName: string;
   avatarUrl: string | null;
   bio: string | null;
-  socialHandle: string | null;
+  socialLinks: SocialLink[]; // max 5, same cap Reddit uses
   followerCount: number;
   followingCount: number;
   roomsCreated: number;

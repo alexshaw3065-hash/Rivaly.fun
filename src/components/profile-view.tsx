@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Profile } from "@/lib/types";
+import type { Profile, SocialLink } from "@/lib/types";
 import { formatMoney, formatMoneyCompact, repliesByAuthor, activityForProfile } from "@/lib/mock-data";
+import { socialPlatformInfo } from "@/lib/social-platforms";
 import { Avatar, RING_COLORS, hashToIndex } from "./avatar";
 import { FollowButton } from "./follow-button";
-import { ShareIcon, LinkIcon, PencilIcon, SettingsIcon, GiftIcon } from "./icons";
+import { ShareIcon, PencilIcon, SettingsIcon, GiftIcon, PlusIcon } from "./icons";
 import { ProfileAchievements } from "./profile-achievements";
 import { ProfilePnl } from "./profile-pnl";
 import { ProfilePositions, allPositions, type PositionFilter } from "./profile-positions";
 import { ProfileReplies } from "./profile-replies";
 import { ProfileActivity } from "./profile-activity";
-import { ScrollFadeRow } from "./scroll-fade-row";
 import { ProfileEditSheet, BANNER_COLORS } from "./profile-edit-sheet";
 import { ProfileSettingsSheet } from "./profile-settings-sheet";
+import { ProfileSocialsSheet } from "./profile-socials-sheet";
+import { RivalyScoreBadge } from "./rivaly-score-badge";
 
 type ProfileTab = "position" | "replies" | "activity";
 
@@ -58,19 +60,21 @@ function ShareButton() {
 }
 
 // Reddit-style header: banner → avatar overlapping it → name+edit-pencil →
-// username/followers → bio → connect socials → achievements. On your own
-// profile the banner's top-right corner carries Share/Settings/Invite
-// (referral) icons; on someone else's it carries Share plus Follow/
-// Challenge — same "actions on the cover" convention as X/Twitter, since
-// there's no room beside the avatar for them once it overlaps the banner.
+// username/Rivaly Score/followers → bio → connected socials → achievements.
+// On your own profile the banner's top-right corner carries Share/
+// Settings/Invite (referral) icons; on someone else's it carries Share
+// plus Follow/Challenge — same "actions on the cover" convention as X/
+// Twitter, since there's no room beside the avatar for them once it
+// overlaps the banner.
 function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean }) {
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [socialsOpen, setSocialsOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [ringColor, setRingColor] = useState(RING_COLORS[hashToIndex(profile.id, RING_COLORS.length)]);
   const [bannerColor, setBannerColor] = useState(BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)]);
-  const [editingSocial, setEditingSocial] = useState(false);
-  const [socialHandle, setSocialHandle] = useState(profile.socialHandle ?? "");
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(profile.socialLinks);
 
   return (
     <div>
@@ -110,14 +114,12 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
       <div className="px-1">
         <div className="-mt-10 flex items-end justify-between">
           <div className="rounded-full p-1" style={{ background: "var(--background)" }}>
-            <Avatar name={profile.displayName} size={80} ringColor={ringColor} />
+            <Avatar name={displayName} size={80} ringColor={ringColor} />
           </div>
         </div>
 
         <div className="mt-3 flex items-center gap-2">
-          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
-            {profile.displayName}
-          </h1>
+          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">{displayName}</h1>
           {isSelf && (
             <button
               onClick={() => setEditOpen(true)}
@@ -128,7 +130,10 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
             </button>
           )}
         </div>
-        <p className="font-mono text-sm text-muted">@{profile.username}</p>
+        <div className="flex items-center gap-2">
+          <p className="font-mono text-sm text-muted">@{profile.username}</p>
+          <RivalyScoreBadge profile={{ ...profile, displayName }} />
+        </div>
 
         <div className="mt-2 flex gap-4 text-sm text-muted">
           <span>
@@ -153,42 +158,49 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
           </button>
         ) : null}
 
-        {editingSocial ? (
-          <div className="mt-2 flex max-w-md items-center gap-2">
-            <LinkIcon />
-            <input
-              value={socialHandle}
-              onChange={(e) => setSocialHandle(e.target.value)}
-              placeholder="@handle"
-              className="w-40 rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-border-strong"
-            />
-            <button
-              onClick={() => setEditingSocial(false)}
-              className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background active:scale-[0.97]"
-              style={{ transition: "transform 150ms ease-out" }}
-            >
-              Save
-            </button>
+        {(socialLinks.length > 0 || isSelf) && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            {socialLinks.map((link) => {
+              const info = socialPlatformInfo(link.platform);
+              const url = info.buildUrl?.(link.handle);
+              const commonClass =
+                "flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-border-strong hover:text-foreground";
+              return url ? (
+                <a
+                  key={link.platform}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`${info.label}: ${link.handle}`}
+                  className={commonClass}
+                >
+                  <info.Icon />
+                </a>
+              ) : (
+                <button
+                  key={link.platform}
+                  onClick={() => navigator.clipboard.writeText(link.handle)}
+                  title={`Copy ${info.label} handle`}
+                  className={commonClass}
+                >
+                  <info.Icon />
+                </button>
+              );
+            })}
+            {isSelf && socialLinks.length < 5 && (
+              <button
+                onClick={() => setSocialsOpen(true)}
+                aria-label="Add social link"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-border-strong text-muted transition-colors hover:text-foreground"
+              >
+                <PlusIcon />
+              </button>
+            )}
           </div>
-        ) : socialHandle ? (
-          <button
-            onClick={() => isSelf && setEditingSocial(true)}
-            className="hover-link mt-2 flex items-center gap-1.5 text-sm text-muted transition-colors"
-          >
-            <LinkIcon />
-            {socialHandle}
-          </button>
-        ) : isSelf ? (
-          <button
-            onClick={() => setEditingSocial(true)}
-            className="hover-link mt-2 flex items-center gap-1.5 text-sm text-muted transition-colors"
-          >
-            <LinkIcon />+ Connect account
-          </button>
-        ) : null}
+        )}
 
         <div className="mt-3">
-          <ProfileAchievements profile={profile} />
+          <ProfileAchievements profile={profile} isSelf={isSelf} />
         </div>
       </div>
 
@@ -197,18 +209,27 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
           <ProfileEditSheet
             open={editOpen}
             onClose={() => setEditOpen(false)}
-            displayName={profile.displayName}
+            displayName={displayName}
+            onDisplayNameChange={setDisplayName}
             bio={bio}
             onBioChange={setBio}
             ringColor={ringColor}
             onRingColorChange={setRingColor}
             bannerColor={bannerColor}
             onBannerColorChange={setBannerColor}
+            socialLinks={socialLinks}
+            onSocialLinksChange={setSocialLinks}
           />
           <ProfileSettingsSheet
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}
             createdAt={profile.createdAt}
+          />
+          <ProfileSocialsSheet
+            open={socialsOpen}
+            onClose={() => setSocialsOpen(false)}
+            links={socialLinks}
+            onSave={setSocialLinks}
           />
         </>
       )}
@@ -258,38 +279,34 @@ export function ProfileView({ profile, isSelf }: { profile: Profile; isSelf: boo
       )}
 
       <div className="mt-8">
-        {/* One no-wrap scrollable strip, not a justify-between split — a
-            split row clips/overlaps once Position+Replies+Activity's real
-            counts push past the available width (hit this on a 375px
-            viewport). Open/Closed keeps its original two-separate-pill
-            look, just right-aligned onto the same line as the tabs (only
-            when Position is active) with a scroll-fade hint for when it
-            doesn't all fit. */}
-        <ScrollFadeRow
-          wrapperClassName="border-b border-border"
-          className="no-scrollbar flex items-center gap-4 overflow-x-auto"
-        >
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className="-mb-px shrink-0 border-b-2 pb-2.5 text-sm font-medium transition-colors duration-150"
-              style={{
-                borderColor: tab === t.id ? "var(--foreground)" : "transparent",
-                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
-              }}
-            >
-              {t.label} ({t.count})
-            </button>
-          ))}
+        {/* Deliberately not scrollable — every piece here (tab label,
+            count, Open/Closed pill) is sized to provably fit at a 375px
+            viewport, verified against the row's real scrollWidth, not a
+            fade-hint compromise. */}
+        <div className="flex items-center justify-between gap-2 border-b border-border">
+          <div className="flex min-w-0 gap-3">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="-mb-px shrink-0 border-b-2 pb-2.5 text-[13px] font-medium transition-colors duration-150"
+                style={{
+                  borderColor: tab === t.id ? "var(--foreground)" : "transparent",
+                  color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+                }}
+              >
+                {t.label} ({t.count})
+              </button>
+            ))}
+          </div>
 
           {tab === "position" && (
-            <div className="mb-2.5 ml-auto flex shrink-0 gap-1">
+            <div className="mb-2.5 flex shrink-0 gap-1">
               {(["open", "closed"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setPositionFilter(f)}
-                  className="rounded-full border px-2.5 py-1 text-xs capitalize active:scale-[0.97]"
+                  className="rounded-full border px-2 py-0.5 text-[11px] capitalize active:scale-[0.97]"
                   style={{
                     borderColor: positionFilter === f ? "var(--foreground)" : "var(--border)",
                     color: positionFilter === f ? "var(--foreground)" : "var(--muted)",
@@ -302,7 +319,7 @@ export function ProfileView({ profile, isSelf }: { profile: Profile; isSelf: boo
               ))}
             </div>
           )}
-        </ScrollFadeRow>
+        </div>
 
         <div className="mt-6">
           {tab === "position" && <ProfilePositions profileId={profile.id} filter={positionFilter} />}

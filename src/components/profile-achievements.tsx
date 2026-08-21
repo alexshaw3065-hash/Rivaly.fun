@@ -1,27 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import { computeAchievements } from "@/lib/achievements";
+import { achievements, achievementsByCategory } from "@/lib/achievements";
+import { useHasSeenAchievementsIntro, markAchievementsIntroSeen } from "@/lib/use-achievements-intro";
+import { useDailyStreak } from "@/lib/use-daily-streak";
+import { AchievementsIntroSheet } from "./achievements-intro-sheet";
 import { BottomSheet } from "./bottom-sheet";
 import type { Profile } from "@/lib/types";
 
-// A small real achievements row — every badge is an honest predicate over
-// this profile's actual stats/entries (see src/lib/achievements.ts), not a
-// placeholder count. Locked badges are dimmed, not hidden — same
-// "trust must be visible" instinct as the rest of the app.
-export function ProfileAchievements({ profile }: { profile: Profile }) {
-  const [open, setOpen] = useState(false);
-  const computed = computeAchievements(profile);
-  const unlockedCount = computed.filter((c) => c.unlocked).length;
+const PREVIEW_COUNT = 6;
+
+function ProgressBar({ current, target }: { current: number; target: number }) {
+  const pct = Math.min(100, Math.round((current / target) * 100));
+  return (
+    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--border)" }}>
+      <div
+        className="h-full rounded-full"
+        style={{ width: `${pct}%`, background: "var(--rival-blue)", transition: "width 200ms ease-out" }}
+      />
+    </div>
+  );
+}
+
+// The header trigger stays a small preview row + count — every badge is an
+// honest predicate over real Profile/Entry data (src/lib/achievements.ts).
+// Tapping it shows the first-time intro once (gated per-viewer, not
+// per-profile — it's explaining the concept, not this person's stats),
+// then always opens the full categorized sheet with progress bars and,
+// self-only, the real daily check-in streak.
+export function ProfileAchievements({ profile, isSelf }: { profile: Profile; isSelf: boolean }) {
+  const [fullOpen, setFullOpen] = useState(false);
+  const hasSeenIntro = useHasSeenAchievementsIntro();
+  const streak = useDailyStreak();
+
+  const preview = achievements.slice(0, PREVIEW_COUNT).map((a) => ({ achievement: a, unlocked: a.isUnlocked(profile) }));
+  const unlockedCount = achievements.filter((a) => a.isUnlocked(profile)).length;
+  const categories = achievementsByCategory(profile);
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => setFullOpen(true)}
         className="hover-link flex items-center gap-2 text-sm text-muted transition-colors"
       >
         <div className="flex -space-x-1.5">
-          {computed.map(({ achievement, unlocked }) => (
+          {preview.map(({ achievement, unlocked }) => (
             <span
               key={achievement.id}
               className="flex h-6 w-6 items-center justify-center rounded-full border text-xs"
@@ -40,22 +63,62 @@ export function ProfileAchievements({ profile }: { profile: Profile }) {
         </span>
       </button>
 
-      <BottomSheet open={open} onClose={() => setOpen(false)} title="Achievements">
-        <div className="grid grid-cols-2 gap-3">
-          {computed.map(({ achievement, unlocked }) => (
-            <div
-              key={achievement.id}
-              className="flex flex-col items-center gap-2 rounded-lg border p-4 text-center"
-              style={{
-                borderColor: unlocked ? "var(--border-strong)" : "var(--border)",
-                opacity: unlocked ? 1 : 0.4,
-              }}
-            >
-              <span className="text-2xl">{achievement.icon}</span>
-              <p className="text-sm font-medium text-foreground">{achievement.label}</p>
-              <p className="text-xs text-muted">{achievement.description}</p>
+      <AchievementsIntroSheet
+        open={!hasSeenIntro && fullOpen}
+        onGetStarted={() => markAchievementsIntroSeen()}
+      />
+
+      <BottomSheet open={hasSeenIntro && fullOpen} onClose={() => setFullOpen(false)} title="Achievements">
+        <div className="flex flex-col gap-6">
+          {isSelf && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface py-3">
+              <span className="text-lg">🔥</span>
+              <span className="text-sm font-medium text-foreground">
+                {streak} day{streak === 1 ? "" : "s"} streak
+              </span>
             </div>
-          ))}
+          )}
+
+          {categories.map(({ category, items }) => {
+            const categoryUnlocked = items.filter((i) => i.unlocked).length;
+            return (
+              <div key={category}>
+                <div className="flex items-baseline justify-between">
+                  <p className="font-display text-base font-semibold text-foreground">{category}</p>
+                  <p className="text-xs text-muted">
+                    {categoryUnlocked} of {items.length}
+                  </p>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  {items.map(({ achievement, unlocked }) => {
+                    const prog = !unlocked ? achievement.progress?.(profile) : undefined;
+                    return (
+                      <div
+                        key={achievement.id}
+                        className="flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center"
+                        style={{
+                          borderColor: unlocked ? "var(--border-strong)" : "var(--border)",
+                          opacity: unlocked ? 1 : 0.5,
+                        }}
+                      >
+                        <span className="text-xl">{achievement.icon}</span>
+                        <p className="text-xs font-medium text-foreground">{achievement.label}</p>
+                        <p className="text-[11px] text-muted">{achievement.description}</p>
+                        {prog && (
+                          <div className="w-full">
+                            <ProgressBar current={prog.current} target={prog.target} />
+                            <p className="mt-1 text-[10px] text-muted">
+                              {prog.current.toLocaleString()}/{prog.target.toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </BottomSheet>
     </>

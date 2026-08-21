@@ -250,6 +250,87 @@ export function SettingsIcon() {
   );
 }
 
+// Connect-socials set — same bare hand-drawn convention as the rest of this
+// file: simplified, recognizable silhouettes, not traced brand logos.
+
+export function XIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <path d="M4.5 4.5 15.5 15.5M15.5 4.5 4.5 15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function DiscordIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <path
+        d="M5.5 6.2C7 5.3 8.5 5 10 5s3 .3 4.5 1.2c1 2 1.4 4.3 1.2 7-1.3.9-2.5 1.4-3.7 1.7l-.6-1.1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M5.5 6.2c-1 2-1.4 4.3-1.2 7 1.3.9 2.5 1.4 3.7 1.7l.6-1.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="7.6" cy="10.8" r="1.1" fill="currentColor" />
+      <circle cx="12.4" cy="10.8" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function TelegramIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <path
+        d="M3.5 10.4 16 4.8l-2.3 11.4-4-3-2 1.9-.3-3.4-6-2.4Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M7.4 11.7 15.6 5.3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function InstagramIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <rect x="3.5" y="3.5" width="13" height="13" rx="4" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="10" cy="10" r="3.2" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="14" cy="6" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function TiktokIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <path
+        d="M11 3.5v9.3a2.6 2.6 0 1 1-2.2-2.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M11 3.5c.3 1.9 1.6 3.3 3.5 3.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function YoutubeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden>
+      <rect x="2.5" y="5" width="15" height="10" rx="3" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M8.5 7.8v4.4l4-2.2Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 // A stadium bowl seen from the side — two opposing stands (the arcs) around
 // the pitch (the center dot) — for the Arena nav tab. Deliberately not a
 // trophy (that reads as "you already won something"; Arena is the crowd,

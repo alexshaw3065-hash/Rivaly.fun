@@ -9,6 +9,7 @@ import { TopBarIcons } from "./top-bar-icons";
 import { Sidebar } from "./sidebar";
 import { DesktopHeader } from "./desktop-header";
 import { MobileSearchOverlay } from "./mobile-search-overlay";
+import { StreakTracker } from "./streak-tracker";
 import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-store";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
@@ -63,6 +64,7 @@ export function Nav({ children }: { children: ReactNode }) {
       <Sidebar />
       <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
       <MobileSearchOverlay />
+      <StreakTracker />
 
       {/* Fixed positioning throughout (sidebar, header, mobile bars) means
           this wrapper only ever needs padding, never flex, to make room for
