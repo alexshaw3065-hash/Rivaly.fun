@@ -20,7 +20,7 @@ const TEXT_BOX = { x: 290, y: 144, w: 367, h: 46 };
 const TEXT_SCALE = 65 / NATIVE_H;
 // The icon gets real visual weight instead of riding along at the text's
 // tiny relative scale — sized down twice from an initially-too-large pass.
-const ICON_DISPLAY_HEIGHT = 28;
+const ICON_DISPLAY_HEIGHT = 24;
 const ICON_SCALE = ICON_DISPLAY_HEIGHT / ICON_BOX.h;
 
 function cropStyle(box: { x: number; y: number; w: number; h: number }, scale: number): React.CSSProperties {
