@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { TopBarIcons } from "./top-bar-icons";
-import { MobileMoreMenuButton, MobileMoreMenuSheet } from "./mobile-more-menu";
+import { MobileMoreMenu } from "./mobile-more-menu";
 import { Sidebar } from "./sidebar";
 import { DesktopHeader } from "./desktop-header";
 import { MobileSearchOverlay } from "./mobile-search-overlay";
@@ -52,15 +52,15 @@ export function Nav({ children }: { children: ReactNode }) {
             <Image
               src="/rivaly-logo.png"
               alt="Rivaly"
-              width={210}
-              height={84}
+              width={325}
+              height={130}
               priority
-              className="brand-logo h-[42px] w-auto"
+              className="brand-logo h-[65px] w-auto"
             />
           </Link>
           <div className="ml-auto flex shrink-0 items-center gap-3">
             <TopBarIcons walletBordered />
-            <MobileMoreMenuButton />
+            <MobileMoreMenu />
           </div>
         </div>
       </nav>
@@ -68,7 +68,6 @@ export function Nav({ children }: { children: ReactNode }) {
       <Sidebar />
       <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
       <MobileSearchOverlay />
-      <MobileMoreMenuSheet />
       <StreakTracker />
 
       {/* Fixed positioning throughout (sidebar, header, mobile bars) means

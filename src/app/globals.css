@@ -226,6 +226,23 @@ html {
   }
 }
 
+/* Anchored dropdown (mobile top bar's "more" menu) — unfurls from its
+   trigger corner instead of sliding up as a full sheet. Same easing
+   family as the sheet panel, just shorter since it travels less. */
+.dropdown-panel {
+  transform-origin: top right;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition:
+    opacity 160ms ease-out,
+    transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.95) translateY(-6px);
+  }
+}
+
 /* Gate hover-only color transitions behind a real hover-capable pointer —
    otherwise touch devices fire :hover on tap with no matching "leave," and
    the color visibly sticks until the next tap lands elsewhere. */

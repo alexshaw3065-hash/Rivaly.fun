@@ -1,10 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MoreIcon, SunIcon, MoonIcon, XIcon, TiktokIcon, LinkedInIcon } from "./icons";
 import { ThemeToggle, useIsLightTheme } from "./theme-toggle";
-import { BottomSheet } from "./bottom-sheet";
-import { useMoreMenuOpen, openMoreMenu, closeMoreMenu } from "@/lib/more-menu-store";
 
 const menuLinks = [
   { href: "/docs", label: "Documentation" },
@@ -15,74 +14,100 @@ const menuLinks = [
 // Not yet linked — Rivaly's real accounts aren't set up yet. Shown dimmed
 // and inert (not a <button>/<a> to nowhere) rather than a dead "#" link,
 // same "locked, not hidden" convention the achievements badges already
-// use for not-yet-true state.
+// use for not-yet-true state. Sized and colored to stay legible in dark
+// mode (var(--foreground) at partial opacity, not var(--muted) stacked
+// with its own opacity — that combination read as barely-there).
 const socialIcons = [
   { label: "X", Icon: XIcon },
   { label: "TikTok", Icon: TiktokIcon },
   { label: "LinkedIn", Icon: LinkedInIcon },
 ];
 
-// Trigger button only — lives inside the sticky mobile top bar. See
-// MobileMoreMenuSheet for why the sheet itself is mounted elsewhere.
-export function MobileMoreMenuButton() {
-  return (
-    <button
-      onClick={openMoreMenu}
-      aria-label="More options"
-      className="flex h-8 w-8 shrink-0 items-center justify-center text-muted transition-colors hover:text-foreground"
-    >
-      <MoreIcon />
-    </button>
-  );
-}
-
-// Mounted once at the Nav root (alongside MobileSearchOverlay), NOT inside
-// the top bar — the top bar's backdrop-blur creates a CSS containing
-// block that breaks `position: fixed` for any sheet nested inside it.
-// Replaces the old always-visible theme switch + avatar (Profile now
-// lives in the bottom tab bar, so the avatar was redundant here).
-export function MobileMoreMenuSheet() {
-  const open = useMoreMenuOpen();
+// A real anchored dropdown — positioned off its trigger corner, not a
+// full-width bottom sheet. `absolute` (not `fixed`) inside a `relative`
+// wrapper stays correctly positioned even though the top bar it lives in
+// has backdrop-blur (which would break `position: fixed` — see the sheet-
+// based version this replaced).
+export function MobileMoreMenu() {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isLight = useIsLightTheme();
 
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <BottomSheet open={open} onClose={closeMoreMenu} title="More">
-      <div className="flex flex-col gap-5">
-        <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3.5">
-          <div className="flex items-center gap-2.5 text-sm text-foreground">
-            <span style={{ color: isLight ? "var(--foreground)" : "var(--muted)", transition: "color 150ms ease" }}>
-              <SunIcon />
-            </span>
-            Theme
-            <span style={{ color: isLight ? "var(--muted)" : "var(--foreground)", transition: "color 150ms ease" }}>
-              <MoonIcon />
-            </span>
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="More options"
+        aria-expanded={open}
+        className="flex h-8 w-8 shrink-0 items-center justify-center text-muted transition-colors hover:text-foreground"
+      >
+        <MoreIcon />
+      </button>
+
+      {open && (
+        <div
+          className="dropdown-panel absolute right-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
+          style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.45)" }}
+        >
+          <div className="p-3">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-surface-elevated px-3 py-2.5">
+              <div className="flex items-center gap-2.5 text-sm text-foreground">
+                <span style={{ color: isLight ? "var(--foreground)" : "var(--muted)", transition: "color 150ms ease" }}>
+                  <SunIcon />
+                </span>
+                Theme
+                <span style={{ color: isLight ? "var(--muted)" : "var(--foreground)", transition: "color 150ms ease" }}>
+                  <MoonIcon />
+                </span>
+              </div>
+              <ThemeToggle />
+            </div>
           </div>
-          <ThemeToggle />
-        </div>
 
-        <div className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
-          {menuLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={closeMoreMenu}
-              className="flex items-center justify-between px-4 py-3 text-sm text-foreground transition-colors hover:bg-surface-elevated"
-            >
-              {link.label}
-              <span className="text-muted">→</span>
-            </Link>
-          ))}
-        </div>
+          <div className="flex flex-col divide-y divide-border border-t border-border">
+            {menuLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-between px-4 py-3 text-sm text-foreground transition-colors hover:bg-surface-elevated"
+              >
+                {link.label}
+                <span className="text-muted">→</span>
+              </Link>
+            ))}
+          </div>
 
-        <div className="flex items-center justify-center gap-6">
-          {socialIcons.map(({ label, Icon }) => (
-            <span key={label} title={`${label} — coming soon`} className="text-muted opacity-40">
-              <Icon />
-            </span>
-          ))}
+          <div className="flex items-center justify-center gap-7 border-t border-border py-4">
+            {socialIcons.map(({ label, Icon }) => (
+              <span
+                key={label}
+                title={`${label} — coming soon`}
+                className="[&>svg]:h-6 [&>svg]:w-6"
+                style={{ color: "var(--foreground)", opacity: 0.55 }}
+              >
+                <Icon />
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
-    </BottomSheet>
+      )}
+    </div>
   );
 }
