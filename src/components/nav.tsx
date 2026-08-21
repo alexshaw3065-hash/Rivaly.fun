@@ -47,7 +47,7 @@ export function Nav({ children }: { children: ReactNode }) {
           a fixed sheet layered on top, not a route change — see
           mobile-search-overlay.tsx). */}
       <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
-        <div className="flex items-center gap-3 py-4 pl-2 pr-4">
+        <div className="flex items-center gap-3 py-4 pl-4 pr-4">
           <Link href="/" className="shrink-0">
             <RivalyWordmark />
           </Link>
