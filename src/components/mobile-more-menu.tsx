@@ -55,7 +55,7 @@ export function MobileMoreMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-label="More options"
         aria-expanded={open}
-        className="flex h-8 w-8 shrink-0 items-center justify-center text-muted transition-colors hover:text-foreground"
+        className="flex shrink-0 items-center text-muted transition-colors hover:text-foreground"
       >
         <MoreIcon />
       </button>
