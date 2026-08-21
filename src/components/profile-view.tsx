@@ -279,47 +279,45 @@ export function ProfileView({ profile, isSelf }: { profile: Profile; isSelf: boo
       )}
 
       <div className="mt-8">
-        {/* Deliberately not scrollable — every piece here (tab label,
-            count, Open/Closed pill) is sized to provably fit at a 375px
-            viewport, verified against the row's real scrollWidth, not a
-            fade-hint compromise. */}
-        <div className="flex items-center justify-between gap-2 border-b border-border">
-          <div className="flex min-w-0 gap-3">
-            {tabs.map((t) => (
+        {/* Deliberately not scrollable — every tab label + count is sized
+            to provably fit at a 375px viewport, verified against the
+            row's real scrollWidth. Open/Closed lives underneath, only
+            while Position is the open tab — not squeezed onto this row. */}
+        <div className="flex min-w-0 gap-3 border-b border-border">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className="-mb-px shrink-0 border-b-2 pb-2.5 text-[13px] font-medium transition-colors duration-150"
+              style={{
+                borderColor: tab === t.id ? "var(--foreground)" : "transparent",
+                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+              }}
+            >
+              {t.label} ({t.count})
+            </button>
+          ))}
+        </div>
+
+        {tab === "position" && (
+          <div className="mt-4 flex gap-1">
+            {(["open", "closed"] as const).map((f) => (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className="-mb-px shrink-0 border-b-2 pb-2.5 text-[13px] font-medium transition-colors duration-150"
+                key={f}
+                onClick={() => setPositionFilter(f)}
+                className="rounded-full border px-3 py-1 text-xs capitalize active:scale-[0.97]"
                 style={{
-                  borderColor: tab === t.id ? "var(--foreground)" : "transparent",
-                  color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+                  borderColor: positionFilter === f ? "var(--foreground)" : "var(--border)",
+                  color: positionFilter === f ? "var(--foreground)" : "var(--muted)",
+                  background: positionFilter === f ? "var(--surface-elevated)" : "transparent",
+                  transition: "transform 150ms ease-out, border-color 150ms ease, color 150ms ease",
                 }}
               >
-                {t.label} ({t.count})
+                {f}
               </button>
             ))}
           </div>
-
-          {tab === "position" && (
-            <div className="mb-2.5 flex shrink-0 gap-1">
-              {(["open", "closed"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setPositionFilter(f)}
-                  className="rounded-full border px-2 py-0.5 text-[11px] capitalize active:scale-[0.97]"
-                  style={{
-                    borderColor: positionFilter === f ? "var(--foreground)" : "var(--border)",
-                    color: positionFilter === f ? "var(--foreground)" : "var(--muted)",
-                    background: positionFilter === f ? "var(--surface-elevated)" : "transparent",
-                    transition: "transform 150ms ease-out, border-color 150ms ease, color 150ms ease",
-                  }}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
 
         <div className="mt-6">
           {tab === "position" && <ProfilePositions profileId={profile.id} filter={positionFilter} />}
