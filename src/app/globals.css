@@ -71,6 +71,14 @@
   --danger-red: #dc2626;
 }
 
+/* The wordmark in rivaly-logo.png is near-white — correct as-is on the
+   dark-first background it was designed for. Light mode inverts luminance
+   (white text -> dark) while restoring hue on the icon's blue/green so the
+   brand colors don't flip to their complements. */
+:root.light .brand-logo {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);

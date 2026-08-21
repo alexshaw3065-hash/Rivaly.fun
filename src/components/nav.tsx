@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Avatar } from "./avatar";
 import { ThemeToggle } from "./theme-toggle";
@@ -48,8 +49,15 @@ export function Nav({ children }: { children: ReactNode }) {
           mobile-search-overlay.tsx). */}
       <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
         <div className="flex items-center gap-3 px-4 py-4">
-          <Link href="/" className="font-display text-base font-bold tracking-tight text-foreground">
-            Rivaly
+          <Link href="/" className="shrink-0">
+            <Image
+              src="/rivaly-logo.png"
+              alt="Rivaly"
+              width={98}
+              height={39}
+              priority
+              className="brand-logo h-6 w-auto"
+            />
           </Link>
           <div className="ml-auto flex shrink-0 items-center gap-3">
             <TopBarIcons />

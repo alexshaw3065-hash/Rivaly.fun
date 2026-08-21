@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { HomeIcon, SearchIcon, RoomsIcon, ArenaIcon, ChevronIcon } from "./icons";
 import { Avatar } from "./avatar";
@@ -39,9 +40,18 @@ export function Sidebar() {
       aria-label="Primary"
     >
       <Link href="/" className="flex shrink-0 items-center px-5 py-5">
-        <span className="font-display text-lg font-bold tracking-tight text-foreground">
-          {collapsed ? "R" : "Rivaly"}
-        </span>
+        {collapsed ? (
+          <span className="font-display text-lg font-bold tracking-tight text-foreground">R</span>
+        ) : (
+          <Image
+            src="/rivaly-logo.png"
+            alt="Rivaly"
+            width={98}
+            height={39}
+            priority
+            className="brand-logo h-6 w-auto"
+          />
+        )}
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 px-3">
