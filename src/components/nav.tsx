@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { RivalyWordmark } from "./rivaly-wordmark";
 import { TopBarIcons } from "./top-bar-icons";
 import { MobileMoreMenu } from "./mobile-more-menu";
 import { Sidebar } from "./sidebar";
@@ -47,18 +47,11 @@ export function Nav({ children }: { children: ReactNode }) {
           a fixed sheet layered on top, not a route change — see
           mobile-search-overlay.tsx). */}
       <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
-        <div className="flex items-center gap-3 px-4 py-4">
+        <div className="flex items-center gap-3 py-4 pl-2 pr-4">
           <Link href="/" className="shrink-0">
-            <Image
-              src="/rivaly-logo.png"
-              alt="Rivaly"
-              width={325}
-              height={130}
-              priority
-              className="brand-logo h-[65px] w-auto"
-            />
+            <RivalyWordmark />
           </Link>
-          <div className="ml-auto flex shrink-0 items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-2.5">
             <TopBarIcons walletBordered />
             <MobileMoreMenu />
           </div>

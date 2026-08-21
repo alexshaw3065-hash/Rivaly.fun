@@ -6,7 +6,7 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
   const hasUnread = notifications.some((n) => !n.read);
 
   return (
-    <div className="flex items-center gap-3 md:gap-3.5">
+    <div className="flex items-center gap-2.5 md:gap-3.5">
       <Link
         href="/invite"
         aria-label="Invite rivals"
