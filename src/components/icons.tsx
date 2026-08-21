@@ -331,6 +331,60 @@ export function YoutubeIcon() {
   );
 }
 
+// Vertical ellipsis — "more options" trigger for the mobile top bar's menu.
+export function MoreIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor" aria-hidden>
+      <circle cx="10" cy="4.5" r="1.4" />
+      <circle cx="10" cy="10" r="1.4" />
+      <circle cx="10" cy="15.5" r="1.4" />
+    </svg>
+  );
+}
+
+export function SunIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="3.4" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4M15.1 15.1l-1.4-1.4M6.3 6.3 4.9 4.9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function MoonIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <path
+        d="M15.8 12.3A6.2 6.2 0 0 1 7.7 4.2a6.2 6.2 0 1 0 8.1 8.1Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function LinkedInIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden>
+      <rect x="3" y="3" width="14" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="6.8" cy="7" r="1" fill="currentColor" />
+      <path d="M6.8 9.3v4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M9.6 13.8V9.3m0 0c0-1 .7-1.7 1.7-1.7s1.7.7 1.7 1.7v4.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 // A stadium bowl seen from the side — two opposing stands (the arcs) around
 // the pitch (the center dot) — for the Arena nav tab. Deliberately not a
 // trophy (that reads as "you already won something"; Arena is the crowd,

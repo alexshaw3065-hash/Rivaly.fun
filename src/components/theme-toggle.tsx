@@ -22,6 +22,12 @@ function getServerSnapshot() {
   return false;
 }
 
+// Exported so other pieces (the mobile top bar's Sun/Moon icons) can read
+// the current theme without re-deriving their own subscription.
+export function useIsLightTheme(): boolean {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 export function ThemeToggle() {
   const isLight = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
