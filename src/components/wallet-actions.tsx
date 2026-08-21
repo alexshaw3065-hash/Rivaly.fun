@@ -10,9 +10,14 @@ import { formatMoney } from "@/lib/mock-data";
 export function WalletActions({
   initialBalanceCents,
   centered = false,
+  hideBalance = false,
 }: {
   initialBalanceCents: number;
   centered?: boolean;
+  // Profile's PNL card already shows this same balance in its own "Total
+  // cash" row right above — repeating it here would just be the identical
+  // number printed twice. Wallet's own page still shows it (default false).
+  hideBalance?: boolean;
 }) {
   const [balance, setBalance] = useState(initialBalanceCents);
   const [mode, setMode] = useState<"deposit" | "withdraw" | null>(null);
@@ -29,12 +34,16 @@ export function WalletActions({
 
   return (
     <div className={centered ? "flex flex-col items-center text-center" : undefined}>
-      <p className="font-mono text-4xl font-medium text-foreground md:text-5xl">
-        {formatMoney(balance)}
-      </p>
-      <p className="mt-1 text-sm text-muted">Available balance</p>
+      {!hideBalance && (
+        <>
+          <p className="font-mono text-4xl font-medium text-foreground md:text-5xl">
+            {formatMoney(balance)}
+          </p>
+          <p className="mt-1 text-sm text-muted">Available balance</p>
+        </>
+      )}
 
-      <div className={`mt-5 flex gap-2 ${centered ? "justify-center" : ""}`}>
+      <div className={`flex gap-2 ${hideBalance ? "" : "mt-5"} ${centered ? "justify-center" : ""}`}>
         <button
           onClick={() => setMode(mode === "deposit" ? null : "deposit")}
           className="rounded-md bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"

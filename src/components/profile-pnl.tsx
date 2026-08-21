@@ -63,17 +63,21 @@ export function ProfilePnl() {
 
   return (
     <div className="rounded-lg border border-border bg-surface p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-baseline">
-          <span className="font-mono text-3xl font-semibold text-foreground md:text-4xl">{whole}</span>
-          <span className="font-mono text-3xl font-semibold text-muted md:text-4xl">.{decimals}</span>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-baseline">
+          <span className="truncate font-mono text-xl font-semibold text-foreground md:text-2xl">
+            {whole}
+          </span>
+          <span className="shrink-0 font-mono text-xl font-semibold text-muted md:text-2xl">
+            .{decimals}
+          </span>
         </div>
-        <div className="flex shrink-0 gap-0.5 rounded-full bg-surface-elevated p-1">
+        <div className="flex shrink-0 gap-0.5 rounded-full bg-surface-elevated p-0.5">
           {RANGES.map((r) => (
             <button
               key={r.id}
               onClick={() => setRange(r)}
-              className="rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150"
+              className="rounded-full px-2 py-1 text-[11px] font-medium transition-colors duration-150"
               style={{
                 background: range.id === r.id ? "var(--foreground)" : "transparent",
                 color: range.id === r.id ? "var(--background)" : "var(--muted)",
@@ -122,7 +126,7 @@ export function ProfilePnl() {
       </div>
 
       <div className="mt-5">
-        <WalletActions initialBalanceCents={cashCents} centered />
+        <WalletActions initialBalanceCents={cashCents} centered hideBalance />
       </div>
     </div>
   );
