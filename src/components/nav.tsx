@@ -9,6 +9,7 @@ import { MobileMoreMenu } from "./mobile-more-menu";
 import { Sidebar } from "./sidebar";
 import { DesktopHeader } from "./desktop-header";
 import { MobileSearchOverlay } from "./mobile-search-overlay";
+import { QuickDepositSheet } from "./quick-deposit-sheet";
 import { StreakTracker } from "./streak-tracker";
 import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-store";
 
@@ -51,7 +52,7 @@ export function Nav({ children }: { children: ReactNode }) {
           <Link href="/" className="shrink-0">
             <RivalyWordmark />
           </Link>
-          <div className="ml-auto flex shrink-0 items-center gap-2.5">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <TopBarIcons walletBordered />
             <MobileMoreMenu />
           </div>
@@ -61,6 +62,7 @@ export function Nav({ children }: { children: ReactNode }) {
       <Sidebar />
       <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
       <MobileSearchOverlay />
+      <QuickDepositSheet />
       <StreakTracker />
 
       {/* Fixed positioning throughout (sidebar, header, mobile bars) means
