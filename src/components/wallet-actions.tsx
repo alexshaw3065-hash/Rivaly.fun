@@ -2,26 +2,24 @@
 
 import { useState } from "react";
 import { formatMoney } from "@/lib/mock-data";
-import { useWalletBalance, depositToWallet, withdrawFromWallet } from "@/lib/use-wallet-balance";
 
-// Deposit/withdraw update the shared balance store optimistically — no
+// Deposit/withdraw update the displayed balance optimistically only — no
 // payment rail is wired up yet. Swap for a real provider call (see
 // docs/masterplan/09-competitive-research.md#5.2c — local payment
 // infrastructure, not crypto complexity, should sit behind this button).
-// Every instance of this component (Wallet page, Profile's PNL card, the
-// top bar's quick-deposit) reads the same balance, so a deposit anywhere
-// shows up everywhere.
 export function WalletActions({
+  initialBalanceCents,
   centered = false,
   hideBalance = false,
 }: {
+  initialBalanceCents: number;
   centered?: boolean;
   // Profile's PNL card already shows this same balance in its own "Total
   // cash" row right above — repeating it here would just be the identical
   // number printed twice. Wallet's own page still shows it (default false).
   hideBalance?: boolean;
 }) {
-  const balance = useWalletBalance();
+  const [balance, setBalance] = useState(initialBalanceCents);
   const [mode, setMode] = useState<"deposit" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
 
@@ -29,8 +27,7 @@ export function WalletActions({
     const naira = parseFloat(amount);
     if (!naira || naira <= 0) return;
     const cents = Math.round(naira * 100);
-    if (mode === "deposit") depositToWallet(cents);
-    else withdrawFromWallet(cents);
+    setBalance((b) => (mode === "deposit" ? b + cents : Math.max(0, b - cents)));
     setMode(null);
     setAmount("");
   }

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { balanceHistory, formatMoney, formatSignedMoney, wallet } from "@/lib/mock-data";
-import { useWalletBalance } from "@/lib/use-wallet-balance";
 import { WalletActions } from "./wallet-actions";
 
 const CHART_WIDTH = 320;
@@ -64,7 +63,6 @@ const EMPTY_WAVE = "M0,50 C 30,10 60,10 90,50 C 120,90 150,90 180,50 C 210,10 24
 // so the two numbers on this card never disagree.
 export function ProfilePnl() {
   const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[0]);
-  const liveBalanceCents = useWalletBalance();
 
   const points = balanceHistory();
   const hasActivity = points.length >= 2;
@@ -87,13 +85,8 @@ export function ProfilePnl() {
   const delta = balances.length > 1 ? balances[balances.length - 1] - balances[0] : 0;
   const up = delta >= 0;
 
-  // The "right now" numbers (this row + the big total above) read the live
-  // shared balance — same one the top bar's quick-deposit and /wallet use
-  // — not the chart's last historical point, so a deposit shows up here
-  // immediately instead of only after a new transaction lands. The chart
-  // itself stays a real historical view of balanceHistory(); it isn't
-  // expected to redraw for a balance change with no transaction behind it.
-  const totalCents = hasActivity ? liveBalanceCents + wallet.escrowCents + wallet.pendingCents : 0;
+  const cashCents = balances[balances.length - 1] ?? wallet.balanceCents;
+  const totalCents = hasActivity ? wallet.balanceCents + wallet.escrowCents + wallet.pendingCents : 0;
   const { whole, decimals } = splitMoney(totalCents);
 
   return (
@@ -163,11 +156,11 @@ export function ProfilePnl() {
           </span>
           <span className="text-sm text-muted">Total cash</span>
         </div>
-        <span className="font-mono text-sm font-medium text-foreground">{formatMoney(liveBalanceCents)}</span>
+        <span className="font-mono text-sm font-medium text-foreground">{formatMoney(cashCents)}</span>
       </div>
 
       <div className="mt-5">
-        <WalletActions centered hideBalance />
+        <WalletActions initialBalanceCents={cashCents} centered hideBalance />
       </div>
     </div>
   );
