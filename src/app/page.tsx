@@ -29,6 +29,8 @@ export default function Home() {
   const hasGoated = goated.length > 0;
   const hasHof = hallOfFame.length > 0;
   const totalRivalsCount = rivals.length + goated.length + hallOfFame.length;
+  const initialRivalsHeading = hasTop ? "Top rivals" : hasGoated ? "Goated rivals" : "Hall of fame";
+  const [rivalsHeading, setRivalsHeading] = useState(initialRivalsHeading);
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
@@ -71,20 +73,32 @@ export default function Home() {
           Fame (global all-time winnings — the platform's actual biggest
           earners ever). See .claude/skills/rivaly-engagement-psychology.
           Each group only renders, and only gets a divider, if it actually
-          has real data — no fabricated filler between them. */}
+          has real data — no fabricated filler between them. The h2 itself
+          tracks scroll position (via AutoScrollRow's onActiveSectionChange)
+          so it always names whichever group currently sits at the row's
+          left edge, instead of staying stuck on "Top rivals" once you've
+          scrolled past it. */}
       <section className="mt-12 min-w-0">
-        <h2 className="font-display text-xl font-semibold text-foreground">Top rivals</h2>
+        <h2 className="font-display text-xl font-semibold text-foreground">{rivalsHeading}</h2>
         {totalRivalsCount > 0 ? (
           <div className="mt-5 min-w-0">
-            <AutoScrollRow itemCount={totalRivalsCount}>
+            <AutoScrollRow
+              itemCount={totalRivalsCount}
+              initialSectionLabel={initialRivalsHeading}
+              onActiveSectionChange={setRivalsHeading}
+            >
               {rivals.map((profile) => (
                 <RivalCard key={profile.id} profile={profile} />
               ))}
-              {hasTop && hasGoated && <RivalDivider emoji="🔥" label="Goated" />}
+              {hasTop && hasGoated && (
+                <RivalDivider emoji="🔥" label="Goated" sectionHeading="Goated rivals" />
+              )}
               {goated.map((profile) => (
                 <GoatedRivalCard key={profile.id} profile={profile} />
               ))}
-              {(hasTop || hasGoated) && hasHof && <RivalDivider emoji="👑" label="Hall of fame" />}
+              {(hasTop || hasGoated) && hasHof && (
+                <RivalDivider emoji="👑" label="Hall of fame" sectionHeading="Hall of fame" />
+              )}
               {hallOfFame.map((profile) => (
                 <HallOfFameCard key={profile.id} profile={profile} />
               ))}

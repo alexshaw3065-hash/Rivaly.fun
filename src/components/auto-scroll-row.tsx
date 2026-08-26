@@ -13,10 +13,29 @@ const RESUME_DELAY_MS = 2200;
 // back to back and corrects scrollLeft by exactly half the track width
 // whenever it's crossed, so the loop point is invisible no matter what
 // moved it — the rAF tick or the user's own scroll.
-export function AutoScrollRow({ children, itemCount }: { children: ReactNode; itemCount: number }) {
+//
+// If `children` contains RivalDivider markers (data-section-next on their
+// root element), this also tracks which "section" currently sits at the
+// track's left edge and reports it via onActiveSectionChange — that's how
+// the h2 above the row (see page.tsx) knows to switch from "Top rivals"
+// to "Goated rivals" to "Hall of fame" as the row scrolls past each
+// divider, instead of staying stuck on the first section's name forever.
+export function AutoScrollRow({
+  children,
+  itemCount,
+  initialSectionLabel,
+  onActiveSectionChange,
+}: {
+  children: ReactNode;
+  itemCount: number;
+  initialSectionLabel?: string;
+  onActiveSectionChange?: (label: string) => void;
+}) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const firstCopyRef = useRef<HTMLDivElement>(null);
   const pausedUntil = useRef(0);
   const dragState = useRef<{ startX: number; startScrollLeft: number } | null>(null);
+  const activeLabelRef = useRef<string | undefined>(initialSectionLabel);
 
   useEffect(() => {
     if (itemCount === 0) return;
@@ -41,6 +60,27 @@ export function AutoScrollRow({ children, itemCount }: { children: ReactNode; it
     return () => cancelAnimationFrame(rafId);
   }, [itemCount]);
 
+  // Report the starting section once on mount (scrollLeft starts at 0, so
+  // whatever's first is active before any scroll event has fired).
+  useEffect(() => {
+    if (initialSectionLabel) onActiveSectionChange?.(initialSectionLabel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function updateActiveSection() {
+    if (!onActiveSectionChange || !scrollerRef.current || !firstCopyRef.current) return;
+    const scrollLeft = scrollerRef.current.scrollLeft;
+    const markers = firstCopyRef.current.querySelectorAll<HTMLElement>("[data-section-next]");
+    let label = initialSectionLabel;
+    markers.forEach((marker) => {
+      if (marker.offsetLeft <= scrollLeft + 1) label = marker.dataset.sectionNext;
+    });
+    if (label && label !== activeLabelRef.current) {
+      activeLabelRef.current = label;
+      onActiveSectionChange(label);
+    }
+  }
+
   function pause() {
     pausedUntil.current = performance.now() + RESUME_DELAY_MS;
   }
@@ -49,9 +89,11 @@ export function AutoScrollRow({ children, itemCount }: { children: ReactNode; it
     const el = scrollerRef.current;
     if (!el) return;
     const half = el.scrollWidth / 2;
-    if (half <= 0) return;
-    if (el.scrollLeft >= half) el.scrollLeft -= half;
-    else if (el.scrollLeft < 0) el.scrollLeft += half;
+    if (half > 0) {
+      if (el.scrollLeft >= half) el.scrollLeft -= half;
+      else if (el.scrollLeft < 0) el.scrollLeft += half;
+    }
+    updateActiveSection();
   }
 
   function onWheel(e: React.WheelEvent) {
@@ -95,7 +137,9 @@ export function AutoScrollRow({ children, itemCount }: { children: ReactNode; it
       onPointerCancel={onPointerUp}
       className="no-scrollbar flex gap-3 overflow-x-auto"
     >
-      <div className="flex shrink-0 gap-3">{children}</div>
+      <div ref={firstCopyRef} className="flex shrink-0 gap-3">
+        {children}
+      </div>
       <div className="flex shrink-0 gap-3" aria-hidden="true">
         {children}
       </div>
