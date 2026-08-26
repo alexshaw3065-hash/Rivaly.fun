@@ -227,14 +227,30 @@ html {
   }
 }
 
-/* Twitch-style live chat (ChatComposer) — the oldest visible row gets this
-   class for one beat before it's actually removed from state, so it fades
-   and drifts up rather than just vanishing. Pairs with .enter-row, which
-   already handles the opposite (a new row arriving). */
-.chat-row-exit {
-  opacity: 0;
-  transform: translateY(-6px);
-  transition: opacity 220ms ease-in, transform 220ms ease-in;
+/* Twitch/YouTube-Live-style chat stack (ChatFeedRows, used by both
+   ChatComposer and RoomChatPreview) — each row is positioned purely by
+   its --slot custom property, so a new message shifts EVERY row's
+   translateY in one animated step (the whole stack visibly scrolls up),
+   not just the newest one popping in and the oldest popping out in
+   place. The newly-mounted row enters from one slot below its target
+   (@starting-style — same technique as .enter-row elsewhere in this
+   file) so it feels like it slides up into the stack, not just fades in
+   place. .chat-feed-row-exit overrides the target slot to one above the
+   top and fades out — applied for one beat before the row is actually
+   removed from state. */
+.chat-feed-row {
+  transform: translateY(calc(var(--slot) * var(--row-h)));
+  opacity: 1;
+  transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1), opacity 300ms ease-out;
+
+  @starting-style {
+    transform: translateY(calc((var(--slot) + 1) * var(--row-h)));
+    opacity: 0;
+  }
+}
+.chat-feed-row-exit {
+  transform: translateY(calc(-1 * var(--row-h))) !important;
+  opacity: 0 !important;
 }
 
 /* Anchored dropdown (mobile top bar's "more" menu) — unfurls from its

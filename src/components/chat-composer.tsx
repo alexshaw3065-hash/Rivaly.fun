@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { ChatMessage } from "@/lib/types";
+import { useRetiringList } from "@/lib/use-retiring-list";
+import { ChatFeedRows } from "./chat-feed-rows";
 import { ChatMessageRow } from "./chat-message";
 
-// Twitch-style live chat — fast and low-permanence, reading as a live crowd
-// rather than an archive. `messages` still holds every real message (nothing
-// is silently lost), but only the newest MAX_VISIBLE render; once that cap
-// is crossed, the oldest visible row animates out to make room for the new
-// one, the same rhythm as a real chat scrolling past faster than anyone
-// reads all of it.
+// A real Twitch/YouTube-Live-style chat: fast and low-permanence, reading
+// as a live crowd rather than an archive. The full message history isn't
+// lost — useRetiringList just caps what's rendered at MAX_VISIBLE and lets
+// ChatFeedRows animate the whole stack scrolling up (not popping) as new
+// messages arrive, the same rhythm as a real chat scrolling past faster
+// than anyone reads all of it.
 //
 // Engagement-psychology mechanism #4 (collective effervescence / social
 // facilitation — see .claude/skills/rivaly-engagement-psychology): a chat
@@ -18,7 +20,8 @@ import { ChatMessageRow } from "./chat-message";
 // generated chatter, per the no-fabricated-activity rule that governs every
 // build this session.
 const MAX_VISIBLE = 8;
-const EXIT_MS = 220;
+const ROW_HEIGHT = 38;
+const EXIT_MS = 300;
 
 export function ChatComposer({
   roomId,
@@ -29,66 +32,45 @@ export function ChatComposer({
   initialMessages: ChatMessage[];
   selfUserId: string;
 }) {
-  const [messages, setMessages] = useState(() => initialMessages.slice(-MAX_VISIBLE));
-  const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
+  const { items, retiringId, push } = useRetiringList<ChatMessage>(
+    MAX_VISIBLE,
+    initialMessages.slice(-MAX_VISIBLE),
+  );
   const [draft, setDraft] = useState("");
-  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-
-  useEffect(() => {
-    const activeTimers = timers.current;
-    return () => {
-      activeTimers.forEach((t) => clearTimeout(t));
-    };
-  }, []);
-
-  function retire(id: string) {
-    setExitingIds((prev) => new Set(prev).add(id));
-    const timer = setTimeout(() => {
-      setMessages((prev) => prev.filter((m) => m.id !== id));
-      setExitingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      timers.current.delete(id);
-    }, EXIT_MS);
-    timers.current.set(id, timer);
-  }
 
   function send() {
     const body = draft.trim();
     if (!body) return;
-    const message: ChatMessage = {
-      id: `local-${Date.now()}`,
-      roomId,
-      userId: selfUserId,
-      kind: "message",
-      body,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => {
-      const updated = [...prev, message];
-      if (updated.length > MAX_VISIBLE) retire(updated[0].id);
-      return updated;
-    });
+    push(
+      {
+        id: `local-${Date.now()}`,
+        roomId,
+        userId: selfUserId,
+        kind: "message",
+        body,
+        createdAt: new Date().toISOString(),
+      },
+      EXIT_MS,
+    );
     setDraft("");
   }
 
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-0.5 px-1 py-2">
-        {messages.map((m) => (
-          <div key={m.id} className={exitingIds.has(m.id) ? "chat-row-exit" : undefined}>
-            <ChatMessageRow message={m} />
-          </div>
-        ))}
+      <div className="px-2 py-3">
+        <ChatFeedRows
+          items={items}
+          retiringId={retiringId}
+          rowHeight={ROW_HEIGHT}
+          renderRow={(m) => <ChatMessageRow message={m} />}
+        />
       </div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
           send();
         }}
-        className="mt-2 flex items-center gap-2 border-t border-border pt-3"
+        className="mt-3 flex items-center gap-2 border-t border-border pt-3"
       >
         <input
           value={draft}

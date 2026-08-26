@@ -2,10 +2,12 @@ import type { ChatMessage } from "@/lib/types";
 import { profileById } from "@/lib/mock-data";
 import { Avatar } from "./avatar";
 
+// Inert content only — entrance/exit motion belongs to the wrapping
+// ChatFeedRows slot (see chat-feed-rows.tsx), not this row itself.
 export function ChatMessageRow({ message }: { message: ChatMessage }) {
   if (message.kind === "system") {
     return (
-      <p className="enter-row py-1 text-center font-mono text-[11px] text-muted">
+      <p className="flex h-full items-center justify-center truncate text-center font-mono text-[11px] text-muted">
         {message.body}
       </p>
     );
@@ -15,9 +17,9 @@ export function ChatMessageRow({ message }: { message: ChatMessage }) {
   if (!author) return null;
 
   return (
-    <div className="enter-row flex items-start gap-2.5 py-1.5">
+    <div className="flex h-full items-center gap-2.5">
       <Avatar name={author.displayName} size={26} />
-      <p className="text-sm leading-snug text-foreground">
+      <p className="min-w-0 flex-1 truncate text-sm leading-snug text-foreground">
         <span className="font-medium">{author.displayName}</span>{" "}
         <span className="text-muted">{message.body}</span>
       </p>

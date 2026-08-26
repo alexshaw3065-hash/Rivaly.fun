@@ -94,7 +94,7 @@ export default async function RoomPage({
           </div>
 
           <div
-            className="stagger-in mt-6 rounded-lg border border-border bg-surface p-2"
+            className="stagger-in mt-6 rounded-lg border border-border bg-surface p-3"
             style={{ animationDelay: "60ms" }}
           >
             <ChatComposer roomId={room.id} initialMessages={messages} selfUserId="u3" />
