@@ -3,13 +3,14 @@ import type { Profile } from "@/lib/types";
 import { entriesByUser, currentStreak, formatMoney } from "@/lib/mock-data";
 import { Avatar } from "./avatar";
 
-// Career winnings + room-entry count for a rival you follow. Replaces the
-// old dual "Top Rivals" (weekly P/L) / "Goated Rivals" (career total) split
-// — per founder direction, one row now, scoped to people you actually
-// follow rather than an anonymous global ranking. That's engagement-
-// psychology mechanism #5 (social identity/rivalry — see
-// .claude/skills/rivaly-engagement-psychology): in-group favoritism is a
-// stronger, more consistent pull than "here are the best 5 strangers."
+// Career winnings + room-entry count for a rival you follow. First of the
+// three groups in Home's single "Top rivals" scroll row (Top Rivals ->
+// Goated Rivals -> Hall of Fame, see src/app/page.tsx) — the only one
+// scoped to people you actually follow rather than an anonymous global
+// ranking. That's engagement-psychology mechanism #5 (social identity/
+// rivalry — see .claude/skills/rivaly-engagement-psychology): in-group
+// favoritism is a stronger, more consistent pull than "here are the best
+// 5 strangers."
 export function RivalCard({ profile }: { profile: Profile }) {
   const entryCount = entriesByUser(profile.id).length;
 
@@ -48,6 +49,25 @@ export function GoatedRivalCard({ profile }: { profile: Profile }) {
       <p className="mt-1 w-full truncate text-sm font-medium text-foreground">{profile.displayName}</p>
       <p className="font-mono text-sm font-semibold text-rival-green">
         🔥 {streak} in a row
+      </p>
+    </Link>
+  );
+}
+
+// All-time career winnings, global — the third group in the row: the
+// platform's actual biggest earners ever, the FOMO-style "Hall of Fame"
+// this ranking always represented (see goatedRivals in mock-data.ts,
+// which this reuses directly).
+export function HallOfFameCard({ profile }: { profile: Profile }) {
+  return (
+    <Link
+      href={`/profile/${profile.username}`}
+      className="flex w-[136px] shrink-0 flex-col items-center gap-1.5 rounded-lg border border-border-strong bg-surface-elevated px-3 py-4 text-center transition-transform duration-150 ease-out active:scale-[0.97]"
+    >
+      <Avatar name={profile.displayName} size={40} />
+      <p className="mt-1 w-full truncate text-sm font-medium text-foreground">{profile.displayName}</p>
+      <p className="font-mono text-sm font-semibold text-rival-green">
+        👑 {formatMoney(profile.totalWinningsCents)}
       </p>
     </Link>
   );

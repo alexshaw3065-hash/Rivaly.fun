@@ -787,11 +787,12 @@ export function buildArenaFeed(): ArenaFeedItem[] {
 // (rooting for people you actually follow) is a stronger, more consistent
 // pull than an anonymous global ranking. Empty on purpose for accounts
 // that follow no one — no fabricated filler profiles.
-export function followedTopRivals(): Profile[] {
+export function followedTopRivals(count: number): Profile[] {
   const followed = new Set(followedProfileIds());
   return profiles
     .filter((p) => followed.has(p.id))
-    .sort((a, b) => b.totalWinningsCents - a.totalWinningsCents);
+    .sort((a, b) => b.totalWinningsCents - a.totalWinningsCents)
+    .slice(0, count);
 }
 
 // Current consecutive-win streak — walks a profile's SETTLED entries
