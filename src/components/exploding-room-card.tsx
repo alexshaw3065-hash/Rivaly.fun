@@ -22,27 +22,23 @@ import { RoomChatPreview } from "./room-chat-preview";
 // card's real gap wasn't data, it was people. A split % and a pool total
 // describe a market; real chat is people reacting right now, and mere
 // presence of others measurably raises engagement even before anyone
-// interacts with them. RoomChatPreview cycles one real message at a time
-// fast so the card reads as "packed" before anyone taps in — see room-
-// chat-preview.tsx. Floats over the bottom edge of the split bar rather
-// than living in the card's normal flow (per founder direction: it's
-// secondary to the prediction/split-bar, not equal billing with them, and
-// shouldn't push the rest of the card around or lengthen it) — a
-// translucent scrim panel gives it just enough separation from the bar
-// beneath it to stay legible. Only ever plays real messages from
-// getRoomMessages(); most rooms don't have any yet in the mock dataset,
-// and it just doesn't render rather than showing a placeholder.
+// interacts with them. RoomChatPreview sits in the card's normal flow,
+// not overlaid on the split bar or anything else — floating it over the
+// bar was tried and didn't read as visually appealing, so this stays the
+// simple version: two lines, no box, in flow. Only ever plays real
+// messages from getRoomMessages(); most rooms don't have any yet in the
+// mock dataset, and it just doesn't render rather than showing a
+// placeholder.
 export function ExplodingRoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const momentum = momentumCount(room);
   const messages = getRoomMessages(room.id);
-  const hasChatPreview = messages.some((m) => m.kind === "message" && m.userId);
   const countdown = kickoffCountdownLabel(match);
 
   return (
     <Link
       href={`/rooms/${room.id}`}
-      className="relative flex h-full flex-col gap-4 overflow-hidden rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
+      className="flex h-full flex-col gap-4 rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
     >
       <span className="block h-[3px] w-9 rounded-full" style={{ background: "var(--rival-blue)" }} />
 
@@ -65,14 +61,9 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
         {room.prediction}
       </p>
 
-      <div className="relative">
-        <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
-        {hasChatPreview && (
-          <div className="pointer-events-none absolute inset-x-0 top-full -mt-3">
-            <RoomChatPreview roomId={room.id} messages={messages} />
-          </div>
-        )}
-      </div>
+      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
+
+      <RoomChatPreview roomId={room.id} messages={messages} />
 
       <div className="flex items-center justify-between border-t border-border pt-3.5 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
