@@ -192,6 +192,40 @@ const roomMessages: Record<string, ChatMessage[]> = {
     msg("c22", "r4", null, "Match finished — Enyimba 3–1 Rivers United", "system"),
     msg("c23", "r4", null, "Room settled — Daniel called it right", "system"),
   ],
+  r5: [
+    msg("c30", "r5", null, "Sarah created the room — “Bayern win by 2+ goals.”", "system"),
+    msg("c31", "r5", "u5", "Bayern's front line is too much for this Dortmund back four"),
+    msg("c32", "r5", null, "GOAL — Bayern Munich 1–0 (22′)", "system"),
+    msg("c33", "r5", "u7", "one more and I'm cashing out mentally"),
+    msg("c34", "r5", null, "GOAL — Dortmund 1–1 (41′)", "system"),
+    msg("c35", "r5", "u5", "still got 45 minutes, relax"),
+  ],
+  r8: [
+    msg("c40", "r8", null, "James created the room — “Man United win.”", "system"),
+    msg("c41", "r8", "u4", "United by a mile today, Spurs midfield is missing in action"),
+    msg("c42", "r8", "u6", "0-0 says otherwise so far 😂"),
+    msg("c43", "r8", null, "Kickoff — Man United vs Tottenham", "system"),
+  ],
+  r16: [
+    msg("c50", "r16", null, "Tunde created the room — “Sporting Lagos win.”", "system"),
+    msg("c51", "r16", null, "GOAL — Sporting Lagos 1–0 (15′)", "system"),
+    msg("c52", "r16", null, "GOAL — Rivers United 1–1 (38′)", "system"),
+    msg("c53", "r16", "u6", "we are NOT collapsing again"),
+    msg("c54", "r16", null, "GOAL — Sporting Lagos 2–1 (52′)", "system"),
+    msg("c55", "r16", null, "GOAL — Rivers United 2–2 (70′)", "system"),
+    msg("c56", "r16", "u2", "this match has no chill"),
+  ],
+  r15: [
+    msg("c60", "r15", null, "James created the room — “Chelsea come back to win.”", "system"),
+    msg("c61", "r15", "u4", "2-1 down means nothing, Chelsea always leave it late"),
+    msg("c62", "r15", "u1", "cope harder"),
+  ],
+  r6: [
+    msg("c70", "r6", null, "Chioma created the room — “Under 2.5 goals.”", "system"),
+    msg("c71", "r6", "u7", "both keepers are locked in tonight, staying under"),
+    msg("c72", "r6", null, "GOAL — Bayern Munich 1–0 (22′)", "system"),
+    msg("c73", "r6", "u5", "that's 1, need 2 more to prove me wrong"),
+  ],
 };
 
 export function getRoomMessages(roomId: string): ChatMessage[] {
@@ -220,6 +254,34 @@ export const transactions: Transaction[] = [
 
 export function matchById(id: string): Match | undefined {
   return matches.find((m) => m.id === id);
+}
+
+// Engagement-psychology mechanism #2 (anticipation — see
+// .claude/skills/rivaly-engagement-psychology): a scheduled match with no
+// visible countdown wastes a real, free anticipation beat that's already
+// sitting in kickoffAt. Anchored to the story's own internal clock rather
+// than the real system clock — same reasoning as balanceHistory()'s 24h/
+// 7d/30d windows: kickoffAt values cluster around mid-August, before
+// whatever "today" the system reports, so comparing against real Date.now()
+// would make every scheduled match read as already overdue. The latest
+// kickoff among currently-live matches is a real, derived stand-in for
+// "right now" within the data — not a guess.
+function matchesNowMs(): number {
+  const liveKickoffs = matches.filter((m) => m.status === "live").map((m) => +new Date(m.kickoffAt));
+  return liveKickoffs.length > 0 ? Math.max(...liveKickoffs) : Date.now();
+}
+
+export function kickoffCountdownLabel(match: Match): string | null {
+  if (match.status !== "scheduled") return null;
+  const diffMs = +new Date(match.kickoffAt) - matchesNowMs();
+  if (diffMs <= 0) return null;
+  const totalMinutes = Math.round(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `Kicks off in ${days}d ${hours}h`;
+  if (hours > 0) return `Kicks off in ${hours}h ${minutes}m`;
+  return `Kicks off in ${minutes}m`;
 }
 
 export function profileById(id: string): Profile | undefined {
@@ -674,6 +736,27 @@ export function buildArenaFeed(): ArenaFeedItem[] {
   feed.push(...hotRoomItems.slice(hotIndex));
 
   return feed;
+}
+
+// Engagement-psychology mechanism #5 (social identity/rivalry — see
+// .claude/skills/rivaly-engagement-psychology): in-group favoritism
+// (rooting for people you actually follow) is a stronger, more consistent
+// pull than an anonymous global ranking — "Top Rivals" on Home is real
+// social proof, but it's the weaker kind. This is the same rival_activity
+// card Arena's Feed already renders, just scoped to two real conditions
+// at once: someone you actually follow, in a room that's live right now
+// — not just "any of your rivals, whenever." Empty on purpose when
+// nothing's true (no fabricated "someone's live" filler).
+export function followedLiveFeed(): ArenaFeedItem[] {
+  const followed = new Set(followedProfileIds());
+  return entries
+    .filter((e) => e.isWinner === null && followed.has(e.userId))
+    .filter((e) => {
+      const room = roomById(e.roomId);
+      const match = room ? matchById(room.matchId) : undefined;
+      return match?.status === "live";
+    })
+    .map((e) => ({ id: `home-ra-${e.id}`, kind: "rival_activity" as const, entryId: e.id, createdAt: e.createdAt }));
 }
 
 export interface BalancePoint {

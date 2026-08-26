@@ -1,17 +1,38 @@
 import Link from "next/link";
 import type { Match, Room } from "@/lib/types";
-import { formatMoney, splitPct, momentumCount } from "@/lib/mock-data";
+import {
+  formatMoney,
+  splitPct,
+  momentumCount,
+  getRoomMessages,
+  profileById,
+  kickoffCountdownLabel,
+} from "@/lib/mock-data";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
+import { Avatar } from "./avatar";
 
 // The page's one signature artifact (see anti-slop-design-law.md) — not
 // just a bigger RoomCard. The self-colored top rule + momentum stat are
 // what's actually new here: this is what makes a room worth showing on
 // "Exploding Now" rather than just "Trending."
+//
+// Engagement-psychology mechanism #4 (collective effervescence / social
+// facilitation — see .claude/skills/rivaly-engagement-psychology): the
+// card's real gap wasn't data, it was people. A split % and a pool total
+// describe a market; a real line from the room's actual chat is a person
+// reacting right now, and mere presence of others measurably raises
+// engagement even before anyone interacts with them. Only ever shows a
+// REAL message from getRoomMessages() — most rooms don't have one yet in
+// the mock dataset, and the row just doesn't render rather than showing
+// a placeholder.
 export function ExplodingRoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const momentum = momentumCount(room);
+  const latestMessage = [...getRoomMessages(room.id)].reverse().find((m) => m.kind === "message" && m.userId);
+  const messageAuthor = latestMessage ? profileById(latestMessage.userId!) : undefined;
+  const countdown = kickoffCountdownLabel(match);
 
   return (
     <Link
@@ -26,6 +47,8 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
         </span>
         {match.status === "live" ? (
           <LiveBadge />
+        ) : countdown ? (
+          <span className="font-mono text-[11px] font-medium text-rival-blue">{countdown}</span>
         ) : (
           <span className="font-mono text-[11px] text-muted">
             {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
@@ -38,6 +61,16 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
       </p>
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
+
+      {latestMessage && messageAuthor && (
+        <div className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2">
+          <Avatar name={messageAuthor.displayName} size={18} />
+          <p className="min-w-0 flex-1 truncate text-xs text-muted">
+            <span className="font-medium text-foreground">{messageAuthor.displayName}</span>{" "}
+            {latestMessage.body}
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center justify-between border-t border-border pt-3.5 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
