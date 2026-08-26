@@ -13,6 +13,7 @@ import type {
   Wallet,
   Pack,
   Entry,
+  EntrySide,
   Follow,
   Post,
   PostReply,
@@ -212,6 +213,10 @@ const roomMessages: Record<string, ChatMessage[]> = {
     msg("c9", "r1", null, "GOAL — Arsenal 2–1 (58′)", "system"),
     msg("c10", "r1", "u2", "one more and I owe daniel dinner"),
     msg("c11", "r1", null, "67′ — still time", "system"),
+    // Extra real lines so RoomChatPreview has enough to actually cycle
+    // through (see room-chat-preview.tsx) rather than just sitting still.
+    msg("c12", "r1", "u9", "i said arsenal all week and nobody believed me"),
+    msg("c13", "r1", "u4", "spurs fans checking this scoreline out of spite lol"),
   ],
   r4: [
     msg("c20", "r4", null, "Daniel created the room — “Enyimba win at home.”", "system"),
@@ -226,12 +231,16 @@ const roomMessages: Record<string, ChatMessage[]> = {
     msg("c33", "r5", "u7", "one more and I'm cashing out mentally"),
     msg("c34", "r5", null, "GOAL — Dortmund 1–1 (41′)", "system"),
     msg("c35", "r5", "u5", "still got 45 minutes, relax"),
+    msg("c36", "r5", "u1", "bayern by 3 minimum, called it"),
+    msg("c37", "r5", "u9", "dortmund fans have gone silent in the group chat"),
   ],
   r8: [
     msg("c40", "r8", null, "James created the room — “Man United win.”", "system"),
     msg("c41", "r8", "u4", "United by a mile today, Spurs midfield is missing in action"),
     msg("c42", "r8", "u6", "0-0 says otherwise so far 😂"),
     msg("c43", "r8", null, "Kickoff — Man United vs Tottenham", "system"),
+    msg("c44", "r8", "u1", "0-0 and united still get my money"),
+    msg("c45", "r8", "u2", "spurs midfield genuinely missing since kickoff"),
   ],
   r16: [
     msg("c50", "r16", null, "Tunde created the room — “Sporting Lagos win.”", "system"),
@@ -241,17 +250,23 @@ const roomMessages: Record<string, ChatMessage[]> = {
     msg("c54", "r16", null, "GOAL — Sporting Lagos 2–1 (52′)", "system"),
     msg("c55", "r16", null, "GOAL — Rivers United 2–2 (70′)", "system"),
     msg("c56", "r16", "u2", "this match has no chill"),
+    msg("c57", "r16", "u9", "sporting lagos folding again, tell me im wrong"),
+    msg("c58", "r16", "u7", "this is exactly why i dont bet npfl draws"),
   ],
   r15: [
     msg("c60", "r15", null, "James created the room — “Chelsea come back to win.”", "system"),
     msg("c61", "r15", "u4", "2-1 down means nothing, Chelsea always leave it late"),
     msg("c62", "r15", "u1", "cope harder"),
+    msg("c63", "r15", "u7", "chelsea fans manifesting a repeat of last season"),
+    msg("c64", "r15", "u9", "2 down at half and still confident, wild"),
   ],
   r6: [
     msg("c70", "r6", null, "Chioma created the room — “Under 2.5 goals.”", "system"),
     msg("c71", "r6", "u7", "both keepers are locked in tonight, staying under"),
     msg("c72", "r6", null, "GOAL — Bayern Munich 1–0 (22′)", "system"),
     msg("c73", "r6", "u5", "that's 1, need 2 more to prove me wrong"),
+    msg("c74", "r6", "u1", "one more goal and this whole room loses"),
+    msg("c75", "r6", "u4", "keepers earning their money tonight fr"),
   ],
 };
 
@@ -379,6 +394,14 @@ export const entries: Entry[] = [
 
 export function entriesByUser(userId: string): Entry[] {
   return entries.filter((e) => e.userId === userId);
+}
+
+// Which side a chat author actually predicted in this room, if they have
+// a real entry there — powers RoomChatPreview's side tag. Returns null
+// rather than guessing when there's no real entry to back it (e.g. a room
+// creator or spectator commenting without having entered).
+export function entrySideForUserInRoom(roomId: string, userId: string): EntrySide | null {
+  return entries.find((e) => e.roomId === roomId && e.userId === userId)?.side ?? null;
 }
 
 export function roomsJoinedBy(userId: string): Room[] {

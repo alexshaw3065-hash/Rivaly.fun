@@ -5,13 +5,12 @@ import {
   splitPct,
   momentumCount,
   getRoomMessages,
-  profileById,
   kickoffCountdownLabel,
 } from "@/lib/mock-data";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
-import { Avatar } from "./avatar";
+import { RoomChatPreview } from "./room-chat-preview";
 
 // The page's one signature artifact (see anti-slop-design-law.md) — not
 // just a bigger RoomCard. The self-colored top rule + momentum stat are
@@ -21,17 +20,17 @@ import { Avatar } from "./avatar";
 // Engagement-psychology mechanism #4 (collective effervescence / social
 // facilitation — see .claude/skills/rivaly-engagement-psychology): the
 // card's real gap wasn't data, it was people. A split % and a pool total
-// describe a market; a real line from the room's actual chat is a person
-// reacting right now, and mere presence of others measurably raises
-// engagement even before anyone interacts with them. Only ever shows a
-// REAL message from getRoomMessages() — most rooms don't have one yet in
-// the mock dataset, and the row just doesn't render rather than showing
-// a placeholder.
+// describe a market; real chat is people reacting right now, and mere
+// presence of others measurably raises engagement even before anyone
+// interacts with them. RoomChatPreview cycles 2-4 real messages fast so
+// the card reads as "packed" before anyone taps in — see
+// room-chat-preview.tsx. Only ever plays real messages from
+// getRoomMessages(); most rooms don't have any yet in the mock dataset,
+// and the row just doesn't render rather than showing a placeholder.
 export function ExplodingRoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const momentum = momentumCount(room);
-  const latestMessage = [...getRoomMessages(room.id)].reverse().find((m) => m.kind === "message" && m.userId);
-  const messageAuthor = latestMessage ? profileById(latestMessage.userId!) : undefined;
+  const messages = getRoomMessages(room.id);
   const countdown = kickoffCountdownLabel(match);
 
   return (
@@ -62,15 +61,7 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
 
-      {latestMessage && messageAuthor && (
-        <div className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2">
-          <Avatar name={messageAuthor.displayName} size={18} />
-          <p className="min-w-0 flex-1 truncate text-xs text-muted">
-            <span className="font-medium text-foreground">{messageAuthor.displayName}</span>{" "}
-            {latestMessage.body}
-          </p>
-        </div>
-      )}
+      <RoomChatPreview roomId={room.id} messages={messages} />
 
       <div className="flex items-center justify-between border-t border-border pt-3.5 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
