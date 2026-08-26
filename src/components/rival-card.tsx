@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
-import { entriesByUser, formatMoney } from "@/lib/mock-data";
+import { entriesByUser, currentStreak, formatMoney } from "@/lib/mock-data";
 import { Avatar } from "./avatar";
 
 // Career winnings + room-entry count for a rival you follow. Replaces the
@@ -25,6 +25,29 @@ export function RivalCard({ profile }: { profile: Profile }) {
       </p>
       <p className="text-[11px] text-muted">
         {entryCount} {entryCount === 1 ? "room" : "rooms"} entered
+      </p>
+    </Link>
+  );
+}
+
+// Real consecutive-win streak for a rival you follow — engagement-
+// psychology mechanism #6 (loss aversion & streaks — see
+// .claude/skills/rivaly-engagement-psychology): a visible hot streak is
+// what makes someone worth watching or challenging right now. Only ever
+// rendered for profiles that actually clear the streak threshold — see
+// followedGoatedRivals in mock-data.ts.
+export function GoatedRivalCard({ profile }: { profile: Profile }) {
+  const streak = currentStreak(profile.id);
+
+  return (
+    <Link
+      href={`/profile/${profile.username}`}
+      className="flex w-[136px] shrink-0 flex-col items-center gap-1.5 rounded-lg border border-border-strong bg-surface-elevated px-3 py-4 text-center transition-transform duration-150 ease-out active:scale-[0.97]"
+    >
+      <Avatar name={profile.displayName} size={40} />
+      <p className="mt-1 w-full truncate text-sm font-medium text-foreground">{profile.displayName}</p>
+      <p className="font-mono text-sm font-semibold text-rival-green">
+        🔥 {streak} in a row
       </p>
     </Link>
   );

@@ -50,6 +50,16 @@ export const profiles: Profile[] = [
   { id: "u7", username: "chioma", displayName: "Chioma", avatarUrl: null, bio: "Enyimba or nothing.", socialLinks: [], followerCount: 675, followingCount: 88, roomsCreated: 22, predictionAccuracy: 0.68, totalWinningsCents: 58_900_00, createdAt: "2025-12-11T00:00:00Z" },
   { id: "u8", username: "marcus", displayName: "Marcus", avatarUrl: null, bio: null, socialLinks: [], followerCount: 41, followingCount: 30, roomsCreated: 3, predictionAccuracy: 0.5, totalWinningsCents: 4_000_00, createdAt: "2026-08-01T00:00:00Z" },
   { id: "u9", username: "ada", displayName: "Ada", avatarUrl: null, bio: "Room creator. Champions League specialist.", socialLinks: [], followerCount: 1_890, followingCount: 52, roomsCreated: 47, predictionAccuracy: 0.7, totalWinningsCents: 198_500_00, createdAt: "2025-10-05T00:00:00Z" },
+  { id: "u10", username: "marissa", displayName: "Marissa", avatarUrl: null, bio: "Chelsea die-hard. Bridge or nowhere.", socialLinks: [], followerCount: 320, followingCount: 140, roomsCreated: 9, predictionAccuracy: 0.55, totalWinningsCents: 8_200_00, createdAt: "2026-03-10T00:00:00Z" },
+  { id: "u11", username: "kelechi", displayName: "Kelechi", avatarUrl: null, bio: "NPFL nerd. I watch the games nobody else does.", socialLinks: [], followerCount: 512, followingCount: 75, roomsCreated: 28, predictionAccuracy: 0.64, totalWinningsCents: 41_000_00, createdAt: "2025-12-28T00:00:00Z" },
+  { id: "u12", username: "priya", displayName: "Priya", avatarUrl: null, bio: "Man City or nothing. Treble szn forever.", socialLinks: [], followerCount: 980, followingCount: 210, roomsCreated: 15, predictionAccuracy: 0.61, totalWinningsCents: 22_500_00, createdAt: "2026-01-05T00:00:00Z" },
+  { id: "u13", username: "femi", displayName: "Femi", avatarUrl: null, bio: null, socialLinks: [], followerCount: 64, followingCount: 40, roomsCreated: 2, predictionAccuracy: 0.48, totalWinningsCents: 900_00, createdAt: "2026-07-20T00:00:00Z" },
+  { id: "u14", username: "grace", displayName: "Grace", avatarUrl: null, bio: "Arsenal since Wenger. Patient to a fault.", socialLinks: [], followerCount: 1_240, followingCount: 88, roomsCreated: 33, predictionAccuracy: 0.7, totalWinningsCents: 76_300_00, createdAt: "2025-10-30T00:00:00Z" },
+  { id: "u15", username: "obinna", displayName: "Obinna", avatarUrl: null, bio: "Rivers United ultras.", socialLinks: [], followerCount: 205, followingCount: 120, roomsCreated: 11, predictionAccuracy: 0.52, totalWinningsCents: 6_400_00, createdAt: "2026-04-12T00:00:00Z" },
+  { id: "u16", username: "hassan", displayName: "Hassan", avatarUrl: null, bio: null, socialLinks: [], followerCount: 88, followingCount: 55, roomsCreated: 4, predictionAccuracy: 0.45, totalWinningsCents: 1_800_00, createdAt: "2026-06-18T00:00:00Z" },
+  { id: "u17", username: "zainab", displayName: "Zainab", avatarUrl: null, bio: "Called the Bundesliga table in March. Screenshot saved.", socialLinks: [], followerCount: 3_050, followingCount: 95, roomsCreated: 58, predictionAccuracy: 0.74, totalWinningsCents: 310_000_00, createdAt: "2025-09-22T00:00:00Z" },
+  { id: "u18", username: "kwame", displayName: "Kwame", avatarUrl: null, bio: "Serie A tactics nerd.", socialLinks: [], followerCount: 430, followingCount: 66, roomsCreated: 19, predictionAccuracy: 0.59, totalWinningsCents: 27_800_00, createdAt: "2026-02-08T00:00:00Z" },
+  { id: "u19", username: "ify", displayName: "Ify", avatarUrl: null, bio: "Enyimba till I die. Doubted, then vindicated.", socialLinks: [], followerCount: 715, followingCount: 102, roomsCreated: 24, predictionAccuracy: 0.67, totalWinningsCents: 63_500_00, createdAt: "2025-11-19T00:00:00Z" },
 ];
 
 export const rooms: Room[] = [
@@ -77,6 +87,16 @@ export const rooms: Room[] = [
   { id: "r22", creatorId: "u4", matchId: "m11", prediction: "Over 2.5 goals", entryAmountCents: 1_500_00, visibility: "public", status: "open", poolTotalCents: 42_000_00, participantCount: 28, resolutionSource: "Official match result", inviteCode: "RIVAL-4O39", createdAt: "2026-08-14T12:00:00Z", settledAt: null },
   { id: "r23", creatorId: "u6", matchId: "m4", prediction: "Under 2.5 goals", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 9_500_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-5U41", createdAt: "2026-08-15T10:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
   { id: "r24", creatorId: "u1", matchId: "m5", prediction: "Dortmund hold on for a draw", entryAmountCents: 2_000_00, visibility: "public", status: "live", poolTotalCents: 58_000_00, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-6D53", createdAt: "2026-08-15T18:35:00Z", settledAt: null },
+  // Extra settled rooms on the one finished match (m4), reusing it the same
+  // way r4/r23 already do — these back the real win streaks behind Goated
+  // Rivals (see currentStreak / followedGoatedRivals below).
+  { id: "r25", creatorId: "u1", matchId: "m4", prediction: "Enyimba to score twice", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 12_000_00, participantCount: 17, resolutionSource: "Official match result", inviteCode: "RIVAL-2E61", createdAt: "2026-08-15T08:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r26", creatorId: "u6", matchId: "m4", prediction: "Over 1.5 goals", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 15_500_00, participantCount: 22, resolutionSource: "Official match result", inviteCode: "RIVAL-3O74", createdAt: "2026-08-15T08:20:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r27", creatorId: "u2", matchId: "m4", prediction: "Enyimba win by 2+", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 19_000_00, participantCount: 16, resolutionSource: "Official match result", inviteCode: "RIVAL-4E38", createdAt: "2026-08-15T08:40:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r28", creatorId: "u4", matchId: "m4", prediction: "Rivers United to score", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 8_500_00, participantCount: 14, resolutionSource: "Official match result", inviteCode: "RIVAL-5R92", createdAt: "2026-08-15T09:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r29", creatorId: "u8", matchId: "m4", prediction: "Enyimba clean sheet, 1st half", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 6_000_00, participantCount: 11, resolutionSource: "Official match result", inviteCode: "RIVAL-6C15", createdAt: "2026-08-15T09:20:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r30", creatorId: "u1", matchId: "m4", prediction: "Both teams to score", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 13_500_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-7B46", createdAt: "2026-08-15T08:10:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r31", creatorId: "u6", matchId: "m4", prediction: "Enyimba win each half", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 21_000_00, participantCount: 20, resolutionSource: "Official match result", inviteCode: "RIVAL-8E29", createdAt: "2026-08-15T08:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
 ];
 
 // Combo/parlay-style bundles — a curated statement of conviction across
@@ -333,6 +353,17 @@ export const entries: Entry[] = [
   { id: "e12", roomId: "r4", userId: "u9", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T10:50:00Z", isWinner: true, payoutCents: 5_868_00 },
   { id: "e13", roomId: "r23", userId: "u2", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:35:00Z", isWinner: false, payoutCents: null },
   { id: "e14", roomId: "r23", userId: "u8", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T10:45:00Z", isWinner: false, payoutCents: null },
+  // Sarah's real 5-in-a-row (r25-r29) and Ada's real 3-in-a-row (r30, r31,
+  // plus the existing e12 on r4) — back Goated Rivals' streak claim with
+  // an actual settled win history rather than a number invented at render
+  // time. No entry here that isn't tied to a real settled room above.
+  { id: "e15", roomId: "r25", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:00:00Z", isWinner: true, payoutCents: 1_450_00 },
+  { id: "e16", roomId: "r26", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:20:00Z", isWinner: true, payoutCents: 1_450_00 },
+  { id: "e17", roomId: "r27", userId: "u5", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:40:00Z", isWinner: true, payoutCents: 2_900_00 },
+  { id: "e18", roomId: "r28", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T09:00:00Z", isWinner: true, payoutCents: 1_450_00 },
+  { id: "e19", roomId: "r29", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T09:20:00Z", isWinner: true, payoutCents: 1_450_00 },
+  { id: "e20", roomId: "r30", userId: "u9", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:10:00Z", isWinner: true, payoutCents: 1_450_00 },
+  { id: "e21", roomId: "r31", userId: "u9", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:30:00Z", isWinner: true, payoutCents: 2_900_00 },
 ];
 
 export function entriesByUser(userId: string): Entry[] {
@@ -750,6 +781,37 @@ export function followedTopRivals(): Profile[] {
   return profiles
     .filter((p) => followed.has(p.id))
     .sort((a, b) => b.totalWinningsCents - a.totalWinningsCents);
+}
+
+// Current consecutive-win streak — walks a profile's SETTLED entries
+// most-recent-first and counts how many in a row were wins, stopping at
+// the first loss (or the end of their history). A pending/live entry
+// neither breaks nor extends it — it just isn't decided yet.
+export function currentStreak(profileId: string): number {
+  const settled = entriesByUser(profileId)
+    .filter((e) => e.isWinner !== null)
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  let streak = 0;
+  for (const entry of settled) {
+    if (!entry.isWinner) break;
+    streak++;
+  }
+  return streak;
+}
+
+// Home's "Goated rivals" row: people you follow who are actually on a
+// real win streak right now. Engagement-psychology mechanism #6 (loss
+// aversion & streaks — see .claude/skills/rivaly-engagement-psychology):
+// a visible hot streak is what makes someone worth watching or
+// challenging this exact moment. Real, derived from settled entries —
+// empty when nobody you follow has one, same honesty rule as every other
+// row on Home.
+const GOATED_STREAK_THRESHOLD = 3;
+export function followedGoatedRivals(): Profile[] {
+  const followed = new Set(followedProfileIds());
+  return profiles
+    .filter((p) => followed.has(p.id) && currentStreak(p.id) >= GOATED_STREAK_THRESHOLD)
+    .sort((a, b) => currentStreak(b.id) - currentStreak(a.id));
 }
 
 export interface BalancePoint {
