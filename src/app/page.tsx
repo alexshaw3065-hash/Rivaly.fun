@@ -8,20 +8,21 @@ import { RivalCard, GoatedRivalCard } from "@/components/rival-card";
 import { AutoScrollRow } from "@/components/auto-scroll-row";
 import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
 import { OnlineRivalsBadge } from "@/components/online-rivals-badge";
-import { explodingRooms, matchById, followedTopRivals, followedGoatedRivals } from "@/lib/mock-data";
+import { explodingRooms, matchById, followedTopRivals, goatedStreakRivals } from "@/lib/mock-data";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
 // "Exploding Now" carousel (one card at a time — swipe or auto-advance,
 // see exploding-carousel.tsx), a "Top Rivals" row scoped to people you
 // follow and continuously auto-scrolling (see rival-card.tsx /
-// auto-scroll-row.tsx), a "Goated Rivals" row for real win streaks among
-// them, then the same [filter icon][Rooms][Matches] browser Search uses
-// (see rooms-matches-browser.tsx) so both pages share one league-filtered,
+// auto-scroll-row.tsx), a "Goated Rivals" row for the platform's actual
+// hottest streaks — deliberately global, not follow-scoped — then the
+// same [filter icon][Rooms][Matches] browser Search uses (see
+// rooms-matches-browser.tsx) so both pages share one league-filtered,
 // infinite-scrolling browse experience.
 export default function Home() {
   const exploding = explodingRooms(6).map((room) => ({ room, match: matchById(room.matchId)! }));
   const rivals = followedTopRivals();
-  const goated = followedGoatedRivals();
+  const goated = goatedStreakRivals(6);
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
@@ -80,8 +81,9 @@ export default function Home() {
       {/* Engagement-psychology mechanism #6 (loss aversion & streaks — see
           .claude/skills/rivaly-engagement-psychology): a real hot streak
           is what makes someone worth watching or challenging right now.
-          Scoped to people you follow, same as Top Rivals above — empty
-          when nobody you follow is actually on one. */}
+          Deliberately global (unlike Top Rivals above) — "Goated" is a
+          hall-of-fame moment worth seeing whoever it belongs to. Empty
+          when nobody on the platform actually clears the streak bar. */}
       {goated.length > 0 && (
         <section className="mt-12 min-w-0">
           <h2 className="font-display text-xl font-semibold text-foreground">Goated rivals</h2>

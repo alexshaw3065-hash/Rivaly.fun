@@ -97,6 +97,13 @@ export const rooms: Room[] = [
   { id: "r29", creatorId: "u8", matchId: "m4", prediction: "Enyimba clean sheet, 1st half", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 6_000_00, participantCount: 11, resolutionSource: "Official match result", inviteCode: "RIVAL-6C15", createdAt: "2026-08-15T09:20:00Z", settledAt: "2026-08-15T19:10:00Z" },
   { id: "r30", creatorId: "u1", matchId: "m4", prediction: "Both teams to score", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 13_500_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-7B46", createdAt: "2026-08-15T08:10:00Z", settledAt: "2026-08-15T19:10:00Z" },
   { id: "r31", creatorId: "u6", matchId: "m4", prediction: "Enyimba win each half", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 21_000_00, participantCount: 20, resolutionSource: "Official match result", inviteCode: "RIVAL-8E29", createdAt: "2026-08-15T08:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  // Zainab's real 4-in-a-row (r32-r35) — she isn't in SELF_USER_ID's follow
+  // list, so this is what proves Goated Rivals is genuinely global rather
+  // than coincidentally matching the followed set above.
+  { id: "r32", creatorId: "u9", matchId: "m4", prediction: "Enyimba to lead at half time", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 9_000_00, participantCount: 13, resolutionSource: "Official match result", inviteCode: "RIVAL-9Z18", createdAt: "2026-08-15T07:40:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r33", creatorId: "u4", matchId: "m4", prediction: "Enyimba win to nil", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 24_000_00, participantCount: 21, resolutionSource: "Official match result", inviteCode: "RIVAL-1Z55", createdAt: "2026-08-15T07:55:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r34", creatorId: "u1", matchId: "m4", prediction: "Enyimba score in both halves", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 11_500_00, participantCount: 16, resolutionSource: "Official match result", inviteCode: "RIVAL-2Z83", createdAt: "2026-08-15T08:05:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r35", creatorId: "u6", matchId: "m4", prediction: "Over 2.5 goals", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 18_000_00, participantCount: 18, resolutionSource: "Official match result", inviteCode: "RIVAL-3Z67", createdAt: "2026-08-15T08:15:00Z", settledAt: "2026-08-15T19:10:00Z" },
 ];
 
 // Combo/parlay-style bundles — a curated statement of conviction across
@@ -364,6 +371,10 @@ export const entries: Entry[] = [
   { id: "e19", roomId: "r29", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T09:20:00Z", isWinner: true, payoutCents: 1_450_00 },
   { id: "e20", roomId: "r30", userId: "u9", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:10:00Z", isWinner: true, payoutCents: 1_450_00 },
   { id: "e21", roomId: "r31", userId: "u9", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:30:00Z", isWinner: true, payoutCents: 2_900_00 },
+  { id: "e22", roomId: "r32", userId: "u17", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T07:40:00Z", isWinner: true, payoutCents: 1_450_00 },
+  { id: "e23", roomId: "r33", userId: "u17", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T07:55:00Z", isWinner: true, payoutCents: 2_900_00 },
+  { id: "e24", roomId: "r34", userId: "u17", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:05:00Z", isWinner: true, payoutCents: 1_450_00 },
+  { id: "e25", roomId: "r35", userId: "u17", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:15:00Z", isWinner: true, payoutCents: 2_900_00 },
 ];
 
 export function entriesByUser(userId: string): Entry[] {
@@ -799,19 +810,20 @@ export function currentStreak(profileId: string): number {
   return streak;
 }
 
-// Home's "Goated rivals" row: people you follow who are actually on a
-// real win streak right now. Engagement-psychology mechanism #6 (loss
-// aversion & streaks — see .claude/skills/rivaly-engagement-psychology):
-// a visible hot streak is what makes someone worth watching or
-// challenging this exact moment. Real, derived from settled entries —
-// empty when nobody you follow has one, same honesty rule as every other
-// row on Home.
+// Home's "Goated rivals" row: the platform's actual hottest streaks right
+// now (3+ in a row) — deliberately global, not scoped to who you follow,
+// per founder direction ("Goated" is a hall-of-fame moment worth seeing
+// regardless of your follow list, unlike Top Rivals' in-group framing).
+// Engagement-psychology mechanism #6 (loss aversion & streaks — see
+// .claude/skills/rivaly-engagement-psychology): a visible hot streak is
+// what makes someone worth watching or challenging right now. Real,
+// derived from settled entries — empty when nobody clears the bar.
 const GOATED_STREAK_THRESHOLD = 3;
-export function followedGoatedRivals(): Profile[] {
-  const followed = new Set(followedProfileIds());
+export function goatedStreakRivals(count: number): Profile[] {
   return profiles
-    .filter((p) => followed.has(p.id) && currentStreak(p.id) >= GOATED_STREAK_THRESHOLD)
-    .sort((a, b) => currentStreak(b.id) - currentStreak(a.id));
+    .filter((p) => currentStreak(p.id) >= GOATED_STREAK_THRESHOLD)
+    .sort((a, b) => currentStreak(b.id) - currentStreak(a.id))
+    .slice(0, count);
 }
 
 export interface BalancePoint {
