@@ -237,6 +237,16 @@ html {
   }
 }
 
+/* Twitch-style live chat (ChatComposer) — the oldest visible row gets this
+   class for one beat before it's actually removed from state, so it fades
+   and drifts up rather than just vanishing. Pairs with .enter-row, which
+   already handles the opposite (a new row arriving). */
+.chat-row-exit {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 220ms ease-in, transform 220ms ease-in;
+}
+
 /* Anchored dropdown (mobile top bar's "more" menu) — unfurls from its
    trigger corner instead of sliding up as a full sheet. Same easing
    family as the sheet panel, just shorter since it travels less. */

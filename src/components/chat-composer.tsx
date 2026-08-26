@@ -4,9 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "@/lib/types";
 import { ChatMessageRow } from "./chat-message";
 
-// Optimistic-only for now — appends locally, doesn't persist. Swap for a
-// Supabase Realtime channel insert once a project is linked; the append
-// shape (ChatMessage) is already what the real insert will look like.
+// Twitch-style live chat — fast and low-permanence, reading as a live crowd
+// rather than an archive. `messages` still holds every real message (nothing
+// is silently lost), but only the newest MAX_VISIBLE render; once that cap
+// is crossed, the oldest visible row animates out to make room for the new
+// one, the same rhythm as a real chat scrolling past faster than anyone
+// reads all of it.
+//
+// Engagement-psychology mechanism #4 (collective effervescence / social
+// facilitation — see .claude/skills/rivaly-engagement-psychology): a chat
+// that visibly churns reads as "people are here right now" far more than a
+// static list. Only ever animates real messages — no simulated/auto-
+// generated chatter, per the no-fabricated-activity rule that governs every
+// build this session.
+const MAX_VISIBLE = 8;
+const EXIT_MS = 220;
+
 export function ChatComposer({
   roomId,
   initialMessages,
@@ -16,38 +29,59 @@ export function ChatComposer({
   initialMessages: ChatMessage[];
   selfUserId: string;
 }) {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState(() => initialMessages.slice(-MAX_VISIBLE));
+  const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
   const [draft, setDraft] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length]);
+    const activeTimers = timers.current;
+    return () => {
+      activeTimers.forEach((t) => clearTimeout(t));
+    };
+  }, []);
+
+  function retire(id: string) {
+    setExitingIds((prev) => new Set(prev).add(id));
+    const timer = setTimeout(() => {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+      setExitingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      timers.current.delete(id);
+    }, EXIT_MS);
+    timers.current.set(id, timer);
+  }
 
   function send() {
     const body = draft.trim();
     if (!body) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `local-${Date.now()}`,
-        roomId,
-        userId: selfUserId,
-        kind: "message",
-        body,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    const message: ChatMessage = {
+      id: `local-${Date.now()}`,
+      roomId,
+      userId: selfUserId,
+      kind: "message",
+      body,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => {
+      const updated = [...prev, message];
+      if (updated.length > MAX_VISIBLE) retire(updated[0].id);
+      return updated;
+    });
     setDraft("");
   }
 
   return (
     <div className="flex flex-col">
-      <div className="flex max-h-[420px] flex-col gap-0.5 overflow-y-auto px-1 py-2">
+      <div className="flex flex-col gap-0.5 px-1 py-2">
         {messages.map((m) => (
-          <ChatMessageRow key={m.id} message={m} />
+          <div key={m.id} className={exitingIds.has(m.id) ? "chat-row-exit" : undefined}>
+            <ChatMessageRow message={m} />
+          </div>
         ))}
-        <div ref={bottomRef} />
       </div>
       <form
         onSubmit={(e) => {
