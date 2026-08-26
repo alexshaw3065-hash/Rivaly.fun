@@ -19,13 +19,11 @@ import { RoomChatPreview } from "./room-chat-preview";
 //
 // Engagement-psychology mechanism #4 (collective effervescence / social
 // facilitation — see .claude/skills/rivaly-engagement-psychology): the
-// card's real gap wasn't data, it was people. A split % and a pool total
-// describe a market; real chat is people reacting right now, and mere
-// presence of others measurably raises engagement even before anyone
-// interacts with them. RoomChatPreview sits in the card's normal flow,
-// not overlaid on the split bar or anything else — floating it over the
-// bar was tried and didn't read as visually appealing, so this stays the
-// simple version: two lines, no box, in flow. Only ever plays real
+// card's real gap wasn't data, it was people. RoomChatPreview sits in the
+// card's normal flow, not overlaid on the split bar and not folded into
+// the footer — both were tried; overlaying covered real information, and
+// folding it into the footer's momentum stat lost the scroll motion that
+// makes it read as "people are here right now." Only ever plays real
 // messages from getRoomMessages(); most rooms don't have any yet in the
 // mock dataset, and it just doesn't render rather than showing a
 // placeholder.

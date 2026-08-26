@@ -7,23 +7,23 @@ import { useRetiringList } from "@/lib/use-retiring-list";
 import { ChatFeedRows } from "./chat-feed-rows";
 import { Avatar } from "./avatar";
 
-const VISIBLE_COUNT = 2;
+const VISIBLE_COUNT = 3;
 const CYCLE_MS = 1700;
 const EXIT_MS = 300;
 const ROW_HEIGHT = 26;
 
-// A fast, non-interactive teaser of a room's real chat — 2 real messages,
+// A fast, non-interactive teaser of a room's real chat — 3 real messages,
 // scrolling upward and fading continuously (a real Twitch/YouTube-Live
-// rhythm — needs at least 2 lines for the "push up and off" motion to
-// actually read, one line alone just pops). Sits in the card's normal
-// flow as plain text, no box — floating it over the split bar was tried
-// and wasn't visually appealing, so this is the simple version. Reuses
-// the same ChatFeedRows/useRetiringList the room page's live chat
-// (ChatComposer) uses: these messages already happened, so there's
-// nothing to poll for — this just replays a room's real history on a
-// loop instead of dumping it all at once. Only ever plays back real
-// seeded messages; nothing here is generated, and the YES/NO tag only
-// shows when a real entry backs it.
+// rhythm). Sits in the card's normal flow as plain text, no box —
+// floating it over the split bar was tried and wasn't visually
+// appealing, and folding it into the footer's momentum stat lost the
+// scroll motion, so this is the version that actually works: its own
+// lines, in flow. Reuses the same ChatFeedRows/useRetiringList the room
+// page's live chat (ChatComposer) uses: these messages already happened,
+// so there's nothing to poll for — this just replays a room's real
+// history on a loop instead of dumping it all at once. Only ever plays
+// back real seeded messages; nothing here is generated, and the YES/NO
+// tag only shows when a real entry backs it.
 export function RoomChatPreview({ roomId, messages }: { roomId: string; messages: ChatMessage[] }) {
   const pool = useMemo(
     () => messages.filter((m) => m.kind === "message" && m.userId),
