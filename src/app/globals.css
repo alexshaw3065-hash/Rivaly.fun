@@ -173,6 +173,17 @@ html {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Home's "Top rivals" row — continuous auto-scroll (founder-specified,
+   the one row in the app that moves without a swipe). The track renders
+   its content twice back to back and translates exactly -50%, so the loop
+   point is invisible. Paused on hover so a card is still easy to tap on
+   desktop; @media (prefers-reduced-motion: reduce) below already clamps
+   this like every other animation in the app. */
+@keyframes auto-scroll-row {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 .stagger-in {
   opacity: 0;
   animation: fade-in-up 400ms cubic-bezier(0.23, 1, 0.32, 1) forwards;

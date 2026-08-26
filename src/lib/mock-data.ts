@@ -738,25 +738,18 @@ export function buildArenaFeed(): ArenaFeedItem[] {
   return feed;
 }
 
-// Engagement-psychology mechanism #5 (social identity/rivalry — see
+// Home's "Top rivals" row: people you actually follow, sorted by career
+// winnings so the biggest results surface first. Engagement-psychology
+// mechanism #5 (social identity/rivalry — see
 // .claude/skills/rivaly-engagement-psychology): in-group favoritism
 // (rooting for people you actually follow) is a stronger, more consistent
-// pull than an anonymous global ranking — "Top Rivals" on Home is real
-// social proof, but it's the weaker kind. This is the same rival_activity
-// card Arena's Feed already renders, just scoped to two real conditions
-// at once: someone you actually follow, in a room that's live right now
-// — not just "any of your rivals, whenever." Empty on purpose when
-// nothing's true (no fabricated "someone's live" filler).
-export function followedLiveFeed(): ArenaFeedItem[] {
+// pull than an anonymous global ranking. Empty on purpose for accounts
+// that follow no one — no fabricated filler profiles.
+export function followedTopRivals(): Profile[] {
   const followed = new Set(followedProfileIds());
-  return entries
-    .filter((e) => e.isWinner === null && followed.has(e.userId))
-    .filter((e) => {
-      const room = roomById(e.roomId);
-      const match = room ? matchById(room.matchId) : undefined;
-      return match?.status === "live";
-    })
-    .map((e) => ({ id: `home-ra-${e.id}`, kind: "rival_activity" as const, entryId: e.id, createdAt: e.createdAt }));
+  return profiles
+    .filter((p) => followed.has(p.id))
+    .sort((a, b) => b.totalWinningsCents - a.totalWinningsCents);
 }
 
 export interface BalancePoint {
