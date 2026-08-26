@@ -58,6 +58,45 @@ Sources:
 - [Rivalry Rewires the Brain: Why Fans Lose Control in an Instant — Neuroscience News](https://neurosciencenews.com/sport-fanatic-neuroscience-29924/)
 - [The people's game: evolutionary perspectives on the behavioural neuroscience of football fandom — PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11758463/)
 
+## Viewing centers, collective effervescence, and social facilitation
+
+**Nigerian/African viewing centers**: research on collective spectatorship notes that Africans
+practice collective viewing more than people on other continents, in part because it's one of
+the only entertainment forms that unites people of different backgrounds — this is described as
+carrying real social weight, not functioning merely as a cheaper substitute for home viewing
+(though home viewing genuinely is often the more expensive option, given subscription costs).
+Bar/viewing-centre attendance is notable across markets — 38% in Mozambique, 28% in Kenya per
+GeoPoll's survey data — indicating it's a culturally embedded viewing mode, not a fringe habit.
+Centers have evolved from single-television rooms into full social hubs: fans in team colors,
+passionate banter, collectively navigating the emotional highs and lows of the match together.
+
+**Collective effervescence** (Émile Durkheim's term, still the standard reference in the
+sociology of ritual): shared participation in a ritual or gathering synchronizes and intensifies
+emotion across the group — individuals become "entrained" with one another, producing solidarity,
+a temporary loss of individual self-consciousness, and a reaffirmation of shared identity. It's
+documented across contexts from religious ritual to protests to sporting events, and is described
+as a foundational mechanism of group solidarity, not just an incidental side effect of being in a
+crowd. (It has a noted downside: the same intensified, synchronized emotion can also produce
+groupthink or hostility when directed at an out-group — relevant to keep rivalry framing
+pointed at "us," not at contempt for "them.")
+
+**Social facilitation** (Zajonc, 1965): mere presence of others reliably increases physiological
+arousal across species, independent of any direct interaction — documented effects include
+animals eating more and people laughing more at comedy when others are present versus alone.
+Applied to sport specifically, athletes have been shown to improve performance by as much as 20%
+on well-learned skills when performing in front of a crowd (arousal helps on simple/well-practiced
+tasks, but can backfire into anxiety on complex ones) — and the same arousal-from-presence effect
+plausibly intensifies the *experience of watching*, not just of performing.
+
+Sources:
+- [Why Nigeria's viewing centers are the heart of the 2026 FIFA World Cup — OkayAfrica](https://www.okayafrica.com/nigerias-viewing-centers-are-the-countrys-most-alive-social-spaces/1434018)
+- [World Cup 2026 Report: Interest, Viewership and Betting in Africa — GeoPoll](https://www.geopoll.com/blog/world-cup-2026-report-interest-viewership-and-betting-in-africa/)
+- [Comfort or Conflict?: European Football Fans in Nigerian TV Viewing Centers](https://www.globalmediajournal.com/open-access/comfort-or-conflict-investigating-the-attitude-and-experiences-of-europeanfootball-fans-in-television-viewing-centers-in-nigeria.php)
+- [Collective Effervescence: The Power of Shared Experiences — Healthline](https://www.healthline.com/health/collective-effervescence)
+- [Emotional processes, collective behavior, and social movements: a meta-analytic review — PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9473704/)
+- [Social Facilitation Theory In Psychology — Simply Psychology](https://www.simplypsychology.org/social-facilitation.html)
+- [Social facilitation and inhibition: the effects of an audience on sports performance](https://magazines.hachettelearning.com/magazine/pe-review/7/3/social-facilitation-and-inhibition/)
+
 ## Gambling psychology (studied to avoid, not copy)
 
 **Near-miss effect**: slot-machine outcomes are deliberately over-represented for "near-miss"

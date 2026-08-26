@@ -55,7 +55,37 @@ moments — a big win, a room settling in your favor, a milestone. Save the ceil
 celebratory animation fires on routine actions, the big one stops registering as big — habituation
 is fast and permanent once it sets in.
 
-## 4. Social identity and rivalry — the strongest lever available here
+## 4. Viewing centers, collective effervescence, and social facilitation
+
+Nigerian and African football viewing centers aren't a budget substitute for home viewing —
+research on collective spectatorship describes them as some of the continent's most alive social
+spaces specifically *because* the viewing is collective, uniting people across backgrounds in a
+way privatized subscription viewing doesn't. They've evolved from single-TV rooms into full
+social hubs: team colors, banter, and the emotional highs and lows navigated together, not
+alone. (The economics reinforce it too — home viewing is often the more expensive option, so
+communal viewing is both the more social *and* the more accessible choice.)
+
+Two named mechanisms explain why this works, not just that it does:
+
+- **Collective effervescence** (Durkheim): shared ritual participation synchronizes and
+  intensifies emotion across a group — people become "entrained" with each other, producing
+  solidarity, a loss of individual self-consciousness, and reaffirmed group identity. This is
+  the actual mechanism a viewing center runs on, and it's also what a concert, a protest, or a
+  stadium runs on.
+- **Social facilitation** (Zajonc): mere presence of others measurably raises arousal, even with
+  no direct interaction — people laugh more at comedy and eat more with others present than
+  alone. Applied to sports: the same goal watched in a full room registers as more intense than
+  the identical goal watched solo, independent of anything the room says to you.
+
+**Where this lives in Rivaly**: this is the direct research backing for "Rivaly should feel like
+a digital viewing center." A room's live chat during a match isn't a feature bolted onto a
+prediction — per social facilitation, the mere presence of other people reacting in real time
+intensifies the emotional experience of the match itself, before anyone types a word. Collective
+effervescence is the case for making a room's chat feel synchronous and alive during live play
+specifically (not just a comment thread) — the entrainment effect needs real-time shared focus
+to fire, not an asynchronous feed.
+
+## 5. Social identity and rivalry — the strongest lever available here
 
 People categorize into in-groups and out-groups as a core part of self-esteem and belonging.
 Across the sports-fandom research, **in-group favoritism (rooting for your own side) is a
@@ -69,7 +99,7 @@ lever the psychology research identifies.
 "your circle" framing over anonymous global stats. Global leaderboards still matter, but named
 rivalry is the stronger pull.
 
-## 5. Loss aversion and streaks
+## 6. Loss aversion and streaks
 
 Duolingo's data: users who reach a 7-day streak are ~3.6x more likely to finish their course,
 and 7+ day streaks correlate with ~2.4x higher next-day return rate. Loss aversion — losing
@@ -83,7 +113,7 @@ flip the mechanic from momentum into shame.
 foundation. Escrowed/pending balance framing ("money at play") is the same loss-aversion lever
 applied to stakes instead of days.
 
-## 6. Investment — the fourth Hook Model stage
+## 7. Investment — the fourth Hook Model stage
 
 The classic habit loop (trigger → action → variable reward → investment) closes with investment:
 the more a user puts into a product — history, progress, reputation — the more reason they have
@@ -95,7 +125,7 @@ achievement progress, a Rivaly Score are all investment mechanics already in the
 an accuracy trend line, a head-to-head record against a specific rival, a growing badge
 collection. The stronger the sense that "I've built something here," the harder it is to leave.
 
-## 7. Near-miss and sunk-cost — gambling's two sharpest tools
+## 8. Near-miss and sunk-cost — gambling's two sharpest tools
 
 **Near-miss**: slot machines are tuned to produce "almost won" outcomes far more often than
 random chance would, because a near-miss activates the same reward-processing region (ventral
@@ -106,7 +136,7 @@ accelerating the loss. Both are the two most potent, most studied compulsion mec
 existence — worth knowing in full, because they show up everywhere for anywhere close cost/win
 framing exists in a product, not only in literal gambling.
 
-## 8. Cognitive biases in the toolkit
+## 9. Cognitive biases in the toolkit
 
 - **Social proof** — strongest when it comes from someone *similar* to the viewer, specific and
   recent, not a large anonymous aggregate.
@@ -118,7 +148,7 @@ framing exists in a product, not only in literal gambling.
 - **Scarcity** — perceived limitation raises perceived value on its own, independent of whether
   the underlying thing is actually scarce.
 
-## 9. SportyBet — the actual growth story
+## 10. SportyBet — the actual growth story
 
 Documented growth drivers: mobile-first design built specifically for African connectivity and
 device constraints (not a translated European product), low minimum stakes matched to the real
