@@ -10,6 +10,7 @@ import {
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
+import { ShareButton } from "./share-button";
 import { RoomChatPreview } from "./room-chat-preview";
 import { RivalsInRoom } from "./rivals-in-room";
 
@@ -29,10 +30,11 @@ import { RivalsInRoom } from "./rivals-in-room";
 // mock dataset, and it just doesn't render rather than showing a
 // placeholder.
 //
-// BookmarkButton moved up into the header row (next to LIVE/countdown) so
-// the footer's freed-up space could fit RivalsInRoom — an avatar stack +
-// count in the same visual language as Home's OnlineRivalsBadge — without
-// adding a new row or lengthening the card.
+// Bookmark + Share sit on the very top row, next to the self-colored
+// signature rule, rather than crowding the competition/LIVE row below —
+// so the footer's freed-up space could fit RivalsInRoom — an avatar
+// stack + count in the same visual language as Home's OnlineRivalsBadge —
+// without adding a new row or lengthening the card.
 export function ExplodingRoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const momentum = momentumCount(room);
@@ -44,24 +46,27 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
       href={`/rooms/${room.id}`}
       className="flex h-full flex-col gap-4 rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
     >
-      <span className="block h-[3px] w-9 rounded-full" style={{ background: "var(--rival-blue)" }} />
+      <div className="flex items-center justify-between">
+        <span className="block h-[3px] w-9 rounded-full" style={{ background: "var(--rival-blue)" }} />
+        <div className="flex items-center gap-3">
+          <ShareButton path={`/rooms/${room.id}`} label="room" />
+          <BookmarkButton id={room.id} label="room" />
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
           {match.competition}
         </span>
-        <div className="flex items-center gap-2.5">
-          {match.status === "live" ? (
-            <LiveBadge />
-          ) : countdown ? (
-            <span className="font-mono text-[11px] font-medium text-rival-blue">{countdown}</span>
-          ) : (
-            <span className="font-mono text-[11px] text-muted">
-              {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
-            </span>
-          )}
-          <BookmarkButton id={room.id} label="room" />
-        </div>
+        {match.status === "live" ? (
+          <LiveBadge />
+        ) : countdown ? (
+          <span className="font-mono text-[11px] font-medium text-rival-blue">{countdown}</span>
+        ) : (
+          <span className="font-mono text-[11px] text-muted">
+            {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
+          </span>
+        )}
       </div>
 
       <p className="font-display text-xl font-semibold leading-snug text-foreground">
