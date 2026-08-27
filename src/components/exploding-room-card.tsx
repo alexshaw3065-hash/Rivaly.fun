@@ -11,6 +11,7 @@ import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
 import { RoomChatPreview } from "./room-chat-preview";
+import { RivalsInRoom } from "./rivals-in-room";
 
 // The page's one signature artifact (see anti-slop-design-law.md) — not
 // just a bigger RoomCard. The self-colored top rule + momentum stat are
@@ -27,6 +28,11 @@ import { RoomChatPreview } from "./room-chat-preview";
 // messages from getRoomMessages(); most rooms don't have any yet in the
 // mock dataset, and it just doesn't render rather than showing a
 // placeholder.
+//
+// BookmarkButton moved up into the header row (next to LIVE/countdown) so
+// the footer's freed-up space could fit RivalsInRoom — an avatar stack +
+// count in the same visual language as Home's OnlineRivalsBadge — without
+// adding a new row or lengthening the card.
 export function ExplodingRoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const momentum = momentumCount(room);
@@ -44,15 +50,18 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
         <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
           {match.competition}
         </span>
-        {match.status === "live" ? (
-          <LiveBadge />
-        ) : countdown ? (
-          <span className="font-mono text-[11px] font-medium text-rival-blue">{countdown}</span>
-        ) : (
-          <span className="font-mono text-[11px] text-muted">
-            {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
-          </span>
-        )}
+        <div className="flex items-center gap-2.5">
+          {match.status === "live" ? (
+            <LiveBadge />
+          ) : countdown ? (
+            <span className="font-mono text-[11px] font-medium text-rival-blue">{countdown}</span>
+          ) : (
+            <span className="font-mono text-[11px] text-muted">
+              {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
+            </span>
+          )}
+          <BookmarkButton id={room.id} label="room" />
+        </div>
       </div>
 
       <p className="font-display text-xl font-semibold leading-snug text-foreground">
@@ -63,11 +72,11 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
 
       <RoomChatPreview roomId={room.id} messages={messages} />
 
-      <div className="flex items-center justify-between border-t border-border pt-3.5 font-mono text-xs text-muted">
-        <span>{formatMoney(room.poolTotalCents)} pool</span>
-        <div className="flex items-center gap-3">
-          <span className="text-rival-green">+{momentum} this hour</span>
-          <BookmarkButton id={room.id} label="room" />
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-3.5 font-mono text-xs text-muted">
+        <span className="shrink-0">{formatMoney(room.poolTotalCents)} pool</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-rival-green">+{momentum}/hr</span>
+          <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
         </div>
       </div>
     </Link>

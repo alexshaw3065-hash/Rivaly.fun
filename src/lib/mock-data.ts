@@ -390,10 +390,23 @@ export const entries: Entry[] = [
   { id: "e23", roomId: "r33", userId: "u17", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T07:55:00Z", isWinner: true, payoutCents: 2_900_00 },
   { id: "e24", roomId: "r34", userId: "u17", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:05:00Z", isWinner: true, payoutCents: 1_450_00 },
   { id: "e25", roomId: "r35", userId: "u17", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:15:00Z", isWinner: true, payoutCents: 2_900_00 },
+  // Real entries for the room's own chatters (r15's James/Daniel/Ada, r6's
+  // Sarah/Chioma already talk there — see roomMessages above) so
+  // RivalsInRoom's avatar stack (exploding-room-card.tsx) has real faces
+  // to show on the rooms that actually make Exploding Now's top 6.
+  { id: "e26", roomId: "r15", userId: "u4", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T18:19:00Z", isWinner: null, payoutCents: null },
+  { id: "e27", roomId: "r15", userId: "u1", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T18:21:00Z", isWinner: null, payoutCents: null },
+  { id: "e28", roomId: "r15", userId: "u9", side: "no", amountCents: 500_00, createdAt: "2026-08-15T18:23:00Z", isWinner: null, payoutCents: null },
+  { id: "e29", roomId: "r6", userId: "u5", side: "no", amountCents: 1_500_00, createdAt: "2026-08-15T18:41:00Z", isWinner: null, payoutCents: null },
+  { id: "e30", roomId: "r6", userId: "u7", side: "no", amountCents: 1_500_00, createdAt: "2026-08-15T18:39:00Z", isWinner: null, payoutCents: null },
 ];
 
 export function entriesByUser(userId: string): Entry[] {
   return entries.filter((e) => e.userId === userId);
+}
+
+export function entriesByRoom(roomId: string): Entry[] {
+  return entries.filter((e) => e.roomId === roomId);
 }
 
 // Which side a chat author actually predicted in this room, if they have
