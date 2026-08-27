@@ -21,6 +21,12 @@ export function useRetiringList<T extends { id: string }>(capacity: number, init
 
   function push(item: T, retireMs: number) {
     setItems((prev) => {
+      // Guards against a real race: if a tick gets delayed (e.g. a
+      // backgrounded browser tab throttles setInterval, then fires a
+      // catch-up burst on refocus), the cycling cursor can wrap back
+      // around to an id that's still mid-retirement in `prev` — pushing
+      // it again would render two rows with the same key.
+      if (prev.some((p) => p.id === item.id)) return prev;
       const updated = [...prev, item];
       if (updated.length > capacity) {
         const retiring = updated[0];
