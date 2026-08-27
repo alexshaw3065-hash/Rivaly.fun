@@ -35,6 +35,20 @@ import { RivalsInRoom } from "./rivals-in-room";
 // so the footer's freed-up space could fit RivalsInRoom — an avatar
 // stack + count in the same visual language as Home's OnlineRivalsBadge —
 // without adding a new row or lengthening the card.
+//
+// EXPERIMENT: stadium-photo background (public/stadium-test.jpg) — one
+// placeholder image applied to every card just to test the visual
+// treatment, not yet the real per-match venue photo. Full saturation, no
+// dimming filter — engagement-psychology mechanism #4 (collective
+// effervescence/social facilitation, viewing centers — see
+// .claude/skills/rivaly-engagement-psychology) and the founder's own
+// "explosive, digital viewing center" framing both call for the crowd's
+// actual energy staying visible, not muted down to "safe." Legibility
+// comes entirely from the gradient scrim, which is deliberately uneven —
+// darkest at the top (small muted header text) and bottom (footer/chat),
+// lightest through the middle where the headline/split-bar sit (bold
+// white text + a saturated color bar already have enough native contrast
+// to hold up against a brighter background).
 export function ExplodingRoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const momentum = momentumCount(room);
@@ -44,44 +58,58 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
   return (
     <Link
       href={`/rooms/${room.id}`}
-      className="flex h-full flex-col gap-4 rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
+      className="relative flex h-full flex-col overflow-hidden rounded-xl border border-border-strong transition-transform duration-150 ease-out active:scale-[0.98]"
     >
-      <div className="flex items-center justify-between">
-        <span className="block h-[3px] w-9 rounded-full" style={{ background: "var(--rival-blue)" }} />
-        <div className="flex items-center gap-3">
-          <ShareButton path={`/rooms/${room.id}`} label="room" />
-          <BookmarkButton id={room.id} label="room" />
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/stadium-test.jpg)", filter: "blur(8px)", transform: "scale(1.1)" }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(6,6,8,0.65) 0%, rgba(6,6,8,0.4) 22%, rgba(6,6,8,0.35) 55%, rgba(6,6,8,0.55) 78%, rgba(6,6,8,0.85) 100%)",
+        }}
+      />
+
+      <div className="relative flex h-full flex-col gap-4 p-5">
+        <div className="flex items-center justify-between">
+          <span className="block h-[3px] w-9 rounded-full" style={{ background: "var(--rival-blue)" }} />
+          <div className="flex items-center gap-3">
+            <ShareButton path={`/rooms/${room.id}`} label="room" />
+            <BookmarkButton id={room.id} label="room" />
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
-          {match.competition}
-        </span>
-        {match.status === "live" ? (
-          <LiveBadge />
-        ) : countdown ? (
-          <span className="font-mono text-[11px] font-medium text-rival-blue">{countdown}</span>
-        ) : (
-          <span className="font-mono text-[11px] text-muted">
-            {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
+            {match.competition}
           </span>
-        )}
-      </div>
+          {match.status === "live" ? (
+            <LiveBadge />
+          ) : countdown ? (
+            <span className="font-mono text-[11px] font-medium text-rival-blue">{countdown}</span>
+          ) : (
+            <span className="font-mono text-[11px] text-muted">
+              {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
+            </span>
+          )}
+        </div>
 
-      <p className="font-display text-xl font-semibold leading-snug text-foreground">
-        {room.prediction}
-      </p>
+        <p className="font-display text-xl font-semibold leading-snug text-foreground">
+          {room.prediction}
+        </p>
 
-      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
+        <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
 
-      <RoomChatPreview roomId={room.id} messages={messages} />
+        <RoomChatPreview roomId={room.id} messages={messages} />
 
-      <div className="flex items-center justify-between gap-3 border-t border-border pt-3.5 font-mono text-xs text-muted">
-        <span className="shrink-0">{formatMoney(room.poolTotalCents)} pool</span>
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="shrink-0 text-rival-green">+{momentum}/hr</span>
-          <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3.5 font-mono text-xs text-muted">
+          <span className="shrink-0">{formatMoney(room.poolTotalCents)} pool</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="shrink-0 text-rival-green">+{momentum}/hr</span>
+            <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
+          </div>
         </div>
       </div>
     </Link>
