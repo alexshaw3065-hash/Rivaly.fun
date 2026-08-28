@@ -248,7 +248,7 @@ export function RoomFeed({
                   : undefined
               }
             >
-              <RoomCard room={room} match={match} payoutVariant={i % 2 === 0 ? "subtle" : "bold"} />
+              <RoomCard room={room} match={match} />
             </div>
           </div>
         ))}

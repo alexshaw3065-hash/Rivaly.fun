@@ -6,28 +6,33 @@ import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
 import { ShareButton } from "./share-button";
 
-// A/B experiment (temporary — see the founder's ask): two visual weights
-// for the "if this side wins" payout preview under the bar, so real cards
-// side by side settle which reads better rather than guessing. "subtle"
-// keeps it a quiet secondary detail; "bold" makes it a real selling
-// point, colored to match each side of the bar above it. Once one wins,
-// collapse back to a single unconditional style and drop this prop.
-export type PayoutVariant = "subtle" | "bold";
+// "If this side wins" payout preview, boxed per side (per founder
+// reference) — real pari-mutuel math off the same split shown on the bar
+// above (see estimatedPayoutPerNaira in mock-data.ts), not an invented
+// number or an odds table. The target amount is green on BOTH sides
+// deliberately: green here means "this is what you'd win," the same
+// meaning regardless of which side it's on, not "this side is the good
+// one" — keeping the bar's own blue-vs-red framing (opposing sides, no
+// implied winner) intact. Each box's border still echoes its side's bar
+// color so the two rows visually line up.
+function PayoutPreviewBox({ borderColor, target }: { borderColor: string; target: number }) {
+  return (
+    <div
+      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2"
+      style={{ borderColor, background: `color-mix(in srgb, ${borderColor} 10%, transparent)` }}
+    >
+      <span className="font-mono text-xs text-muted">₦1</span>
+      <span className="text-muted">→</span>
+      <span className="font-mono text-base font-bold text-rival-green">₦{target.toFixed(2)}</span>
+    </div>
+  );
+}
 
-export function RoomCard({
-  room,
-  match,
-  payoutVariant = "subtle",
-}: {
-  room: Room;
-  match: Match;
-  payoutVariant?: PayoutVariant;
-}) {
+export function RoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const rightPct = 100 - leftPct;
   const yesReturn = estimatedPayoutPerNaira(leftPct);
   const noReturn = estimatedPayoutPerNaira(rightPct);
-  const bold = payoutVariant === "bold";
 
   return (
     <Link
@@ -52,19 +57,9 @@ export function RoomCard({
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
 
-      {/* "If this side wins" payout preview — real pari-mutuel math off the
-          same split shown above, not an odds table: no bare multiplier,
-          just what a real ₦1 stake would come back as. See
-          estimatedPayoutPerNaira in mock-data.ts. */}
-      <div
-        className={`flex items-center justify-between font-mono ${bold ? "text-xs font-semibold" : "text-[10px] text-muted"}`}
-      >
-        <span style={bold ? { color: "var(--rival-blue)" } : undefined}>
-          ₦1 → ₦{yesReturn.toFixed(2)} if Yes
-        </span>
-        <span style={bold ? { color: "var(--danger-red)" } : undefined}>
-          ₦1 → ₦{noReturn.toFixed(2)} if No
-        </span>
+      <div className="flex items-center gap-2">
+        <PayoutPreviewBox borderColor="var(--rival-blue)" target={yesReturn} />
+        <PayoutPreviewBox borderColor="var(--danger-red)" target={noReturn} />
       </div>
 
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">

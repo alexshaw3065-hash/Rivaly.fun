@@ -99,6 +99,13 @@ Two references govern execution quality on top of the Design Principles above �
 - [docs/design-references/anti-slop-design-law.md](docs/design-references/anti-slop-design-law.md) — the pols.dev anti-slop law. A long, specific catalog of generic-AI-design tells (glowy gradient pills, random floating cards, blue-purple gradients, pulsing glow dots, the default SaaS section stack, and dozens more) and what premium execution looks like instead. Treat it as a design-quality lens, not a literal checklist to run top to bottom — the point is making a real creative decision, not just avoiding every listed pattern.
 - [docs/design-references/rivaly-redesign-brief.md](docs/design-references/rivaly-redesign-brief.md) — the founder's design-direction brief: visual language (premium/editorial/restrained), the "show, don't explain" rule (a real prediction card beats a paragraph every time), and a reference landing-page narrative structure. Where its specific structure (e.g. a multi-section scroll) conflicts with a settled product decision (e.g. the waitlist's single-viewport layout), the settled decision wins — this is direction, not a literal template.
 
+## Skills to Always Use
+
+Two Claude Code skills apply to nearly everything built in this repo — invoke both whenever the work is UI-facing or touches retention/engagement mechanics, not just when it happens to come up:
+
+- **`anti-slop-design`** — the catalog of generic-AI-design tells to avoid (gradients, glows, hero-stack templates, and dozens more) and what premium execution looks like instead. Run it before *and* after any UI/frontend work, not just at the start.
+- **`rivaly-engagement-psychology`** ([.claude/skills/rivaly-engagement-psychology/](.claude/skills/rivaly-engagement-psychology/)) — the 10 numbered engagement/retention mechanisms this product draws on (variable-ratio reinforcement, anticipation, social identity/rivalry, loss aversion & streaks, investment, and more). Any build that touches retention, urgency, rewards, or emotional pacing should name which mechanism (if any) it's using — a standing house rule, not optional flavor text.
+
 ## Tech Stack
 
 - **App:** Next.js (App Router, TypeScript, Tailwind v4), dark-first theme with a light/dark switch (dark is the default and the no-JS fallback; light is an explicit opt-in via `ThemeToggle` in `Nav`). Deployed on Vercel.
