@@ -8,13 +8,14 @@ import { ChatFeedRows } from "./chat-feed-rows";
 import { Avatar } from "./avatar";
 
 const VISIBLE_COUNT = 3;
-const CYCLE_MS = 1700;
-const EXIT_MS = 300;
+const CYCLE_MS = 3200;
+const EXIT_MS = 400;
 const ROW_HEIGHT = 26;
 
-// A fast, non-interactive teaser of a room's real chat — 3 real messages,
+// A non-interactive teaser of a room's real chat — 3 real messages,
 // scrolling upward and fading continuously (a real Twitch/YouTube-Live
-// rhythm). Sits in the card's normal flow as plain text, no box —
+// rhythm, paced slow enough to actually read each line, not just glimpse
+// it). Sits in the card's normal flow as plain text, no box —
 // floating it over the split bar was tried and wasn't visually
 // appealing, and folding it into the footer's momentum stat lost the
 // scroll motion, so this is the version that actually works: its own

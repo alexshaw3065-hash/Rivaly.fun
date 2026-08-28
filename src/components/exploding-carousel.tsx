@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Match, Room } from "@/lib/types";
 import { ExplodingRoomCard } from "./exploding-room-card";
 
-const AUTO_ADVANCE_MS = 5000;
+const AUTO_ADVANCE_MS = 8000;
 const SWIPE_THRESHOLD = 50;
 
 // One card at a time, swipe to move, auto-advances on a timer — pauses
