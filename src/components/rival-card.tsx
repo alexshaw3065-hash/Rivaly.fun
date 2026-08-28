@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
-import { entriesByUser, currentStreak, formatMoney } from "@/lib/mock-data";
+import { currentStreak, formatSignedMoney, formatMoney } from "@/lib/mock-data";
 import { Avatar } from "./avatar";
 
-// Career winnings + room-entry count for a rival you follow. First of the
+// Career winnings for a rival you follow — avatar, name, amount, same
+// compact three-line shape as GoatedRivalCard/HallOfFameCard below it in
+// the row, so all three groups sit at one consistent height. First of the
 // three groups in Home's single "Top rivals" scroll row (Top Rivals ->
 // Goated Rivals -> Hall of Fame, see src/app/page.tsx) — the only one
 // scoped to people you actually follow rather than an anonymous global
@@ -12,8 +14,6 @@ import { Avatar } from "./avatar";
 // favoritism is a stronger, more consistent pull than "here are the best
 // 5 strangers."
 export function RivalCard({ profile }: { profile: Profile }) {
-  const entryCount = entriesByUser(profile.id).length;
-
   return (
     <Link
       href={`/profile/${profile.username}`}
@@ -22,10 +22,7 @@ export function RivalCard({ profile }: { profile: Profile }) {
       <Avatar name={profile.displayName} size={40} />
       <p className="mt-1 w-full truncate text-sm font-medium text-foreground">{profile.displayName}</p>
       <p className="font-mono text-sm font-semibold text-rival-green">
-        {formatMoney(profile.totalWinningsCents)}
-      </p>
-      <p className="text-[11px] text-muted">
-        {entryCount} {entryCount === 1 ? "room" : "rooms"} entered
+        {formatSignedMoney(profile.totalWinningsCents)}
       </p>
     </Link>
   );
