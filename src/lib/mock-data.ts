@@ -463,6 +463,18 @@ export function splitPct(room: Room): number {
   return 50 + (seed % 30);
 }
 
+// Estimated payout per ₦1 staked on a side, given that side's real share of
+// the pool — the exact same split already shown on the bar (splitPct
+// above), just reframed. Pari-mutuel math (poolTotal / sideStake): verified
+// against the mock dataset's own real settled payoutCents (e.g. entries
+// e10/e11/e12 on r4 all land on exactly this ratio regardless of stake
+// size), so this isn't a new number, it's the same one the app's real
+// settlement data already implies — just surfaced before settlement, as a
+// live estimate ("if this side wins right now"), not a guarantee.
+export function estimatedPayoutPerNaira(sidePct: number): number {
+  return 100 / sidePct;
+}
+
 // "Rivals joined in the last hour" — what makes a room feel like it's
 // exploding right now rather than just popular. Deterministic per room id.
 export function momentumCount(room: Room): number {
