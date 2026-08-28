@@ -17,7 +17,15 @@ import type { Match, Room } from "@/lib/types";
 // call" is Rivaly's answer to Polymarket's "Competitive": the rooms where
 // the Yes/No split is nearest 50/50 — the ones that best embody "who
 // thinks differently than you," not just a copy of a finance concept.
-export type FilterTab = "trending" | "new" | "live" | "closing" | "pools" | "close-call" | "personal";
+export type FilterTab =
+  | "trending"
+  | "new"
+  | "live"
+  | "closing"
+  | "pools"
+  | "close-call"
+  | "personal"
+  | "most-rivals";
 
 export const filters: { id: FilterTab; label: string }[] = [
   { id: "trending", label: "Trending" },
@@ -60,6 +68,8 @@ function applyFilter(tab: FilterTab): Room[] {
       return [...openRooms].sort(
         (a, b) => Math.abs(splitPct(a) - 50) - Math.abs(splitPct(b) - 50),
       );
+    case "most-rivals":
+      return [...openRooms].sort((a, b) => b.participantCount - a.participantCount);
     default:
       return openRooms;
   }
@@ -101,6 +111,11 @@ function buildRows(items: Room[]): FeedRow[] {
 // style pill + dropdown, which needs `hideChips` too, since it replaces
 // this row entirely instead of sitting next to it). Every other caller
 // (Search, Home) keeps the plain uncontrolled chip row, untouched.
+//
+// `tabs` overrides which chips render (and in what order) without
+// touching the shared `filters` constant every other caller still uses —
+// Home passes its own 5-chip set (see rooms-matches-browser.tsx); Search
+// and everyone else omit it and get the full default list.
 export function RoomFeed({
   extraFilter,
   chipRowEnd,
@@ -108,6 +123,7 @@ export function RoomFeed({
   tab: controlledTab,
   onTabChange,
   hideChips = false,
+  tabs = filters,
 }: {
   extraFilter?: (room: Room) => boolean;
   chipRowEnd?: ReactNode;
@@ -115,6 +131,7 @@ export function RoomFeed({
   tab?: FilterTab;
   onTabChange?: (tab: FilterTab) => void;
   hideChips?: boolean;
+  tabs?: { id: FilterTab; label: string }[];
 }) {
   const [internalTab, setInternalTab] = useState<FilterTab>(initialTab);
   const tab = controlledTab ?? internalTab;
@@ -171,7 +188,7 @@ export function RoomFeed({
       {!hideChips && (
         <div className="flex items-center gap-3">
           <div className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
-            {filters.map((f) => (
+            {tabs.map((f) => (
               <button
                 key={f.id}
                 onClick={() => setTab(f.id)}
@@ -179,7 +196,7 @@ export function RoomFeed({
                 style={{
                   borderColor: tab === f.id ? "var(--foreground)" : "var(--border)",
                   color: tab === f.id ? "var(--foreground)" : "var(--muted)",
-                  background: tab === f.id ? "var(--surface-elevated)" : "transparent",
+                  background: tab === f.id ? "var(--border-strong)" : "transparent",
                   transition:
                     "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
                 }}

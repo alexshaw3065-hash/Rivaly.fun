@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { matches, matchById, leagues, packs } from "@/lib/mock-data";
-import { RoomFeed } from "./room-feed";
+import { RoomFeed, type FilterTab } from "./room-feed";
 import { MatchChip } from "./match-chip";
 import { PackCard } from "./pack-card";
 import { BottomSheet } from "./bottom-sheet";
@@ -20,6 +20,20 @@ import type { Room, Match, Pack } from "@/lib/types";
 // else); specific leagues toggle independently and combine with each
 // other — an empty array means "All leagues."
 type Tab = "rooms" | "matches" | "packs";
+
+// Home's own filter-chip set — per founder direction, Home shows a
+// shorter, differently-ordered row than Search's full 7-tab default
+// (see `filters` in room-feed.tsx), with "Live" deliberately the 3rd of
+// 5 (dead center) and "Most rivals" (sort by real participantCount) new
+// to this row specifically. Passed via RoomFeed's `tabs` prop, which
+// this component alone uses — nowhere else is affected.
+const HOME_FILTERS: { id: FilterTab; label: string }[] = [
+  { id: "trending", label: "Trending" },
+  { id: "new", label: "New" },
+  { id: "live", label: "Live" },
+  { id: "most-rivals", label: "Most rivals" },
+  { id: "closing", label: "Closing soon" },
+];
 
 function iconButtonColor(active: boolean) {
   return active ? "var(--rival-blue)" : "var(--muted)";
@@ -171,7 +185,7 @@ export function RoomsMatchesBrowser({
 
       {tab === "rooms" ? (
         <div className="mt-10">
-          <RoomFeed extraFilter={roomMatchesLeagues} />
+          <RoomFeed extraFilter={roomMatchesLeagues} tabs={HOME_FILTERS} initialTab="trending" />
         </div>
       ) : tab === "matches" ? (
         <div className="mt-10">
