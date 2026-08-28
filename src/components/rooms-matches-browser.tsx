@@ -185,7 +185,12 @@ export function RoomsMatchesBrowser({
 
       {tab === "rooms" ? (
         <div className="mt-10">
-          <RoomFeed extraFilter={roomMatchesLeagues} tabs={HOME_FILTERS} initialTab="trending" />
+          <RoomFeed
+            extraFilter={roomMatchesLeagues}
+            tabs={HOME_FILTERS}
+            initialTab="trending"
+            activeChipBg="var(--border-strong)"
+          />
         </div>
       ) : tab === "matches" ? (
         <div className="mt-10">

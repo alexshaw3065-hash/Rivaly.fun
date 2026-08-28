@@ -115,7 +115,12 @@ function buildRows(items: Room[]): FeedRow[] {
 // `tabs` overrides which chips render (and in what order) without
 // touching the shared `filters` constant every other caller still uses —
 // Home passes its own 5-chip set (see rooms-matches-browser.tsx); Search
-// and everyone else omit it and get the full default list.
+// and everyone else omit it and get the full default list. `activeChipBg`
+// is the same idea for styling: defaults to the original subtle
+// --surface-elevated fill everywhere, so Home can opt into a stronger
+// --border-strong fill without that bleeding into Search's identical
+// chip row (a real bug caught after shipping — the color lived in this
+// shared component with no per-caller gate the first time).
 export function RoomFeed({
   extraFilter,
   chipRowEnd,
@@ -124,6 +129,7 @@ export function RoomFeed({
   onTabChange,
   hideChips = false,
   tabs = filters,
+  activeChipBg = "var(--surface-elevated)",
 }: {
   extraFilter?: (room: Room) => boolean;
   chipRowEnd?: ReactNode;
@@ -132,6 +138,7 @@ export function RoomFeed({
   onTabChange?: (tab: FilterTab) => void;
   hideChips?: boolean;
   tabs?: { id: FilterTab; label: string }[];
+  activeChipBg?: string;
 }) {
   const [internalTab, setInternalTab] = useState<FilterTab>(initialTab);
   const tab = controlledTab ?? internalTab;
@@ -196,7 +203,7 @@ export function RoomFeed({
                 style={{
                   borderColor: tab === f.id ? "var(--foreground)" : "var(--border)",
                   color: tab === f.id ? "var(--foreground)" : "var(--muted)",
-                  background: tab === f.id ? "var(--border-strong)" : "transparent",
+                  background: tab === f.id ? activeChipBg : "transparent",
                   transition:
                     "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
                 }}
