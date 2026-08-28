@@ -120,7 +120,13 @@ function buildRows(items: Room[]): FeedRow[] {
 // --surface-elevated fill everywhere, so Home can opt into a stronger
 // --border-strong fill without that bleeding into Search's identical
 // chip row (a real bug caught after shipping — the color lived in this
-// shared component with no per-caller gate the first time).
+// shared component with no per-caller gate the first time). `highlightTabId`
+// is a third per-caller opt-in: that one chip gets a permanent red-tinted
+// treatment (same --danger-red LiveBadge already uses elsewhere) whether
+// or not it's the selected tab — Home uses this to make "Live" stand out
+// from the rest of its row at a glance, since a live match is the most
+// urgent thing on the page. Undefined (the default) means no chip gets
+// this, so Search/Rooms are unaffected unless a caller explicitly opts in.
 export function RoomFeed({
   extraFilter,
   chipRowEnd,
@@ -130,6 +136,7 @@ export function RoomFeed({
   hideChips = false,
   tabs = filters,
   activeChipBg = "var(--surface-elevated)",
+  highlightTabId,
 }: {
   extraFilter?: (room: Room) => boolean;
   chipRowEnd?: ReactNode;
@@ -139,6 +146,7 @@ export function RoomFeed({
   hideChips?: boolean;
   tabs?: { id: FilterTab; label: string }[];
   activeChipBg?: string;
+  highlightTabId?: FilterTab;
 }) {
   const [internalTab, setInternalTab] = useState<FilterTab>(initialTab);
   const tab = controlledTab ?? internalTab;
@@ -195,22 +203,30 @@ export function RoomFeed({
       {!hideChips && (
         <div className="flex items-center gap-3">
           <div className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
-            {tabs.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setTab(f.id)}
-                className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
-                style={{
-                  borderColor: tab === f.id ? "var(--foreground)" : "var(--border)",
-                  color: tab === f.id ? "var(--foreground)" : "var(--muted)",
-                  background: tab === f.id ? activeChipBg : "transparent",
-                  transition:
-                    "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
+            {tabs.map((f) => {
+              const selected = tab === f.id;
+              const highlighted = f.id === highlightTabId;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setTab(f.id)}
+                  className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
+                  style={{
+                    borderColor: selected ? "var(--foreground)" : highlighted ? "var(--danger-red)" : "var(--border)",
+                    color: selected ? "var(--foreground)" : highlighted ? "var(--danger-red)" : "var(--muted)",
+                    background: selected
+                      ? activeChipBg
+                      : highlighted
+                        ? "color-mix(in srgb, var(--danger-red) 15%, transparent)"
+                        : "transparent",
+                    transition:
+                      "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
+                  }}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
           {chipRowEnd}
         </div>

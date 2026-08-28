@@ -190,6 +190,7 @@ export function RoomsMatchesBrowser({
             tabs={HOME_FILTERS}
             initialTab="trending"
             activeChipBg="var(--border-strong)"
+            highlightTabId="live"
           />
         </div>
       ) : tab === "matches" ? (
