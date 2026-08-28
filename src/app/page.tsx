@@ -8,7 +8,6 @@ import { RivalCard, GoatedRivalCard, HallOfFameCard } from "@/components/rival-c
 import { RivalDivider } from "@/components/rival-divider";
 import { AutoScrollRow } from "@/components/auto-scroll-row";
 import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
-import { OnlineRivalsBadge } from "@/components/online-rivals-badge";
 import { explodingRooms, matchById, followedTopRivals, goatedStreakRivals, goatedRivals } from "@/lib/mock-data";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
@@ -39,18 +38,6 @@ export default function Home() {
           (nav.tsx/desktop-header.tsx); this is the mobile-only shortcut. */}
       <div className="md:hidden">
         <SearchBarLink />
-      </div>
-
-      {/* Engagement-psychology mechanism #4 (social facilitation — see
-          .claude/skills/rivaly-engagement-psychology): mere presence of
-          other real people measurably raises engagement before anyone
-          interacts. Home had zero ambient-presence signal even though
-          Arena already built one — this is the same real, honest count
-          (OnlineRivalsBadge), just surfaced on the page most people land
-          on first. Its own line, not crammed into the header row, so it
-          stays the quiet ambient pulse it's designed to be. */}
-      <div className="mt-6 md:mt-4">
-        <OnlineRivalsBadge />
       </div>
 
       <section className="mt-5 min-w-0 md:mt-6">
