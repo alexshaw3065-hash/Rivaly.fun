@@ -409,6 +409,21 @@ export function entriesByRoom(roomId: string): Entry[] {
   return entries.filter((e) => e.roomId === roomId);
 }
 
+// Real, derived "trending" search terms for the compact search dropdown
+// (see search-rollup.tsx) — team names from matches with real action
+// happening right now (status "live"), not an invented popularity
+// ranking. Deterministic order (by match array order), so it doesn't
+// reshuffle on every render.
+export function trendingSearchTerms(count: number): string[] {
+  const terms: string[] = [];
+  for (const m of matches) {
+    if (m.status !== "live") continue;
+    if (!terms.includes(m.homeTeam)) terms.push(m.homeTeam);
+    if (!terms.includes(m.awayTeam)) terms.push(m.awayTeam);
+  }
+  return terms.slice(0, count);
+}
+
 // Which side a chat author actually predicted in this room, if they have
 // a real entry there — powers RoomChatPreview's side tag. Returns null
 // rather than guessing when there's no real entry to back it (e.g. a room

@@ -96,6 +96,24 @@ export function SearchIcon() {
   );
 }
 
+// A trending-up arrow — same bare hand-drawn stroke convention as the
+// rest of this file. Sits next to each term in the search dropdown's
+// Trending list.
+export function TrendingIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="14" height="14" fill="none" aria-hidden>
+      <path
+        d="M3.5 13.5 8 9l3 3 5.5-5.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M12.5 6.5h4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // Sidebar nav marks — same bare-mark, hand-drawn convention as the icons
 // above, sized for the collapsible desktop sidebar (nav.tsx).
 export function HomeIcon() {
