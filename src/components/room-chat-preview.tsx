@@ -8,7 +8,7 @@ import { ChatFeedRows } from "./chat-feed-rows";
 import { Avatar } from "./avatar";
 
 const VISIBLE_COUNT = 3;
-const CYCLE_MS = 3200;
+const CYCLE_MS = 2000;
 const EXIT_MS = 400;
 const ROW_HEIGHT = 26;
 
