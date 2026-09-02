@@ -9,29 +9,39 @@
  * blue vs red is the same instantly-legible high-contrast opposition
  * without implying a winner (classic two-team framing — exactly the
  * rivalry this bar is showing).
+ *
+ * showLabels defaults to true (every existing caller keeps its label row
+ * unchanged) — RoomCard is the one caller that opts out with `false`,
+ * since its own Yes/No buttons now carry the percentage themselves
+ * (e.g. "Yes 73%") and repeating the same number right above them read
+ * as a mistake, not emphasis.
  */
 export function SplitBar({
   leftPct,
   leftLabel,
   rightLabel,
+  showLabels = true,
 }: {
   leftPct: number;
   leftLabel: string;
   rightLabel: string;
+  showLabels?: boolean;
 }) {
   const rightPct = 100 - leftPct;
   return (
     <div>
-      <div className="flex items-baseline justify-between font-mono text-[11px] tracking-tight">
-        <span className="text-rival-blue">
-          {leftLabel} · {leftPct}%
-        </span>
-        <span className="text-danger-red">
-          {rightPct}% · {rightLabel}
-        </span>
-      </div>
+      {showLabels && (
+        <div className="flex items-baseline justify-between font-mono text-[11px] tracking-tight">
+          <span className="text-rival-blue">
+            {leftLabel} · {leftPct}%
+          </span>
+          <span className="text-danger-red">
+            {rightPct}% · {rightLabel}
+          </span>
+        </div>
+      )}
       <div
-        className="mt-1.5 h-[6px] w-full rounded-[1px]"
+        className={`h-[6px] w-full rounded-[1px] ${showLabels ? "mt-1.5" : ""}`}
         style={{
           background: `linear-gradient(78deg, var(--rival-blue) 0%, var(--rival-blue) calc(${leftPct}% - 1px), var(--danger-red) calc(${leftPct}% + 1px), var(--danger-red) 100%)`,
         }}

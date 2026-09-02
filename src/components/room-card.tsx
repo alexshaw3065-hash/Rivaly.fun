@@ -15,8 +15,19 @@ import { ShareButton } from "./share-button";
 // the pill IS the join control, one tap commits, no separate confirm —
 // see join-panel.tsx for the two-step version the full room uses, which
 // a feed card has no room to replicate). Pill-shaped and always visible,
-// not hidden behind a reveal step.
-function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
+// not hidden behind a reveal step. Each pill carries its own side's
+// percentage directly ("Yes 73%") — the same number the split bar's own
+// labels used to show above it, which is why those are switched off here
+// (SplitBar's showLabels={false}) rather than shown twice.
+function PredictPills({
+  leftPct,
+  rightPct,
+  onPick,
+}: {
+  leftPct: number;
+  rightPct: number;
+  onPick: (side: EntrySide) => void;
+}) {
   return (
     <div className="grid grid-cols-2 gap-2">
       <button
@@ -28,7 +39,7 @@ function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
         style={{ borderColor: "var(--rival-blue)", color: "var(--rival-blue)" }}
       >
-        Yes
+        Yes {leftPct}%
       </button>
       <button
         onClick={(e) => {
@@ -39,7 +50,7 @@ function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
         style={{ borderColor: "var(--danger-red)", color: "var(--danger-red)" }}
       >
-        No
+        No {rightPct}%
       </button>
     </div>
   );
@@ -73,7 +84,7 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
 
       <p className="text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
 
-      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
+      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" showLabels={false} />
 
       {entered ? (
         <div className="enter-pop rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-sm">
@@ -85,7 +96,7 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
-          <PredictPills onPick={(side) => setEntered(side)} />
+          <PredictPills leftPct={leftPct} rightPct={rightPct} onPick={(side) => setEntered(side)} />
           {/* Expected return at entry — pari-mutuel math (estimatedPayoutPerNaira
               in mock-data.ts), informational only, separate from the pills above
               it so the price and the action aren't the same control. */}
