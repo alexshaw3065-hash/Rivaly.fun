@@ -6,11 +6,15 @@ import { rooms } from "@/lib/mock-data";
 import { BottomSheet } from "./bottom-sheet";
 import { KeyIcon } from "./icons";
 
-// "Join private room" per the founder's direction — placed distinctly from
-// the Discover/Live/Following/My Rooms sub-tabs rather than as a fifth
-// peer tab, since it's a one-off action (enter a code, land in a room),
-// not a browsing surface. Rooms already carry an inviteCode + private
-// visibility in the data model; this just surfaces it.
+// "Join private room" per the founder's direction — a one-off action (enter
+// a code, land in a room), not a browsing surface, so it doesn't get a fifth
+// peer tab. Bare icon, no pill/label/fill — it sits on the same line as the
+// Discover/Live/Following/My Rooms tabs rather than owning its own row above
+// them (a lone labeled button up there read as the first, most prominent
+// thing on the page, for what's actually a rare action most visits never
+// touch). aria-label + title carry the meaning instead of visible text.
+// Rooms already carry an inviteCode + private visibility in the data model;
+// this just surfaces it.
 export function JoinPrivateRoomButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -40,11 +44,12 @@ export function JoinPrivateRoomButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-transform duration-150 ease-out active:scale-[0.97]"
-        style={{ background: "var(--rival-blue-dim)", color: "var(--rival-blue)" }}
+        aria-label="Join private room"
+        title="Join private room"
+        className="shrink-0 p-1 transition-opacity duration-150 hover:opacity-80 active:scale-[0.9]"
+        style={{ color: "var(--rival-blue)" }}
       >
         <KeyIcon />
-        Join private room
       </button>
 
       <BottomSheet open={open} onClose={close} title="Join private room">

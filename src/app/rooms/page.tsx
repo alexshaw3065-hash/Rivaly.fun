@@ -52,24 +52,25 @@ function RoomsPageContent() {
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-6 py-6 md:py-12">
-      <div className="flex justify-end">
-        <JoinPrivateRoomButton />
-      </div>
-
-      <div className="no-scrollbar mt-6 flex gap-6 overflow-x-auto border-b border-border">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className="-mb-px shrink-0 border-b-2 pb-2.5 text-sm font-medium transition-colors duration-150"
-            style={{
-              borderColor: tab === t.id ? "var(--foreground)" : "transparent",
-              color: tab === t.id ? "var(--foreground)" : "var(--muted)",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between border-b border-border">
+        <div className="no-scrollbar flex min-w-0 gap-6 overflow-x-auto">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className="-mb-px shrink-0 border-b-2 pb-2.5 text-sm font-medium transition-colors duration-150"
+              style={{
+                borderColor: tab === t.id ? "var(--foreground)" : "transparent",
+                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="shrink-0 pb-2.5">
+          <JoinPrivateRoomButton />
+        </div>
       </div>
 
       <div className="mt-8">
