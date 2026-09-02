@@ -84,8 +84,6 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
 
       <p className="text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
 
-      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" showLabels={false} />
-
       {entered ? (
         <div className="enter-pop rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-sm">
           <span className="font-medium text-foreground">You&rsquo;re in</span>
@@ -110,6 +108,8 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
           </div>
         </div>
       )}
+
+      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" showLabels={false} />
 
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
