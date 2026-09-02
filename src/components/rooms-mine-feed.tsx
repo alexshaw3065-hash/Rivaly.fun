@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   SELF_USER_ID,
   roomsByCreator,
@@ -9,6 +9,9 @@ import {
   matchById,
   formatSignedMoney,
 } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
+import { ROOM_COLUMNS, mapRoomRow, type RoomRow } from "@/lib/supabase/room-mapper";
+import { useCurrentUser } from "./current-user-provider";
 import { RoomCard } from "./room-card";
 import type { Room } from "@/lib/types";
 
@@ -39,11 +42,46 @@ const emptyCopy: Record<SubTab, string> = {
 
 // My Rooms: everything with your name on it, split the way people
 // actually think about their own activity — what you started, what you
-// joined in on, and how it all turned out.
+// joined in on, and how it all turned out. "Created" merges the mock
+// roster (still SELF_USER_ID = "u3", unrelated to whoever is really
+// signed in) with any real rooms the actual current user has created —
+// two genuinely different lists, concatenated, not one replacing the
+// other. Fetched client-side (not a server helper) since this is a
+// client component and rooms.ts's server helpers can't be imported here.
 export function RoomsMineFeed() {
   const [sub, setSub] = useState<SubTab>("created");
+  const currentUser = useCurrentUser();
+  const [realCreated, setRealCreated] = useState<Room[]>([]);
 
-  const created = roomsByCreator(SELF_USER_ID);
+  // Reset when who's signed in changes (including signing out) — computed
+  // during render rather than via a useEffect + setState, same convention
+  // room-feed.tsx already uses for the same reason: avoids the extra
+  // cascading-render effect that resetting inside the fetch effect itself
+  // would cause.
+  const [prevUserId, setPrevUserId] = useState<string | null>(null);
+  if ((currentUser?.id ?? null) !== prevUserId) {
+    setPrevUserId(currentUser?.id ?? null);
+    setRealCreated([]);
+  }
+
+  useEffect(() => {
+    if (!currentUser) return;
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from("rooms")
+      .select(ROOM_COLUMNS)
+      .eq("creator_id", currentUser.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (!cancelled) setRealCreated((data ?? []).map((row) => mapRoomRow(row as RoomRow)));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
+
+  const created = [...realCreated, ...roomsByCreator(SELF_USER_ID)];
   const joined = roomsJoinedBy(SELF_USER_ID).filter((r) => r.creatorId !== SELF_USER_ID);
 
   const activeCreated = created.filter((r) => r.status !== "settled");
@@ -90,13 +128,15 @@ export function RoomsMineFeed() {
 
       {current.length > 0 ? (
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {current.map((room) =>
-            sub === "completed" ? (
+          {current.map((room) => {
+            const match = matchById(room.matchId);
+            if (!match) return null;
+            return sub === "completed" ? (
               <CompletedRoomCard key={room.id} room={room} />
             ) : (
-              <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
-            ),
-          )}
+              <RoomCard key={room.id} room={room} match={match} />
+            );
+          })}
         </div>
       ) : (
         <p className="mt-6 text-sm text-muted">{emptyCopy[sub]}</p>

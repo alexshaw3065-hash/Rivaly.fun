@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { EntrySide, Match, Room } from "@/lib/types";
+import type { EntrySide, Match } from "@/lib/types";
 import { formatMoney, splitPct, estimatedPayoutPerNaira, kickoffCountdownCompact } from "@/lib/mock-data";
+import { splitPctFromTotals, type RoomWithTotals } from "@/lib/supabase/room-mapper";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
@@ -68,8 +69,14 @@ function PredictPills({
   );
 }
 
-export function RoomCard({ room, match }: { room: Room; match: Match }) {
-  const leftPct = splitPct(room);
+export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }) {
+  // Real rooms carry real yes/no totals (see room-mapper.ts) — use the
+  // honest math over them instead of splitPct()'s seeded-hash stand-in,
+  // which was never meant to apply to anything but the mock roster.
+  const leftPct =
+    room.yesTotalCents !== undefined
+      ? splitPctFromTotals(room.yesTotalCents, room.noTotalCents ?? 0)
+      : splitPct(room);
   const rightPct = 100 - leftPct;
   const yesReturn = estimatedPayoutPerNaira(leftPct);
   const noReturn = estimatedPayoutPerNaira(rightPct);

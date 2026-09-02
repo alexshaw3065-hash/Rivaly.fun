@@ -1,12 +1,12 @@
 import Link from "next/link";
 import {
-  roomById,
   matchById,
-  profileById,
   formatMoney,
   splitPct,
   getRoomMessages,
 } from "@/lib/mock-data";
+import { getRoomById, splitPctFromTotals } from "@/lib/supabase/rooms";
+import { getProfileById } from "@/lib/supabase/profiles";
 import { LiveBadge } from "@/components/live-badge";
 import { SplitBar } from "@/components/split-bar";
 import { Avatar } from "@/components/avatar";
@@ -25,7 +25,7 @@ export default async function RoomPage({
   params: Promise<{ roomId: string }>;
 }) {
   const { roomId } = await params;
-  const room = roomById(roomId);
+  const room = await getRoomById(roomId);
 
   if (!room) {
     return (
@@ -40,8 +40,11 @@ export default async function RoomPage({
   }
 
   const match = matchById(room.matchId)!;
-  const creator = profileById(room.creatorId)!;
-  const leftPct = splitPct(room);
+  const creator = await getProfileById(room.creatorId);
+  const leftPct =
+    room.yesTotalCents !== undefined
+      ? splitPctFromTotals(room.yesTotalCents, room.noTotalCents ?? 0)
+      : splitPct(room);
   const isSettled = room.status === "settled";
   const messages = getRoomMessages(room.id);
   const payoutPerWinner = room.poolTotalCents / room.participantCount;
@@ -74,13 +77,15 @@ export default async function RoomPage({
         &ldquo;{room.prediction}&rdquo;
       </h1>
 
-      <Link
-        href={`/profile/${creator.username}`}
-        className="hover-link mt-3 inline-flex items-center gap-2 text-sm text-muted transition-colors"
-      >
-        <Avatar name={creator.displayName} size={22} />
-        Created by {creator.displayName}
-      </Link>
+      {creator && (
+        <Link
+          href={`/profile/${creator.username}`}
+          className="hover-link mt-3 inline-flex items-center gap-2 text-sm text-muted transition-colors"
+        >
+          <Avatar name={creator.displayName} size={22} />
+          Created by {creator.displayName}
+        </Link>
+      )}
 
       {/* Body */}
       <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-[1fr_320px]">
@@ -109,7 +114,7 @@ export default async function RoomPage({
             >
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Settled</p>
               <p className="mt-1.5 text-sm text-foreground">
-                {creator.displayName} called it — {formatMoney(payoutPerWinner)} per winner.
+                {creator?.displayName ?? "The creator"} called it — {formatMoney(payoutPerWinner)} per winner.
               </p>
               <Link
                 href="/rooms/create"

@@ -1,0 +1,69 @@
+import type { Room } from "@/lib/types";
+
+// Environment-agnostic (no server or browser Supabase client import) so
+// both src/lib/supabase/rooms.ts (server queries) and any client-side
+// query (e.g. rooms-mine-feed.tsx, which can't import the server client)
+// can share the exact same row shape and mapping logic.
+
+export interface RoomRow {
+  id: string;
+  creator_id: string;
+  match_id: string;
+  prediction: string;
+  entry_amount_cents: number;
+  visibility: "public" | "private";
+  status: Room["status"];
+  pool_total_cents: number;
+  yes_total_cents: number;
+  no_total_cents: number;
+  participant_count: number;
+  resolution_source: string;
+  invite_code: string;
+  created_at: string;
+  settled_at: string | null;
+}
+
+/**
+ * A real room carries its yes/no totals too — splitPctFromTotals() needs
+ * them. Mock rooms leave both undefined (splitPct(room) computes their
+ * split its own way, from a seeded hash of the id), so callers can branch
+ * on `room.yesTotalCents !== undefined` to know which math to use without
+ * needing to separately check whether an id is real or mock.
+ */
+export type RoomWithTotals = Room & { yesTotalCents?: number; noTotalCents?: number };
+
+export function mapRoomRow(row: RoomRow): RoomWithTotals {
+  return {
+    id: row.id,
+    creatorId: row.creator_id,
+    matchId: row.match_id,
+    prediction: row.prediction,
+    entryAmountCents: row.entry_amount_cents,
+    visibility: row.visibility,
+    status: row.status,
+    poolTotalCents: row.pool_total_cents,
+    participantCount: row.participant_count,
+    resolutionSource: row.resolution_source,
+    inviteCode: row.invite_code,
+    createdAt: row.created_at,
+    settledAt: row.settled_at,
+    yesTotalCents: row.yes_total_cents,
+    noTotalCents: row.no_total_cents,
+  };
+}
+
+export const ROOM_COLUMNS =
+  "id, creator_id, match_id, prediction, entry_amount_cents, visibility, status, pool_total_cents, yes_total_cents, no_total_cents, participant_count, resolution_source, invite_code, created_at, settled_at";
+
+// Real ids are UUIDs; every mock room id is a short "r1"-style string —
+// cheap, reliable way to know which source to query without hitting both.
+export const ROOM_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Same math splitPct() already does for mock rooms (a real share of the
+// pool), just computed from the trigger-maintained totals instead of a
+// seeded hash of the room id.
+export function splitPctFromTotals(yesCents: number, noCents: number): number {
+  const total = yesCents + noCents;
+  if (total === 0) return 50;
+  return Math.round((100 * yesCents) / total);
+}

@@ -1,31 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { matches, formatMoney } from "@/lib/mock-data";
 import { SplitBar } from "@/components/split-bar";
+import { useCurrentUser } from "@/components/current-user-provider";
+import { createRoom } from "@/app/rooms/actions";
 
 // Fields per docs/masterplan/07-product-blueprint.md#46-create-room. Framed
 // as expressing an opinion, not filling a financial form — see
 // docs/masterplan/06-emotion-design.md#1-creating-a-room ("Throw Down the
-// Challenge," not "Create Room"). Match/room creation isn't wired to
-// Supabase yet, so submitting drops into the Share Flow against a stand-in
-// room — swap for a real insert once a project is linked.
+// Challenge," not "Create Room"). Match selection stays the mock fixture
+// list (real fixture data is a separate, later effort — see
+// supabase/migrations/20260902190749_rooms.sql's comment on rooms.match_id)
+// but the room itself is now a real Supabase insert via createRoom().
 const creatable = matches.filter((m) => m.status !== "finished");
 const amounts = [500_00, 1_000_00, 2_000_00, 5_000_00, 10_000_00];
 
 export default function CreateRoomPage() {
+  const currentUser = useCurrentUser();
   const [matchId, setMatchId] = useState<string | null>(null);
   const [prediction, setPrediction] = useState("");
   const [amountCents, setAmountCents] = useState<number | null>(null);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
-  const [created, setCreated] = useState(false);
+  const [result, setResult] = useState<{ roomId: string; inviteCode: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pending, startTransition] = useTransition();
 
   const match = matches.find((m) => m.id === matchId);
   const ready = Boolean(match && prediction.trim() && amountCents);
 
-  if (created) {
+  function submit() {
+    if (!ready || !match || !amountCents) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await createRoom({
+        matchId: match.id,
+        prediction,
+        entryAmountCents: amountCents,
+        visibility,
+      });
+      if (res.ok) {
+        setResult({ roomId: res.roomId, inviteCode: res.inviteCode });
+      } else {
+        setError(res.error);
+      }
+    });
+  }
+
+  if (result) {
     return (
       <main className="mx-auto max-w-xl px-6 py-16 text-center">
         <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">
@@ -40,21 +64,22 @@ export default function CreateRoomPage() {
 
         <div className="mt-8 flex items-center justify-center gap-2">
           <code className="rounded-md border border-border bg-surface px-4 py-2.5 font-mono text-sm text-foreground">
-            RIVAL-7X92
+            {result.inviteCode}
           </code>
           <button
             onClick={() => {
+              navigator.clipboard.writeText(result.inviteCode);
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             }}
             className="rounded-md border border-border-strong px-4 py-2.5 text-sm font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
           >
-            {copied ? "Copied" : "Copy link"}
+            {copied ? "Copied" : "Copy code"}
           </button>
         </div>
 
         <Link
-          href="/rooms/r2"
+          href={`/rooms/${result.roomId}`}
           className="mt-8 inline-block rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
         >
           Go to room →
@@ -70,6 +95,15 @@ export default function CreateRoomPage() {
         What do you believe?
       </h1>
       <p className="mt-2 text-sm text-muted">Who&rsquo;s taking the other side?</p>
+
+      {!currentUser && (
+        <div className="mt-6 rounded-lg border border-border bg-surface p-4 text-sm text-muted">
+          <Link href="/login?next=/rooms/create" className="hover-link text-foreground transition-colors">
+            Sign in
+          </Link>{" "}
+          to create a room.
+        </div>
+      )}
 
       <div className="mt-9 flex flex-col gap-8">
         {/* Match */}
@@ -166,12 +200,14 @@ export default function CreateRoomPage() {
           </div>
         )}
 
+        {error && <p className="text-sm text-danger-red">{error}</p>}
+
         <button
-          onClick={() => ready && setCreated(true)}
-          disabled={!ready}
+          onClick={submit}
+          disabled={!ready || !currentUser || pending}
           className="rounded-md bg-foreground py-3.5 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
         >
-          Throw down the challenge →
+          {pending ? "Creating…" : "Throw down the challenge →"}
         </button>
       </div>
     </main>
