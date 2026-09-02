@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { EntrySide, Match, Room } from "@/lib/types";
-import { formatMoney, splitPct } from "@/lib/mock-data";
+import { formatMoney, splitPct, estimatedPayoutPerNaira, kickoffCountdownCompact } from "@/lib/mock-data";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
@@ -19,7 +19,10 @@ import { RivalsInRoom } from "./rivals-in-room";
 // not hidden behind a reveal step. Each pill carries its own side's
 // percentage directly ("Yes 73%") — the same number the split bar's own
 // labels used to show above it, which is why those are switched off here
-// (SplitBar's showLabels={false}) rather than shown twice.
+// (SplitBar's showLabels={false}) rather than shown twice. A light tint
+// of the side's own color sits behind each pill (not fully transparent,
+// not a full solid fill either) so the pick reads as a real surface, not
+// just an outline.
 function PredictPills({
   leftPct,
   rightPct,
@@ -38,7 +41,11 @@ function PredictPills({
           onPick("yes");
         }}
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
-        style={{ borderColor: "var(--rival-blue)", color: "var(--rival-blue)" }}
+        style={{
+          borderColor: "var(--rival-blue)",
+          color: "var(--rival-blue)",
+          background: "color-mix(in srgb, var(--rival-blue) 14%, transparent)",
+        }}
       >
         Yes {leftPct}%
       </button>
@@ -49,7 +56,11 @@ function PredictPills({
           onPick("no");
         }}
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
-        style={{ borderColor: "var(--danger-red)", color: "var(--danger-red)" }}
+        style={{
+          borderColor: "var(--danger-red)",
+          color: "var(--danger-red)",
+          background: "color-mix(in srgb, var(--danger-red) 14%, transparent)",
+        }}
       >
         No {rightPct}%
       </button>
@@ -60,6 +71,9 @@ function PredictPills({
 export function RoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const rightPct = 100 - leftPct;
+  const yesReturn = estimatedPayoutPerNaira(leftPct);
+  const noReturn = estimatedPayoutPerNaira(rightPct);
+  const countdown = kickoffCountdownCompact(match);
   const [entered, setEntered] = useState<EntrySide | null>(null);
 
   return (
@@ -76,6 +90,7 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
           <LiveBadge />
         ) : (
           <span className="font-mono text-[11px] text-muted">
+            {countdown && <span className="text-rival-blue">{countdown} · </span>}
             {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
           </span>
         )}
@@ -97,7 +112,21 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" showLabels={false} />
 
-      <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
+      {/* Expected return at entry — pari-mutuel math (estimatedPayoutPerNaira
+          in mock-data.ts), informational only, separate from the pills above
+          so the price and the action aren't the same control. */}
+      {!entered && (
+        <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-muted">
+          <span className="text-center">
+            ₦1 → <span className="font-bold text-rival-green">₦{yesReturn.toFixed(2)}</span>
+          </span>
+          <span className="text-center">
+            ₦1 → <span className="font-bold text-rival-green">₦{noReturn.toFixed(2)}</span>
+          </span>
+        </div>
+      )}
+
+      <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-sm text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
           <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />

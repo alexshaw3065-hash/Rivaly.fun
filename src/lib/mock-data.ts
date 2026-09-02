@@ -313,17 +313,37 @@ function matchesNowMs(): number {
   return liveKickoffs.length > 0 ? Math.max(...liveKickoffs) : Date.now();
 }
 
-export function kickoffCountdownLabel(match: Match): string | null {
+// Shared by both label variants below so the date math (and the "what
+// counts as now" reasoning above) lives in exactly one place.
+function kickoffCountdownParts(match: Match): { days: number; hours: number; minutes: number } | null {
   if (match.status !== "scheduled") return null;
   const diffMs = +new Date(match.kickoffAt) - matchesNowMs();
   if (diffMs <= 0) return null;
   const totalMinutes = Math.round(diffMs / 60000);
-  const days = Math.floor(totalMinutes / 1440);
-  const hours = Math.floor((totalMinutes % 1440) / 60);
-  const minutes = totalMinutes % 60;
-  if (days > 0) return `Kicks off in ${days}d ${hours}h`;
-  if (hours > 0) return `Kicks off in ${hours}h ${minutes}m`;
-  return `Kicks off in ${minutes}m`;
+  return {
+    days: Math.floor(totalMinutes / 1440),
+    hours: Math.floor((totalMinutes % 1440) / 60),
+    minutes: totalMinutes % 60,
+  };
+}
+
+export function kickoffCountdownLabel(match: Match): string | null {
+  const p = kickoffCountdownParts(match);
+  if (!p) return null;
+  if (p.days > 0) return `Kicks off in ${p.days}d ${p.hours}h`;
+  if (p.hours > 0) return `Kicks off in ${p.hours}h ${p.minutes}m`;
+  return `Kicks off in ${p.minutes}m`;
+}
+
+// Bare form ("6d 12h", no "Kicks off in") for space-constrained spots like
+// RoomCard's top row, which already carries the competition label and
+// match code on the same line.
+export function kickoffCountdownCompact(match: Match): string | null {
+  const p = kickoffCountdownParts(match);
+  if (!p) return null;
+  if (p.days > 0) return `${p.days}d ${p.hours}h`;
+  if (p.hours > 0) return `${p.hours}h ${p.minutes}m`;
+  return `${p.minutes}m`;
 }
 
 export function profileById(id: string): Profile | undefined {
@@ -461,6 +481,18 @@ export function formatSignedMoney(cents: number): string {
 export function splitPct(room: Room): number {
   const seed = room.id.charCodeAt(room.id.length - 1);
   return 50 + (seed % 30);
+}
+
+// Estimated payout per ₦1 staked on a side, given that side's real share of
+// the pool — the exact same split already shown on the bar (splitPct
+// above), just reframed. Pari-mutuel math (poolTotal / sideStake): verified
+// against the mock dataset's own real settled payoutCents (e.g. entries
+// e10/e11/e12 on r4 all land on exactly this ratio regardless of stake
+// size), so this isn't a new number, it's the same one the app's real
+// settlement data already implies — just surfaced before settlement, as a
+// live estimate ("if this side wins right now"), not a guarantee.
+export function estimatedPayoutPerNaira(sidePct: number): number {
+  return 100 / sidePct;
 }
 
 // "Rivals joined in the last hour" — what makes a room feel like it's

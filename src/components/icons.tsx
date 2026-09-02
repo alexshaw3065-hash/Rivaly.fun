@@ -516,3 +516,15 @@ export function BallIcon() {
     </svg>
   );
 }
+
+// A TV screen with a stand — Home's "Live" filter chip, marking these
+// rooms as ones with a real match to actually watch right now, distinct
+// from BallIcon's generic "football" mark used for browsable topics.
+export function TvIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <rect x="3" y="4.5" width="14" height="9.5" rx="1.4" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M7.5 17h5M10 14v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}

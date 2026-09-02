@@ -15,6 +15,11 @@
  * since its own Yes/No buttons now carry the percentage themselves
  * (e.g. "Yes 73%") and repeating the same number right above them read
  * as a mistake, not emphasis.
+ *
+ * Brightens on hover (pure CSS, no JS) — a small tactile response so the
+ * bar reads as alive rather than a static graphic, applied directly to
+ * the bar itself so it works regardless of what markup a given caller
+ * wraps it in.
  */
 export function SplitBar({
   leftPct,
@@ -41,7 +46,7 @@ export function SplitBar({
         </div>
       )}
       <div
-        className={`h-[6px] w-full rounded-[1px] ${showLabels ? "mt-1.5" : ""}`}
+        className={`h-[6px] w-full rounded-[1px] transition-[filter] duration-200 ease-out hover:brightness-125 ${showLabels ? "mt-1.5" : ""}`}
         style={{
           background: `linear-gradient(78deg, var(--rival-blue) 0%, var(--rival-blue) calc(${leftPct}% - 1px), var(--danger-red) calc(${leftPct}% + 1px), var(--danger-red) 100%)`,
         }}

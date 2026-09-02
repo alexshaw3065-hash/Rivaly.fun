@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { rooms as allRooms, matchById, momentumCount, splitPct } from "@/lib/mock-data";
 import { RoomCard } from "./room-card";
+import { TvIcon } from "./icons";
 import type { Match, Room } from "@/lib/types";
 
 // Six, not five — matches the founder's Polymarket reference (their Browse
@@ -210,7 +211,7 @@ export function RoomFeed({
                 <button
                   key={f.id}
                   onClick={() => setTab(f.id)}
-                  className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
                   style={{
                     borderColor: selected ? "var(--foreground)" : highlighted ? "var(--danger-red)" : "var(--border)",
                     color: selected ? "var(--foreground)" : highlighted ? "var(--danger-red)" : "var(--muted)",
@@ -223,6 +224,11 @@ export function RoomFeed({
                       "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
                   }}
                 >
+                  {/* TvIcon rides along with highlightTabId ("live" on
+                      Home) rather than its own prop — the same signal
+                      that makes this chip red-tinted also marks it as
+                      the one with something to actually watch. */}
+                  {highlighted && <TvIcon />}
                   {f.label}
                 </button>
               );
