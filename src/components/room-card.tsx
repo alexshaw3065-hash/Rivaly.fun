@@ -96,7 +96,7 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
         )}
       </div>
 
-      <p className="font-display text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
+      <p className="text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
 
       {entered ? (
         <div className="enter-pop rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-sm">
