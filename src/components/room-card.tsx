@@ -126,7 +126,7 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
         </div>
       )}
 
-      <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-sm text-muted">
+      <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
           <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
