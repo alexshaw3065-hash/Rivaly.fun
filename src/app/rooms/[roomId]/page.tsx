@@ -7,6 +7,7 @@ import {
 } from "@/lib/mock-data";
 import { getRoomById, splitPctFromTotals } from "@/lib/supabase/rooms";
 import { getProfileById } from "@/lib/supabase/profiles";
+import { getMyEntryForRoom } from "@/lib/supabase/entries";
 import { LiveBadge } from "@/components/live-badge";
 import { SplitBar } from "@/components/split-bar";
 import { Avatar } from "@/components/avatar";
@@ -41,6 +42,7 @@ export default async function RoomPage({
 
   const match = matchById(room.matchId)!;
   const creator = await getProfileById(room.creatorId);
+  const myEntry = await getMyEntryForRoom(room.id);
   const leftPct =
     room.yesTotalCents !== undefined
       ? splitPctFromTotals(room.yesTotalCents, room.noTotalCents ?? 0)
@@ -125,7 +127,7 @@ export default async function RoomPage({
             </div>
           ) : (
             <div className="stagger-in" style={{ animationDelay: "30ms" }}>
-              <JoinPanel entryAmountCents={room.entryAmountCents} />
+              <JoinPanel roomId={room.id} entryAmountCents={room.entryAmountCents} initialEntry={myEntry} />
             </div>
           )}
 

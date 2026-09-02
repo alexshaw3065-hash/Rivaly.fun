@@ -125,10 +125,22 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
       {!entered && (
         <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-muted">
           <span className="text-center">
-            ₦1 → <span className="font-bold text-rival-green">₦{yesReturn.toFixed(2)}</span>
+            {yesReturn !== null ? (
+              <>
+                ₦1 → <span className="font-bold text-rival-green">₦{yesReturn.toFixed(2)}</span>
+              </>
+            ) : (
+              "Be the first"
+            )}
           </span>
           <span className="text-center">
-            ₦1 → <span className="font-bold text-rival-green">₦{noReturn.toFixed(2)}</span>
+            {noReturn !== null ? (
+              <>
+                ₦1 → <span className="font-bold text-rival-green">₦{noReturn.toFixed(2)}</span>
+              </>
+            ) : (
+              "Be the first"
+            )}
           </span>
         </div>
       )}

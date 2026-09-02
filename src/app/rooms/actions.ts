@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { EntrySide } from "@/lib/types";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I — avoids ambiguous codes read aloud or handwritten
 
@@ -57,4 +58,42 @@ export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResu
   }
 
   return { ok: false, error: "Couldn't generate a unique invite code — try again." };
+}
+
+export type JoinRoomResult = { ok: true } | { ok: false; error: string };
+
+export async function joinRoom(roomId: string, side: EntrySide): Promise<JoinRoomResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to join a room." };
+
+  // The real stake is whatever the room says it is — never trust an
+  // amount from the client. Also the pre-check that gives a clean error
+  // message; the RLS policy's own entry_amount_cents match and the DB's
+  // unique(room_id, user_id) constraint are the real backstops either way.
+  const { data: room } = await supabase
+    .from("rooms")
+    .select("status, entry_amount_cents")
+    .eq("id", roomId)
+    .maybeSingle();
+  if (!room) return { ok: false, error: "Room not found." };
+  if (room.status !== "open") return { ok: false, error: "This room isn't open for entries anymore." };
+
+  const { error } = await supabase.from("entries").insert({
+    room_id: roomId,
+    user_id: user.id,
+    side,
+    amount_cents: room.entry_amount_cents,
+  });
+
+  if (error) {
+    if (error.message.toLowerCase().includes("duplicate")) {
+      return { ok: false, error: "You're already in this room." };
+    }
+    return { ok: false, error: "Couldn't join the room — try again." };
+  }
+
+  return { ok: true };
 }

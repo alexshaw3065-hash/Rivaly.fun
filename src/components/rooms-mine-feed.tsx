@@ -52,6 +52,7 @@ export function RoomsMineFeed() {
   const [sub, setSub] = useState<SubTab>("created");
   const currentUser = useCurrentUser();
   const [realCreated, setRealCreated] = useState<Room[]>([]);
+  const [realJoined, setRealJoined] = useState<Room[]>([]);
 
   // Reset when who's signed in changes (including signing out) — computed
   // during render rather than via a useEffect + setState, same convention
@@ -62,12 +63,14 @@ export function RoomsMineFeed() {
   if ((currentUser?.id ?? null) !== prevUserId) {
     setPrevUserId(currentUser?.id ?? null);
     setRealCreated([]);
+    setRealJoined([]);
   }
 
   useEffect(() => {
     if (!currentUser) return;
     let cancelled = false;
     const supabase = createClient();
+
     supabase
       .from("rooms")
       .select(ROOM_COLUMNS)
@@ -76,13 +79,28 @@ export function RoomsMineFeed() {
       .then(({ data }) => {
         if (!cancelled) setRealCreated((data ?? []).map((row) => mapRoomRow(row as RoomRow)));
       });
+
+    // Rooms this user has a real entry in, excluding ones they also
+    // created (those show up in "Created" instead) — same distinction
+    // the mock roomsJoinedBy() filter already draws.
+    supabase
+      .from("entries")
+      .select(`room:rooms!inner(${ROOM_COLUMNS})`)
+      .eq("user_id", currentUser.id)
+      .neq("room.creator_id", currentUser.id)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const rows = data as unknown as { room: RoomRow }[];
+        setRealJoined(rows.filter((r) => r.room).map((r) => mapRoomRow(r.room)));
+      });
+
     return () => {
       cancelled = true;
     };
   }, [currentUser]);
 
   const created = [...realCreated, ...roomsByCreator(SELF_USER_ID)];
-  const joined = roomsJoinedBy(SELF_USER_ID).filter((r) => r.creatorId !== SELF_USER_ID);
+  const joined = [...realJoined, ...roomsJoinedBy(SELF_USER_ID).filter((r) => r.creatorId !== SELF_USER_ID)];
 
   const activeCreated = created.filter((r) => r.status !== "settled");
   const activeJoined = joined.filter((r) => r.status !== "settled");

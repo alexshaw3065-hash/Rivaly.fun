@@ -491,7 +491,14 @@ export function splitPct(room: Room): number {
 // size), so this isn't a new number, it's the same one the app's real
 // settlement data already implies — just surfaced before settlement, as a
 // live estimate ("if this side wins right now"), not a guarantee.
-export function estimatedPayoutPerNaira(sidePct: number): number {
+//
+// null when a side has zero backing (100/0 is undefined, not "infinite" —
+// mock data's seeded-hash split (50-79%) never actually hit 0%, so this
+// only ever surfaced once real entries could produce a genuine 100/0
+// split). Callers should show something like "Be the first" instead of a
+// number in that case, never a fabricated or nonsensical value.
+export function estimatedPayoutPerNaira(sidePct: number): number | null {
+  if (sidePct <= 0) return null;
   return 100 / sidePct;
 }
 
