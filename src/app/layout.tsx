@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Nav } from "@/components/nav";
+import { CurrentUserProvider } from "@/components/current-user-provider";
+import { getCurrentProfile } from "@/lib/supabase/current-user";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +49,9 @@ export const metadata: Metadata = {
 // wrong theme; kept inline rather than in an external file so it blocks.
 const themeInitScript = `(function(){try{if(localStorage.getItem('rivaly-theme')==='light'){document.documentElement.classList.add('light');}if(localStorage.getItem('rivaly-sidebar-collapsed')==='true'){document.documentElement.classList.add('sidebar-collapsed');}}catch(e){}})();`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const currentProfile = await getCurrentProfile();
+
   return (
     <html
       lang="en"
@@ -75,7 +79,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Nav, or content-shell — should ever go back to flex for layout.
           overflow-x-hidden stays as a cheap backstop. */}
       <body className="min-h-full overflow-x-hidden bg-background text-foreground pb-16 md:pb-0">
-        <Nav>{children}</Nav>
+        <CurrentUserProvider profile={currentProfile}>
+          <Nav>{children}</Nav>
+        </CurrentUserProvider>
       </body>
     </html>
   );

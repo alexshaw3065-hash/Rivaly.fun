@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { profileByUsername, SELF_USER_ID } from "@/lib/mock-data";
+import { getProfileByUsername } from "@/lib/supabase/profiles";
+import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { ProfileView } from "@/components/profile-view";
 
 // Reddit-inspired header + a trading-app-style PNL block (self-only,
@@ -12,7 +13,10 @@ export default async function ProfilePage({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  const profile = profileByUsername(username);
+  const [profile, currentUser] = await Promise.all([
+    getProfileByUsername(username),
+    getCurrentProfile(),
+  ]);
 
   if (!profile) {
     return (
@@ -28,7 +32,7 @@ export default async function ProfilePage({
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
-      <ProfileView profile={profile} isSelf={profile.id === SELF_USER_ID} />
+      <ProfileView profile={profile} isSelf={currentUser !== null && profile.id === currentUser.id} />
     </main>
   );
 }

@@ -23,8 +23,8 @@ export function DesktopHeader({
   selfName,
 }: {
   pathname: string;
-  selfUsername: string;
-  selfName: string;
+  selfUsername: string | null;
+  selfName: string | null;
 }) {
   return (
     <header className="header-shell fixed inset-x-0 top-0 z-20 hidden h-16 items-center border-b border-border bg-background/95 backdrop-blur-sm md:flex">
@@ -40,9 +40,18 @@ export function DesktopHeader({
           </Link>
           <TopBarIcons />
           <ThemeToggle />
-          <Link href={`/profile/${selfUsername}`} className="shrink-0">
-            <Avatar name={selfName} size={32} />
-          </Link>
+          {selfUsername && selfName ? (
+            <Link href={`/profile/${selfUsername}`} className="shrink-0">
+              <Avatar name={selfName} size={32} />
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="shrink-0 rounded-md border border-border-strong px-3.5 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:border-border-strong"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
     </header>

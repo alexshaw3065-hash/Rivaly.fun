@@ -11,6 +11,7 @@ import { DesktopHeader } from "./desktop-header";
 import { MobileSearchOverlay } from "./mobile-search-overlay";
 import { QuickDepositSheet } from "./quick-deposit-sheet";
 import { StreakTracker } from "./streak-tracker";
+import { useCurrentUser } from "./current-user-provider";
 import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-store";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
@@ -22,25 +23,32 @@ import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-st
 // research calls for) untouched, while desktop gets a collapsible left
 // sidebar + top header (sidebar.tsx, desktop-header.tsx) per the founder's
 // Polymarket-style direction — not a squeezed-down version of the mobile bar.
-// The self-profile stand-in until auth exists — see src/lib/mock-data.ts.
-const SELF_USERNAME = "victorj";
-const SELF_NAME = "Victor";
 
 // Wallet's balance/deposit/withdraw now lives on Profile too (see
 // profile-pnl.tsx), so the bottom-nav slot points there instead of at the
 // standalone /wallet page — Profile is the one place to reach both your
 // identity and your money from nav. /wallet itself still exists as a route.
-const tabs = [
+// The Profile tab's href/label are built per-render below now that who's
+// signed in is real (useCurrentUser()), not a hardcoded stand-in — signed
+// out, it points at /login instead of a profile that doesn't exist yet.
+const baseTabs = [
   { href: "/", label: "Home" },
   { href: "/search", label: "Search" },
   { href: "/rooms", label: "Rooms" },
   { href: "/arena", label: "Arena" },
-  { href: `/profile/${SELF_USERNAME}`, label: "Profile" },
 ];
 
 export function Nav({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchOpen = useSearchOverlayOpen();
+  const currentUser = useCurrentUser();
+
+  const tabs = [
+    ...baseTabs,
+    currentUser
+      ? { href: `/profile/${currentUser.username}`, label: "Profile" }
+      : { href: "/login", label: "Sign in" },
+  ];
 
   return (
     <>
@@ -60,7 +68,11 @@ export function Nav({ children }: { children: ReactNode }) {
       </nav>
 
       <Sidebar />
-      <DesktopHeader pathname={pathname} selfUsername={SELF_USERNAME} selfName={SELF_NAME} />
+      <DesktopHeader
+        pathname={pathname}
+        selfUsername={currentUser?.username ?? null}
+        selfName={currentUser?.displayName ?? null}
+      />
       <MobileSearchOverlay />
       <QuickDepositSheet />
       <StreakTracker />

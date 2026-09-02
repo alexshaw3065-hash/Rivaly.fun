@@ -29,8 +29,13 @@ function percentileRank(values: number[], value: number): number {
 }
 
 function activityFor(profileId: string): number {
-  const p = profiles.find((x) => x.id === profileId)!;
-  return p.roomsCreated + entriesByUser(profileId).length;
+  const p = profiles.find((x) => x.id === profileId);
+  // A real (Supabase) profile isn't in the mock roster this scoring model
+  // compares against — a brand-new signup genuinely has 0 rooms created,
+  // which is the mathematically correct default here, not a fabricated
+  // number standing in for one.
+  const roomsCreated = p?.roomsCreated ?? 0;
+  return roomsCreated + entriesByUser(profileId).length;
 }
 
 // Composite score: 35% accuracy + 25% winnings + 20% activity (rooms
@@ -42,8 +47,14 @@ function activityFor(profileId: string): number {
 // fixed proportions (15/35/50) regardless of how the underlying stats are
 // distributed.
 export function computeRivalyScore(profileId: string): ScoreBreakdown {
-  const profile = profiles.find((p) => p.id === profileId);
-  if (!profile) throw new Error(`No profile for ${profileId}`);
+  // Real (Supabase) profiles aren't part of the mock roster this scoring
+  // model ranks against — fall back to a genuine zero-activity profile
+  // rather than throwing, same reasoning as activityFor() above.
+  const profile = profiles.find((p) => p.id === profileId) ?? {
+    predictionAccuracy: 0,
+    totalWinningsCents: 0,
+    followerCount: 0,
+  };
 
   const accuracyValues = profiles.map((p) => p.predictionAccuracy);
   const winningsValues = profiles.map((p) => p.totalWinningsCents);

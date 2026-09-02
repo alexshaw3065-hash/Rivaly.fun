@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { profiles, SELF_USER_ID } from "@/lib/mock-data";
+import { profiles } from "@/lib/mock-data";
+import { useCurrentUser } from "./current-user-provider";
 import { Avatar } from "./avatar";
 import { BottomSheet } from "./bottom-sheet";
 
@@ -18,7 +19,8 @@ import { BottomSheet } from "./bottom-sheet";
 // nothing to do with the content.
 export function OnlineRivalsBadge() {
   const [open, setOpen] = useState(false);
-  const online = profiles.filter((p) => p.id !== SELF_USER_ID);
+  const currentUser = useCurrentUser();
+  const online = profiles.filter((p) => p.id !== currentUser?.id);
 
   return (
     <>
