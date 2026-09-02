@@ -417,3 +417,102 @@ export function ArenaIcon() {
     </svg>
   );
 }
+
+// Small glyphs for Search's Browse chips and Discussions topics (per
+// founder direction — icons on our own existing tabs, not a copy of any
+// other product's category list). Same bare hand-drawn stroke convention
+// as every icon above.
+
+// A four-point glint, not a filled star — "new" without reaching for a
+// generic notification-badge asterisk.
+export function NewIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <path
+        d="M10 3.2c.4 2.7 1.5 3.8 4.2 4.2-2.7.4-3.8 1.5-4.2 4.2-.4-2.7-1.5-3.8-4.2-4.2 2.7-.4 3.8-1.5 4.2-4.2Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.5 12.5c.15.9.5 1.25 1.4 1.4-.9.15-1.25.5-1.4 1.4-.15-.9-.5-1.25-1.4-1.4.9-.15 1.25-.5 1.4-1.4Z"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// Broadcast pulse — a signal going out, not the LiveBadge's pulsing dot
+// (that's an animated state marker; this is a static glyph next to a
+// filter label).
+export function LiveIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="1.8" fill="currentColor" />
+      <path d="M6.8 6.8a4.5 4.5 0 0 0 0 6.4M13.2 6.8a4.5 4.5 0 0 1 0 6.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ClockIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="6.3" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 6.7V10l2.4 1.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// A coin stack for "Big pools" — three tiers, not a single coin, so it
+// reads as accumulation rather than one flat currency mark.
+export function PoolIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <ellipse cx="10" cy="5.8" rx="4.6" ry="1.8" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M5.4 5.8v3.7c0 1 2 1.8 4.6 1.8s4.6-.8 4.6-1.8V5.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M5.4 9.5v3.7c0 1 2 1.8 4.6 1.8s4.6-.8 4.6-1.8V9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// A level balance scale — both pans even, for "Too close to call."
+export function ScalesIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <path d="M10 3.3v13.4M6.2 5.3h7.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M3.6 5.3h2.9L5.1 9a1.2 1.2 0 0 1-2.2 0L3.6 5.3Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M13.5 5.3h2.9L15 9a1.2 1.2 0 0 1-2.2 0l.7-3.7Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M7 16.5h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ForYouIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <circle cx="10" cy="6.6" r="2.4" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M4.8 16c.7-2.9 2.9-4.4 5.2-4.4s4.5 1.5 5.2 4.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// A ball, not a trophy — see ArenaIcon above on why: a trophy reads as
+// "you already won," which is wrong for browsing what's on/coming up.
+// Rivaly is football-first, so the league/moment topics (UCL night, EPL
+// weekend, etc.) get the ball, not a generic tag or calendar mark.
+export function BallIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="6.3" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 6.4 12.5 8.2l-1 2.9H8.5l-1-2.9L10 6.4Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+      <path
+        d="M10 6.4V4M12.5 8.2l2.2-1.3M11.5 11.1l1.6 2M8.5 11.1l-1.6 2M7.5 8.2 5.3 6.9"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

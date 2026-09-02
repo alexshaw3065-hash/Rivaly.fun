@@ -93,23 +93,24 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
           </span>
         </div>
       ) : (
-        <div className="flex flex-col gap-1.5">
-          <PredictPills leftPct={leftPct} rightPct={rightPct} onPick={(side) => setEntered(side)} />
-          {/* Expected return at entry — pari-mutuel math (estimatedPayoutPerNaira
-              in mock-data.ts), informational only, separate from the pills above
-              it so the price and the action aren't the same control. */}
-          <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-muted">
-            <span className="text-center">
-              ₦1 → <span className="font-bold text-rival-green">₦{yesReturn.toFixed(2)}</span>
-            </span>
-            <span className="text-center">
-              ₦1 → <span className="font-bold text-rival-green">₦{noReturn.toFixed(2)}</span>
-            </span>
-          </div>
-        </div>
+        <PredictPills leftPct={leftPct} rightPct={rightPct} onPick={(side) => setEntered(side)} />
       )}
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" showLabels={false} />
+
+      {/* Expected return at entry — pari-mutuel math (estimatedPayoutPerNaira
+          in mock-data.ts), informational only, separate from the pills above
+          so the price and the action aren't the same control. */}
+      {!entered && (
+        <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-muted">
+          <span className="text-center">
+            ₦1 → <span className="font-bold text-rival-green">₦{yesReturn.toFixed(2)}</span>
+          </span>
+          <span className="text-center">
+            ₦1 → <span className="font-bold text-rival-green">₦{noReturn.toFixed(2)}</span>
+          </span>
+        </div>
+      )}
 
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>

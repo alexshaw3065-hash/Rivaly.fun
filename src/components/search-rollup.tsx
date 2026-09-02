@@ -3,9 +3,33 @@
 import { searchTopics, trendingSearchTerms, type SearchTopic } from "@/lib/mock-data";
 import { useRecentSearches, removeRecentSearch, clearRecentSearches } from "@/lib/use-recent-searches";
 import { BookmarkButton } from "./bookmark-button";
-import { SearchIcon, TrendingIcon } from "./icons";
+import {
+  SearchIcon,
+  TrendingIcon,
+  NewIcon,
+  LiveIcon,
+  ClockIcon,
+  PoolIcon,
+  ScalesIcon,
+  ForYouIcon,
+  BallIcon,
+} from "./icons";
 import { filters, type FilterTab } from "./room-feed";
 import { ScrollFadeRow } from "./scroll-fade-row";
+
+// One glyph per Browse tab — see icons.tsx for why each shape was chosen.
+// Partial, not a full Record<FilterTab, ...>: this list only ever renders
+// the plain `filters` set (never Home's extra "most-rivals" tab), so there's
+// no icon to maintain for a tab that can't appear here.
+const FILTER_ICONS: Partial<Record<FilterTab, typeof TrendingIcon>> = {
+  trending: TrendingIcon,
+  new: NewIcon,
+  live: LiveIcon,
+  closing: ClockIcon,
+  pools: PoolIcon,
+  "close-call": ScalesIcon,
+  personal: ForYouIcon,
+};
 
 // The idle state of Search — no query typed yet. Purely presentational —
 // the caller (search/page.tsx, desktop-search-box.tsx, search-bar-link.tsx)
@@ -144,16 +168,24 @@ export function SearchRollup({
             (unlike Discussions below, where every item matters). */}
         <p className="text-xs font-medium uppercase tracking-wide text-muted">Browse</p>
         <ScrollFadeRow wrapperClassName="mt-3" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-          {filters.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => onSelectTab(f.id)}
-              className="shrink-0 rounded-full border border-border px-3.5 py-1.5 text-sm text-foreground transition-colors duration-150 active:scale-[0.97]"
-              style={{ transition: "transform 150ms ease-out, border-color 150ms ease" }}
-            >
-              {f.label}
-            </button>
-          ))}
+          {filters.map((f) => {
+            const Icon = FILTER_ICONS[f.id];
+            return (
+              <button
+                key={f.id}
+                onClick={() => onSelectTab(f.id)}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-sm text-foreground transition-colors duration-150 active:scale-[0.97]"
+                style={{ transition: "transform 150ms ease-out, border-color 150ms ease" }}
+              >
+                {Icon && (
+                  <span className="text-muted">
+                    <Icon />
+                  </span>
+                )}
+                {f.label}
+              </button>
+            );
+          })}
         </ScrollFadeRow>
       </section>
 
@@ -164,20 +196,29 @@ export function SearchRollup({
             as one glanceable group. */}
         <p className="text-xs font-medium uppercase tracking-wide text-muted">Discussions</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {searchTopics.map((topic) => (
-            <div
-              key={topic.id}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-border py-1.5 pl-3.5 pr-2"
-            >
-              <button
-                onClick={() => onSelectTopic(topic)}
-                className="text-sm text-foreground active:scale-[0.97]"
+          {searchTopics.map((topic) => {
+            // "Live now" spans every league (no topic.league) — the pulse
+            // icon fits it uniquely. Every league-specific topic gets the
+            // ball, not a per-league crest we don't have real assets for.
+            const Icon = topic.league ? BallIcon : LiveIcon;
+            return (
+              <div
+                key={topic.id}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border py-1.5 pl-3 pr-2"
               >
-                {topic.label}
-              </button>
-              <BookmarkButton type="topic" id={topic.id} label={topic.label} />
-            </div>
-          ))}
+                <button
+                  onClick={() => onSelectTopic(topic)}
+                  className="flex items-center gap-1.5 text-sm text-foreground active:scale-[0.97]"
+                >
+                  <span className="text-muted">
+                    <Icon />
+                  </span>
+                  {topic.label}
+                </button>
+                <BookmarkButton type="topic" id={topic.id} label={topic.label} />
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>
