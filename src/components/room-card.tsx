@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { EntrySide, Match, Room } from "@/lib/types";
-import { formatMoney, splitPct, estimatedPayoutPerNaira } from "@/lib/mock-data";
+import { formatMoney, splitPct } from "@/lib/mock-data";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
 import { ShareButton } from "./share-button";
+import { RivalsInRoom } from "./rivals-in-room";
 
 // One-tap predicting, right in the feed — the Fast design principle's own
 // words are "one-tap challenges," and V1's whole promise is putting an
@@ -59,8 +60,6 @@ function PredictPills({
 export function RoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const rightPct = 100 - leftPct;
-  const yesReturn = estimatedPayoutPerNaira(leftPct);
-  const noReturn = estimatedPayoutPerNaira(rightPct);
   const [entered, setEntered] = useState<EntrySide | null>(null);
 
   return (
@@ -82,7 +81,7 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
         )}
       </div>
 
-      <p className="text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
+      <p className="font-display text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
 
       {entered ? (
         <div className="enter-pop rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-sm">
@@ -98,24 +97,10 @@ export function RoomCard({ room, match }: { room: Room; match: Match }) {
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" showLabels={false} />
 
-      {/* Expected return at entry — pari-mutuel math (estimatedPayoutPerNaira
-          in mock-data.ts), informational only, separate from the pills above
-          so the price and the action aren't the same control. */}
-      {!entered && (
-        <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-muted">
-          <span className="text-center">
-            ₦1 → <span className="font-bold text-rival-green">₦{yesReturn.toFixed(2)}</span>
-          </span>
-          <span className="text-center">
-            ₦1 → <span className="font-bold text-rival-green">₦{noReturn.toFixed(2)}</span>
-          </span>
-        </div>
-      )}
-
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
-          <span>{room.participantCount} rivals</span>
+          <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
           <ShareButton path={`/rooms/${room.id}`} label="room" />
           <BookmarkButton id={room.id} label="room" />
         </div>

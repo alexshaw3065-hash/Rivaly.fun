@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Nav } from "@/components/nav";
 import "./globals.css";
 
@@ -13,11 +14,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Headline-only display face: Cabinet Grotesk (Fontshare, self-hosted CDN —
-// deliberately not a Google Fonts reflex pick like Inter/Space Grotesk/Sora).
-// Confident, slightly unconventional grotesque with real weight range —
-// carries the "editorial sports culture" identity from the redesign brief.
-// Body copy stays on Geist so the rest of the interface stays calm.
+// Headline-only display face: Cabinet Grotesk (Fontshare — deliberately not
+// a Google Fonts reflex pick like Inter/Space Grotesk/Sora). Confident,
+// slightly unconventional grotesque with real weight range — carries the
+// "editorial sports culture" identity from the redesign brief. Body copy
+// stays on Geist so the rest of the interface stays calm.
+//
+// Actually self-hosted (next/font/local, files in src/fonts/) rather than a
+// runtime <link> to Fontshare's CDN — previously the app depended on an
+// external stylesheet fetch on every load; this removes that dependency
+// and gets Next's own font-loading optimizations (no CLS, no external
+// network round-trip) same as Geist above.
+const cabinetGrotesk = localFont({
+  src: [
+    { path: "../fonts/cabinet-grotesk/CabinetGrotesk-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/cabinet-grotesk/CabinetGrotesk-Medium.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/cabinet-grotesk/CabinetGrotesk-Bold.woff2", weight: "700", style: "normal" },
+    { path: "../fonts/cabinet-grotesk/CabinetGrotesk-Extrabold.woff2", weight: "800", style: "normal" },
+  ],
+  variable: "--font-cabinet-grotesk",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Rivaly",
@@ -34,16 +51,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${cabinetGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500&display=swap"
-        />
       </head>
       {/* Deliberately NOT display:flex. Nav's sidebar/header/bottom-bar are
           all fixed or sticky positioned (never flex siblings of the page

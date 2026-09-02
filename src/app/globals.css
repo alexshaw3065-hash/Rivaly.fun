@@ -36,7 +36,7 @@
   --rival-green-dim: #113a28;
   --danger-red: #ef4444;
 
-  --font-display: "Cabinet Grotesk", var(--font-geist-sans), sans-serif;
+  --font-display: var(--font-cabinet-grotesk), var(--font-geist-sans), sans-serif;
 
   /* Desktop-only shell metrics. Read by nav.tsx's sidebar/header (fixed-
      positioned, never flex — see the body comment in layout.tsx) and by
