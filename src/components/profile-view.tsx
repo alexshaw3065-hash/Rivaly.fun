@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import type { Profile, SocialLink } from "@/lib/types";
 import { formatMoney, formatMoneyCompact, repliesByAuthor, activityForProfile } from "@/lib/mock-data";
 import { socialPlatformInfo } from "@/lib/social-platforms";
+import { updateProfile } from "@/app/profile/actions";
 import { Avatar, RING_COLORS, hashToIndex } from "./avatar";
 import { FollowButton } from "./follow-button";
 import { ShareIcon, PencilIcon, SettingsIcon, GiftIcon, PlusIcon } from "./icons";
@@ -66,7 +67,15 @@ function ShareButton() {
 // plus Follow/Challenge — same "actions on the cover" convention as X/
 // Twitter, since there's no room beside the avatar for them once it
 // overlaps the banner.
-function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean }) {
+function ProfileHeader({
+  profile,
+  isSelf,
+  initialFollowing,
+}: {
+  profile: Profile;
+  isSelf: boolean;
+  initialFollowing: boolean;
+}) {
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
@@ -75,6 +84,23 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
   const [ringColor, setRingColor] = useState(RING_COLORS[hashToIndex(profile.id, RING_COLORS.length)]);
   const [bannerColor, setBannerColor] = useState(BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(profile.socialLinks);
+  const [, startSaveTransition] = useTransition();
+
+  // The sheet edits displayName/bio/socialLinks live in local state as you
+  // type (no separate draft vs. committed state) — closing it, by any
+  // route (Save button, backdrop, swipe), is the one moment to actually
+  // persist. ringColor/bannerColor stay local-only for now (see
+  // src/app/profile/actions.ts on why). Fire-and-forget: the sheet is
+  // already closed and the local state already reflects the change, so
+  // there's nothing more for the UI to wait on — a failure here is rare
+  // (only real-account validation, e.g. an empty display name) and not
+  // worth blocking the close on.
+  function closeEditSheet() {
+    setEditOpen(false);
+    startSaveTransition(async () => {
+      await updateProfile({ displayName, bio, socialLinks });
+    });
+  }
 
   return (
     <div>
@@ -98,7 +124,7 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
             </>
           ) : (
             <>
-              <FollowButton />
+              <FollowButton profileId={profile.id} initialFollowing={initialFollowing} />
               <Link
                 href="/rooms/create"
                 className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground backdrop-blur-sm transition-transform duration-150 ease-out active:scale-[0.97]"
@@ -208,7 +234,7 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
         <>
           <ProfileEditSheet
             open={editOpen}
-            onClose={() => setEditOpen(false)}
+            onClose={closeEditSheet}
             displayName={displayName}
             onDisplayNameChange={setDisplayName}
             bio={bio}
@@ -237,7 +263,15 @@ function ProfileHeader({ profile, isSelf }: { profile: Profile; isSelf: boolean 
   );
 }
 
-export function ProfileView({ profile, isSelf }: { profile: Profile; isSelf: boolean }) {
+export function ProfileView({
+  profile,
+  isSelf,
+  initialFollowing = false,
+}: {
+  profile: Profile;
+  isSelf: boolean;
+  initialFollowing?: boolean;
+}) {
   const [tab, setTab] = useState<ProfileTab>("position");
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("open");
 
@@ -249,7 +283,7 @@ export function ProfileView({ profile, isSelf }: { profile: Profile; isSelf: boo
 
   return (
     <>
-      <ProfileHeader profile={profile} isSelf={isSelf} />
+      <ProfileHeader profile={profile} isSelf={isSelf} initialFollowing={initialFollowing} />
 
       <div className="mt-6 grid grid-cols-3 gap-3 border-t border-border pt-6">
         <div className="min-w-0 rounded-lg border border-border bg-surface p-4">

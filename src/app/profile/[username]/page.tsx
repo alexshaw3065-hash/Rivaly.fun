@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProfileByUsername } from "@/lib/supabase/profiles";
+import { getProfileByUsername, currentUserFollows } from "@/lib/supabase/profiles";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { ProfileView } from "@/components/profile-view";
 
@@ -30,9 +30,12 @@ export default async function ProfilePage({
     );
   }
 
+  const isSelf = currentUser !== null && profile.id === currentUser.id;
+  const initialFollowing = isSelf ? false : await currentUserFollows(profile.id);
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
-      <ProfileView profile={profile} isSelf={currentUser !== null && profile.id === currentUser.id} />
+      <ProfileView profile={profile} isSelf={isSelf} initialFollowing={initialFollowing} />
     </main>
   );
 }
