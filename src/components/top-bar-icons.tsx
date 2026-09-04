@@ -5,10 +5,31 @@ import { notifications, formatMoneyCompact } from "@/lib/mock-data";
 import { GiftIcon, BellIcon, PlusIcon } from "./icons";
 import { useWalletBalance } from "@/lib/use-wallet-balance";
 import { openQuickDeposit } from "@/lib/quick-deposit-store";
+import { useCurrentUser } from "./current-user-provider";
 
 export function TopBarIcons({ walletBordered = false }: { walletBordered?: boolean }) {
+  const currentUser = useCurrentUser();
   const hasUnread = notifications.some((n) => !n.read);
   const balance = useWalletBalance();
+
+  // Signed out: invite/notifications/balance are all meaningless (there's
+  // nothing to invite people to yet, no notifications belong to you, and
+  // that balance isn't yours). Desktop already has its own "Sign in" link
+  // right next to this component (desktop-header.tsx) — showing another
+  // one here would just duplicate it, so this collapses to nothing there.
+  // Mobile has no other top-bar sign-in affordance (the only one lives in
+  // the bottom tab bar), so this is that entry point.
+  if (!currentUser) {
+    if (!walletBordered) return null;
+    return (
+      <Link
+        href="/login"
+        className="rounded-full border border-border-strong px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors duration-150"
+      >
+        Login
+      </Link>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2.5 md:gap-3.5">
