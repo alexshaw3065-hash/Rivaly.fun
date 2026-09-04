@@ -21,10 +21,12 @@ export function DesktopHeader({
   pathname,
   selfUsername,
   selfName,
+  selfAvatarUrl,
 }: {
   pathname: string;
   selfUsername: string | null;
   selfName: string | null;
+  selfAvatarUrl?: string | null;
 }) {
   return (
     <header className="header-shell fixed inset-x-0 top-0 z-20 hidden h-16 items-center border-b border-border bg-background/95 backdrop-blur-sm md:flex">
@@ -42,7 +44,7 @@ export function DesktopHeader({
           <ThemeToggle />
           {selfUsername && selfName ? (
             <Link href={`/profile/${selfUsername}`} className="shrink-0">
-              <Avatar name={selfName} size={32} />
+              <Avatar name={selfName} size={32} imageUrl={selfAvatarUrl} />
             </Link>
           ) : (
             <Link

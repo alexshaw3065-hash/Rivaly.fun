@@ -81,6 +81,7 @@ function ProfileHeader({
   const [socialsOpen, setSocialsOpen] = useState(false);
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
   const [ringColor, setRingColor] = useState(RING_COLORS[hashToIndex(profile.id, RING_COLORS.length)]);
   const [bannerColor, setBannerColor] = useState(BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(profile.socialLinks);
@@ -98,7 +99,7 @@ function ProfileHeader({
   function closeEditSheet() {
     setEditOpen(false);
     startSaveTransition(async () => {
-      await updateProfile({ displayName, bio, socialLinks });
+      await updateProfile({ displayName, bio, socialLinks, avatarUrl });
     });
   }
 
@@ -140,7 +141,7 @@ function ProfileHeader({
       <div className="px-1">
         <div className="-mt-10 flex items-end justify-between">
           <div className="rounded-full p-1" style={{ background: "var(--background)" }}>
-            <Avatar name={displayName} size={80} ringColor={ringColor} />
+            <Avatar name={displayName} size={80} ringColor={ringColor} imageUrl={avatarUrl} />
           </div>
         </div>
 
@@ -239,6 +240,8 @@ function ProfileHeader({
             onDisplayNameChange={setDisplayName}
             bio={bio}
             onBioChange={setBio}
+            avatarUrl={avatarUrl}
+            onAvatarUrlChange={setAvatarUrl}
             ringColor={ringColor}
             onRingColorChange={setRingColor}
             bannerColor={bannerColor}

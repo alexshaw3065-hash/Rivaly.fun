@@ -2,19 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isCloudinaryUrl } from "@/lib/cloudinary";
 import type { SocialLink } from "@/lib/types";
 
 export type UpdateProfileResult = { ok: true } | { ok: false; error: string };
 
-// displayName/bio/socialLinks only — ringColor/bannerColor stay a local,
-// session-only preview for now (no ring_color/banner_color columns exist
-// yet; they're a deliberate smaller-scope cut, not an oversight — see
-// profile-edit-sheet.tsx's own comment on why a color picker stands in
-// for a real photo-upload pipeline that doesn't exist yet either).
+// displayName/bio/socialLinks/avatarUrl. ringColor/bannerColor stay a
+// local, session-only preview for now (no ring_color/banner_color columns
+// exist yet — a deliberate smaller-scope cut, not an oversight).
 export async function updateProfile(input: {
   displayName: string;
   bio: string;
   socialLinks: SocialLink[];
+  avatarUrl?: string | null;
 }): Promise<UpdateProfileResult> {
   const supabase = await createClient();
   const {
@@ -22,6 +22,12 @@ export async function updateProfile(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Sign in to edit your profile." };
   if (!input.displayName.trim()) return { ok: false, error: "Display name can't be empty." };
+  // A tampered client request shouldn't be able to point avatar_url at an
+  // arbitrary/oversized/tracking URL — only null or a real Cloudinary
+  // delivery URL (from uploadAvatarImage) is accepted.
+  if (input.avatarUrl != null && !isCloudinaryUrl(input.avatarUrl)) {
+    return { ok: false, error: "Couldn't save that photo — try again." };
+  }
 
   const { error } = await supabase
     .from("profiles")
@@ -29,6 +35,7 @@ export async function updateProfile(input: {
       display_name: input.displayName.trim(),
       bio: input.bio.trim() || null,
       social_links: input.socialLinks,
+      ...(input.avatarUrl !== undefined ? { avatar_url: input.avatarUrl } : {}),
     })
     .eq("id", user.id);
 

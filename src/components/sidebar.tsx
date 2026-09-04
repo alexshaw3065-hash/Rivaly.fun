@@ -78,7 +78,7 @@ export function Sidebar() {
                 {Icon ? (
                   <Icon />
                 ) : currentUser ? (
-                  <Avatar name={currentUser.displayName} size={18} />
+                  <Avatar name={currentUser.displayName} size={18} imageUrl={currentUser.avatarUrl} />
                 ) : (
                   <KeyIcon />
                 )}

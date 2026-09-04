@@ -86,7 +86,7 @@ export default async function RoomPage({
           href={`/profile/${creator.username}`}
           className="hover-link mt-3 inline-flex items-center gap-2 text-sm text-muted transition-colors"
         >
-          <Avatar name={creator.displayName} size={22} />
+          <Avatar name={creator.displayName} size={22} imageUrl={creator.avatarUrl} />
           Created by {creator.displayName}
         </Link>
       )}

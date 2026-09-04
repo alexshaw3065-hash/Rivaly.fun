@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { SocialLink } from "@/lib/types";
 import { socialPlatformInfo } from "@/lib/social-platforms";
+import { uploadAvatarImage, MAX_AVATAR_BYTES, ALLOWED_AVATAR_TYPES } from "@/lib/cloudinary";
 import { Avatar, RING_COLORS } from "./avatar";
 import { BottomSheet } from "./bottom-sheet";
 import { PencilIcon, XIcon } from "./icons";
@@ -41,13 +42,13 @@ function PencilBadge({ onClick }: { onClick: () => void }) {
   );
 }
 
-// No photo-upload pipeline exists yet (Cloudinary isn't wired up), so
-// "editing your pfp/banner" honestly means picking from the same on-brand
-// color set the app already derives them from by default — tap the pencil
-// badge on either image to reveal that picker inline, same "tap the photo
-// to change it" affordance as the Reddit reference, just backed by a real
-// choice instead of a fake upload button. Display Name/bio/social links
-// round out the rest of the reference's structure.
+// Banner stays a color picker — no banner-image pipeline yet (a
+// deliberate smaller-scope cut, not an oversight). The avatar itself is a
+// real upload now (see cloudinary.ts): tap the photo to pick a file, tap
+// the pencil badge to reveal the ring-color picker (unchanged) — two
+// separate affordances on the same element, same "tap the photo to change
+// it" idea as the original Reddit reference, just backed by a real upload
+// where the avatar's concerned.
 export function ProfileEditSheet({
   open,
   onClose,
@@ -55,6 +56,8 @@ export function ProfileEditSheet({
   onDisplayNameChange,
   bio,
   onBioChange,
+  avatarUrl,
+  onAvatarUrlChange,
   ringColor,
   onRingColorChange,
   bannerColor,
@@ -68,6 +71,8 @@ export function ProfileEditSheet({
   onDisplayNameChange: (v: string) => void;
   bio: string;
   onBioChange: (v: string) => void;
+  avatarUrl: string | null;
+  onAvatarUrlChange: (v: string | null) => void;
   ringColor: string;
   onRingColorChange: (v: string) => void;
   bannerColor: string;
@@ -78,7 +83,41 @@ export function ProfileEditSheet({
   const [editingBanner, setEditingBanner] = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const BIO_MAX = 160;
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow picking the same file again later
+    if (!file) return;
+
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setUploadError("Use a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setUploadError("Keep it under 5MB.");
+      return;
+    }
+
+    setUploadError(null);
+    const blobUrl = URL.createObjectURL(file);
+    setPreviewUrl(blobUrl);
+    setUploading(true);
+    try {
+      const url = await uploadAvatarImage(file);
+      onAvatarUrlChange(url);
+    } catch {
+      setUploadError("Couldn't upload — try again.");
+    } finally {
+      setUploading(false);
+      setPreviewUrl(null);
+      URL.revokeObjectURL(blobUrl);
+    }
+  }
 
   return (
     <BottomSheet
@@ -102,7 +141,26 @@ export function ProfileEditSheet({
             </div>
             <div className="absolute -bottom-8 left-3 rounded-full p-0.5" style={{ background: "var(--surface)" }}>
               <div className="relative">
-                <Avatar name={displayName} size={64} ringColor={ringColor} />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Change photo"
+                  className="block rounded-full transition-opacity"
+                  style={{ opacity: uploading ? 0.6 : 1 }}
+                >
+                  <Avatar
+                    name={displayName}
+                    size={64}
+                    ringColor={ringColor}
+                    imageUrl={previewUrl ?? avatarUrl}
+                  />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
                 <div className="absolute -bottom-1 -right-1">
                   <PencilBadge onClick={() => setEditingAvatar((v) => !v)} />
                 </div>
@@ -118,13 +176,24 @@ export function ProfileEditSheet({
             </div>
           )}
           {editingAvatar && (
-            <div className={`enter-row flex justify-center gap-2.5 ${editingBanner ? "mt-3" : "mt-11"}`}>
-              {RING_COLORS.map((c) => (
-                <Swatch key={c} color={c} active={c === ringColor} onClick={() => onRingColorChange(c)} />
-              ))}
+            <div className={`enter-row flex flex-col items-center gap-2 ${editingBanner ? "mt-3" : "mt-11"}`}>
+              <div className="flex justify-center gap-2.5">
+                {RING_COLORS.map((c) => (
+                  <Swatch key={c} color={c} active={c === ringColor} onClick={() => onRingColorChange(c)} />
+                ))}
+              </div>
+              {avatarUrl && (
+                <button
+                  onClick={() => onAvatarUrlChange(null)}
+                  className="hover-link text-xs text-muted transition-colors"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
           )}
-          {!editingBanner && !editingAvatar && <div className="mt-9" />}
+          {uploadError && <p className="mt-2 text-center text-xs text-danger-red">{uploadError}</p>}
+          {!editingBanner && !editingAvatar && !uploadError && <div className="mt-9" />}
         </div>
 
         <div>

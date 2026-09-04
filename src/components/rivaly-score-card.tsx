@@ -56,7 +56,7 @@ export function RivalyScoreCard({ profile, breakdown }: { profile: Profile; brea
 
         <div className="flex flex-1 flex-col items-center justify-center gap-2">
           <div className="rounded-full p-1" style={{ background: "rgba(255,255,255,0.35)" }}>
-            <Avatar name={profile.displayName} size={72} ringColor={ringColor} />
+            <Avatar name={profile.displayName} size={72} ringColor={ringColor} imageUrl={profile.avatarUrl} />
           </div>
           <p className="text-lg font-bold" style={{ color: CARD_TEXT }}>
             {profile.displayName}

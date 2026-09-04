@@ -72,6 +72,7 @@ export function Nav({ children }: { children: ReactNode }) {
         pathname={pathname}
         selfUsername={currentUser?.username ?? null}
         selfName={currentUser?.displayName ?? null}
+        selfAvatarUrl={currentUser?.avatarUrl}
       />
       <MobileSearchOverlay />
       <QuickDepositSheet />

@@ -22,7 +22,7 @@ export function ChatMessageRow({ message }: { message: DisplayChatMessage }) {
 
   return (
     <div className="flex h-full items-center gap-2.5">
-      <Avatar name={displayName} size={26} />
+      <Avatar name={displayName} size={26} imageUrl={message.authorAvatarUrl} />
       <p className="min-w-0 flex-1 truncate text-sm leading-snug text-foreground">
         <span className="font-medium">{displayName}</span>{" "}
         <span className="text-muted">{message.body}</span>
