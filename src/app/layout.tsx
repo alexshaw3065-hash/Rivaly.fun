@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Nav } from "@/components/nav";
 import { CurrentUserProvider } from "@/components/current-user-provider";
+import { DynamicProvider } from "@/components/dynamic-provider";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import "./globals.css";
 
@@ -80,7 +81,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           overflow-x-hidden stays as a cheap backstop. */}
       <body className="min-h-full overflow-x-hidden bg-background text-foreground pb-16 md:pb-0">
         <CurrentUserProvider profile={currentProfile}>
-          <Nav>{children}</Nav>
+          <DynamicProvider>
+            <Nav>{children}</Nav>
+          </DynamicProvider>
         </CurrentUserProvider>
       </body>
     </html>
