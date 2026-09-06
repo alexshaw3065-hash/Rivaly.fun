@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { EntrySide, Match } from "@/lib/types";
-import { formatMoney, splitPct, estimatedPayoutPerNaira, kickoffCountdownCompact } from "@/lib/mock-data";
+import { formatMoney, splitPct, kickoffCountdownCompact } from "@/lib/mock-data";
 import { splitPctFromTotals, type RoomWithTotals } from "@/lib/supabase/room-mapper";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
@@ -17,9 +17,12 @@ import { RivalsInRoom } from "./rivals-in-room";
 // the pill IS the join control, one tap commits, no separate confirm —
 // see join-panel.tsx for the two-step version the full room uses, which
 // a feed card has no room to replicate). Pill-shaped and always visible,
-// not hidden behind a reveal step. Plain outline, no percentage baked
-// in — the split bar's own labels above already show Yes/No's percentage,
-// so the pill only ever needs to carry the pick itself.
+// not hidden behind a reveal step. No percentage baked in — the split
+// bar's own labels above already show Yes/No's percentage, so the pill
+// only ever needs to carry the pick itself. A light tint of the side's
+// own color sits behind each pill (not fully transparent, not a full
+// solid fill either) so the pick reads as a real surface, not just an
+// outline.
 function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -30,7 +33,11 @@ function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
           onPick("yes");
         }}
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
-        style={{ borderColor: "var(--rival-blue)", color: "var(--rival-blue)" }}
+        style={{
+          borderColor: "var(--rival-blue)",
+          color: "var(--rival-blue)",
+          background: "color-mix(in srgb, var(--rival-blue) 14%, transparent)",
+        }}
       >
         Yes
       </button>
@@ -41,7 +48,11 @@ function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
           onPick("no");
         }}
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
-        style={{ borderColor: "var(--danger-red)", color: "var(--danger-red)" }}
+        style={{
+          borderColor: "var(--danger-red)",
+          color: "var(--danger-red)",
+          background: "color-mix(in srgb, var(--danger-red) 14%, transparent)",
+        }}
       >
         No
       </button>
@@ -57,9 +68,6 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
     room.yesTotalCents !== undefined
       ? splitPctFromTotals(room.yesTotalCents, room.noTotalCents ?? 0)
       : splitPct(room);
-  const rightPct = 100 - leftPct;
-  const yesReturn = estimatedPayoutPerNaira(leftPct);
-  const noReturn = estimatedPayoutPerNaira(rightPct);
   const countdown = kickoffCountdownCompact(match);
   const [entered, setEntered] = useState<EntrySide | null>(null);
 
@@ -97,32 +105,6 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
         </div>
       ) : (
         <PredictPills onPick={(side) => setEntered(side)} />
-      )}
-
-      {/* Expected return at entry — pari-mutuel math (estimatedPayoutPerNaira
-          in mock-data.ts), informational only, separate from the pills above
-          so the price and the action aren't the same control. */}
-      {!entered && (
-        <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-muted">
-          <span className="text-center">
-            {yesReturn !== null ? (
-              <>
-                ₦1 → <span className="font-bold text-rival-green">₦{yesReturn.toFixed(2)}</span>
-              </>
-            ) : (
-              "Be the first"
-            )}
-          </span>
-          <span className="text-center">
-            {noReturn !== null ? (
-              <>
-                ₦1 → <span className="font-bold text-rival-green">₦{noReturn.toFixed(2)}</span>
-              </>
-            ) : (
-              "Be the first"
-            )}
-          </span>
-        </div>
       )}
 
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
