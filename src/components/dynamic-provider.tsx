@@ -12,6 +12,7 @@ import { SolanaWalletConnectors } from "@dynamic-labs/solana";
 import { createClient } from "@/lib/supabase/client";
 import { bridgeDynamicSession } from "@/app/auth/dynamic-actions";
 import { useCurrentUser } from "./current-user-provider";
+import { useIsLightTheme } from "./theme-toggle";
 import { getAuthModalNext, useAuthModalState } from "@/lib/auth-modal-store";
 
 const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
@@ -85,6 +86,12 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [bridging, setBridging] = useState(false);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+  // Dynamic's own modal has no "auto" that follows Rivaly's manual
+  // light/dark toggle (its own "auto" only follows the OS's
+  // prefers-color-scheme) — this keeps the two in sync explicitly instead.
+  // A separate top-level prop from `settings`, so changing it can't trip
+  // the settings-memoization issue described below.
+  const isLightTheme = useIsLightTheme();
 
   const handleAuthSuccess = useCallback(async () => {
     const dynamicJwt = getAuthToken();
@@ -141,7 +148,7 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <DynamicContextProvider settings={settings}>
+    <DynamicContextProvider settings={settings} theme={isLightTheme ? "light" : "dark"}>
       <DynamicAuthWatcher onAuthSuccess={handleAuthSuccess} />
       <AuthFlowTrigger onUrlError={setBridgeError} />
       {children}
