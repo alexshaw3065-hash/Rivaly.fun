@@ -40,8 +40,35 @@ import { RivalsInRoom } from "./rivals-in-room";
 // legible it needed enough blur/scrim that it stopped reading as a real
 // stadium and just became a colored gradient wash, which wasn't actually
 // delivering any atmosphere in exchange for its real costs (one photo
-// standing in for every match, file weight, licensing). Plain
-// bg-surface-elevated instead.
+// standing in for every match, file weight, licensing).
+//
+// This replaces that with an invented mark instead of a photo: an
+// abstract floodlight silhouette, bled off the top-right corner at low
+// opacity. It's line art (currentColor, no blur/glow filter), so it
+// inverts correctly for free in light mode and costs nothing in file
+// weight — no per-match photo problem, because it was never a photo of
+// anything. Reserved for this card specifically: it's the page's one
+// signature artifact, not a pattern to repeat on every room card.
+function FloodlightMark() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 160 160"
+      className="pointer-events-none absolute -right-5 -top-5 -z-10 h-32 w-32 text-foreground opacity-[0.07]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+    >
+      <line x1="40" y1="152" x2="40" y2="30" />
+      <path d="M20 30 L60 30 L67 16 L13 16 Z" />
+      <line x1="40" y1="23" x2="145" y2="55" />
+      <line x1="40" y1="23" x2="154" y2="88" />
+      <line x1="40" y1="23" x2="148" y2="121" />
+      <line x1="40" y1="23" x2="122" y2="148" />
+    </svg>
+  );
+}
+
 export function ExplodingRoomCard({ room, match }: { room: Room; match: Match }) {
   const leftPct = splitPct(room);
   const momentum = momentumCount(room);
@@ -51,8 +78,10 @@ export function ExplodingRoomCard({ room, match }: { room: Room; match: Match })
   return (
     <Link
       href={`/rooms/${room.id}`}
-      className="flex h-full flex-col gap-4 rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
+      className="relative flex h-full flex-col gap-4 overflow-hidden rounded-xl border border-border-strong bg-surface-elevated p-5 transition-transform duration-150 ease-out active:scale-[0.98]"
     >
+      <FloodlightMark />
+
       <div className="flex items-center justify-between">
         <span className="block h-[3px] w-9 rounded-full" style={{ background: "var(--rival-blue)" }} />
         <div className="flex items-center gap-3">
