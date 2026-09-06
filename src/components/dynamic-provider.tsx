@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DynamicContextProvider, getAuthToken, useIsLoggedIn } from "@dynamic-labs/sdk-react-core";
+import {
+  DynamicContextProvider,
+  getAuthToken,
+  useDynamicContext,
+  useIsLoggedIn,
+} from "@dynamic-labs/sdk-react-core";
 import { SolanaWalletConnectors } from "@dynamic-labs/solana";
 import { createClient } from "@/lib/supabase/client";
 import { bridgeDynamicSession } from "@/app/auth/dynamic-actions";
 import { useCurrentUser } from "./current-user-provider";
+import { getAuthModalNext, useAuthModalState } from "@/lib/auth-modal-store";
 
 const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
 // Stable reference across renders — see the memoization note below on why
@@ -34,6 +40,36 @@ function DynamicAuthWatcher({ onAuthSuccess }: { onAuthSuccess: () => void }) {
       onAuthSuccess();
     }
   }, [isLoggedIn, currentUser, onAuthSuccess]);
+
+  return null;
+}
+
+const ERROR_MESSAGES: Record<string, string> = {
+  missing_code: "That sign-in link was incomplete — try again.",
+  auth_failed: "That sign-in link expired or was already used — try again.",
+};
+
+// The actual sign-in/sign-up UI is Dynamic's own prebuilt modal, not a
+// custom-built one — it already covers Google, email OTP, and 150+ wallets
+// out of the box, and any look-and-feel changes happen in Dynamic's own
+// dashboard (Design settings), not in this codebase. This component is just
+// the bridge: every openAuthModal() call anywhere in the app (the nav CTA,
+// a protected action's redirect, the /login route shim) bumps openId in
+// auth-modal-store.ts, and this watcher reacts to that by calling Dynamic's
+// setShowAuthFlow(true) — it has to live inside DynamicContextProvider's
+// tree since that hook only works for its descendants, which DynamicAuthBridge
+// itself (the component that renders DynamicContextProvider) isn't.
+function AuthFlowTrigger({ onUrlError }: { onUrlError: (message: string) => void }) {
+  const { setShowAuthFlow } = useDynamicContext();
+  const { error, openId } = useAuthModalState();
+  const seen = useRef(0);
+
+  useEffect(() => {
+    if (openId === seen.current) return;
+    seen.current = openId;
+    if (error) onUrlError(ERROR_MESSAGES[error] ?? error);
+    setShowAuthFlow(true);
+  }, [openId, error, setShowAuthFlow, onUrlError]);
 
   return null;
 }
@@ -75,12 +111,12 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Read directly off the URL rather than useSearchParams() — this
-    // handler runs in response to an event, not during render, and
-    // avoiding the hook here keeps this provider (mounted at the root
-    // layout, wrapping the whole app) from forcing every route into
-    // Suspense-gated dynamic rendering just for this one login-only need.
-    const next = new URLSearchParams(window.location.search).get("next") ?? "/";
+    // Read off the auth-modal store rather than the URL — the modal can
+    // now open over any page (not just a dedicated /login?next=... route),
+    // so by the time a login actually finishes, the page the user is
+    // sitting on may have no relationship to where they were headed. The
+    // store is the one place that value still reliably exists.
+    const next = getAuthModalNext();
     const destination = result.usernameIsPlaceholder
       ? `/auth/complete-profile?next=${encodeURIComponent(next)}`
       : next;
@@ -107,6 +143,7 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
   return (
     <DynamicContextProvider settings={settings}>
       <DynamicAuthWatcher onAuthSuccess={handleAuthSuccess} />
+      <AuthFlowTrigger onUrlError={setBridgeError} />
       {children}
 
       {/* An immediate, branded full-screen transition the instant Dynamic

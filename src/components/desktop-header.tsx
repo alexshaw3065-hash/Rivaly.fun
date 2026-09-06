@@ -3,6 +3,7 @@ import { TopBarIcons } from "./top-bar-icons";
 import { ThemeToggle } from "./theme-toggle";
 import { Avatar } from "./avatar";
 import { DesktopSearchBox } from "./desktop-search-box";
+import { openAuthModal } from "@/lib/auth-modal-store";
 
 // Desktop-only (hidden md:flex) top bar, offset by the sidebar's current
 // width (see .header-shell in globals.css) — fixed positioned, not a flex
@@ -47,12 +48,13 @@ export function DesktopHeader({
               <Avatar name={selfName} size={32} imageUrl={selfAvatarUrl} />
             </Link>
           ) : (
-            <Link
-              href="/login"
-              className="shrink-0 rounded-md border border-border-strong px-3.5 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:border-border-strong"
+            <button
+              onClick={() => openAuthModal()}
+              className="shrink-0 rounded-md px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+              style={{ background: "var(--rival-blue)" }}
             >
-              Sign in
-            </Link>
+              Sign up
+            </button>
           )}
         </div>
       </div>
