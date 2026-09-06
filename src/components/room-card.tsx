@@ -17,22 +17,10 @@ import { RivalsInRoom } from "./rivals-in-room";
 // the pill IS the join control, one tap commits, no separate confirm —
 // see join-panel.tsx for the two-step version the full room uses, which
 // a feed card has no room to replicate). Pill-shaped and always visible,
-// not hidden behind a reveal step. Each pill carries its own side's
-// percentage directly ("Yes 73%") — the same number the split bar's own
-// labels used to show above it, which is why those are switched off here
-// (SplitBar's showLabels={false}) rather than shown twice. A light tint
-// of the side's own color sits behind each pill (not fully transparent,
-// not a full solid fill either) so the pick reads as a real surface, not
-// just an outline.
-function PredictPills({
-  leftPct,
-  rightPct,
-  onPick,
-}: {
-  leftPct: number;
-  rightPct: number;
-  onPick: (side: EntrySide) => void;
-}) {
+// not hidden behind a reveal step. Plain outline, no percentage baked
+// in — the split bar's own labels above already show Yes/No's percentage,
+// so the pill only ever needs to carry the pick itself.
+function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
   return (
     <div className="grid grid-cols-2 gap-2">
       <button
@@ -42,13 +30,9 @@ function PredictPills({
           onPick("yes");
         }}
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
-        style={{
-          borderColor: "var(--rival-blue)",
-          color: "var(--rival-blue)",
-          background: "color-mix(in srgb, var(--rival-blue) 14%, transparent)",
-        }}
+        style={{ borderColor: "var(--rival-blue)", color: "var(--rival-blue)" }}
       >
-        Yes {leftPct}%
+        Yes
       </button>
       <button
         onClick={(e) => {
@@ -57,13 +41,9 @@ function PredictPills({
           onPick("no");
         }}
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
-        style={{
-          borderColor: "var(--danger-red)",
-          color: "var(--danger-red)",
-          background: "color-mix(in srgb, var(--danger-red) 14%, transparent)",
-        }}
+        style={{ borderColor: "var(--danger-red)", color: "var(--danger-red)" }}
       >
-        No {rightPct}%
+        No
       </button>
     </div>
   );
@@ -105,6 +85,8 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
 
       <p className="text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
 
+      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
+
       {entered ? (
         <div className="enter-pop rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-sm">
           <span className="font-medium text-foreground">You&rsquo;re in</span>
@@ -114,10 +96,8 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
           </span>
         </div>
       ) : (
-        <PredictPills leftPct={leftPct} rightPct={rightPct} onPick={(side) => setEntered(side)} />
+        <PredictPills onPick={(side) => setEntered(side)} />
       )}
-
-      <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" showLabels={false} />
 
       {/* Expected return at entry — pari-mutuel math (estimatedPayoutPerNaira
           in mock-data.ts), informational only, separate from the pills above
