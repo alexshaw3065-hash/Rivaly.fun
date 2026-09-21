@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { createClient } from "@/lib/supabase/client";
+import { useSignOut } from "@/lib/use-sign-out";
 import { BottomSheet } from "./bottom-sheet";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -23,24 +20,11 @@ export function ProfileSettingsSheet({
   onClose: () => void;
   createdAt: string;
 }) {
-  const router = useRouter();
-  const { handleLogOut } = useDynamicContext();
-  const [signingOut, setSigningOut] = useState(false);
+  const { signOut, signingOut } = useSignOut();
 
-  // Order matters: DynamicAuthWatcher (dynamic-provider.tsx) auto-recovers
-  // whenever it sees Dynamic thinks you're logged in but Rivaly has no
-  // session — the exact shape a naive sign-out leaves behind for a moment.
-  // Signing out of Dynamic first means its isLoggedIn flips to false
-  // before currentUser has any chance to go null (that only happens once
-  // router.refresh() re-runs the server-side profile fetch), so that
-  // watcher's condition is never true during the transition.
   async function handleSignOut() {
-    setSigningOut(true);
-    await handleLogOut();
-    await createClient().auth.signOut();
+    await signOut();
     onClose();
-    router.push("/");
-    router.refresh();
   }
 
   return (

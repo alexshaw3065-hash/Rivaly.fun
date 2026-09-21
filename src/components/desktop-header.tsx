@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TopBarIcons } from "./top-bar-icons";
 import { ThemeToggle } from "./theme-toggle";
-import { Avatar } from "./avatar";
+import { DesktopAccountMenu } from "./desktop-account-menu";
 import { DesktopSearchBox } from "./desktop-search-box";
 import { openAuthModal } from "@/lib/auth-modal-store";
 
@@ -44,9 +44,7 @@ export function DesktopHeader({
           <TopBarIcons />
           <ThemeToggle />
           {selfUsername && selfName ? (
-            <Link href={`/profile/${selfUsername}`} className="shrink-0">
-              <Avatar name={selfName} size={32} imageUrl={selfAvatarUrl} />
-            </Link>
+            <DesktopAccountMenu username={selfUsername} name={selfName} avatarUrl={selfAvatarUrl} />
           ) : (
             <button
               onClick={() => openAuthModal()}

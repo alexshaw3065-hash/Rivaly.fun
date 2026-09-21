@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MoreIcon, SunIcon, MoonIcon, XIcon, TiktokIcon, LinkedInIcon } from "./icons";
 import { ThemeToggle, useIsLightTheme } from "./theme-toggle";
+import { useCurrentUser } from "./current-user-provider";
+import { useSignOut } from "@/lib/use-sign-out";
 
 const menuLinks = [
   { href: "/docs", label: "Documentation" },
@@ -32,6 +34,8 @@ export function MobileMoreMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isLight = useIsLightTheme();
+  const currentUser = useCurrentUser();
+  const { signOut, signingOut } = useSignOut();
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +97,21 @@ export function MobileMoreMenu() {
               </Link>
             ))}
           </div>
+
+          {currentUser && (
+            <div className="border-t border-border p-3">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  signOut();
+                }}
+                disabled={signingOut}
+                className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-danger-red transition-colors hover:bg-surface-elevated disabled:opacity-40"
+              >
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-7 border-t border-border py-4">
             {socialIcons.map(({ label, Icon }) => (
