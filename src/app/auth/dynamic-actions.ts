@@ -27,15 +27,12 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
 
   const { data: existing } = await admin
     .from("profiles")
-    .select("id, username_is_placeholder")
+    .select("id, username_is_placeholder, dynamic_wallet_address")
     .eq("dynamic_user_id", dynamicUser.dynamicUserId)
     .maybeSingle();
 
   let userId = existing?.id as string | undefined;
   let email = dynamicUser.email;
-  // Dynamic never collects a Rivaly username, so handle_new_user() always
-  // marks a brand-new signup as a placeholder — same flow OAuth signups
-  // already go through via /auth/complete-profile.
   const usernameIsPlaceholder = existing?.username_is_placeholder ?? true;
 
   if (!userId) {
@@ -63,6 +60,18 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
     // re-derive it, so the magiclink below always targets a stable address.
     const { data: userRow } = await admin.auth.admin.getUserById(userId);
     email = userRow.user?.email ?? null;
+  }
+
+  // Self-healing, not just set-once-at-creation: confirmed via Dynamic's
+  // own User Management dashboard that every real test signup so far has a
+  // real embedded Solana wallet on Dynamic's side, yet dynamic_wallet_address
+  // stayed null on every one of those profiles — the embedded wallet isn't
+  // provisioned in time to be in the very first token handle_new_user() saw
+  // at account-creation. Every login re-verifies a fresh token, so just
+  // keep checking here — the next login after Dynamic finishes provisioning
+  // it fills this in for free, no separate backfill job needed.
+  if (dynamicUser.walletAddress && dynamicUser.walletAddress !== existing?.dynamic_wallet_address) {
+    await admin.from("profiles").update({ dynamic_wallet_address: dynamicUser.walletAddress }).eq("id", userId);
   }
 
   if (!email) {

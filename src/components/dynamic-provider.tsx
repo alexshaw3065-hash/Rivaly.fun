@@ -27,6 +27,12 @@ import { getAuthModalNext, useAuthModalState } from "@/lib/auth-modal-store";
 // psychology's SportyBet note: remove friction, don't decorate it).
 const BRIDGING_PHRASES = ["Verifying your login…", "Setting up your account…", "Almost there…"];
 
+// Real hang found via a real signup recording: with no timeout, a stalled
+// step (network hiccup, a hung serverless call) left the bridging overlay
+// on screen indefinitely — the only way out was a manual page refresh.
+// This caps the wait instead of trusting every step to always resolve.
+const BRIDGE_TIMEOUT_MS = 15000;
+
 const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
 // Stable reference across renders — see the memoization note below on why
 // this matters.
@@ -119,44 +125,85 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [bridging]);
 
+  // Guards against a real double-fire: Dynamic's own onAuthSuccess event
+  // and DynamicAuthWatcher's recovery effect both call this same function,
+  // and nothing previously stopped both from running concurrently for the
+  // same real login (the watcher's isLoggedIn && !currentUser condition
+  // can be true for a moment even during a completely normal login, before
+  // the bridge has had a chance to establish a session). Two concurrent
+  // bridge attempts racing generateLink against each other is exactly the
+  // kind of thing that invalidates the other's magic-link token underneath
+  // it — a re-entrant call while one is already running is just a no-op.
+  const inFlightRef = useRef(false);
+
   const handleAuthSuccess = useCallback(async () => {
+    if (inFlightRef.current) return;
     const dynamicJwt = getAuthToken();
     if (!dynamicJwt) return;
 
+    inFlightRef.current = true;
     setBridgeError(null);
     setPhraseIndex(0);
     setBridging(true);
 
-    const result = await bridgeDynamicSession(dynamicJwt);
-    if (!result.ok) {
+    // Found via a real signup recording: with no timeout, a stalled step
+    // left this overlay on screen indefinitely — the sign-in had actually
+    // already gone through underneath it, invisible behind the stuck full-
+    // screen state, and the only way out was a manual refresh. This just
+    // stops blocking the UI past a reasonable wait; it doesn't cancel the
+    // underlying work, so a slow-but-eventually-successful attempt still
+    // redirects on its own if it finishes after the timeout fires.
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      inFlightRef.current = false;
       setBridging(false);
-      setBridgeError(result.error);
-      return;
+      setBridgeError("That's taking longer than expected — try again.");
+    }, BRIDGE_TIMEOUT_MS);
+
+    try {
+      const result = await bridgeDynamicSession(dynamicJwt);
+      if (!result.ok) {
+        if (!timedOut) setBridgeError(result.error);
+        return;
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: result.hashedToken,
+        type: "magiclink",
+      });
+      if (error) {
+        if (!timedOut) setBridgeError("Couldn't sign you in — try again.");
+        return;
+      }
+
+      // Read off the auth-modal store rather than the URL — the modal can
+      // now open over any page (not just a dedicated /login?next=...
+      // route), so by the time a login actually finishes, the page the
+      // user is sitting on may have no relationship to where they were
+      // headed. The store is the one place that value still reliably
+      // exists.
+      const next = getAuthModalNext();
+      const destination = result.usernameIsPlaceholder
+        ? `/auth/complete-profile?next=${encodeURIComponent(next)}`
+        : next;
+
+      router.push(destination);
+      router.refresh();
+    } finally {
+      clearTimeout(timeoutId);
+      // DynamicProvider wraps the whole app at the root layout and never
+      // unmounts on a client-side navigation — router.push above changes
+      // the page underneath, not this component, so bridging has to be
+      // explicitly cleared here. This exact line was missing before: the
+      // success path used to just navigate away and leave bridging stuck
+      // true forever, which is why the overlay never went away on its own.
+      if (!timedOut) {
+        setBridging(false);
+        inFlightRef.current = false;
+      }
     }
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: result.hashedToken,
-      type: "magiclink",
-    });
-    if (error) {
-      setBridging(false);
-      setBridgeError("Couldn't sign you in — try again.");
-      return;
-    }
-
-    // Read off the auth-modal store rather than the URL — the modal can
-    // now open over any page (not just a dedicated /login?next=... route),
-    // so by the time a login actually finishes, the page the user is
-    // sitting on may have no relationship to where they were headed. The
-    // store is the one place that value still reliably exists.
-    const next = getAuthModalNext();
-    const destination = result.usernameIsPlaceholder
-      ? `/auth/complete-profile?next=${encodeURIComponent(next)}`
-      : next;
-
-    router.push(destination);
-    router.refresh();
   }, [router]);
 
   // DynamicContextProvider takes this whole object as one `settings` prop —
@@ -180,20 +227,23 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
       <AuthFlowTrigger onUrlError={setBridgeError} />
       {children}
 
-      {/* An immediate, branded full-screen transition the instant Dynamic
-          confirms login — not a spinner glued to the button someone just
-          tapped. The bridge's real latency (see the login-speed
-          conversation this was designed against) finishes underneath
-          this, out of sight, rather than leaving the sign-in form up
-          while it works. */}
+      {/* A dimmed overlay, not an opaque full-page takeover — same
+          backdrop-plus-centered-card treatment Dynamic's own "Logging you
+          in" step already uses, so this reads as one continuous moment
+          instead of two different UI languages back to back. The page
+          stays dimly visible underneath instead of vanishing behind a flat
+          background, which also makes it obvious this is a brief overlay
+          on top of something, not a new screen you've navigated to. */}
       {bridging && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
-          <div style={{ animation: "live-pulse 1.6s ease-in-out infinite" }}>
-            <RivalyWordmark />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface-elevated px-10 py-8 shadow-2xl">
+            <div style={{ animation: "live-pulse 1.6s ease-in-out infinite" }}>
+              <RivalyWordmark />
+            </div>
+            <p key={phraseIndex} className="stagger-in font-display text-sm text-muted" role="status">
+              {BRIDGING_PHRASES[phraseIndex]}
+            </p>
           </div>
-          <p key={phraseIndex} className="stagger-in font-display text-sm text-muted" role="status">
-            {BRIDGING_PHRASES[phraseIndex]}
-          </p>
         </div>
       )}
       {bridgeError && !bridging && (
