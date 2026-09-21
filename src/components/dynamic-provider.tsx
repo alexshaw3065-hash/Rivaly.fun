@@ -11,6 +11,7 @@ import {
 import { SolanaWalletConnectors } from "@dynamic-labs/solana";
 import { createClient } from "@/lib/supabase/client";
 import { bridgeDynamicSession } from "@/app/auth/dynamic-actions";
+import { prewarmDynamicAuth } from "@/app/auth/prewarm";
 import { useCurrentUser } from "./current-user-provider";
 import { useIsLightTheme } from "./theme-toggle";
 import { RivalyWordmark } from "./rivaly-wordmark";
@@ -88,6 +89,9 @@ function AuthFlowTrigger({ onUrlError }: { onUrlError: (message: string) => void
     seen.current = openId;
     if (error) onUrlError(ERROR_MESSAGES[error] ?? error);
     setShowAuthFlow(true);
+    // Fire-and-forget — see prewarm.ts for why. Never awaited: the modal
+    // must open immediately regardless of whether this succeeds.
+    void prewarmDynamicAuth();
   }, [openId, error, setShowAuthFlow, onUrlError]);
 
   return null;

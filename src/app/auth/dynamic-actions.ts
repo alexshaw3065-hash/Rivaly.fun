@@ -69,19 +69,27 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
   // provisioned in time to be in the very first token handle_new_user() saw
   // at account-creation. Every login re-verifies a fresh token, so just
   // keep checking here — the next login after Dynamic finishes provisioning
-  // it fills this in for free, no separate backfill job needed.
-  if (dynamicUser.walletAddress && dynamicUser.walletAddress !== existing?.dynamic_wallet_address) {
-    await admin.from("profiles").update({ dynamic_wallet_address: dynamicUser.walletAddress }).eq("id", userId);
-  }
+  // it fills this in for free, no separate backfill job needed. Kicked off
+  // here rather than awaited immediately: it writes to a different row
+  // (profiles) than generateLink touches (auth.users' session state), so
+  // there's no correctness reason for the sign-in to wait on it — it runs
+  // alongside generateLink below instead of adding its own latency in front
+  // of it. Its own errors were never surfaced even before this change
+  // (best-effort), so running it concurrently doesn't change what the
+  // caller can observe, only how long it takes.
+  const walletUpdate =
+    dynamicUser.walletAddress && dynamicUser.walletAddress !== existing?.dynamic_wallet_address
+      ? admin.from("profiles").update({ dynamic_wallet_address: dynamicUser.walletAddress }).eq("id", userId)
+      : null;
 
   if (!email) {
     return { ok: false, error: "Couldn't sign you in — try again." };
   }
 
-  const { data: link, error: linkError } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-  });
+  const [, { data: link, error: linkError }] = await Promise.all([
+    walletUpdate ?? Promise.resolve(null),
+    admin.auth.admin.generateLink({ type: "magiclink", email }),
+  ]);
   if (linkError || !link) {
     return { ok: false, error: "Couldn't sign you in — try again." };
   }
