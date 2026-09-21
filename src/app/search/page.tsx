@@ -8,7 +8,7 @@ import { SearchBody } from "@/components/search-body";
 // scope, and search-body.tsx for the actual idle/browse/query states.
 export default function SearchPage() {
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-6 py-6 md:pb-12 md:pt-12">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:pb-12 md:pt-12">
       <SearchBody />
     </main>
   );

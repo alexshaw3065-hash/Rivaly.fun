@@ -37,7 +37,7 @@ export default function WishlistPage() {
   const hasAnything = savedRooms.length + savedMatches.length + savedTopics.length > 0;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main className="mx-auto max-w-4xl px-4 py-12 md:px-6">
       <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Wishlist</h1>
       <p className="mt-1 text-sm text-muted">Rooms, matches, and topics you&rsquo;ve bookmarked to come back to.</p>
 

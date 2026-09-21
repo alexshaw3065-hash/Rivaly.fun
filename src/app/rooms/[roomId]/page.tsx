@@ -31,7 +31,7 @@ export default async function RoomPage({
 
   if (!room) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-16 text-center">
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center md:px-6">
         <p className="font-display text-xl font-semibold text-foreground">Room not found</p>
         <p className="mt-2 text-sm text-muted">This room doesn&rsquo;t exist or was removed.</p>
         <Link href="/" className="mt-6 inline-block text-sm text-foreground hover:underline">
@@ -54,7 +54,7 @@ export default async function RoomPage({
   const payoutPerWinner = room.poolTotalCents / room.participantCount;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-5xl px-4 py-10 md:px-6">
       <Link href="/" className="hover-link text-sm text-muted transition-colors">
         ← Home
       </Link>

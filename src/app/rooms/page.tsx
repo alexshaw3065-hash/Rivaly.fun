@@ -51,7 +51,7 @@ function RoomsPageContent() {
   const [discoverTab, setDiscoverTab] = useState<FilterTab>("trending");
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-6 py-6 md:py-12">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
       <div className="flex items-center justify-between border-b border-border">
         <div className="no-scrollbar flex min-w-0 gap-6 overflow-x-auto">
           {tabs.map((t) => (

@@ -19,7 +19,7 @@ function formatDate(iso: string): string {
 
 export default function WalletPage() {
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main className="mx-auto max-w-4xl px-4 py-12 md:px-6">
       <WalletActions />
 
       <div className="mt-8 grid grid-cols-2 gap-3">

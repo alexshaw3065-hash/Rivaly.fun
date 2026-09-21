@@ -27,7 +27,7 @@ const faqs = [
 
 export default function SupportPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <main className="mx-auto max-w-2xl px-4 py-16 md:px-6">
       <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">Support</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">
         Common questions

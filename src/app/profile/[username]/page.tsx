@@ -20,7 +20,7 @@ export default async function ProfilePage({
 
   if (!profile) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-16 text-center">
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center md:px-6">
         <p className="font-display text-xl font-semibold text-foreground">Rival not found</p>
         <p className="mt-2 text-sm text-muted">@{username} doesn&rsquo;t exist.</p>
         <Link href="/" className="mt-6 inline-block text-sm text-foreground hover:underline">
@@ -34,7 +34,7 @@ export default async function ProfilePage({
   const initialFollowing = isSelf ? false : await currentUserFollows(profile.id);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main className="mx-auto max-w-4xl px-4 py-12 md:px-6">
       <ProfileView profile={profile} isSelf={isSelf} initialFollowing={initialFollowing} />
     </main>
   );

@@ -24,7 +24,7 @@ export default function ArenaPage() {
   const [tab, setTab] = useState<ArenaTab>("feed");
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-6 py-6 md:py-12">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
       <div className="flex gap-6 border-b border-border">
         {tabs.map((t) => (
           <button

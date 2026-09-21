@@ -5,7 +5,7 @@
 // how it will work.
 export default function DocsPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <main className="mx-auto max-w-2xl px-4 py-16 md:px-6">
       <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">Documentation</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">
         How Rivaly works

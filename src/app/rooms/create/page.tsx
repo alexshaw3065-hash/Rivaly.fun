@@ -51,7 +51,7 @@ export default function CreateRoomPage() {
 
   if (result) {
     return (
-      <main className="mx-auto max-w-xl px-6 py-16 text-center">
+      <main className="mx-auto max-w-xl px-4 py-16 text-center md:px-6">
         <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">
           Challenge sent
         </p>
@@ -89,7 +89,7 @@ export default function CreateRoomPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <main className="mx-auto max-w-2xl px-4 py-12 md:px-6">
       <p className="font-mono text-[11px] uppercase tracking-wider text-muted">New room</p>
       <h1 className="mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">
         What do you believe?

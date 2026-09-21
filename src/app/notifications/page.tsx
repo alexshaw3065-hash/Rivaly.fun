@@ -25,7 +25,7 @@ function targetHref(n: (typeof notifications)[number]): string {
 // backend, and it's not in the V1 field list, just the type catalog.
 export default function NotificationsPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <main className="mx-auto max-w-2xl px-4 py-12 md:px-6">
       <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
         Notifications
       </h1>

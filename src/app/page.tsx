@@ -33,7 +33,7 @@ export default function Home() {
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-6 py-6">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6">
       {/* md:hidden — desktop already has a search bar in DesktopHeader
           (nav.tsx/desktop-header.tsx); this is the mobile-only shortcut. */}
       <div className="md:hidden">

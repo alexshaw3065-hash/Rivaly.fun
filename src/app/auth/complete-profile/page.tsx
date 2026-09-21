@@ -50,7 +50,7 @@ export default function CompleteProfilePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[80vh] max-w-sm flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex min-h-[80vh] max-w-sm flex-col justify-center px-4 py-16 md:px-6">
       <h1 className="font-display text-2xl font-bold text-foreground">One more thing.</h1>
       <p className="mt-1.5 text-sm text-muted">Pick the username other rivals will see you as.</p>
 

@@ -14,7 +14,7 @@ export default function InvitePage() {
   const [copied, setCopied] = useState(false);
 
   return (
-    <main className="mx-auto max-w-xl px-6 py-16 text-center">
+    <main className="mx-auto max-w-xl px-4 py-16 text-center md:px-6">
       <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">Invite</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">
         Find your rival.

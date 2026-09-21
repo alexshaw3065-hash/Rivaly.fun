@@ -3,7 +3,7 @@
 // be reviewed by an actual lawyer before Rivaly takes real deposits.
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <main className="mx-auto max-w-2xl px-4 py-16 md:px-6">
       <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">Legal</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">Terms of Use</h1>
       <p className="mt-3 text-sm text-muted">
