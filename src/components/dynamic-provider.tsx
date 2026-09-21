@@ -13,7 +13,19 @@ import { createClient } from "@/lib/supabase/client";
 import { bridgeDynamicSession } from "@/app/auth/dynamic-actions";
 import { useCurrentUser } from "./current-user-provider";
 import { useIsLightTheme } from "./theme-toggle";
+import { RivalyWordmark } from "./rivaly-wordmark";
 import { getAuthModalNext, useAuthModalState } from "@/lib/auth-modal-store";
+
+// Dynamic's own OAuth round-trip (opening the provider's popup, the
+// redirect back) happens before onAuthSuccess ever fires, so by the time
+// this screen shows, real time has already passed and more is coming —
+// live-measured backend bridge latency alone runs ~0.7-1.5s. A bare
+// spinner reads slower than it is; naming what's actually happening
+// (verifying, then the account, then the wallet) gives the same wait
+// something to say instead of nothing. Capped at 3 phrases — this is a
+// utility wait, not a moment to perform on (see rivaly-engagement-
+// psychology's SportyBet note: remove friction, don't decorate it).
+const BRIDGING_PHRASES = ["Verifying your login…", "Setting up your account…", "Almost there…"];
 
 const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
 // Stable reference across renders — see the memoization note below on why
@@ -86,6 +98,7 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [bridging, setBridging] = useState(false);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [phraseIndex, setPhraseIndex] = useState(0);
   // Dynamic's own modal has no "auto" that follows Rivaly's manual
   // light/dark toggle (its own "auto" only follows the OS's
   // prefers-color-scheme) — this keeps the two in sync explicitly instead.
@@ -93,11 +106,25 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
   // the settings-memoization issue described below.
   const isLightTheme = useIsLightTheme();
 
+  // Advances through BRIDGING_PHRASES on a fixed clock rather than tying
+  // each phrase to a real step finishing — the real steps don't have even,
+  // predictable durations (see the login-speed numbers this was measured
+  // against), and a phrase that visibly stalls mid-word reads worse than
+  // one that just keeps moving.
+  useEffect(() => {
+    if (!bridging) return;
+    const id = setInterval(() => {
+      setPhraseIndex((i) => Math.min(i + 1, BRIDGING_PHRASES.length - 1));
+    }, 900);
+    return () => clearInterval(id);
+  }, [bridging]);
+
   const handleAuthSuccess = useCallback(async () => {
     const dynamicJwt = getAuthToken();
     if (!dynamicJwt) return;
 
     setBridgeError(null);
+    setPhraseIndex(0);
     setBridging(true);
 
     const result = await bridgeDynamicSession(dynamicJwt);
@@ -160,13 +187,13 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
           this, out of sight, rather than leaving the sign-in form up
           while it works. */}
       {bridging && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background">
-          <span
-            className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "var(--border-strong)", borderTopColor: "transparent" }}
-            aria-label="Signing you in"
-          />
-          <p className="font-display text-sm text-muted">Signing you in…</p>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
+          <div style={{ animation: "live-pulse 1.6s ease-in-out infinite" }}>
+            <RivalyWordmark />
+          </div>
+          <p key={phraseIndex} className="stagger-in font-display text-sm text-muted" role="status">
+            {BRIDGING_PHRASES[phraseIndex]}
+          </p>
         </div>
       )}
       {bridgeError && !bridging && (
