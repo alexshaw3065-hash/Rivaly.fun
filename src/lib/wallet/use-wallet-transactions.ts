@@ -1,0 +1,87 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { transactions as mockTransactions } from "@/lib/mock-data";
+import type { Profile } from "@/lib/types";
+
+export interface WalletTransactionRow {
+  id: string;
+  type: "deposit" | "withdrawal";
+  amountMicros: number;
+  counterpartyAddress: string | null;
+  txSignature: string;
+  createdAt: string;
+}
+
+// Client-side, not a server action: RLS's own "insert your own row" policy
+// is the whole authorization story here, same pattern already used for
+// messages/entries — see the wallet_transactions migration.
+export async function logWalletTransaction(params: {
+  userId: string;
+  type: "deposit" | "withdrawal";
+  amountMicros: number;
+  counterpartyAddress: string | null;
+  txSignature: string;
+}): Promise<void> {
+  const supabase = createClient();
+  await supabase.from("wallet_transactions").insert({
+    user_id: params.userId,
+    type: params.type,
+    amount_micros: params.amountMicros,
+    counterparty_address: params.counterpartyAddress,
+    tx_signature: params.txSignature,
+  });
+}
+
+export function useWalletTransactions(profile: Profile | null) {
+  const isReal = profile?.dynamicWalletAddress != null;
+  const [rows, setRows] = useState<WalletTransactionRow[]>([]);
+  const [isLoading, setIsLoading] = useState(isReal);
+
+  const load = useCallback(async (userId: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("wallet_transactions")
+      .select("id, type, amount_micros, counterparty_address, tx_signature, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    setRows(
+      (data ?? []).map((r) => ({
+        id: r.id as string,
+        type: r.type as "deposit" | "withdrawal",
+        amountMicros: r.amount_micros as number,
+        counterpartyAddress: r.counterparty_address as string | null,
+        txSignature: r.tx_signature as string,
+        createdAt: r.created_at as string,
+      })),
+    );
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isReal || !profile) return;
+    // One-shot fetch on mount/profile-change — no data-fetching library is
+    // installed in this project yet, so this is the standard React pattern
+    // (fetch, then setState once it resolves). The lint rule can't see that
+    // load()'s own setState calls happen after its internal await, only
+    // that load() is reachable from this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load(profile.id);
+  }, [isReal, profile, load]);
+
+  // Called from user-triggered event handlers (e.g. after a withdrawal
+  // completes), never from an effect body — safe to set state synchronously
+  // here.
+  const refresh = useCallback(() => {
+    if (!profile) return;
+    setIsLoading(true);
+    void load(profile.id);
+  }, [profile, load]);
+
+  if (!isReal) {
+    return { isReal: false as const, transactions: mockTransactions, isLoading: false, refresh: () => {} };
+  }
+
+  return { isReal: true as const, transactions: rows, isLoading, refresh };
+}

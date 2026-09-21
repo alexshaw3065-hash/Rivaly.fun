@@ -4,16 +4,26 @@ import { useState } from "react";
 import { depositToWallet } from "@/lib/use-wallet-balance";
 import { useQuickDepositOpen, closeQuickDeposit } from "@/lib/quick-deposit-store";
 import { BottomSheet } from "./bottom-sheet";
+import { useCurrentUser } from "./current-user-provider";
+import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
+import { DepositSheet } from "./wallet/deposit-sheet";
 
 // Triggered by the "+" nested in the top bar's balance chip — a fast path
 // to the same deposit the Wallet page and Profile's PNL card already
-// offer, updating the same shared balance (see use-wallet-balance.ts) so
-// the chip itself, /wallet, and Profile all move together. Mounted once at
-// the Nav root (see nav.tsx) — not inside TopBarIcons — so this sheet's
-// `position: fixed` isn't broken by the top bar's own backdrop-blur.
+// offer. Real users get the real receive-address sheet (see
+// wallet-actions.tsx for the same branch); the mock roster keeps the
+// original optimistic amount-entry form. Mounted once at the Nav root (see
+// nav.tsx) — not inside TopBarIcons — so this sheet's `position: fixed`
+// isn't broken by the top bar's own backdrop-blur.
 export function QuickDepositSheet() {
   const open = useQuickDepositOpen();
+  const profile = useCurrentUser();
+  const live = useLiveWalletBalance(profile);
   const [amount, setAmount] = useState("");
+
+  if (live.isReal) {
+    return <DepositSheet open={open} onClose={closeQuickDeposit} address={live.walletAddress} />;
+  }
 
   function confirm() {
     const naira = parseFloat(amount);

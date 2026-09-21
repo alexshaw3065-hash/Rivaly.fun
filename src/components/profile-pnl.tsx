@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { balanceHistory, formatMoney, formatSignedMoney, wallet } from "@/lib/mock-data";
 import { useWalletBalance } from "@/lib/use-wallet-balance";
+import { useCurrentUser } from "./current-user-provider";
+import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
+import { formatUsdc } from "@/lib/wallet/format";
 import { WalletActions } from "./wallet-actions";
 
 const CHART_WIDTH = 320;
@@ -65,9 +68,14 @@ const EMPTY_WAVE = "M0,50 C 30,10 60,10 90,50 C 120,90 150,90 180,50 C 210,10 24
 export function ProfilePnl() {
   const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[0]);
   const liveBalanceCents = useWalletBalance();
+  const profile = useCurrentUser();
+  const live = useLiveWalletBalance(profile);
 
   const points = balanceHistory();
-  const hasActivity = points.length >= 2;
+  // Real users: no wallet_transactions-derived chart yet for V1 (see the
+  // deposits/withdrawals plan) — reuse the existing zero-activity empty
+  // state rather than building a second one just for the real path.
+  const hasActivity = !live.isReal && points.length >= 2;
 
   const anchor = points.length > 0 ? +new Date(points[points.length - 1].createdAt) : 0;
   const windowPoints = points.filter((p) => +new Date(p.createdAt) >= anchor - range.ms);
@@ -100,15 +108,23 @@ export function ProfilePnl() {
     <div className="rounded-lg border border-border bg-surface p-5">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-baseline">
-          <span
-            className="truncate font-mono text-2xl font-semibold md:text-3xl"
-            style={{ color: hasActivity ? "var(--foreground)" : "var(--muted)" }}
-          >
-            {whole}
-          </span>
-          <span className="shrink-0 font-mono text-2xl font-semibold text-muted md:text-3xl">
-            .{decimals}
-          </span>
+          {live.isReal ? (
+            <span className="truncate font-mono text-2xl font-semibold text-foreground md:text-3xl">
+              {formatUsdc(live.usdcBalance)}
+            </span>
+          ) : (
+            <>
+              <span
+                className="truncate font-mono text-2xl font-semibold md:text-3xl"
+                style={{ color: hasActivity ? "var(--foreground)" : "var(--muted)" }}
+              >
+                {whole}
+              </span>
+              <span className="shrink-0 font-mono text-2xl font-semibold text-muted md:text-3xl">
+                .{decimals}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex shrink-0 gap-0.5 rounded-full bg-surface-elevated p-0.5">
           {RANGES.map((r) => (
@@ -159,11 +175,13 @@ export function ProfilePnl() {
       <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-sm text-muted">
-            ₦
+            {live.isReal ? "$" : "₦"}
           </span>
           <span className="text-sm text-muted">Total cash</span>
         </div>
-        <span className="font-mono text-sm font-medium text-foreground">{formatMoney(liveBalanceCents)}</span>
+        <span className="font-mono text-sm font-medium text-foreground">
+          {live.isReal ? `${formatUsdc(live.usdcBalance)} USDC` : formatMoney(liveBalanceCents)}
+        </span>
       </div>
 
       <div className="mt-5">

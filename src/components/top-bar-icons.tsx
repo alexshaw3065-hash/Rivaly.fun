@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notifications, formatMoneyCompact } from "@/lib/mock-data";
 import { GiftIcon, BellIcon, PlusIcon } from "./icons";
 import { useWalletBalance } from "@/lib/use-wallet-balance";
+import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
+import { formatUsdcCompact } from "@/lib/wallet/format";
 import { openQuickDeposit } from "@/lib/quick-deposit-store";
 import { useCurrentUser } from "./current-user-provider";
 import { openAuthModal } from "@/lib/auth-modal-store";
@@ -11,7 +13,9 @@ import { openAuthModal } from "@/lib/auth-modal-store";
 export function TopBarIcons({ walletBordered = false }: { walletBordered?: boolean }) {
   const currentUser = useCurrentUser();
   const hasUnread = notifications.some((n) => !n.read);
-  const balance = useWalletBalance();
+  const mockBalance = useWalletBalance();
+  const live = useLiveWalletBalance(currentUser);
+  const balanceLabel = live.isReal ? formatUsdcCompact(live.usdcBalance) : formatMoneyCompact(mockBalance);
 
   // Signed out: invite/notifications/balance are all meaningless (there's
   // nothing to invite people to yet, no notifications belong to you, and
@@ -70,7 +74,7 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
       {walletBordered ? (
         <div className="flex items-center gap-2 rounded-full border border-border bg-surface py-1 pl-2.5 pr-1">
           <Link href="/wallet" className="font-mono text-xs font-medium text-foreground">
-            {formatMoneyCompact(balance)}
+            {balanceLabel}
           </Link>
           <button
             onClick={openQuickDeposit}
@@ -84,7 +88,7 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
         </div>
       ) : (
         <Link href="/wallet" className="font-mono text-xs font-medium text-foreground">
-          {formatMoneyCompact(balance)}
+          {balanceLabel}
         </Link>
       )}
     </div>

@@ -36,6 +36,12 @@ export interface Profile {
   predictionAccuracy: number; // 0-1
   totalWinningsCents: number;
   createdAt: string;
+  // null for the seeded mock roster (never went through Dynamic) and for
+  // real signups where Dynamic hasn't finished provisioning the embedded
+  // wallet yet — see dynamic-actions.ts's self-healing note. Non-null is
+  // the signal the wallet UI uses to read a real on-chain balance instead
+  // of the mock one (see src/lib/wallet/use-live-balance.ts).
+  dynamicWalletAddress: string | null;
 }
 
 export type MatchStatus = "scheduled" | "live" | "finished" | "postponed" | "cancelled";

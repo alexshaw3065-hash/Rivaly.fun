@@ -41,7 +41,9 @@ export const matches: Match[] = [
   { id: "m12", competition: "NPFL", homeTeam: "Sporting Lagos", awayTeam: "Rivers United", kickoffAt: "2026-08-15T18:00:00Z", status: "live", homeScore: 2, awayScore: 2 },
 ];
 
-export const profiles: Profile[] = [
+// Seeded roster never went through Dynamic — dynamicWalletAddress is always
+// null here, injected once below rather than repeated on every literal.
+const seedProfiles: Omit<Profile, "dynamicWalletAddress">[] = [
   { id: "u1", username: "danielk", displayName: "Daniel", avatarUrl: null, bio: "Arsenal 'til I die. Wrong sometimes, loud always.", socialLinks: [], followerCount: 842, followingCount: 210, roomsCreated: 34, predictionAccuracy: 0.72, totalWinningsCents: 84_000_00, createdAt: "2025-11-02T00:00:00Z" },
   { id: "u2", username: "alexr", displayName: "Alex", avatarUrl: null, bio: null, socialLinks: [], followerCount: 156, followingCount: 98, roomsCreated: 12, predictionAccuracy: 0.58, totalWinningsCents: 12_400_00, createdAt: "2026-01-14T00:00:00Z" },
   { id: "u3", username: "victorj", displayName: "Victor", avatarUrl: null, bio: "Building Rivaly. Predicting on Rivaly.", socialLinks: [], followerCount: 2_310, followingCount: 45, roomsCreated: 61, predictionAccuracy: 0.66, totalWinningsCents: 250_000_00, createdAt: "2025-09-01T00:00:00Z" },
@@ -62,6 +64,8 @@ export const profiles: Profile[] = [
   { id: "u18", username: "kwame", displayName: "Kwame", avatarUrl: null, bio: "Serie A tactics nerd.", socialLinks: [], followerCount: 430, followingCount: 66, roomsCreated: 19, predictionAccuracy: 0.59, totalWinningsCents: 27_800_00, createdAt: "2026-02-08T00:00:00Z" },
   { id: "u19", username: "ify", displayName: "Ify", avatarUrl: null, bio: "Enyimba till I die. Doubted, then vindicated.", socialLinks: [], followerCount: 715, followingCount: 102, roomsCreated: 24, predictionAccuracy: 0.67, totalWinningsCents: 63_500_00, createdAt: "2025-11-19T00:00:00Z" },
 ];
+
+export const profiles: Profile[] = seedProfiles.map((p) => ({ ...p, dynamicWalletAddress: null }));
 
 export const rooms: Room[] = [
   { id: "r1", creatorId: "u1", matchId: "m1", prediction: "Arsenal scores 3+ tonight", entryAmountCents: 2_000_00, visibility: "public", status: "live", poolTotalCents: 84_000_00, participantCount: 24, resolutionSource: "Official match result", inviteCode: "RIVAL-7X92", createdAt: "2026-08-15T18:00:00Z", settledAt: null },

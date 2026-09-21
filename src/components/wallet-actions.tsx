@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { formatMoney } from "@/lib/mock-data";
 import { useWalletBalance, depositToWallet, withdrawFromWallet } from "@/lib/use-wallet-balance";
+import { useCurrentUser } from "./current-user-provider";
+import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
+import { formatUsdc } from "@/lib/wallet/format";
+import { DepositSheet } from "./wallet/deposit-sheet";
+import { WithdrawSheet } from "./wallet/withdraw-sheet";
 
-// Deposit/withdraw update the shared balance store optimistically — no
-// payment rail is wired up yet. Swap for a real provider call (see
-// docs/masterplan/09-competitive-research.md#5.2c — local payment
-// infrastructure, not crypto complexity, should sit behind this button).
-// Every instance of this component (Wallet page, Profile's PNL card, the
-// top bar's quick-deposit) reads the same balance, so a deposit anywhere
-// shows up everywhere.
+// Real users (profile.dynamicWalletAddress set) get a live on-chain USDC
+// balance and real deposit/withdraw flows through Dynamic + Solana — see
+// the deposits/withdrawals plan. The seeded mock roster keeps the original
+// optimistic-local-state behavior unchanged below.
 export function WalletActions({
   centered = false,
   hideBalance = false,
@@ -21,11 +23,13 @@ export function WalletActions({
   // number printed twice. Wallet's own page still shows it (default false).
   hideBalance?: boolean;
 }) {
-  const balance = useWalletBalance();
+  const profile = useCurrentUser();
+  const live = useLiveWalletBalance(profile);
+  const mockBalance = useWalletBalance();
   const [mode, setMode] = useState<"deposit" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
 
-  function confirm() {
+  function confirmMock() {
     const naira = parseFloat(amount);
     if (!naira || naira <= 0) return;
     const cents = Math.round(naira * 100);
@@ -40,7 +44,7 @@ export function WalletActions({
       {!hideBalance && (
         <>
           <p className="font-mono text-4xl font-medium text-foreground md:text-5xl">
-            {formatMoney(balance)}
+            {live.isReal ? `${formatUsdc(live.usdcBalance)} USDC` : formatMoney(mockBalance)}
           </p>
           <p className="mt-1 text-sm text-muted">Available balance</p>
         </>
@@ -61,7 +65,7 @@ export function WalletActions({
         </button>
       </div>
 
-      {mode && (
+      {!live.isReal && mode && (
         <div className={`mt-3 flex items-center gap-2 ${centered ? "justify-center" : ""}`}>
           <input
             value={amount}
@@ -73,12 +77,32 @@ export function WalletActions({
             style={{ transition: "border-color 150ms ease" }}
           />
           <button
-            onClick={confirm}
+            onClick={confirmMock}
             className="rounded-md border border-border-strong px-4 py-2.5 text-sm font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
           >
             Confirm {mode}
           </button>
         </div>
+      )}
+
+      {live.isReal && profile && (
+        <>
+          <DepositSheet
+            open={mode === "deposit"}
+            onClose={() => setMode(null)}
+            address={live.walletAddress}
+          />
+          <WithdrawSheet
+            open={mode === "withdraw"}
+            onClose={() => setMode(null)}
+            userId={profile.id}
+            usdcBalance={live.usdcBalance}
+            onSuccess={() => {
+              live.refresh();
+              setMode(null);
+            }}
+          />
+        </>
       )}
     </div>
   );
