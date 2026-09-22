@@ -21,6 +21,10 @@ export interface RoomRow {
   invite_code: string;
   created_at: string;
   settled_at: string | null;
+  market_type: Room["marketType"];
+  market_line: number | null;
+  market_side_definition: Room["marketSideDefinition"];
+  settlement_mode: Room["settlementMode"];
 }
 
 /**
@@ -49,11 +53,15 @@ export function mapRoomRow(row: RoomRow): RoomWithTotals {
     settledAt: row.settled_at,
     yesTotalCents: row.yes_total_cents,
     noTotalCents: row.no_total_cents,
+    marketType: row.market_type,
+    marketLine: row.market_line,
+    marketSideDefinition: row.market_side_definition,
+    settlementMode: row.settlement_mode,
   };
 }
 
 export const ROOM_COLUMNS =
-  "id, creator_id, match_id, prediction, entry_amount_cents, visibility, status, pool_total_cents, yes_total_cents, no_total_cents, participant_count, resolution_source, invite_code, created_at, settled_at";
+  "id, creator_id, match_id, prediction, entry_amount_cents, visibility, status, pool_total_cents, yes_total_cents, no_total_cents, participant_count, resolution_source, invite_code, created_at, settled_at, market_type, market_line, market_side_definition, settlement_mode";
 
 // Real ids are UUIDs; every mock room id is a short "r1"-style string —
 // cheap, reliable way to know which source to query without hitting both.

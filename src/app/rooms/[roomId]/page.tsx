@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
-  matchById,
   formatMoney,
   splitPct,
 } from "@/lib/mock-data";
 import { getRoomById, splitPctFromTotals } from "@/lib/supabase/rooms";
+import { getMatchById } from "@/lib/supabase/matches";
 import { getProfileById } from "@/lib/supabase/profiles";
 import { getMyEntryForRoom } from "@/lib/supabase/entries";
 import { getRoomMessages } from "@/lib/supabase/messages";
@@ -41,7 +41,7 @@ export default async function RoomPage({
     );
   }
 
-  const match = matchById(room.matchId)!;
+  const match = (await getMatchById(room.matchId))!;
   const creator = await getProfileById(room.creatorId);
   const myEntry = await getMyEntryForRoom(room.id);
   const currentUser = await getCurrentProfile();
@@ -157,7 +157,9 @@ export default async function RoomPage({
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">Resolves via</dt>
-                <dd className="text-foreground">{room.resolutionSource}</dd>
+                <dd className="text-foreground">
+                  {room.settlementMode === "auto" ? room.resolutionSource : "Creator confirms after the match"}
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">Visibility</dt>

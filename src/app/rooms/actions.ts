@@ -1,7 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { EntrySide } from "@/lib/types";
+import { getMatchById } from "@/lib/supabase/matches";
+import type { EntrySide, MarketSideDefinition, MarketType } from "@/lib/types";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I — avoids ambiguous codes read aloud or handwritten
 
@@ -11,17 +12,72 @@ function randomInviteCode(): string {
   return `RIVAL-${suffix}`;
 }
 
+// Discriminated by market type so the caller can't send a total_goals room
+// with no line, or a custom room with no prediction text — the shape itself
+// rules those out, no separate validation needed for "did they send the
+// right fields."
+export type CreateRoomMarket =
+  | { type: "winner"; team: "home" | "away" }
+  | { type: "total_goals"; comparison: "over" | "under"; line: number }
+  | { type: "both_score" }
+  | { type: "custom"; prediction: string };
+
 export interface CreateRoomInput {
   matchId: string;
-  prediction: string;
   entryAmountCents: number;
   visibility: "public" | "private";
-  resolutionSource?: string;
+  market: CreateRoomMarket;
 }
 
 export type CreateRoomResult =
   | { ok: true; roomId: string; inviteCode: string }
   | { ok: false; error: string };
+
+// Server-composed, never trusted from the client — `prediction` is the one
+// string every existing surface (room cards, chat, search) already renders,
+// so composing it here instead of on the client means nothing downstream
+// needs to change to understand the new structured markets.
+function composeMarket(
+  market: CreateRoomMarket,
+  match: { homeTeam: string; awayTeam: string },
+): { prediction: string; marketType: MarketType; marketLine: number | null; marketSideDefinition: MarketSideDefinition | null; settlementMode: "auto" | "creator_confirms" } {
+  switch (market.type) {
+    case "winner": {
+      const team = market.team === "home" ? match.homeTeam : match.awayTeam;
+      return {
+        prediction: `${team} wins`,
+        marketType: "winner",
+        marketLine: null,
+        marketSideDefinition: { stat: "winner", threshold: market.team === "home" ? 1 : 2 },
+        settlementMode: "auto",
+      };
+    }
+    case "total_goals":
+      return {
+        prediction: `Total goals ${market.comparison} ${market.line}`,
+        marketType: "total_goals",
+        marketLine: market.line,
+        marketSideDefinition: { stat: "total_goals", comparison: market.comparison, threshold: market.line },
+        settlementMode: "auto",
+      };
+    case "both_score":
+      return {
+        prediction: "Both teams to score",
+        marketType: "both_score",
+        marketLine: null,
+        marketSideDefinition: { stat: "both_score" },
+        settlementMode: "auto",
+      };
+    case "custom":
+      return {
+        prediction: market.prediction.trim(),
+        marketType: "custom",
+        marketLine: null,
+        marketSideDefinition: null,
+        settlementMode: "creator_confirms",
+      };
+  }
+}
 
 export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResult> {
   const supabase = await createClient();
@@ -30,8 +86,18 @@ export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResu
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Sign in to create a room." };
 
-  if (!input.prediction.trim()) return { ok: false, error: "Say what you think will happen." };
   if (input.entryAmountCents <= 0) return { ok: false, error: "Pick an entry amount." };
+  if (input.market.type === "custom" && !input.market.prediction.trim()) {
+    return { ok: false, error: "Say what you think will happen." };
+  }
+  if (input.market.type === "total_goals" && !(input.market.line > 0)) {
+    return { ok: false, error: "Pick a real goals line." };
+  }
+
+  const match = await getMatchById(input.matchId);
+  if (!match) return { ok: false, error: "Couldn't find that match — try again." };
+
+  const composed = composeMarket(input.market, match);
 
   // invite_code has a unique constraint — retry a few times on the rare
   // collision rather than failing the whole creation over it.
@@ -42,16 +108,36 @@ export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResu
       .insert({
         creator_id: user.id,
         match_id: input.matchId,
-        prediction: input.prediction.trim(),
+        prediction: composed.prediction,
         entry_amount_cents: input.entryAmountCents,
         visibility: input.visibility,
-        resolution_source: input.resolutionSource ?? "Official match result",
+        resolution_source: "Official match result",
         invite_code: inviteCode,
+        market_type: composed.marketType,
+        market_line: composed.marketLine,
+        market_side_definition: composed.marketSideDefinition,
+        settlement_mode: composed.settlementMode,
       })
       .select("id")
       .single();
 
-    if (!error && data) return { ok: true, roomId: data.id, inviteCode };
+    if (!error && data) {
+      // Best-effort: the room itself is already valid and shareable even if
+      // this fails, same reasoning as the wallet self-heal in
+      // dynamic-actions.ts — the follow-up write's own failure shouldn't
+      // undo the primary action that already succeeded. The creator's
+      // stated claim is implicitly "Yes" (masterplan: "what do you
+      // believe?" — the prediction is stated as true), so they back it
+      // immediately rather than needing a separate join step afterward.
+      const side: EntrySide = "yes";
+      await supabase.from("entries").insert({
+        room_id: data.id,
+        user_id: user.id,
+        side,
+        amount_cents: input.entryAmountCents,
+      });
+      return { ok: true, roomId: data.id, inviteCode };
+    }
     if (error && !error.message.toLowerCase().includes("duplicate")) {
       return { ok: false, error: "Couldn't create the room — try again." };
     }

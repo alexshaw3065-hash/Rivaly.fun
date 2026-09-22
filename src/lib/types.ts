@@ -60,6 +60,29 @@ export interface Match {
 export type RoomVisibility = "public" | "private";
 export type RoomStatus = "open" | "live" | "settled" | "cancelled" | "refunded";
 
+// Tier 1 (winner/total_goals/both_score) resolves automatically from
+// matches.home_score/away_score — no human step. Tier 3 (custom) is a
+// free-text claim the creator confirms after the match. See the create-room
+// plan for the full tiering — settlementMode below is the queryable fact of
+// which one a given room is.
+export type MarketType = "winner" | "total_goals" | "both_score" | "custom";
+export type SettlementMode = "auto" | "creator_confirms";
+
+// Structured shape of what "Yes" resolves to for a Tier 1 room. Deliberately
+// mirrors TxLINE's own TraderPredicate/StatTerm shape (confirmed against the
+// real on-chain IDL) so a later on-chain-settlement effort has a straight
+// path in without another migration.
+export interface MarketSideDefinition {
+  stat: "total_goals" | "winner" | "both_score";
+  comparison?: "over" | "under";
+  // total_goals: the line, e.g. 2.5. winner: which team "Yes" claims wins —
+  // 1 for home, 2 for away (same Participant1/Participant2 convention used
+  // throughout the TxLINE integration), never a draw — entries.side is a
+  // hard yes/no, so a 3-way market isn't representable without a bigger
+  // schema change. both_score: unused.
+  threshold?: number;
+}
+
 /**
  * The resolution condition and source must always be known to users before
  * they enter a room. See docs/masterplan/09-competitive-research.md#5.12.
@@ -68,7 +91,7 @@ export interface Room {
   id: RoomId;
   creatorId: UserId;
   matchId: MatchId;
-  prediction: string; // e.g. "Arsenal wins"
+  prediction: string; // e.g. "Arsenal wins" — server-composed for Tier 1, creator-typed for custom
   entryAmountCents: number;
   visibility: RoomVisibility;
   status: RoomStatus;
@@ -78,6 +101,10 @@ export interface Room {
   inviteCode: string;
   createdAt: string;
   settledAt: string | null;
+  marketType: MarketType;
+  marketLine: number | null;
+  marketSideDefinition: MarketSideDefinition | null;
+  settlementMode: SettlementMode;
 }
 
 export type EntrySide = "yes" | "no";

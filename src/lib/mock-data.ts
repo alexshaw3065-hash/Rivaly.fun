@@ -67,7 +67,9 @@ const seedProfiles: Omit<Profile, "dynamicWalletAddress">[] = [
 
 export const profiles: Profile[] = seedProfiles.map((p) => ({ ...p, dynamicWalletAddress: null }));
 
-export const rooms: Room[] = [
+// Seeded demo rooms are all Tier 3 (a free-text claim, creator-confirmed) —
+// the market fields are injected once below rather than repeated 35 times.
+const seedRooms: Omit<Room, "marketType" | "marketLine" | "marketSideDefinition" | "settlementMode">[] = [
   { id: "r1", creatorId: "u1", matchId: "m1", prediction: "Arsenal scores 3+ tonight", entryAmountCents: 2_000_00, visibility: "public", status: "live", poolTotalCents: 84_000_00, participantCount: 24, resolutionSource: "Official match result", inviteCode: "RIVAL-7X92", createdAt: "2026-08-15T18:00:00Z", settledAt: null },
   { id: "r2", creatorId: "u3", matchId: "m2", prediction: "Man City win by 2+ goals", entryAmountCents: 5_000_00, visibility: "public", status: "open", poolTotalCents: 210_000_00, participantCount: 41, resolutionSource: "Official match result", inviteCode: "RIVAL-4K18", createdAt: "2026-08-15T16:20:00Z", settledAt: null },
   { id: "r3", creatorId: "u2", matchId: "m3", prediction: "El Clasico ends in a draw", entryAmountCents: 1_000_00, visibility: "public", status: "open", poolTotalCents: 38_000_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-9Q05", createdAt: "2026-08-15T12:00:00Z", settledAt: null },
@@ -110,6 +112,20 @@ export const rooms: Room[] = [
   { id: "r34", creatorId: "u1", matchId: "m4", prediction: "Enyimba score in both halves", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 11_500_00, participantCount: 16, resolutionSource: "Official match result", inviteCode: "RIVAL-2Z83", createdAt: "2026-08-15T08:05:00Z", settledAt: "2026-08-15T19:10:00Z" },
   { id: "r35", creatorId: "u6", matchId: "m4", prediction: "Over 2.5 goals", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 18_000_00, participantCount: 18, resolutionSource: "Official match result", inviteCode: "RIVAL-3Z67", createdAt: "2026-08-15T08:15:00Z", settledAt: "2026-08-15T19:10:00Z" },
 ];
+
+export const rooms: Room[] = seedRooms.map((r) => ({
+  ...r,
+  marketType: "custom",
+  marketLine: null,
+  marketSideDefinition: null,
+  // 'auto', not 'creator_confirms': every seed room's resolutionSource has
+  // always read "Official match result" — that's the existing display copy
+  // the room page has always shown, and settlementMode exists to drive that
+  // exact copy. Real new custom (free-text) rooms genuinely need a human to
+  // resolve them and get 'creator_confirms'; these demo rooms were never
+  // meant to change what they display.
+  settlementMode: "auto",
+}));
 
 // Combo/parlay-style bundles — a curated statement of conviction across
 // several matches, not a sportsbook bet-slip. See Pack in types.ts.
