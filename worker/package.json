@@ -1,0 +1,21 @@
+{
+  "name": "rivaly-txline-worker",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Always-on TxLINE scores stream consumer. Deployed separately from the Next app (Render free tier has no background workers, so this runs as a web service with a /health endpoint).",
+  "//": "Deliberately NOT type:module. It shares modules from ../src/lib, whose nearest package.json is the repo root (CommonJS, as Next expects) — so under NodeNext those compile to CJS while worker files would compile to ESM, and the mix breaks named imports. Keeping everything CJS avoids that.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/worker/src/index.js",
+    "dev": "tsc -p tsconfig.json && node dist/worker/src/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.2"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

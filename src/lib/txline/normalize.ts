@@ -1,4 +1,8 @@
-import type { MatchStatus } from "@/lib/types";
+// Relative rather than the "@/" alias on purpose: this module is imported by
+// the standalone SSE worker (worker/), which builds outside Next and has no
+// path-alias config. Keeping it relative means one copy of the sport-branching
+// logic serves both.
+import type { MatchStatus } from "../types";
 import { SPORT_US_FOOTBALL, type TxLineScores } from "./types";
 
 // Actions worth keeping as discrete events. The feed emits ~40 action types

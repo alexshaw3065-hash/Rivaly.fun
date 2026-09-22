@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { applyScores } from "./apply-scores";
 import { openSession, TxLineError } from "./client";
-import { normalizeEvents, normalizeMatch } from "./normalize";
 import type { TxLineScores } from "./types";
 
 // Only fixtures near "now" are worth polling. Anything older is settled and
@@ -83,57 +83,18 @@ export async function syncScores(options: { pastHours?: number } = {}): Promise<
       continue;
     }
 
-    const state = normalizeMatch(records, sportId);
-    if (!state) {
-      // A scheduled fixture with no records yet is the normal pre-match case.
-      result.skippedNoData += 1;
-      continue;
+    try {
+      const applied = await applyScores(supabase, { id: match.id as string, sport_id: sportId }, records);
+      if (!applied.updated) {
+        // A scheduled fixture with no records yet is the normal pre-match case.
+        result.skippedNoData += 1;
+        continue;
+      }
+      result.updated += 1;
+      result.eventsInserted += applied.eventsInserted;
+    } catch (e) {
+      result.errors.push({ fixtureId, message: e instanceof Error ? e.message : String(e) });
     }
-
-    const { error: updateError } = await supabase
-      .from("matches")
-      .update({
-        status: state.status,
-        home_score: state.homeScore,
-        away_score: state.awayScore,
-        last_seq: state.lastSeq,
-        provider_status_id: state.providerStatusId,
-        stats: state.stats,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", match.id);
-    if (updateError) {
-      result.errors.push({ fixtureId, message: `update failed: ${updateError.message}` });
-      continue;
-    }
-    result.updated += 1;
-
-    const events = normalizeEvents(records, sportId);
-    if (events.length === 0) continue;
-
-    // ignoreDuplicates makes repeated snapshots harmless, which matters
-    // because every SSE reconnect will re-read one.
-    const { data: inserted, error: eventsError } = await supabase
-      .from("match_events")
-      .upsert(
-        events.map((e) => ({
-          match_id: match.id,
-          provider_seq: e.providerSeq,
-          action: e.action,
-          minute: e.minute,
-          participant: e.participant,
-          player_id: e.playerId,
-          payload: e.payload,
-          occurred_at: e.occurredAt,
-        })),
-        { onConflict: "match_id,provider_seq,action", ignoreDuplicates: true },
-      )
-      .select("id");
-    if (eventsError) {
-      result.errors.push({ fixtureId, message: `events failed: ${eventsError.message}` });
-      continue;
-    }
-    result.eventsInserted += inserted?.length ?? 0;
   }
 
   return result;

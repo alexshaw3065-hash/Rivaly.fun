@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Separate Node deployable with its own tsconfig — linting it under the
+    // Next config flags browser-oriented rules that don't apply to a server
+    // process. See worker/README.md.
+    "worker/dist/**",
   ]),
 ]);
 

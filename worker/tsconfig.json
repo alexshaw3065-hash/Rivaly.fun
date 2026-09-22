@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // CommonJS so the shared modules from ../src/lib (which resolve against
+    // the repo root's CJS package.json) and the worker's own files emit the
+    // same format. See the note in package.json.
+    "module": "CommonJS",
+    "moduleResolution": "Node10",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    // The repo root, so the shared TxLINE modules under ../src/lib compile
+    // alongside the worker's own sources. That's the reason this lives in the
+    // same repo: exactly one copy of the sport-branching and write logic.
+    // Output therefore lands at dist/worker/src/index.js — see package.json.
+    "rootDir": "..",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmitOnError": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "../src/lib/types.ts",
+    "../src/lib/txline/types.ts",
+    "../src/lib/txline/normalize.ts",
+    "../src/lib/txline/apply-scores.ts"
+  ]
+}

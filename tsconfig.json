@@ -30,5 +30,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // worker/ is a separate deployable with its own tsconfig and Node-targeted
+  // settings (see worker/README.md). It shares the TxLINE normaliser from
+  // src/lib/txline by relative import, but must not be type-checked or built
+  // as part of the Next app.
+  "exclude": ["node_modules", "worker"]
 }
