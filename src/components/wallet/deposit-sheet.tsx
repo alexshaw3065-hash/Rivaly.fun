@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { useWallet } from "@/lib/wallet/wallet-context";
+import { notifyWalletTransactionsChanged } from "@/lib/wallet/use-wallet-transactions";
 
 // While this sheet is open the user is actively mid-deposit, so it's worth
 // paying for a read every few seconds — that's what makes "it shows up the
@@ -18,7 +19,7 @@ const POLL_MS = 6000;
 // "fund from a wallet you're already holding," and Dynamic's own connector
 // for that isn't part of its public SDK surface.
 export function DepositSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { address, refresh } = useWallet();
+  const { address, usdcBalance, hasLoaded, refresh } = useWallet();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -26,6 +27,17 @@ export function DepositSheet({ open, onClose }: { open: boolean; onClose: () => 
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
   }, [open, address, refresh]);
+
+  // The balance moving while this sheet is open means a deposit just landed.
+  // Tell the history list so it reconciles against the chain and shows the
+  // new row, rather than waiting for the next visit to /wallet.
+  const lastSeen = useRef<number | null>(null);
+  useEffect(() => {
+    if (!hasLoaded) return;
+    const previous = lastSeen.current;
+    lastSeen.current = usdcBalance;
+    if (previous !== null && usdcBalance !== previous) notifyWalletTransactionsChanged();
+  }, [usdcBalance, hasLoaded]);
 
   async function copyAddress() {
     if (!address) return;

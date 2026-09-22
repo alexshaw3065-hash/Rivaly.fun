@@ -22,10 +22,9 @@ function formatDate(iso: string): string {
 
 // Real users: every row here has a real on-chain tx_signature (linked out
 // to Solana Explorer) — nothing to trust blindly, it's independently
-// checkable. Known V1 gap, disclosed rather than hidden: a deposit made by
-// sending straight to the receive address has no app-side moment to log a
-// row for, so it won't appear in this list even though it already counts
-// toward the live balance above. See the deposits/withdrawals plan.
+// checkable. The list is reconciled against the chain on load (see
+// reconcile.ts), so deposits sent straight to the receive address show up
+// here too, along with any transfer made from the wallet outside Rivaly.
 export function WalletHistory() {
   const profile = useCurrentUser();
   const history = useWalletTransactions(profile);
@@ -62,9 +61,7 @@ export function WalletHistory() {
     return (
       <div className="mt-4 rounded-lg border border-border bg-surface p-6 text-center">
         <p className="text-sm text-muted">
-          No logged transactions yet. Withdrawals and deposits you send through this app show up here —
-          a direct send to your receive address updates your balance instantly but won&apos;t appear as
-          a row yet.
+          Nothing here yet. Every deposit and withdrawal shows up with a link to verify it on-chain.
         </p>
       </div>
     );

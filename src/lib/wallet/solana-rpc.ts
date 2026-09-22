@@ -1,0 +1,40 @@
+// Shared Solana JSON-RPC caller, used from both the browser (live balance
+// reads in wallet-context.tsx) and the server (deposit reconciliation in
+// reconcile.ts). Plain fetch on purpose — no SDK dependency for what is
+// three JSON-RPC methods.
+//
+// The server-only variable wins when present so a provider URL carrying an
+// API key (Helius, QuickNode) never has to ship to the browser. In client
+// bundles process.env.SOLANA_RPC_URL isn't inlined at all, so it falls
+// through to the public one there.
+const RPC_URL =
+  process.env.SOLANA_RPC_URL ??
+  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ??
+  "https://api.devnet.solana.com";
+
+export async function solanaRpc<T>(method: string, params: unknown[]): Promise<T> {
+  const res = await fetch(RPC_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Solana RPC ${method} failed: ${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(`Solana RPC ${method} failed: ${json.error.message}`);
+  return json.result as T;
+}
+
+export interface RpcTokenAccount {
+  pubkey: string;
+  account?: { data?: { parsed?: { info?: { tokenAmount?: { uiAmountString?: string } } } } };
+}
+
+export async function getUsdcTokenAccounts(owner: string, mint: string): Promise<RpcTokenAccount[]> {
+  const result = await solanaRpc<{ value: RpcTokenAccount[] }>("getTokenAccountsByOwner", [
+    owner,
+    { mint },
+    { encoding: "jsonParsed" },
+  ]);
+  return result.value ?? [];
+}

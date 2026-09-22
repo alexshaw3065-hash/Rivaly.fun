@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useUserWallets } from "@dynamic-labs/sdk-react-core";
 import { useCurrentUser } from "@/components/current-user-provider";
-import { SOLANA_RPC_URL, USDC_MINT } from "./constants";
+import { USDC_MINT } from "./constants";
+import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
 
 // Derived from the hook rather than imported from
 // @dynamic-labs/wallet-connector-core directly: the SDK resolves its own
@@ -30,36 +31,15 @@ export interface WalletState {
 
 const WalletContext = createContext<WalletState | null>(null);
 
-interface RpcTokenAccount {
-  account?: { data?: { parsed?: { info?: { tokenAmount?: { uiAmountString?: string } } } } };
-}
-
-async function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(SOLANA_RPC_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Solana RPC ${method} failed: ${res.status}`);
-  const json = await res.json();
-  if (json.error) throw new Error(`Solana RPC ${method} failed: ${json.error.message}`);
-  return json.result as T;
-}
-
 async function readBalances(address: string): Promise<{ usdc: number; sol: number }> {
   const [tokenAccounts, lamports] = await Promise.all([
-    rpc<{ value: RpcTokenAccount[] }>("getTokenAccountsByOwner", [
-      address,
-      { mint: USDC_MINT },
-      { encoding: "jsonParsed" },
-    ]),
-    rpc<{ value: number }>("getBalance", [address]),
+    getUsdcTokenAccounts(address, USDC_MINT),
+    solanaRpc<{ value: number }>("getBalance", [address]),
   ]);
 
   // A wallet can legitimately hold more than one token account for the same
   // mint, so sum rather than taking the first.
-  const usdc = (tokenAccounts.value ?? []).reduce((total, entry) => {
+  const usdc = tokenAccounts.reduce((total, entry) => {
     const amount = parseFloat(entry.account?.data?.parsed?.info?.tokenAmount?.uiAmountString ?? "0");
     return total + (Number.isFinite(amount) ? amount : 0);
   }, 0);

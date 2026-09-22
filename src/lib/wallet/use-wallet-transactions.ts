@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { transactions as mockTransactions } from "@/lib/mock-data";
 import type { Profile } from "@/lib/types";
+import { reconcileWalletTransactions } from "./reconcile";
 
 export interface WalletTransactionRow {
   id: string;
@@ -49,7 +50,19 @@ export function useWalletTransactions(profile: Profile | null) {
   const [rows, setRows] = useState<WalletTransactionRow[]>([]);
   const [isLoading, setIsLoading] = useState(isReal);
 
-  const load = useCallback(async (userId: string) => {
+  const load = useCallback(async (userId: string, reconcile = false) => {
+    // Catch the log up to the chain first, so a deposit sent straight to the
+    // receive address (no app-side callback to hook a row onto) still shows
+    // up here. Best-effort: a failed reconcile just means the read below
+    // returns what's already logged.
+    if (reconcile) {
+      try {
+        await reconcileWalletTransactions();
+      } catch {
+        // Balance is read independently and stays correct regardless.
+      }
+    }
+
     const supabase = createClient();
     const { data } = await supabase
       .from("wallet_transactions")
@@ -71,13 +84,13 @@ export function useWalletTransactions(profile: Profile | null) {
 
   useEffect(() => {
     if (!isReal || !profile) return;
-    // One-shot fetch on mount/profile-change — no data-fetching library is
-    // installed in this project yet, so this is the standard React pattern
-    // (fetch, then setState once it resolves). The lint rule can't see that
-    // load()'s own setState calls happen after its internal await, only
-    // that load() is reachable from this effect.
+    // One-shot fetch on mount/profile-change, reconciling against the chain
+    // first — no data-fetching library is installed in this project yet, so
+    // this is the standard React pattern (fetch, then setState once it
+    // resolves). The lint rule can't see that load()'s own setState calls
+    // happen after its internal await, only that load() is reachable here.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load(profile.id);
+    void load(profile.id, true);
   }, [isReal, profile, load]);
 
   // Re-read when something elsewhere in the app logs a transaction. setState
@@ -85,7 +98,7 @@ export function useWalletTransactions(profile: Profile | null) {
   // shape effects are meant for, so nothing to work around here.
   useEffect(() => {
     if (!isReal || !profile) return;
-    const onChanged = () => void load(profile.id);
+    const onChanged = () => void load(profile.id, true);
     window.addEventListener(CHANGED_EVENT, onChanged);
     return () => window.removeEventListener(CHANGED_EVENT, onChanged);
   }, [isReal, profile, load]);
@@ -96,7 +109,7 @@ export function useWalletTransactions(profile: Profile | null) {
   const refresh = useCallback(() => {
     if (!profile) return;
     setIsLoading(true);
-    void load(profile.id);
+    void load(profile.id, true);
   }, [profile, load]);
 
   if (!isReal) {
