@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { Nav } from "@/components/nav";
 import { CurrentUserProvider } from "@/components/current-user-provider";
 import { DynamicProvider } from "@/components/dynamic-provider";
+import { WalletProvider } from "@/lib/wallet/wallet-context";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import "./globals.css";
 
@@ -82,7 +83,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full overflow-x-hidden bg-background text-foreground pb-16 md:pb-0">
         <CurrentUserProvider profile={currentProfile}>
           <DynamicProvider>
-            <Nav>{children}</Nav>
+            {/* Inside DynamicProvider (needs its wallet list to sign) and
+                CurrentUserProvider (the profile carries the address). */}
+            <WalletProvider>
+              <Nav>{children}</Nav>
+            </WalletProvider>
           </DynamicProvider>
         </CurrentUserProvider>
       </body>

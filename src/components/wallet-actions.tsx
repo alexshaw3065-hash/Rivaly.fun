@@ -24,7 +24,7 @@ export function WalletActions({
   hideBalance?: boolean;
 }) {
   const profile = useCurrentUser();
-  const live = useLiveWalletBalance(profile);
+  const live = useLiveWalletBalance();
   const mockBalance = useWalletBalance();
   const [mode, setMode] = useState<"deposit" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
@@ -44,7 +44,13 @@ export function WalletActions({
       {!hideBalance && (
         <>
           <p className="font-mono text-4xl font-medium text-foreground md:text-5xl">
-            {live.isReal ? `${formatUsdc(live.usdcBalance)} USDC` : formatMoney(mockBalance)}
+            {live.isReal
+              ? // Never a confident "$0.00" before the first real read — see
+                // hasLoaded in wallet-context.tsx.
+                live.hasLoaded
+                ? `${formatUsdc(live.usdcBalance)} USDC`
+                : "—"
+              : formatMoney(mockBalance)}
           </p>
           <p className="mt-1 text-sm text-muted">Available balance</p>
         </>
@@ -87,16 +93,11 @@ export function WalletActions({
 
       {live.isReal && profile && (
         <>
-          <DepositSheet
-            open={mode === "deposit"}
-            onClose={() => setMode(null)}
-            address={live.walletAddress}
-          />
+          <DepositSheet open={mode === "deposit"} onClose={() => setMode(null)} />
           <WithdrawSheet
             open={mode === "withdraw"}
             onClose={() => setMode(null)}
             userId={profile.id}
-            usdcBalance={live.usdcBalance}
             onSuccess={() => {
               live.refresh();
               setMode(null);

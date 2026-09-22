@@ -1,8 +1,7 @@
 "use client";
 
 import { wallet, formatMoney } from "@/lib/mock-data";
-import { useCurrentUser } from "@/components/current-user-provider";
-import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
+import { useWallet } from "@/lib/wallet/wallet-context";
 
 // "Pending" and "escrow" don't have a real meaning yet for a non-custodial
 // crypto wallet — escrow belongs to room settlement (its own separate,
@@ -10,9 +9,8 @@ import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
 // distinct pending step mostly unnecessary. Dropped for real users rather
 // than faked; the seeded mock roster keeps seeing them exactly as before.
 export function WalletSummaryTiles() {
-  const profile = useCurrentUser();
-  const live = useLiveWalletBalance(profile);
-  if (live.isReal) return null;
+  const { isReal } = useWallet();
+  if (isReal) return null;
 
   return (
     <div className="mt-8 grid grid-cols-2 gap-3">

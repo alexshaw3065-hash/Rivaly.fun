@@ -1,49 +1,24 @@
 "use client";
 
-import { useDynamicContext, useTokenBalances } from "@dynamic-labs/sdk-react-core";
-import { ChainEnum } from "@dynamic-labs/sdk-api-core";
 import { useWalletBalance } from "@/lib/use-wallet-balance";
-import type { Profile } from "@/lib/types";
-import { USDC_MINT } from "./constants";
+import { useWallet } from "./wallet-context";
 
 export interface LiveWalletBalance {
-  // Real Dynamic users get a live on-chain read; the seeded mock roster
-  // (profile.dynamicWalletAddress === null) keeps using the existing
-  // shared in-memory balance exactly as before — see mock-vs-real
-  // convention in the deposits/withdrawals plan.
   isReal: boolean;
-  isLoading: boolean;
+  hasLoaded: boolean;
   mockBalanceCents: number;
   usdcBalance: number;
   walletAddress: string | null;
   refresh: () => void;
 }
 
-// The wallet is non-custodial: this never reads a Rivaly-owned balance
-// column, only Dynamic's live view of the user's own on-chain USDC. Called
-// unconditionally (React hook rules) regardless of whether the current
-// profile is real or mock — useTokenBalances simply has nothing to fetch
-// when there's no wallet address yet.
-export function useLiveWalletBalance(profile: Profile | null): LiveWalletBalance {
-  const isReal = profile?.dynamicWalletAddress != null;
-  const { primaryWallet } = useDynamicContext();
+// Merges the two worlds every wallet surface has to render: a real
+// Dynamic-backed user's live on-chain USDC (read once, app-wide, in
+// wallet-context.tsx) and the seeded mock roster's existing shared
+// in-memory balance. Consumers branch on `isReal`.
+export function useLiveWalletBalance(): LiveWalletBalance {
+  const { isReal, address, usdcBalance, hasLoaded, refresh } = useWallet();
   const mockBalanceCents = useWalletBalance();
 
-  const { tokenBalances, isLoading, fetchAccountBalances } = useTokenBalances({
-    accountAddress: primaryWallet?.address,
-    chainName: ChainEnum.Sol,
-    tokenAddresses: [USDC_MINT],
-    includeNativeBalance: false,
-  });
-
-  const usdc = tokenBalances.find((t) => t.address === USDC_MINT);
-
-  return {
-    isReal,
-    isLoading: isReal && isLoading,
-    mockBalanceCents,
-    usdcBalance: usdc?.balance ?? 0,
-    walletAddress: primaryWallet?.address ?? null,
-    refresh: () => void fetchAccountBalances(true),
-  };
+  return { isReal, hasLoaded, mockBalanceCents, usdcBalance, walletAddress: address, refresh };
 }

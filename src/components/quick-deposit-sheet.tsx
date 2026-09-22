@@ -4,7 +4,6 @@ import { useState } from "react";
 import { depositToWallet } from "@/lib/use-wallet-balance";
 import { useQuickDepositOpen, closeQuickDeposit } from "@/lib/quick-deposit-store";
 import { BottomSheet } from "./bottom-sheet";
-import { useCurrentUser } from "./current-user-provider";
 import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
 import { DepositSheet } from "./wallet/deposit-sheet";
 
@@ -17,12 +16,11 @@ import { DepositSheet } from "./wallet/deposit-sheet";
 // isn't broken by the top bar's own backdrop-blur.
 export function QuickDepositSheet() {
   const open = useQuickDepositOpen();
-  const profile = useCurrentUser();
-  const live = useLiveWalletBalance(profile);
+  const live = useLiveWalletBalance();
   const [amount, setAmount] = useState("");
 
   if (live.isReal) {
-    return <DepositSheet open={open} onClose={closeQuickDeposit} address={live.walletAddress} />;
+    return <DepositSheet open={open} onClose={closeQuickDeposit} />;
   }
 
   function confirm() {

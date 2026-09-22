@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { balanceHistory, formatMoney, formatSignedMoney, wallet } from "@/lib/mock-data";
 import { useWalletBalance } from "@/lib/use-wallet-balance";
-import { useCurrentUser } from "./current-user-provider";
 import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
 import { formatUsdc } from "@/lib/wallet/format";
 import { WalletActions } from "./wallet-actions";
@@ -68,8 +67,7 @@ const EMPTY_WAVE = "M0,50 C 30,10 60,10 90,50 C 120,90 150,90 180,50 C 210,10 24
 export function ProfilePnl() {
   const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[0]);
   const liveBalanceCents = useWalletBalance();
-  const profile = useCurrentUser();
-  const live = useLiveWalletBalance(profile);
+  const live = useLiveWalletBalance();
 
   const points = balanceHistory();
   // Real users: no wallet_transactions-derived chart yet for V1 (see the
@@ -109,8 +107,11 @@ export function ProfilePnl() {
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-baseline">
           {live.isReal ? (
-            <span className="truncate font-mono text-2xl font-semibold text-foreground md:text-3xl">
-              {formatUsdc(live.usdcBalance)}
+            <span
+              className="truncate font-mono text-2xl font-semibold md:text-3xl"
+              style={{ color: live.hasLoaded ? "var(--foreground)" : "var(--muted)" }}
+            >
+              {live.hasLoaded ? formatUsdc(live.usdcBalance) : "—"}
             </span>
           ) : (
             <>
@@ -180,7 +181,11 @@ export function ProfilePnl() {
           <span className="text-sm text-muted">Total cash</span>
         </div>
         <span className="font-mono text-sm font-medium text-foreground">
-          {live.isReal ? `${formatUsdc(live.usdcBalance)} USDC` : formatMoney(liveBalanceCents)}
+          {live.isReal
+            ? live.hasLoaded
+              ? `${formatUsdc(live.usdcBalance)} USDC`
+              : "—"
+            : formatMoney(liveBalanceCents)}
         </span>
       </div>
 

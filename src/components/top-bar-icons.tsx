@@ -14,8 +14,12 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
   const currentUser = useCurrentUser();
   const hasUnread = notifications.some((n) => !n.read);
   const mockBalance = useWalletBalance();
-  const live = useLiveWalletBalance(currentUser);
-  const balanceLabel = live.isReal ? formatUsdcCompact(live.usdcBalance) : formatMoneyCompact(mockBalance);
+  const live = useLiveWalletBalance();
+  const balanceLabel = live.isReal
+    ? live.hasLoaded
+      ? formatUsdcCompact(live.usdcBalance)
+      : "—"
+    : formatMoneyCompact(mockBalance);
 
   // Signed out: invite/notifications/balance are all meaningless (there's
   // nothing to invite people to yet, no notifications belong to you, and

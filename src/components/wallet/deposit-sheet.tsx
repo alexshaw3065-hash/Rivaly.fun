@@ -1,26 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BottomSheet } from "@/components/bottom-sheet";
+import { useWallet } from "@/lib/wallet/wallet-context";
 
-// V1 deposit is "receive" only — show the wallet's own Solana address, let
-// the user send USDC to it from anywhere (an exchange, another wallet,
-// Circle's Devnet faucet during testing). No exchange-linking or connect-
-// external-wallet picker in V1: pasting this address already covers "fund
-// from a wallet you're already holding," and Dynamic's own connector for
-// that isn't part of its public SDK surface (only used internally by its
-// own prebuilt funding modal), so re-implementing it here would add
-// complexity without adding real capability over copy-paste.
-export function DepositSheet({
-  open,
-  onClose,
-  address,
-}: {
-  open: boolean;
-  onClose: () => void;
-  address: string | null;
-}) {
+// While this sheet is open the user is actively mid-deposit, so it's worth
+// paying for a read every few seconds — that's what makes "it shows up the
+// moment it confirms" true rather than a promise the UI doesn't keep.
+// Passed to setInterval as a reference, so the balance update happens in a
+// timer callback rather than synchronously inside the effect.
+const POLL_MS = 6000;
+
+// V1 deposit is "receive" only — show the wallet's own Solana address and
+// let the user send USDC to it from anywhere (an exchange, another wallet,
+// Circle's Devnet faucet while testing). No exchange-linking or
+// connect-external-wallet picker: pasting this address already covers
+// "fund from a wallet you're already holding," and Dynamic's own connector
+// for that isn't part of its public SDK surface.
+export function DepositSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { address, refresh } = useWallet();
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!open || !address) return;
+    const id = setInterval(refresh, POLL_MS);
+    return () => clearInterval(id);
+  }, [open, address, refresh]);
 
   async function copyAddress() {
     if (!address) return;
@@ -29,8 +34,8 @@ export function DepositSheet({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard permission can be denied — the address is still selectable
-      // text right above the button, so this never blocks the user.
+      // Clipboard permission can be denied — the address is still
+      // selectable text right above the button, so this never blocks.
     }
   }
 
@@ -68,7 +73,14 @@ export function DepositSheet({
             </p>
           </>
         ) : (
-          <p className="text-sm text-muted">Setting up your wallet address — try again in a moment.</p>
+          // Only reachable when the profile genuinely has no wallet address
+          // yet — Dynamic hadn't finished provisioning the embedded wallet
+          // at the last sign-in. Each login re-checks and fills it in (see
+          // dynamic-actions.ts), so signing out and back in is the actual
+          // fix rather than waiting.
+          <p className="text-sm text-muted">
+            Your wallet isn&apos;t ready yet. Sign out and back in — that finishes setting it up.
+          </p>
         )}
       </div>
     </BottomSheet>

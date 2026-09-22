@@ -14,6 +14,16 @@ export interface WalletTransactionRow {
   createdAt: string;
 }
 
+// The history list and the balance live in separate components, so a
+// withdrawal completing in one has to tell the other to re-read. Same
+// window-event convention the mock balance store already uses
+// (use-wallet-balance.ts) rather than a second state-management approach.
+const CHANGED_EVENT = "rivaly-wallet-transactions-change";
+
+export function notifyWalletTransactionsChanged() {
+  window.dispatchEvent(new Event(CHANGED_EVENT));
+}
+
 // Client-side, not a server action: RLS's own "insert your own row" policy
 // is the whole authorization story here, same pattern already used for
 // messages/entries — see the wallet_transactions migration.
@@ -68,6 +78,16 @@ export function useWalletTransactions(profile: Profile | null) {
     // that load() is reachable from this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(profile.id);
+  }, [isReal, profile, load]);
+
+  // Re-read when something elsewhere in the app logs a transaction. setState
+  // inside a listener callback is exactly the subscribe-to-an-external-system
+  // shape effects are meant for, so nothing to work around here.
+  useEffect(() => {
+    if (!isReal || !profile) return;
+    const onChanged = () => void load(profile.id);
+    window.addEventListener(CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(CHANGED_EVENT, onChanged);
   }, [isReal, profile, load]);
 
   // Called from user-triggered event handlers (e.g. after a withdrawal
