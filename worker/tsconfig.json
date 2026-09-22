@@ -7,6 +7,13 @@
     "module": "CommonJS",
     "moduleResolution": "Node10",
     "lib": ["ES2022"],
+    // Explicit rather than left to ambient discovery. TypeScript's default
+    // behaviour walks up parent directories looking for @types/* packages,
+    // which is exactly how this broke: it built fine locally by finding the
+    // Next app's @types/node one level up, then failed on Render, where
+    // worker/ has no such parent to borrow from. Pinning this makes the
+    // worker's build depend only on what its own package.json declares.
+    "types": ["node"],
     "outDir": "dist",
     // The repo root, so the shared TxLINE modules under ../src/lib compile
     // alongside the worker's own sources. That's the reason this lives in the
