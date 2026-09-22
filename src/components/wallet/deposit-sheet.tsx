@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { useWallet } from "@/lib/wallet/wallet-context";
 import { notifyWalletTransactionsChanged } from "@/lib/wallet/use-wallet-transactions";
+import { AddressQr } from "./address-qr";
 
 // While this sheet is open the user is actively mid-deposit, so it's worth
 // paying for a read every few seconds — that's what makes "it shows up the
@@ -61,6 +62,11 @@ export function DepositSheet({ open, onClose }: { open: boolean; onClose: () => 
 
         {address ? (
           <>
+            <div className="flex justify-center">
+              <div className="rounded-xl bg-white p-3">
+                <AddressQr value={address} />
+              </div>
+            </div>
             <div className="rounded-md border border-border bg-surface-elevated px-3.5 py-3">
               <p className="break-all font-mono text-sm text-foreground">{address}</p>
             </div>
