@@ -77,8 +77,17 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
   // of it. Its own errors were never surfaced even before this change
   // (best-effort), so running it concurrently doesn't change what the
   // caller can observe, only how long it takes.
+  //
+  // Fills a missing address only — deliberately never repoints an existing
+  // one. verifyDynamicToken picks the first Solana credential in the token
+  // with no way to tell an embedded wallet from a connected one, so if a
+  // token ever carries two, array order would decide which address this
+  // writes. That column is now what the whole wallet UI reads for balance,
+  // the receive address, and which wallet signs a withdrawal, so silently
+  // repointing it would make real funds invisible. Filling a null can't
+  // have that effect, and that was the only case this was ever for.
   const walletUpdate =
-    dynamicUser.walletAddress && dynamicUser.walletAddress !== existing?.dynamic_wallet_address
+    dynamicUser.walletAddress && !existing?.dynamic_wallet_address
       ? admin.from("profiles").update({ dynamic_wallet_address: dynamicUser.walletAddress }).eq("id", userId)
       : null;
 
