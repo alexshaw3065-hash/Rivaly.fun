@@ -1,0 +1,44 @@
+# Render Blueprint for the TxLINE scores worker.
+#
+# Everything that isn't a secret is declared here, so the service can be
+# created from the repo rather than hand-configured in a dashboard. The three
+# secrets are marked `sync: false`, which makes Render prompt for them in its
+# own UI instead of them ever living in version control.
+#
+# To use: Render dashboard -> New + -> Blueprint -> pick this repo.
+#
+# The worker cannot run on Vercel: it holds a persistent SSE connection, and
+# Vercel functions are request-scoped and duration-capped at every tier. See
+# worker/README.md.
+services:
+  - type: web
+    name: rivaly-txline-worker
+    runtime: node
+    plan: free
+    # The worker is a separate deployable inside this repo; it shares the
+    # TxLINE normaliser from ../src/lib via its own tsconfig.
+    rootDir: worker
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    # Deliberately /live and not /health. /health reports stream readiness and
+    # returns 503 while reconnecting, so using it here would make Render
+    # restart the worker mid-reconnect — a flapping stream would become a
+    # restart loop. /live is 200 whenever the process is up.
+    healthCheckPath: /live
+    autoDeploy: true
+    envVars:
+      # Devnet. Point at https://txline.txodds.com for mainnet service level
+      # 12, which is also free but real-time rather than 60s-sampled.
+      - key: TXLINE_BASE_URL
+        value: https://txline-dev.txodds.com
+      # App-level token from the on-chain subscription — not a user secret,
+      # but still a credential. Paste in Render.
+      - key: TXLINE_API_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      # Bypasses every RLS policy. matches/match_events have no client write
+      # policies, so the ingester needs it — keep it server-side only, never
+      # anywhere a browser can reach.
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

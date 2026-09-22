@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { matches, matchById, leagues, packs } from "@/lib/mock-data";
+import { matchById, leagues as mockLeagues, packs } from "@/lib/mock-data";
+import { useRealMatches } from "@/lib/use-real-matches";
 import { RoomFeed, type FilterTab } from "./room-feed";
 import { MatchChip } from "./match-chip";
 import { PackCard } from "./pack-card";
@@ -101,11 +102,24 @@ export function RoomsMatchesBrowser({
     [selectedLeagues, extraRoomFilter],
   );
 
+  // Real fixtures and live scores, falling back to the seeded roster when the
+  // matches table is empty. Rooms and packs still resolve through
+  // mock-data's matchById — they reference mock fixture ids, and pointing them
+  // at real matches is its own piece of work.
+  const { matches: liveMatches, isReal } = useRealMatches();
+
   const matchMatchesLeagues = useCallback(
     (m: Match) => selectedLeagues.length === 0 || selectedLeagues.includes(m.competition),
     [selectedLeagues],
   );
-  const browseMatches = useMemo(() => matches.filter(matchMatchesLeagues), [matchMatchesLeagues]);
+  const browseMatches = useMemo(() => liveMatches.filter(matchMatchesLeagues), [liveMatches, matchMatchesLeagues]);
+
+  // League filter options follow whatever's actually browsable, so the list
+  // can't offer a league with no matches behind it.
+  const leagues = useMemo(
+    () => (isReal ? [...new Set(liveMatches.map((m) => m.competition))].sort() : mockLeagues),
+    [isReal, liveMatches],
+  );
 
   // A pack matches the league filter if any of its legs does — it's still
   // relevant to "show me Premier League stuff" even if one leg is Serie A.

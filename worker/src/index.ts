@@ -169,9 +169,20 @@ async function main(): Promise<void> {
   const supabase = db();
 
   createServer((req, res) => {
+    // Liveness: 200 whenever the process is up, regardless of stream state.
+    // This is what the platform health check must use — pointing it at
+    // /health would make Render restart the worker during any normal
+    // reconnect, since that briefly reports unhealthy, and a flapping stream
+    // would turn into a restart loop.
+    if (req.url?.startsWith("/live")) {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("ok");
+      return;
+    }
     if (req.url?.startsWith("/health")) {
-      // Reports real connection state so the uptime pinger is a monitor, not
-      // just a keep-alive.
+      // Readiness: reports real connection state, so an uptime monitor
+      // pointed here alerts on a broken stream instead of merely keeping the
+      // instance awake. Intentionally 503 when disconnected.
       const healthy = state.connected;
       res.writeHead(healthy ? 200 : 503, { "content-type": "application/json" });
       res.end(JSON.stringify({ healthy, ...state }, null, 1));
@@ -179,7 +190,7 @@ async function main(): Promise<void> {
     }
     res.writeHead(404, { "content-type": "text/plain" });
     res.end("not found");
-  }).listen(PORT, () => console.log(`[health] listening on :${PORT}`));
+  }).listen(PORT, () => console.log(`[health] listening on :${PORT} (/live, /health)`));
 
   let attempt = 0;
   for (;;) {

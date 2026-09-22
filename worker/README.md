@@ -11,11 +11,18 @@ plan tier. That's an architecture mismatch, not a limit you can pay past.
 ## Why it's a web service, not a worker
 
 Render's free tier has **no background workers**, only web services, and
-sleeps idle ones after ~15 minutes. So this runs an HTTP server whose only
-route is `/health`, kept awake by an external pinger (UptimeRobot,
-cron-job.org). `/health` reports real connection state and returns **503 when
-the stream is down**, so the pinger doubles as a monitor rather than being a
-bare keep-alive target.
+sleeps idle ones after ~15 minutes. So this runs an HTTP server, kept awake by
+an external pinger (UptimeRobot, cron-job.org).
+
+Two routes, and the distinction matters:
+
+- **`/live`** — 200 whenever the process is up. This is what the *platform*
+  health check must use. Pointing Render at `/health` instead would make it
+  restart the worker during any normal reconnect, turning a flapping stream
+  into a restart loop.
+- **`/health`** — reports real stream state and returns **503 when
+  disconnected**. Point your uptime monitor here, so it alerts on a broken
+  stream rather than merely keeping the instance awake.
 
 Free tier gives 750 instance-hours against a ~730-hour month, so exactly one
 always-on service fits. Don't plan a second.
