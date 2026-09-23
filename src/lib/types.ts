@@ -60,27 +60,40 @@ export interface Match {
 export type RoomVisibility = "public" | "private";
 export type RoomStatus = "open" | "live" | "settled" | "cancelled" | "refunded";
 
-// Tier 1 (winner/total_goals/both_score) resolves automatically from
-// matches.home_score/away_score — no human step. Tier 3 (custom) is a
-// free-text claim the creator confirms after the match. See the create-room
-// plan for the full tiering — settlementMode below is the queryable fact of
-// which one a given room is.
-export type MarketType = "winner" | "total_goals" | "both_score" | "custom";
+// Tier 1 (winner/total_goals/both_score/correct_score/handicap) resolves
+// automatically from matches.home_score/away_score — no human step. Tier 3
+// (custom) is a free-text claim the creator confirms after the match; the
+// create-room UI no longer offers it (founder's call), but existing rooms
+// (including the seeded demo roster) still use it, so it stays supported
+// here. See the create-room plan for the full tiering — settlementMode
+// below is the queryable fact of which one a given room is.
+export type MarketType = "winner" | "total_goals" | "both_score" | "correct_score" | "handicap" | "custom";
 export type SettlementMode = "auto" | "creator_confirms";
 
 // Structured shape of what "Yes" resolves to for a Tier 1 room. Deliberately
 // mirrors TxLINE's own TraderPredicate/StatTerm shape (confirmed against the
 // real on-chain IDL) so a later on-chain-settlement effort has a straight
-// path in without another migration.
+// path in without another migration. Each market type only ever populates
+// the fields it needs — kept as one flat interface rather than a nested
+// union so it stays trivial to read back out of a jsonb column.
 export interface MarketSideDefinition {
-  stat: "total_goals" | "winner" | "both_score";
+  stat: "winner" | "total_goals" | "both_score" | "correct_score" | "handicap";
+  // winner: which outcome "Yes" claims. Entries.side is still a hard
+  // yes/no — a draw claim is its own room ("Yes" = draw happens), the same
+  // way the seeded demo roster already models "X ends in a draw" as its own
+  // market, not a third entries.side value.
+  outcome?: "home" | "draw" | "away";
+  // total_goals: which side of the line. handicap: unused (the team is
+  // carried by `team` below; covering the spread is always what "Yes" means).
   comparison?: "over" | "under";
-  // total_goals: the line, e.g. 2.5. winner: which team "Yes" claims wins —
-  // 1 for home, 2 for away (same Participant1/Participant2 convention used
-  // throughout the TxLINE integration), never a draw — entries.side is a
-  // hard yes/no, so a 3-way market isn't representable without a bigger
-  // schema change. both_score: unused.
+  // total_goals: the goals line, e.g. 2.5. handicap: the spread applied to
+  // `team`, e.g. -1.5.
   threshold?: number;
+  // handicap: which team the line applies to.
+  team?: "home" | "away";
+  // correct_score: the exact scoreline "Yes" claims.
+  homeGoals?: number;
+  awayGoals?: number;
 }
 
 /**

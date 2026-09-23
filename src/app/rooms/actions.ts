@@ -17,9 +17,15 @@ function randomInviteCode(): string {
 // rules those out, no separate validation needed for "did they send the
 // right fields."
 export type CreateRoomMarket =
-  | { type: "winner"; team: "home" | "away" }
+  | { type: "winner"; outcome: "home" | "draw" | "away" }
   | { type: "total_goals"; comparison: "over" | "under"; line: number }
   | { type: "both_score" }
+  | { type: "correct_score"; homeGoals: number; awayGoals: number }
+  // Favorite-only framing (the picked team wins by more than `line`), not a
+  // full two-sided spread — a deliberate scope call, not a missing feature:
+  // it's a real, correctly-settleable handicap market without doubling the
+  // number of taps to also pick favorite-vs-underdog framing.
+  | { type: "handicap"; team: "home" | "away"; line: number }
   | { type: "custom"; prediction: string };
 
 export interface CreateRoomInput {
@@ -43,12 +49,13 @@ function composeMarket(
 ): { prediction: string; marketType: MarketType; marketLine: number | null; marketSideDefinition: MarketSideDefinition | null; settlementMode: "auto" | "creator_confirms" } {
   switch (market.type) {
     case "winner": {
-      const team = market.team === "home" ? match.homeTeam : match.awayTeam;
+      const label =
+        market.outcome === "draw" ? "Draw" : market.outcome === "home" ? match.homeTeam : match.awayTeam;
       return {
-        prediction: `${team} wins`,
+        prediction: market.outcome === "draw" ? `${match.homeTeam} v ${match.awayTeam} ends in a draw` : `${label} wins`,
         marketType: "winner",
         marketLine: null,
-        marketSideDefinition: { stat: "winner", threshold: market.team === "home" ? 1 : 2 },
+        marketSideDefinition: { stat: "winner", outcome: market.outcome },
         settlementMode: "auto",
       };
     }
@@ -68,6 +75,25 @@ function composeMarket(
         marketSideDefinition: { stat: "both_score" },
         settlementMode: "auto",
       };
+    case "correct_score":
+      return {
+        prediction: `${match.homeTeam} ${market.homeGoals}-${market.awayGoals} ${match.awayTeam}`,
+        marketType: "correct_score",
+        marketLine: null,
+        marketSideDefinition: { stat: "correct_score", homeGoals: market.homeGoals, awayGoals: market.awayGoals },
+        settlementMode: "auto",
+      };
+    case "handicap": {
+      const team = market.team === "home" ? match.homeTeam : match.awayTeam;
+      const margin = Math.ceil(market.line);
+      return {
+        prediction: `${team} wins by ${margin}+`,
+        marketType: "handicap",
+        marketLine: market.line,
+        marketSideDefinition: { stat: "handicap", team: market.team, threshold: market.line },
+        settlementMode: "auto",
+      };
+    }
     case "custom":
       return {
         prediction: market.prediction.trim(),
@@ -92,6 +118,18 @@ export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResu
   }
   if (input.market.type === "total_goals" && !(input.market.line > 0)) {
     return { ok: false, error: "Pick a real goals line." };
+  }
+  if (input.market.type === "handicap" && !(input.market.line > 0)) {
+    return { ok: false, error: "Pick a real handicap line." };
+  }
+  if (
+    input.market.type === "correct_score" &&
+    (!Number.isInteger(input.market.homeGoals) ||
+      !Number.isInteger(input.market.awayGoals) ||
+      input.market.homeGoals < 0 ||
+      input.market.awayGoals < 0)
+  ) {
+    return { ok: false, error: "Pick a real scoreline." };
   }
 
   const match = await getMatchById(input.matchId);

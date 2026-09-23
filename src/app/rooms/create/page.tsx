@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { CreateRoomSheet } from "@/components/create-room-sheet";
+import { CreateRoomFlow } from "@/components/create-room-flow";
 
 // useSearchParams needs a Suspense boundary around whatever reads it (Next
 // bails out of static rendering otherwise) — same split used by
@@ -18,5 +18,5 @@ export default function CreateRoomPage() {
 function CreateRoomPageContent() {
   const searchParams = useSearchParams();
   const matchId = searchParams.get("matchId") ?? undefined;
-  return <CreateRoomSheet initialMatchId={matchId} />;
+  return <CreateRoomFlow initialMatchId={matchId} />;
 }
