@@ -472,7 +472,10 @@ function MatchList({
   // "when this page was opened" doesn't need to keep ticking.
   const [openedAt] = useState(() => Date.now());
   const horizon = openedAt + MATCH_WINDOW_DAYS * 86_400_000;
-  const withinWindow = matches.filter((m) => m.status !== "finished" && +new Date(m.kickoffAt) <= horizon);
+  // Stakes close at kickoff, so only matches still to start are offered.
+  const withinWindow = matches.filter(
+    (m) => m.status === "scheduled" && +new Date(m.kickoffAt) > openedAt && +new Date(m.kickoffAt) <= horizon,
+  );
   const hasNfl = withinWindow.some((m) => sportOf(m) === "nfl");
   const bySport = withinWindow.filter((m) => sport === "all" || sportOf(m) === sport);
   const leagues = [...new Set(bySport.map((m) => m.competition))].sort();

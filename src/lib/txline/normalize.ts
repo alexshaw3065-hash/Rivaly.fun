@@ -53,7 +53,7 @@ function periodStat(
   participant: "Participant1" | "Participant2",
   sportId: number,
   period: "HT" | "Total",
-  stat: "Goals" | "Corners" | "YellowCards",
+  stat: "Goals" | "Corners" | "YellowCards" | "RedCards",
 ): number | null {
   if (sportId !== SPORT_SOCCER) return null;
   const p = record.Score?.[participant]?.[period] as Record<string, number> | undefined;
@@ -91,6 +91,10 @@ export interface NormalizedMatch {
   awayCorners: number | null;
   homeYellowCards: number | null;
   awayYellowCards: number | null;
+  // The feed's own running count — it drops back when VAR rescinds a red,
+  // which is why settlement reads this rather than the red_card event.
+  homeRedCards: number | null;
+  awayRedCards: number | null;
   homeTouchdowns: number | null;
   awayTouchdowns: number | null;
   homeFieldGoals: number | null;
@@ -144,6 +148,8 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
   let awayCorners: number | null = null;
   let homeYellowCards: number | null = null;
   let awayYellowCards: number | null = null;
+  let homeRedCards: number | null = null;
+  let awayRedCards: number | null = null;
   let homeTouchdowns: number | null = null;
   let awayTouchdowns: number | null = null;
   let homeFieldGoals: number | null = null;
@@ -172,6 +178,11 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
     const p2Cards = periodStat(latest, "Participant2", sportId, "Total", "YellowCards");
     homeYellowCards = latest.Participant1IsHome ? p1Cards : p2Cards;
     awayYellowCards = latest.Participant1IsHome ? p2Cards : p1Cards;
+
+    const p1Reds = periodStat(latest, "Participant1", sportId, "Total", "RedCards");
+    const p2Reds = periodStat(latest, "Participant2", sportId, "Total", "RedCards");
+    homeRedCards = latest.Participant1IsHome ? p1Reds : p2Reds;
+    awayRedCards = latest.Participant1IsHome ? p2Reds : p1Reds;
 
     const p1Td = nflStat(latest, "Participant1", sportId, "Total", "Touchdown");
     const p2Td = nflStat(latest, "Participant2", sportId, "Total", "Touchdown");
@@ -203,6 +214,8 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
     awayCorners,
     homeYellowCards,
     awayYellowCards,
+    homeRedCards,
+    awayRedCards,
     homeTouchdowns,
     awayTouchdowns,
     homeFieldGoals,

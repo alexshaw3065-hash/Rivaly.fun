@@ -2,12 +2,10 @@
 
 import { useState, type ReactNode } from "react";
 import { composeMarket, sportOf, type CreateRoomMarket, type Sport } from "@/lib/markets";
-import { playersFor } from "@/lib/squads";
 import type { EntrySide, Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 import { Accordion, HelpTip, OptionCell, OverUnderGrid, ScoreStepper, Segmented } from "./controls";
 import {
-  BootIcon,
   BothScoreIcon,
   CornerFlagIcon,
   GoalIcon,
@@ -273,15 +271,11 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
           help="Yes wins if each team scores at least once. No wins if either team keeps a clean sheet." icon={<BothScoreIcon />} summary={summaryFor("btts:")}>
         <YesNoRow selected={sideFor("btts:")} onPick={(side) => onPick({ key: `btts:${side}`, market: { type: "both_score" }, side })} />
       </Accordion>
-      <Accordion
-        title="Anytime goalscorer"
-          help="Your player scores at least once in normal time. Own goals don't count. The room creator confirms it from the official scoresheet."
-        icon={<BootIcon />}
-        summary={summaryFor("scorer:")}
-        defaultOpen={pick?.key.startsWith("scorer:") ?? false}
-      >
-        <ScorerPicker match={match} pick={pick} onPick={onPick} />
-      </Accordion>
+      {/* Anytime goalscorer is hidden while stakes move real USDC: the feed
+          names scorers by numeric id only, so nothing could settle it
+          automatically, and the creator confirming a result they have money
+          on isn't fair. It comes back with a lineup feed (see git history
+          for the picker and the curated player list). */}
     </>
   );
 }
@@ -458,66 +452,5 @@ function ConfirmScore({ label, selected, onClick }: { label: string; selected: b
     >
       {selected ? `${label} ✓` : `${label} →`}
     </button>
-  );
-}
-
-function ScorerPicker({ match, pick, onPick }: { match: Match; pick: Pick | null; onPick: (pick: Pick) => void }) {
-  const initialTeam = pick?.market.type === "anytime_scorer" ? pick.market.team : "home";
-  const [team, setTeam] = useState<"home" | "away">(initialTeam);
-  const [custom, setCustom] = useState("");
-  const teamName = team === "home" ? match.homeTeam : match.awayTeam;
-  const players = playersFor(teamName);
-
-  const choose = (player: string) =>
-    onPick({ key: `scorer:${team}:${player}`, market: { type: "anytime_scorer", player, team }, side: "yes" });
-
-  const customName = custom.trim();
-
-  return (
-    <div className="flex flex-col gap-3">
-      <Segmented
-        label="Team"
-        value={team}
-        onChange={setTeam}
-        options={[
-          { value: "home", label: match.homeTeam },
-          { value: "away", label: match.awayTeam },
-        ]}
-      />
-      {players.length > 0 && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {players.map((p) => (
-            <OptionCell key={p} selected={pick?.key === `scorer:${team}:${p}`} onClick={() => choose(p)} className="!justify-start">
-              <TeamCrest name={teamName} size={16} />
-              {p}
-            </OptionCell>
-          ))}
-        </div>
-      )}
-      <form
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (customName.length >= 2) choose(customName);
-        }}
-      >
-        <input
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          maxLength={60}
-          aria-label="Player name"
-          placeholder={players.length > 0 ? "Someone else…" : `Type a ${teamName} player…`}
-          className="min-h-12 min-w-0 flex-1 rounded-md border border-border bg-surface px-3.5 text-sm text-foreground placeholder:text-muted focus:border-rival-blue focus:outline-none"
-          style={{ transition: "border-color 150ms ease" }}
-        />
-        <button
-          type="submit"
-          disabled={customName.length < 2}
-          className="min-h-12 shrink-0 rounded-md border border-border-strong px-4 text-sm font-medium text-foreground transition-[transform,opacity] duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
-        >
-          Pick
-        </button>
-      </form>
-    </div>
   );
 }

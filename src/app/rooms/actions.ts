@@ -44,6 +44,8 @@ const DB_ERRORS: Record<string, { error: string; code?: MoneyErrorCode }> = {
   room_not_found: { error: "Room not found." },
   room_closed: { error: "This room isn't open for entries anymore." },
   already_joined: { error: "You're already in this room." },
+  stakes_closed: { error: "Stakes are closed — this match has kicked off." },
+  match_not_found: { error: "That match isn't open for rooms." },
 };
 
 // The stake has to be covered by the user's own wallet (its devnet USDC,

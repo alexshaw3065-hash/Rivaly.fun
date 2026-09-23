@@ -7,7 +7,7 @@ import type { Match, MatchStatus } from "@/lib/types";
 // One string literal, not a concatenation: supabase-js parses the select
 // string at the type level, and `a + b` widens to plain `string`.
 export const MATCH_COLUMNS =
-  "id, competition, home_team, away_team, kickoff_at, status, home_score, away_score, home_score_ht, away_score_ht, home_corners, away_corners, home_yellow_cards, away_yellow_cards, sport_id, home_touchdowns, away_touchdowns, home_field_goals, away_field_goals, went_to_overtime";
+  "id, competition, home_team, away_team, kickoff_at, status, home_score, away_score, home_score_ht, away_score_ht, home_corners, away_corners, home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards, sport_id, home_touchdowns, away_touchdowns, home_field_goals, away_field_goals, went_to_overtime";
 
 export interface MatchRow {
   id: string;
@@ -24,6 +24,8 @@ export interface MatchRow {
   away_corners: number | null;
   home_yellow_cards: number | null;
   away_yellow_cards: number | null;
+  home_red_cards: number | null;
+  away_red_cards: number | null;
   sport_id: number;
   home_touchdowns: number | null;
   away_touchdowns: number | null;
@@ -48,6 +50,8 @@ export function mapMatchRow(row: MatchRow): Match {
     awayCorners: row.away_corners,
     homeYellowCards: row.home_yellow_cards,
     awayYellowCards: row.away_yellow_cards,
+    homeRedCards: row.home_red_cards,
+    awayRedCards: row.away_red_cards,
     sportId: row.sport_id,
     homeTouchdowns: row.home_touchdowns,
     awayTouchdowns: row.away_touchdowns,

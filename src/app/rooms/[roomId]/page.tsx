@@ -20,6 +20,11 @@ import type { EntrySide } from "@/lib/types";
 // messages / moderation tooling are cut for V1 polish (see the "ruthless V1"
 // case study in docs/masterplan/08-v1-scope.md) — Room Rules below covers
 // the "what do I need to know" job pinned messages would otherwise do.
+// Stakes close at kickoff — mirrors the lock in join_room_with_stake().
+function stakesAreClosed(match: { status: string; kickoffAt: string }): boolean {
+  return match.status !== "scheduled" || +new Date(match.kickoffAt) <= Date.now();
+}
+
 export default async function RoomPage({
   params,
   searchParams,
@@ -54,6 +59,7 @@ export default async function RoomPage({
   const creator = await getProfileById(room.creatorId);
   const myEntry = await getMyEntryForRoom(room.id);
   const currentUser = await getCurrentProfile();
+  const stakesClosed = stakesAreClosed(match);
   const leftPct = splitPctFromTotals(room.yesTotalCents ?? 0, room.noTotalCents ?? 0);
   const isSettled = room.status === "settled";
   const messages = await getRoomMessages(room.id);
@@ -135,6 +141,26 @@ export default async function RoomPage({
               >
                 Rematch →
               </Link>
+            </div>
+          ) : stakesClosed ? (
+            <div
+              className="stagger-in flex items-center gap-3 rounded-lg border border-border bg-surface p-4"
+              style={{ animationDelay: "30ms" }}
+            >
+              <span aria-hidden className="text-rival-blue">
+                <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
+                  <rect x="4.5" y="8.5" width="11" height="8" rx="1.8" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M7 8.5V6.3a3 3 0 0 1 6 0v2.2" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {match.status === "live" ? "Kicked off — stakes locked" : "Stakes closed"}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {myEntry ? "You're in. " : ""}The room settles on the official result.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="stagger-in" style={{ animationDelay: "30ms" }}>

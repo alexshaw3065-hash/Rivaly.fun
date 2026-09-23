@@ -54,7 +54,7 @@ const SPORT_MARKETS: Record<Sport, ReadonlySet<CreateRoomMarket["type"]>> = {
   soccer: new Set([
     "winner", "total_goals", "both_score", "correct_score", "handicap", "halftime_result",
     "halftime_total_goals", "halftime_correct_score", "second_half_total_goals", "corners",
-    "cards", "penalty", "red_card", "var", "anytime_scorer", "custom",
+    "cards", "penalty", "red_card", "var", "custom",
   ]),
   nfl: new Set([
     "winner", "handicap", "halftime_result", "total_points", "team_points", "first_half_points",

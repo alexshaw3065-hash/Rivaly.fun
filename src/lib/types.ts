@@ -69,6 +69,8 @@ export interface Match {
   awayCorners?: number | null;
   homeYellowCards?: number | null;
   awayYellowCards?: number | null;
+  homeRedCards?: number | null;
+  awayRedCards?: number | null;
   // TxLINE sport id (1 = soccer, 6 = NFL). Absent on the mock roster, which
   // is all soccer — read it through sportOf() in src/lib/markets.ts.
   sportId?: number;

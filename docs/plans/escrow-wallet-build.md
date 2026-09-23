@@ -56,7 +56,9 @@ Match finishes (TxLINE data already in our DB)
 
 ### 4. Early resolution
 
-A room resolves the moment its outcome can no longer change — winners get paid mid-match — with one safety rule: a stat can still be reversed after it first appears (VAR disallows a goal or rescinds a red, the feed amends a stat, devnet data is ~60 s sampled). So an early result only settles once **no VAR review is open** (`var` without its `var_end`) **and the deciding stat has held for ~3 minutes**. Checkpoint whistles (half-time, full-time) settle immediately.
+A room resolves the moment its outcome can no longer change — winners get paid mid-match — with one safety rule: a stat can still be reversed after it first appears (VAR disallows a goal or rescinds a red, the feed amends a stat, devnet data is ~60 s sampled). So an early result only settles once **no review is open** (`var` without its `var_end`; NFL `instant_replay` without `instant_replay_end`), **the deciding stat hasn't been discarded or amended** (`action_discarded` / `action_amend`), **and 10 minutes have passed since the deciding moment** (founder's call — configurable; every correction's delay is logged so the window can be tuned with real data). Checkpoint whistles (half-time) settle once no review is open; full time always waits for `game_finalised`.
+
+**Correction after an early payout** (should be very rare): on-chain payouts can't be clawed back, so the first payout stands and Rivaly also pays the side that turned out to be right, from treasury. The cost lands on Rivaly, never on users.
 
 | Market | Early when… | Otherwise |
 | --- | --- | --- |
@@ -71,7 +73,7 @@ A room resolves the moment its outcome can no longer change — winners get paid
 | Winner, winning margin, team points Under | — | full time |
 | Cancelled / postponed match | refund, whenever it happens | — |
 
-`resolveMarket(market, match, events)` returns `yes`, `no`, `void` or `pending`, and its tests cover every row above — including a goal that VAR removes inside the buffer (must *not* settle).
+`resolveMarket(market, match, events)` returns `yes`, `no`, `void` or `pending`, and its tests cover every row above — including a goal that VAR removes inside the 10-minute window (must *not* settle).
 
 ### 5. Settlement
 - The same `resolveMarket(market, match, events) → yes | no | void | pending` covers all 20+ market types (goals, halves, corners, red card, NFL points/touchdowns/field goals/overtime…), reading the stats the TxLINE ingester already stores. Unit-tested per market type, including edge cases (0–0, overtime, missing HT data → wait, don't guess).
@@ -127,4 +129,9 @@ Every phase: typecheck, lint, build, devnet test, commit, push. Estimated 2–3 
 1. Stakes close at kickoff — **yes**.
 2. Anytime goalscorer — **hidden** until a lineup feed exists.
 3. Dynamic's confirm screen — **kept**, to prevent mistakes.
-4. Rooms resolve **as soon as the outcome is locked**, behind the VAR/stability buffer above.
+4. Rooms resolve **as soon as the outcome is locked**, behind a **10-minute** safety window plus the review checks above.
+5. A correction after an early payout: **Rivaly pays the correct side too**; users never lose from it.
+
+## Later (not in this build)
+
+- **Tournament-winner rooms** — Premier League champion first (settles from the league table computed from real PL results already in the feed; stakes locked all season, closing date chosen per room). World Cup winner needs a data source with World Cup scores (not in the current TxLINE bundle). Season-long rooms sit outside V1's live-match loop, so they're V2 per the masterplan.

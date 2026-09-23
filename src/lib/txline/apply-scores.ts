@@ -67,6 +67,8 @@ export async function applyScores(
       away_corners: state.awayCorners,
       home_yellow_cards: state.homeYellowCards,
       away_yellow_cards: state.awayYellowCards,
+      home_red_cards: state.homeRedCards,
+      away_red_cards: state.awayRedCards,
       home_touchdowns: state.homeTouchdowns,
       away_touchdowns: state.awayTouchdowns,
       home_field_goals: state.homeFieldGoals,
