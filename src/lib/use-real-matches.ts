@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { matches as mockMatches } from "@/lib/mock-data";
-import type { Match, MatchStatus } from "@/lib/types";
+import { mapMatchRow, MATCH_COLUMNS, type MatchRow } from "@/lib/supabase/match-mapper";
+import type { Match } from "@/lib/types";
 
 // Read straight from the browser: public.matches has a public select policy
 // (fixtures and scores aren't secret, and the app renders them to signed-out
@@ -15,30 +16,6 @@ import type { Match, MatchStatus } from "@/lib/types";
 const PAST_HOURS = 36;
 const FUTURE_DAYS = 14;
 const LIMIT = 200;
-
-interface MatchRow {
-  id: string;
-  competition: string;
-  home_team: string;
-  away_team: string;
-  kickoff_at: string;
-  status: string;
-  home_score: number | null;
-  away_score: number | null;
-}
-
-function mapRow(row: MatchRow): Match {
-  return {
-    id: row.id,
-    competition: row.competition,
-    homeTeam: row.home_team,
-    awayTeam: row.away_team,
-    kickoffAt: row.kickoff_at,
-    status: row.status as MatchStatus,
-    homeScore: row.home_score,
-    awayScore: row.away_score,
-  };
-}
 
 // Live first, then whatever kicks off soonest — the order someone browsing
 // actually wants, rather than raw chronology.
@@ -76,12 +53,12 @@ export function useRealMatches(): RealMatches {
       const now = Date.now();
       const { data } = await supabase
         .from("matches")
-        .select("id, competition, home_team, away_team, kickoff_at, status, home_score, away_score")
+        .select(MATCH_COLUMNS)
         .gte("kickoff_at", new Date(now - PAST_HOURS * 3600_000).toISOString())
         .lte("kickoff_at", new Date(now + FUTURE_DAYS * 86_400_000).toISOString())
         .order("kickoff_at", { ascending: true })
         .limit(LIMIT);
-      setRows((data ?? []).map((r) => mapRow(r as MatchRow)));
+      setRows((data ?? []).map((r) => mapMatchRow(r as MatchRow)));
     } finally {
       inFlight.current = false;
       setIsLoading(false);

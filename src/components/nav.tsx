@@ -85,18 +85,22 @@ export function Nav({ children }: { children: ReactNode }) {
       <div className="content-shell md:pl-[var(--sidebar-width)] md:pt-16">{children}</div>
 
       {/* Floating create button — mobile only, matches the X compose-button
-          reference exactly. Sits above the bottom tab bar. */}
-      <Link
-        href="/rooms/create"
-        aria-label="Create room"
-        className="fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
-        style={{
-          background: "var(--rival-blue)",
-          boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)",
-        }}
-      >
-        +
-      </Link>
+          reference exactly. Sits above the bottom tab bar. Hidden on the
+          create page itself, where it would only cover that flow's sticky
+          confirm bar. */}
+      {pathname !== "/rooms/create" && (
+        <Link
+          href="/rooms/create"
+          aria-label="Create room"
+          className="fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
+          style={{
+            background: "var(--rival-blue)",
+            boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)",
+          }}
+        >
+          +
+        </Link>
+      )}
 
       <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm md:hidden">
         <div className="mx-auto flex max-w-5xl items-stretch justify-around">

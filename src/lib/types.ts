@@ -55,19 +55,59 @@ export interface Match {
   status: MatchStatus;
   homeScore: number | null;
   awayScore: number | null;
+  // Optional (not just nullable): genuinely absent for the mock roster and
+  // for any real match the ingester hasn't extracted these from yet, so
+  // every existing Match literal — mock or real — stays valid without
+  // needing to add `null` for fields it never had an opinion about.
+  // Verified against a real TxLINE payload during the TxLINE integration:
+  // the Score object carries the identical {Goals, YellowCards, RedCards,
+  // Corners} shape at "HT" as it does at "Total", so half-time is read the
+  // same way full-time already is, not inferred.
+  homeScoreHt?: number | null;
+  awayScoreHt?: number | null;
+  homeCorners?: number | null;
+  awayCorners?: number | null;
+  homeYellowCards?: number | null;
+  awayYellowCards?: number | null;
 }
 
 export type RoomVisibility = "public" | "private";
 export type RoomStatus = "open" | "live" | "settled" | "cancelled" | "refunded";
 
-// Tier 1 (winner/total_goals/both_score/correct_score/handicap) resolves
-// automatically from matches.home_score/away_score — no human step. Tier 3
-// (custom) is a free-text claim the creator confirms after the match; the
+// Tier 1 resolves automatically, no human step. Two different mechanisms,
+// both auto: score-arithmetic markets read matches.home_score*/away_score*
+// directly (winner, total_goals, both_score, correct_score, handicap,
+// halftime_result, halftime_total_goals, corners, cards); event-existence
+// markets (penalty, red_card, var) instead check whether match_events has a
+// matching row — settlement for those needs no new matches columns since
+// the events are already captured by the TxLINE ingester. halftime_correct_score
+// reads the HT columns; second_half_total_goals is full-time total minus HT
+// total. anytime_scorer is the one Tier 1-shaped market that can't auto-settle
+// yet — the feed identifies scorers by numeric PlayerId only, with no names to
+// match the picked player against — so it's creator_confirms until a lineup
+// feed exists. Tier 3 (custom)
+// is a free-text claim the creator confirms after the match; the
 // create-room UI no longer offers it (founder's call), but existing rooms
 // (including the seeded demo roster) still use it, so it stays supported
 // here. See the create-room plan for the full tiering — settlementMode
 // below is the queryable fact of which one a given room is.
-export type MarketType = "winner" | "total_goals" | "both_score" | "correct_score" | "handicap" | "custom";
+export type MarketType =
+  | "winner"
+  | "total_goals"
+  | "both_score"
+  | "correct_score"
+  | "handicap"
+  | "halftime_result"
+  | "halftime_total_goals"
+  | "halftime_correct_score"
+  | "second_half_total_goals"
+  | "corners"
+  | "cards"
+  | "penalty"
+  | "red_card"
+  | "var"
+  | "anytime_scorer"
+  | "custom";
 export type SettlementMode = "auto" | "creator_confirms";
 
 // Structured shape of what "Yes" resolves to for a Tier 1 room. Deliberately
@@ -77,7 +117,7 @@ export type SettlementMode = "auto" | "creator_confirms";
 // the fields it needs — kept as one flat interface rather than a nested
 // union so it stays trivial to read back out of a jsonb column.
 export interface MarketSideDefinition {
-  stat: "winner" | "total_goals" | "both_score" | "correct_score" | "handicap";
+  stat: Exclude<MarketType, "custom">;
   // winner: which outcome "Yes" claims. Entries.side is still a hard
   // yes/no — a draw claim is its own room ("Yes" = draw happens), the same
   // way the seeded demo roster already models "X ends in a draw" as its own
@@ -91,9 +131,11 @@ export interface MarketSideDefinition {
   threshold?: number;
   // handicap: which team the line applies to.
   team?: "home" | "away";
-  // correct_score: the exact scoreline "Yes" claims.
+  // correct_score / halftime_correct_score: the exact scoreline "Yes" claims.
   homeGoals?: number;
   awayGoals?: number;
+  // anytime_scorer: the player "Yes" says scores (with `team` above).
+  player?: string;
 }
 
 /**
