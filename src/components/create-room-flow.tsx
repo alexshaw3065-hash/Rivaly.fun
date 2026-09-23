@@ -16,6 +16,9 @@ import { DEFAULT_SETTINGS, limitsLabel, RoomSettingsStep, stakeLimits, type Room
 import { RoomPreviewCard, StakeInput, stakeError } from "./create-room/bet-step";
 import { kickoffLabel, MatchBanner } from "./create-room/match-hero";
 import { GridironIcon, SoccerIcon } from "./create-room/market-icons";
+import { BalanceLine } from "./wallet/top-up";
+import { openAuthModal } from "@/lib/auth-modal-store";
+import { refreshRivalyBalance, useRivalyBalance } from "@/lib/wallet/use-rivaly-balance";
 
 // Matches further out than this aren't real decisions yet — showing them
 // just crowds the list. A week matches how people actually think about a
@@ -35,6 +38,48 @@ const SUGGESTED_STAKE_CENTS = 10_00;
 
 type Step = "match" | "pick" | "room" | "bet";
 
+// Signing in happens only at "Throw down" — and a brand-new account detours
+// through /auth/complete-profile, which unmounts this page. The draft rides
+// through that in sessionStorage (this tab only, gone when it closes), and
+// `?resume=1` on the way back restores it straight onto the stake step.
+const DRAFT_KEY = "rivaly:create-draft";
+
+interface Draft {
+  matchId: string;
+  pick: Pick;
+  fullTime: Score;
+  halfTime: Score;
+  settings: RoomSettings;
+  side: EntrySide;
+  stakeDollars: string;
+}
+
+function saveDraft(d: Draft) {
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+  } catch {
+    // Storage blocked (private mode) — sign-in still works, the picks just
+    // won't survive it.
+  }
+}
+
+function takeDraft(): Draft | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as Draft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try {
+    sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // Nothing to clear if storage is unavailable.
+  }
+}
+
 const STEPS: { id: Step; label: string; title: string }[] = [
   { id: "match", label: "Match", title: "Pick a match" },
   { id: "pick", label: "Call", title: "What's your call?" },
@@ -47,9 +92,10 @@ const STEPS: { id: Step; label: string; title: string }[] = [
 // chrome). Four short steps: match → call → room rules → side & stake. Every
 // single-tap choice both selects and advances; every step keeps its state
 // when you jump back through the progress bar, so nothing is picked twice.
-export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) {
+export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatchId?: string; resume?: boolean }) {
   const router = useRouter();
   const currentUser = useCurrentUser();
+  const balance = useRivalyBalance();
   const { matches, isLoading } = useRealMatches();
 
   const [matchId, setMatchId] = useState<string | null>(initialMatchId ?? null);
@@ -68,6 +114,27 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
   const advanceTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => window.clearTimeout(advanceTimer.current), []);
+
+  // Back from sign-in: put every pick back and land on the stake step. Done
+  // after mount (not in a state initializer) because sessionStorage doesn't
+  // exist during the server render, and reading it there would mismatch.
+  const autoSubmit = useRef(false);
+  useEffect(() => {
+    if (!resume) return;
+    const d = takeDraft();
+    if (!d) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from storage after sign-in */
+    setMatchId(d.matchId);
+    setPick(d.pick);
+    setFullTime(d.fullTime);
+    setHalfTime(d.halfTime);
+    setSettings(d.settings);
+    setSide(d.side);
+    setStakeDollars(d.stakeDollars);
+    setStep("bet");
+    /* eslint-enable react-hooks/set-state-in-effect */
+    autoSubmit.current = true;
+  }, [resume]);
 
   const match = matches.find((m) => m.id === matchId);
   const currentIndex = STEPS.findIndex((s) => s.id === step);
@@ -108,9 +175,16 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
     advanceTimer.current = window.setTimeout(() => go("room"), ADVANCE_DELAY_MS);
   }
 
-  const ready = Boolean(currentUser && match && pick && !limits.error && !stakeProblem);
+  const short = balance.hasLoaded && balance.cents !== null && balance.cents < stakeCents;
+  const ready = Boolean(currentUser && match && pick && !limits.error && !stakeProblem && !short);
 
   function submit() {
+    if (!currentUser) {
+      if (!match || !pick || stakeProblem || limits.error) return;
+      saveDraft({ matchId: match.id, pick, fullTime, halfTime, settings, side, stakeDollars });
+      openAuthModal({ next: "/rooms/create?resume=1" });
+      return;
+    }
     if (!ready || !match || !pick || submitting.current) return;
     submitting.current = true;
     setError(null);
@@ -127,11 +201,14 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
           allowSpectators: settings.allowSpectators,
         });
         if (res.ok) {
+          clearDraft();
+          void refreshRivalyBalance();
           router.prefetch(`/rooms/${res.roomId}`);
           setResult({ roomId: res.roomId, inviteCode: res.inviteCode });
           window.scrollTo({ top: 0 });
         } else {
           setError(res.error);
+          if (res.code === "insufficient_balance") void refreshRivalyBalance();
         }
       } catch {
         setError("Couldn't reach Rivaly — check your connection and try again.");
@@ -140,6 +217,16 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
       }
     });
   }
+
+  // The "room is created the moment they're back" half of sign-in-at-the-end:
+  // once the restored draft, the session and the balance are all in, fire
+  // the create once. If the balance doesn't cover it, stop and let the
+  // stake step's top-up do its job instead.
+  useEffect(() => {
+    if (!autoSubmit.current || !currentUser || !match || !pick || !balance.hasLoaded) return;
+    autoSubmit.current = false;
+    if (ready) submit();
+  });
 
   const meta = [
     settings.visibility === "public" ? "Public" : "Private",
@@ -209,15 +296,6 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
 
       <h1 className="mt-6 font-display text-3xl font-bold text-foreground md:text-4xl">{STEPS[currentIndex].title}</h1>
 
-      {!currentUser && (
-        <p className="mt-2 text-sm text-muted">
-          <Link href="/login?next=/rooms/create" className="hover-link text-foreground underline underline-offset-2 transition-colors">
-            Sign in
-          </Link>{" "}
-          to create a room — you can look around first.
-        </p>
-      )}
-
       {/* The stake step's preview card already carries the match. */}
       {(step === "pick" || step === "room") && match && (
         <div className="mt-4 overflow-hidden rounded-xl border border-border">
@@ -280,6 +358,7 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
           <div className="flex flex-col gap-6">
             <RoomPreviewCard match={match} claim={claim} side={side} onSide={setSide} meta={meta} />
             <StakeInput valueDollars={stakeDollars} onChange={setStakeDollars} limits={limits} error={stakeProblem} side={side} />
+            <BalanceLine needCents={stakeCents} signedIn={Boolean(currentUser)} />
           </div>
         )}
       </div>
@@ -310,22 +389,20 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
                 {error}
               </p>
             )}
-            {currentUser ? (
-              <PrimaryButton onClick={submit} disabled={!ready || pending} wide color={sideColor}>
-                {pending
-                  ? "Creating your room…"
-                  : stakeProblem
-                    ? "Throw down →"
-                    : `Throw down ${formatMoney(stakeCents)} on ${side === "yes" ? "YES" : "NO"}`}
-              </PrimaryButton>
-            ) : (
-              <Link
-                href="/login?next=/rooms/create"
-                className="flex min-h-12 w-full items-center justify-center rounded-md text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.98]"
-                style={{ background: sideColor }}
-              >
-                Sign in to throw down
-              </Link>
+            <PrimaryButton
+              onClick={submit}
+              disabled={currentUser ? !ready || pending : Boolean(stakeProblem || limits.error)}
+              wide
+              color={sideColor}
+            >
+              {pending
+                ? "Creating your room…"
+                : stakeProblem
+                  ? "Throw down →"
+                  : `Throw down ${formatMoney(stakeCents)} on ${side === "yes" ? "YES" : "NO"}`}
+            </PrimaryButton>
+            {!currentUser && (
+              <p className="text-center text-xs text-muted">One quick sign-in, then your room goes live — your picks are kept.</p>
             )}
           </div>
         </StickyBar>

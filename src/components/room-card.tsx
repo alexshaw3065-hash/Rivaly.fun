@@ -1,22 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { EntrySide, Match } from "@/lib/types";
-import { formatMoney, splitPct, kickoffCountdownCompact } from "@/lib/mock-data";
+import { formatMoney, kickoffCountdownCompact } from "@/lib/mock-data";
 import { splitPctFromTotals, type RoomWithTotals } from "@/lib/supabase/room-mapper";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
 import { ShareButton } from "./share-button";
 import { RivalsInRoom } from "./rivals-in-room";
+import { TeamCrest } from "./team-crest";
 
-// One-tap predicting, right in the feed — the Fast design principle's own
-// words are "one-tap challenges," and V1's whole promise is putting an
-// opinion up against someone else's "in under 30 seconds" (mechanism:
-// the pill IS the join control, one tap commits, no separate confirm —
-// see join-panel.tsx for the two-step version the full room uses, which
-// a feed card has no room to replicate). Pill-shaped and always visible,
+// One-tap into a side, right from the feed — the Fast design principle's
+// "one-tap challenges." Now that entries move real balance, the pill can't
+// just flip local state to "You're in": it opens the room with that side
+// already picked, so the only thing left is the stake. Pill-shaped and always visible,
 // not hidden behind a reveal step. No percentage baked in — the split
 // bar's own labels above already show Yes/No's percentage, so the pill
 // only ever needs to carry the pick itself. A light tint of the side's
@@ -49,9 +48,9 @@ function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
         }}
         className="rounded-full border py-2 text-sm font-semibold active:scale-[0.96]"
         style={{
-          borderColor: "var(--danger-red)",
-          color: "var(--danger-red)",
-          background: "color-mix(in srgb, var(--danger-red) 14%, transparent)",
+          borderColor: "var(--rival-red)",
+          color: "var(--rival-red)",
+          background: "color-mix(in srgb, var(--rival-red) 14%, transparent)",
         }}
       >
         No
@@ -61,15 +60,9 @@ function PredictPills({ onPick }: { onPick: (side: EntrySide) => void }) {
 }
 
 export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }) {
-  // Real rooms carry real yes/no totals (see room-mapper.ts) — use the
-  // honest math over them instead of splitPct()'s seeded-hash stand-in,
-  // which was never meant to apply to anything but the mock roster.
-  const leftPct =
-    room.yesTotalCents !== undefined
-      ? splitPctFromTotals(room.yesTotalCents, room.noTotalCents ?? 0)
-      : splitPct(room);
+  const router = useRouter();
+  const leftPct = splitPctFromTotals(room.yesTotalCents ?? 0, room.noTotalCents ?? 0);
   const countdown = kickoffCountdownCompact(match);
-  const [entered, setEntered] = useState<EntrySide | null>(null);
 
   return (
     <Link
@@ -78,8 +71,12 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
       style={{ transition: "transform 120ms ease-out, border-color 150ms ease" }}
     >
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
-          {match.competition}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="flex shrink-0 -space-x-1">
+            <TeamCrest name={match.homeTeam} size={18} />
+            <TeamCrest name={match.awayTeam} size={18} />
+          </span>
+          <span className="truncate font-mono text-[11px] uppercase tracking-wider text-muted">{match.competition}</span>
         </span>
         {match.status === "live" ? (
           <LiveBadge />
@@ -95,22 +92,12 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
 
-      {entered ? (
-        <div className="enter-pop rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-sm">
-          <span className="font-medium text-foreground">You&rsquo;re in</span>
-          <span className="text-muted"> — backing </span>
-          <span className={entered === "yes" ? "text-rival-blue" : "text-danger-red"}>
-            {entered === "yes" ? "Yes" : "No"}
-          </span>
-        </div>
-      ) : (
-        <PredictPills onPick={(side) => setEntered(side)} />
-      )}
+      <PredictPills onPick={(side: EntrySide) => router.push(`/rooms/${room.id}?side=${side}`)} />
 
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
         <span>{formatMoney(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
-          <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
+          <RivalsInRoom participantCount={room.participantCount} />
           <ShareButton path={`/rooms/${room.id}`} label="room" />
           <BookmarkButton id={room.id} label="room" />
         </div>

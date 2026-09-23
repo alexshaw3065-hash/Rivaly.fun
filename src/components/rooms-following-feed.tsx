@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { rooms, roomsJoinedBy, followedProfileIds, profileById, matchById } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
+import { getFollowedUserIds } from "@/lib/supabase/arena";
+import { fetchPublicRooms, fetchRoomsForProfile, type RoomWithMatch } from "@/lib/use-real-rooms";
+import { useCurrentUser } from "./current-user-provider";
 import { RoomCard } from "./room-card";
 import { Avatar } from "./avatar";
 import { InfoIcon } from "./icons";
-import type { Room } from "@/lib/types";
 
 type SubTab = "created" | "joined";
 
@@ -14,8 +16,13 @@ type SubTab = "created" | "joined";
 // "here's what people you actually follow are doing right now." Each card
 // carries a small by-line (avatar + name) rather than being grouped under
 // one generic header, since the point is *who*, not just *what*.
-function RoomWithByline({ room, byId }: { room: Room; byId: string }) {
-  const profile = profileById(byId);
+interface Byline {
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+function RoomWithByline({ item, profile }: { item: RoomWithMatch; profile: Byline | undefined }) {
   if (!profile) return null;
   return (
     <div className="flex flex-col gap-2">
@@ -23,10 +30,10 @@ function RoomWithByline({ room, byId }: { room: Room; byId: string }) {
         href={`/profile/${profile.username}`}
         className="hover-link flex items-center gap-2 text-muted transition-colors"
       >
-        <Avatar name={profile.displayName} size={20} />
+        <Avatar name={profile.displayName} size={20} imageUrl={profile.avatarUrl} />
         <span className="text-xs font-medium">{profile.displayName}</span>
       </Link>
-      <RoomCard room={room} match={matchById(room.matchId)!} />
+      <RoomCard room={item.room} match={item.match} />
     </div>
   );
 }
@@ -62,23 +69,62 @@ function SubTabInfo() {
   );
 }
 
+interface FollowingData {
+  created: { item: RoomWithMatch; byId: string }[];
+  joined: { item: RoomWithMatch; byId: string }[];
+  profiles: Map<string, Byline>;
+}
+
+// Real follows, real rooms: what the people you follow have started, and
+// what they've entered, while it's still open.
+async function loadFollowing(viewerId: string): Promise<FollowingData> {
+  const followed = await getFollowedUserIds(viewerId);
+  if (followed.length === 0) return { created: [], joined: [], profiles: new Map() };
+  const [publicRooms, perPerson, { data: profileRows }] = await Promise.all([
+    fetchPublicRooms(),
+    Promise.all(followed.map(async (id) => ({ id, rooms: await fetchRoomsForProfile(id) }))),
+    createClient().from("profiles").select("id, username, display_name, avatar_url").in("id", followed),
+  ]);
+  const open = (i: RoomWithMatch) => i.room.status === "open" || i.room.status === "live";
+  return {
+    created: publicRooms.filter((i) => followed.includes(i.room.creatorId)).map((item) => ({ item, byId: item.room.creatorId })),
+    joined: perPerson.flatMap(({ id, rooms }) => rooms.joined.filter(open).map((item) => ({ item, byId: id }))),
+    profiles: new Map(
+      (profileRows ?? []).map((p) => [p.id as string, { username: p.username, displayName: p.display_name, avatarUrl: p.avatar_url }]),
+    ),
+  };
+}
+
 export function RoomsFollowingFeed() {
   const [sub, setSub] = useState<SubTab>("created");
-  const followed = followedProfileIds();
+  const viewer = useCurrentUser();
+  const [data, setData] = useState<{ viewerId: string; value: FollowingData } | null>(null);
 
-  const created = rooms.filter((r) => r.status !== "settled" && followed.includes(r.creatorId));
+  useEffect(() => {
+    if (!viewer) return;
+    let cancelled = false;
+    loadFollowing(viewer.id).then((value) => {
+      if (!cancelled) setData({ viewerId: viewer.id, value });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer]);
 
-  const joined = followed
-    .flatMap((id) => roomsJoinedBy(id).map((room) => ({ room, byId: id })))
-    .filter(({ room, byId }) => room.status !== "settled" && room.creatorId !== byId);
-
+  const current = viewer && data?.viewerId === viewer.id ? data.value : null;
+  const created = current?.created ?? [];
+  const joined = current?.joined ?? [];
   const hasAnything = created.length > 0 || joined.length > 0;
+
+  if (viewer && !current) return <p className="text-sm text-muted">Loading…</p>;
 
   if (!hasAnything) {
     return (
       <div className="rounded-lg border border-border bg-surface p-8 text-center">
         <p className="text-sm text-muted">
-          Nobody you follow has an active room right now. Follow a few more rivals to fill this up.
+          {viewer
+            ? "Nobody you follow has an active room right now. Follow a few more rivals to fill this up."
+            : "Sign in and follow a few rivals to see their rooms here."}
         </p>
       </div>
     );
@@ -108,8 +154,8 @@ export function RoomsFollowingFeed() {
       {sub === "created" ? (
         created.length > 0 ? (
           <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {created.map((room) => (
-              <RoomWithByline key={room.id} room={room} byId={room.creatorId} />
+            {created.map(({ item, byId }) => (
+              <RoomWithByline key={item.room.id} item={item} profile={current?.profiles.get(byId)} />
             ))}
           </div>
         ) : (
@@ -117,8 +163,8 @@ export function RoomsFollowingFeed() {
         )
       ) : joined.length > 0 ? (
         <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {joined.map(({ room, byId }) => (
-            <RoomWithByline key={`${room.id}-${byId}`} room={room} byId={byId} />
+          {joined.map(({ item, byId }) => (
+            <RoomWithByline key={`${item.room.id}-${byId}`} item={item} profile={current?.profiles.get(byId)} />
           ))}
         </div>
       ) : (

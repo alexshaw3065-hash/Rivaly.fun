@@ -18,5 +18,7 @@ export default function CreateRoomPage() {
 function CreateRoomPageContent() {
   const searchParams = useSearchParams();
   const matchId = searchParams.get("matchId") ?? undefined;
-  return <CreateRoomFlow initialMatchId={matchId} />;
+  // ?resume=1: coming back from the sign-in that "Throw down" triggered.
+  const resume = searchParams.get("resume") === "1";
+  return <CreateRoomFlow initialMatchId={matchId} resume={resume} />;
 }

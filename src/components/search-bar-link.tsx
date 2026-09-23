@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { rooms, matches, profiles } from "@/lib/mock-data";
+import { matches, profiles } from "@/lib/mock-data";
+import { searchRooms, usePublicRooms } from "@/lib/use-real-rooms";
 import { openSearchOverlay } from "@/lib/search-overlay-store";
 import { addRecentSearch } from "@/lib/use-recent-searches";
 import { SearchIcon, SlidersIcon, BookmarkIcon } from "./icons";
@@ -28,10 +29,8 @@ export function SearchBarLink() {
 
   const q = query.trim().toLowerCase();
 
-  const matchedRooms = useMemo(
-    () => (q ? rooms.filter((r) => r.prediction.toLowerCase().includes(q)) : []),
-    [q],
-  );
+  const { items: publicRooms } = usePublicRooms();
+  const matchedRooms = useMemo(() => searchRooms(publicRooms, q), [publicRooms, q]);
   const matchedMatches = useMemo(
     () =>
       q

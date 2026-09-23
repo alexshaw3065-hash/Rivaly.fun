@@ -3,22 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  entries,
-  roomById,
-  matchById,
-  profileById,
-  postById,
-  momentumCount,
-  formatMoney,
-  formatSignedMoney,
-} from "@/lib/mock-data";
+import { profileById, postById, formatMoney } from "@/lib/mock-data";
 import type { DisplayPost } from "@/lib/supabase/post-mapper";
 import type { DisplayRivalActivity, DisplayHotRoom } from "@/lib/supabase/arena";
 import { toggleRoast } from "@/app/arena/actions";
 import { useCurrentUser } from "./current-user-provider";
 import { Avatar } from "./avatar";
-import { LiveBadge } from "./live-badge";
 import type { ArenaFeedItem } from "@/lib/types";
 
 // The 6 card renderers for Arena's Feed, switched on ArenaFeedItem.kind.
@@ -63,40 +53,6 @@ function ByLine({
   );
 }
 
-function WinLossCard({ entryId }: { entryId: string }) {
-  const entry = entries.find((e) => e.id === entryId);
-  if (!entry) return null;
-  const room = roomById(entry.roomId);
-  if (!room) return null;
-  const match = matchById(room.matchId);
-  const author = profileById(entry.userId);
-  if (!author) return null;
-  const won = entry.isWinner === true;
-  const pnlCents = won ? (entry.payoutCents ?? 0) - entry.amountCents : -entry.amountCents;
-
-  return (
-    <CardShell>
-      <ByLine name={author.displayName} username={author.username} verb={won ? "called it" : "took the L"} />
-      <Link href={`/rooms/${room.id}`} className="hover-link text-base font-medium leading-snug text-foreground transition-colors">
-        &ldquo;{room.prediction}&rdquo;
-      </Link>
-      {match && <p className="font-mono text-xs text-muted">{match.competition}</p>}
-      <p
-        className="font-mono text-2xl font-semibold"
-        style={{ color: won ? "var(--rival-green)" : "var(--muted)" }}
-      >
-        {formatSignedMoney(pnlCents)}
-      </p>
-      <Link
-        href="/rooms"
-        className="hover-link self-start text-sm font-medium text-rival-blue transition-colors"
-      >
-        Find a similar room →
-      </Link>
-    </CardShell>
-  );
-}
-
 function RivalActivityCard({
   entryId,
   real,
@@ -119,29 +75,9 @@ function RivalActivityCard({
     );
   }
 
-  const entry = entries.find((e) => e.id === entryId);
-  if (!entry) return null;
-  const room = roomById(entry.roomId);
-  if (!room) return null;
-  const match = matchById(room.matchId);
-  const author = profileById(entry.userId);
-  if (!author) return null;
-
-  return (
-    <CardShell>
-      <ByLine name={author.displayName} username={author.username} verb={`just entered with ${formatMoney(entry.amountCents)}`} />
-      <Link
-        href={`/rooms/${room.id}`}
-        className="hover-link text-base font-medium leading-snug text-foreground transition-colors"
-      >
-        &ldquo;{room.prediction}&rdquo;
-      </Link>
-      <div className="flex items-center justify-between font-mono text-xs text-muted">
-        <span>{match?.competition}</span>
-        {match?.status === "live" ? <LiveBadge /> : <span>{room.participantCount} rivals</span>}
-      </div>
-    </CardShell>
-  );
+  // Mock entries (and their rooms) were removed — only real activity renders.
+  void entryId;
+  return null;
 }
 
 function HotRoomCard({ roomId, real }: { roomId: string; real?: DisplayHotRoom }) {
@@ -160,28 +96,9 @@ function HotRoomCard({ roomId, real }: { roomId: string; real?: DisplayHotRoom }
     );
   }
 
-  const room = roomById(roomId);
-  if (!room) return null;
-  const match = matchById(room.matchId);
-  const momentum = momentumCount(room);
-
-  return (
-    <Link href={`/rooms/${room.id}`} className="block">
-      <CardShell>
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-rival-blue">
-            Hot room
-          </span>
-          {match?.status === "live" && <LiveBadge />}
-        </div>
-        <p className="text-base font-medium leading-snug text-foreground">&ldquo;{room.prediction}&rdquo;</p>
-        <p className="text-sm text-muted">
-          +{momentum} rivals this hour — {room.participantCount} inside now
-        </p>
-        <p className="font-mono text-xs text-muted">{formatMoney(room.poolTotalCents)} pool</p>
-      </CardShell>
-    </Link>
-  );
+  // Mock hot rooms were removed — only real ones render.
+  void roomId;
+  return null;
 }
 
 // Roast button: real posts get a real toggle (mirrors FollowButton's own
@@ -240,7 +157,6 @@ function PostCard({ postId, real }: { postId: string; real?: DisplayPost }) {
 
   const post = postById(postId);
   if (!post) return null;
-  const room = post.roomId ? roomById(post.roomId) : null;
   const author = profileById(post.authorId);
   if (!author) return null;
 
@@ -248,14 +164,6 @@ function PostCard({ postId, real }: { postId: string; real?: DisplayPost }) {
     <CardShell>
       <ByLine name={author.displayName} username={author.username} />
       <p className="text-base leading-snug text-foreground">{post.body}</p>
-      {room && (
-        <Link
-          href={`/rooms/${room.id}`}
-          className="hover-border rounded-md border border-border bg-surface-elevated px-3 py-2 text-sm text-muted transition-colors"
-        >
-          On &ldquo;{room.prediction}&rdquo; — {room.participantCount} rivals in
-        </Link>
-      )}
       <div className="flex items-center gap-4 font-mono text-xs text-muted">
         <span>🔥 {post.roastCount}</span>
         {post.replies.length > 0 && (
@@ -304,7 +212,9 @@ export function ArenaFeedCard({
 }) {
   switch (item.kind) {
     case "win_loss":
-      return <WinLossCard entryId={item.entryId} />;
+      // Only mock entries ever produced these; real settled results will
+      // get their own card when rooms settle for real.
+      return null;
     case "rival_activity":
       return <RivalActivityCard entryId={item.entryId} real={realActivity.get(item.entryId)} />;
     case "hot_room":

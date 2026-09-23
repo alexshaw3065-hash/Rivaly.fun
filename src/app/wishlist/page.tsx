@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useSavedItems } from "@/lib/use-saved-items";
-import { roomById, matchById, searchTopics } from "@/lib/mock-data";
+import { matchById, searchTopics } from "@/lib/mock-data";
+import { fetchRoomsByIds, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { RoomCard } from "@/components/room-card";
 import { MatchChip } from "@/components/match-chip";
 import { BookmarkButton } from "@/components/bookmark-button";
@@ -10,10 +12,22 @@ import { BookmarkButton } from "@/components/bookmark-button";
 export default function WishlistPage() {
   const savedItems = useSavedItems();
 
-  const savedRooms = savedItems
+  // Bookmarked rooms are real rows now — fetched with their real matches.
+  // Old bookmarks pointing at removed mock rooms simply don't resolve.
+  const roomIdsKey = savedItems
     .filter((it) => it.type === "room")
-    .map((it) => roomById(it.id))
-    .filter((r): r is NonNullable<typeof r> => Boolean(r));
+    .map((it) => it.id)
+    .join(",");
+  const [savedRooms, setSavedRooms] = useState<RoomWithMatch[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchRoomsByIds(roomIdsKey ? roomIdsKey.split(",") : []).then((rows) => {
+      if (!cancelled) setSavedRooms(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [roomIdsKey]);
 
   const savedMatches = savedItems
     .filter((it) => it.type === "match")
@@ -78,8 +92,8 @@ export default function WishlistPage() {
             <section>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Rooms</p>
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {savedRooms.map((room) => (
-                  <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
+                {savedRooms.map(({ room, match }) => (
+                  <RoomCard key={room.id} room={room} match={match} />
                 ))}
               </div>
             </section>

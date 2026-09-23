@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { rooms } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
 import { BottomSheet } from "./bottom-sheet";
 import { KeyIcon } from "./icons";
 
@@ -27,17 +27,25 @@ export function JoinPrivateRoomButton() {
     setError(null);
   }
 
-  function submit(e: React.FormEvent) {
+  const [looking, setLooking] = useState(false);
+
+  // The code is the permission to see a private room — the lookup goes
+  // through room_by_invite_code() (a definer function), and the code rides
+  // along on the URL so the room page can open it for a non-member too.
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = code.trim().toUpperCase();
-    if (!trimmed) return;
-    const room = rooms.find((r) => r.inviteCode.toUpperCase() === trimmed);
+    if (!trimmed || looking) return;
+    setLooking(true);
+    const { data } = await createClient().rpc("room_by_invite_code", { p_code: trimmed });
+    setLooking(false);
+    const room = (data as { id: string }[] | null)?.[0];
     if (!room) {
       setError("No room found for that code — double-check and try again.");
       return;
     }
     close();
-    router.push(`/rooms/${room.id}`);
+    router.push(`/rooms/${room.id}?code=${encodeURIComponent(trimmed)}`);
   }
 
   return (
@@ -71,10 +79,10 @@ export function JoinPrivateRoomButton() {
           {error && <p className="text-center text-sm text-danger-red">{error}</p>}
           <button
             type="submit"
-            disabled={!code.trim()}
+            disabled={!code.trim() || looking}
             className="w-full rounded-md bg-foreground py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
           >
-            Join room
+            {looking ? "Finding room…" : "Join room"}
           </button>
         </form>
       </BottomSheet>

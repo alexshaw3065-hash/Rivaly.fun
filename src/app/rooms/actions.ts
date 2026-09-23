@@ -5,14 +5,6 @@ import { getMatchById } from "@/lib/supabase/matches";
 import { composeMarket, invalidMarketReason, marketFitsSport, MIN_STAKE_FLOOR_CENTS, sportOf, type CreateRoomMarket } from "@/lib/markets";
 import type { EntrySide } from "@/lib/types";
 
-const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I — avoids ambiguous codes read aloud or handwritten
-
-function randomInviteCode(): string {
-  let suffix = "";
-  for (let i = 0; i < 4; i++) suffix += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-  return `RIVAL-${suffix}`;
-}
-
 export type { CreateRoomMarket };
 
 export interface CreateRoomInput {
@@ -31,18 +23,40 @@ export interface CreateRoomInput {
   allowSpectators: boolean;
 }
 
+// `code` lets the UI react to the two failures it can fix in place — sign
+// in, or top up — instead of only showing a message.
+export type MoneyErrorCode = "not_signed_in" | "insufficient_balance";
+
 export type CreateRoomResult =
   | { ok: true; roomId: string; inviteCode: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: MoneyErrorCode };
 
 const isCents = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n);
+
+// The money functions (supabase/migrations/*_rivaly_balance.sql) raise short
+// machine-readable reasons; this is the one place they become words.
+const DB_ERRORS: Record<string, { error: string; code?: MoneyErrorCode }> = {
+  not_signed_in: { error: "Sign in to continue.", code: "not_signed_in" },
+  insufficient_balance: { error: "Not enough in your balance for that stake.", code: "insufficient_balance" },
+  stake_out_of_range: { error: "That stake is outside this room's limits." },
+  bad_limits: { error: "Max stake has to be at least the minimum." },
+  room_not_found: { error: "Room not found." },
+  room_closed: { error: "This room isn't open for entries anymore." },
+  already_joined: { error: "You're already in this room." },
+  balance_high: { error: "You've already got $100 or more to play with." },
+};
+
+function dbError(message: string | undefined, fallback: string): { ok: false; error: string; code?: MoneyErrorCode } {
+  const known = message ? DB_ERRORS[message] : undefined;
+  return { ok: false, ...(known ?? { error: fallback }) };
+}
 
 export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Sign in to create a room." };
+  if (!user) return { ok: false, error: "Sign in to create a room.", code: "not_signed_in" };
 
   const { minStakeCents, maxStakeCents, stakeCents } = input;
   if (!isCents(minStakeCents) || minStakeCents < MIN_STAKE_FLOOR_CENTS) {
@@ -70,99 +84,54 @@ export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResu
 
   const composed = composeMarket(input.market, match);
 
-  // invite_code has a unique constraint — retry a few times on the rare
-  // collision rather than failing the whole creation over it.
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const inviteCode = randomInviteCode();
-    const { data, error } = await supabase
-      .from("rooms")
-      .insert({
-        creator_id: user.id,
-        match_id: input.matchId,
-        prediction: composed.prediction,
-        // Kept for the surfaces that still read a single entry amount (room
-        // card, JoinPanel) — the minimum is always a valid entry.
-        entry_amount_cents: minStakeCents,
-        min_stake_cents: minStakeCents,
-        max_stake_cents: maxStakeCents,
-        visibility: input.visibility,
-        // Spectators only mean something for public rooms — private rooms
-        // are already invisible to non-members.
-        allow_spectators: input.visibility === "public" ? input.allowSpectators : false,
-        resolution_source: composed.settlementMode === "auto" ? "Official match result" : "Official match scoresheet",
-        invite_code: inviteCode,
-        market_type: composed.marketType,
-        market_line: composed.marketLine,
-        market_side_definition: composed.marketSideDefinition,
-        settlement_mode: composed.settlementMode,
-      })
-      .select("id")
-      .single();
+  // One transaction in Postgres: the room, the creator's entry and the stake
+  // debit all land together, or none of them do.
+  const { data, error } = await supabase
+    .rpc("create_room_with_stake", {
+      p_match_id: input.matchId,
+      p_prediction: composed.prediction,
+      p_market_type: composed.marketType,
+      p_market_line: composed.marketLine,
+      p_market_side_definition: composed.marketSideDefinition,
+      p_settlement_mode: composed.settlementMode,
+      p_resolution_source: composed.settlementMode === "auto" ? "Official match result" : "Official match scoresheet",
+      p_visibility: input.visibility,
+      p_allow_spectators: input.allowSpectators,
+      p_min_stake: minStakeCents,
+      p_max_stake: maxStakeCents,
+      p_side: input.side,
+      p_stake: stakeCents,
+    })
+    .single<{ room_id: string; invite_code: string }>();
 
-    if (!error && data) {
-      // Best-effort: the room itself is already valid and shareable even if
-      // this fails, same reasoning as the wallet self-heal in
-      // dynamic-actions.ts — the follow-up write's own failure shouldn't
-      // undo the primary action that already succeeded.
-      await supabase.from("entries").insert({
-        room_id: data.id,
-        user_id: user.id,
-        side: input.side,
-        amount_cents: stakeCents,
-      });
-      return { ok: true, roomId: data.id, inviteCode };
-    }
-    if (error && !error.message.toLowerCase().includes("duplicate")) {
-      return { ok: false, error: "Couldn't create the room — try again." };
-    }
-  }
-
-  return { ok: false, error: "Couldn't generate a unique invite code — try again." };
+  if (error || !data) return dbError(error?.message, "Couldn't create the room — try again.");
+  return { ok: true, roomId: data.room_id, inviteCode: data.invite_code };
 }
 
-export type JoinRoomResult = { ok: true } | { ok: false; error: string };
+export type JoinRoomResult = { ok: true } | { ok: false; error: string; code?: MoneyErrorCode };
 
-export async function joinRoom(roomId: string, side: EntrySide, amountCents?: number): Promise<JoinRoomResult> {
+export async function joinRoom(roomId: string, side: EntrySide, amountCents: number): Promise<JoinRoomResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Sign in to join a room." };
+  if (!user) return { ok: false, error: "Sign in to join a room.", code: "not_signed_in" };
+  if (side !== "yes" && side !== "no") return { ok: false, error: "Pick a side." };
+  if (!isCents(amountCents) || amountCents < 1) return { ok: false, error: "Enter your stake." };
 
-  // The room's own limits decide what's a valid stake — the RLS policy's
-  // min/max check and the DB's unique(room_id, user_id) constraint are the
-  // real backstops; this is the pre-check that gives a clean error message.
-  // No amount = the room's minimum, which is always valid.
-  const { data: room } = await supabase
-    .from("rooms")
-    .select("status, entry_amount_cents, min_stake_cents, max_stake_cents")
-    .eq("id", roomId)
-    .maybeSingle();
-  if (!room) return { ok: false, error: "Room not found." };
-  if (room.status !== "open") return { ok: false, error: "This room isn't open for entries anymore." };
-
-  const stake = amountCents ?? room.min_stake_cents ?? room.entry_amount_cents;
-  if (
-    !isCents(stake) ||
-    stake < room.min_stake_cents ||
-    (room.max_stake_cents !== null && stake > room.max_stake_cents)
-  ) {
-    return { ok: false, error: "That stake is outside this room's limits." };
-  }
-
-  const { error } = await supabase.from("entries").insert({
-    room_id: roomId,
-    user_id: user.id,
-    side,
-    amount_cents: stake,
-  });
-
-  if (error) {
-    if (error.message.toLowerCase().includes("duplicate")) {
-      return { ok: false, error: "You're already in this room." };
-    }
-    return { ok: false, error: "Couldn't join the room — try again." };
-  }
-
+  // Limits, open status, one-entry-per-person and the balance are all
+  // checked inside the function, under a row lock, together with the debit.
+  const { error } = await supabase.rpc("join_room_with_stake", { p_room: roomId, p_side: side, p_amount: amountCents });
+  if (error) return dbError(error.message, "Couldn't join the room — try again.");
   return { ok: true };
+}
+
+export type ClaimResult = { ok: true; balanceCents: number } | { ok: false; error: string; code?: MoneyErrorCode };
+
+/** Devnet only: +$100 test USDC when the balance is under $100. */
+export async function claimTestUsdc(): Promise<ClaimResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("claim_test_usdc");
+  if (error || typeof data !== "number") return dbError(error?.message, "Couldn't add test USDC — try again.");
+  return { ok: true, balanceCents: data };
 }

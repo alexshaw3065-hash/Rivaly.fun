@@ -1,35 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  SELF_USER_ID,
-  roomsByCreator,
-  roomsJoinedBy,
-  entriesByUser,
-  matchById,
-  formatSignedMoney,
-} from "@/lib/mock-data";
+import { formatSignedMoney } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
-import { ROOM_COLUMNS, mapRoomRow, type RoomRow } from "@/lib/supabase/room-mapper";
+import { fetchRoomsForProfile, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { useCurrentUser } from "./current-user-provider";
 import { RoomCard } from "./room-card";
-import type { Room } from "@/lib/types";
+import { EmptyRooms } from "./empty-rooms";
 
 type SubTab = "created" | "joined" | "completed";
 
-function CompletedRoomCard({ room }: { room: Room }) {
-  const entry = entriesByUser(SELF_USER_ID).find((e) => e.roomId === room.id);
+interface MyResult {
+  isWinner: boolean | null;
+  netCents: number;
+}
+
+function CompletedRoomCard({ item, result }: { item: RoomWithMatch; result: MyResult | undefined }) {
   return (
     <div className="flex flex-col gap-2">
-      {entry && entry.isWinner !== null && (
-        <p
-          className="text-xs font-medium"
-          style={{ color: entry.isWinner ? "var(--rival-green)" : "var(--muted)" }}
-        >
-          {entry.isWinner ? `Won ${formatSignedMoney(entry.payoutCents ?? 0)}` : "Didn't hit"}
+      {result && result.isWinner !== null && (
+        <p className="text-xs font-medium" style={{ color: result.isWinner ? "var(--rival-green)" : "var(--muted)" }}>
+          {result.isWinner ? `Won ${formatSignedMoney(result.netCents)}` : "Didn't hit"}
         </p>
       )}
-      <RoomCard room={room} match={matchById(room.matchId)!} />
+      {item.room.status === "refunded" && <p className="text-xs font-medium text-muted">Refunded</p>}
+      <RoomCard room={item.room} match={item.match} />
     </div>
   );
 }
@@ -40,88 +35,56 @@ const emptyCopy: Record<SubTab, string> = {
   completed: "Nothing's settled yet.",
 };
 
-// My Rooms: everything with your name on it, split the way people
-// actually think about their own activity — what you started, what you
-// joined in on, and how it all turned out. "Created" merges the mock
-// roster (still SELF_USER_ID = "u3", unrelated to whoever is really
-// signed in) with any real rooms the actual current user has created —
-// two genuinely different lists, concatenated, not one replacing the
-// other. Fetched client-side (not a server helper) since this is a
-// client component and rooms.ts's server helpers can't be imported here.
+const isDone = (status: string) => status === "settled" || status === "refunded" || status === "cancelled";
+
+// My Rooms: everything with your name on it, split the way people actually
+// think about their own activity — what you started, what you joined in on,
+// and how it all turned out. Real rooms only.
 export function RoomsMineFeed() {
   const [sub, setSub] = useState<SubTab>("created");
   const currentUser = useCurrentUser();
-  const [realCreated, setRealCreated] = useState<Room[]>([]);
-  const [realJoined, setRealJoined] = useState<Room[]>([]);
-
-  // Reset when who's signed in changes (including signing out) — computed
-  // during render rather than via a useEffect + setState, same convention
-  // room-feed.tsx already uses for the same reason: avoids the extra
-  // cascading-render effect that resetting inside the fetch effect itself
-  // would cause.
-  const [prevUserId, setPrevUserId] = useState<string | null>(null);
-  if ((currentUser?.id ?? null) !== prevUserId) {
-    setPrevUserId(currentUser?.id ?? null);
-    setRealCreated([]);
-    setRealJoined([]);
-  }
+  const [data, setData] = useState<{
+    userId: string;
+    created: RoomWithMatch[];
+    joined: RoomWithMatch[];
+    results: Map<string, MyResult>;
+  } | null>(null);
 
   useEffect(() => {
     if (!currentUser) return;
     let cancelled = false;
-    const supabase = createClient();
-
-    supabase
-      .from("rooms")
-      .select(ROOM_COLUMNS)
-      .eq("creator_id", currentUser.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (!cancelled) setRealCreated((data ?? []).map((row) => mapRoomRow(row as RoomRow)));
-      });
-
-    // Rooms this user has a real entry in, excluding ones they also
-    // created (those show up in "Created" instead) — same distinction
-    // the mock roomsJoinedBy() filter already draws.
-    supabase
-      .from("entries")
-      .select(`room:rooms!inner(${ROOM_COLUMNS})`)
-      .eq("user_id", currentUser.id)
-      .neq("room.creator_id", currentUser.id)
-      .then(({ data }) => {
-        if (cancelled || !data) return;
-        const rows = data as unknown as { room: RoomRow }[];
-        setRealJoined(rows.filter((r) => r.room).map((r) => mapRoomRow(r.room)));
-      });
-
+    Promise.all([
+      fetchRoomsForProfile(currentUser.id),
+      createClient().from("entries").select("room_id, is_winner, payout_cents, amount_cents").eq("user_id", currentUser.id),
+    ]).then(([rooms, { data: entries }]) => {
+      if (cancelled) return;
+      const results = new Map<string, MyResult>(
+        (entries ?? []).map((e) => [
+          e.room_id as string,
+          { isWinner: e.is_winner as boolean | null, netCents: (e.payout_cents ?? 0) - (e.amount_cents as number) },
+        ]),
+      );
+      setData({ userId: currentUser.id, ...rooms, results });
+    });
     return () => {
       cancelled = true;
     };
   }, [currentUser]);
 
-  const created = [...realCreated, ...roomsByCreator(SELF_USER_ID)];
-  const joined = [...realJoined, ...roomsJoinedBy(SELF_USER_ID).filter((r) => r.creatorId !== SELF_USER_ID)];
+  if (!currentUser) {
+    return <EmptyRooms title="Your rooms live here" body="Sign in, then create a room or join one — it'll show up here." />;
+  }
+  const mine = data?.userId === currentUser.id ? data : null;
+  if (!mine) return <p className="text-sm text-muted">Loading…</p>;
 
-  const activeCreated = created.filter((r) => r.status !== "settled");
-  const activeJoined = joined.filter((r) => r.status !== "settled");
-
-  const completedIds = new Set(
-    [...created, ...joined].filter((r) => r.status === "settled").map((r) => r.id),
+  const activeCreated = mine.created.filter((i) => !isDone(i.room.status));
+  const activeJoined = mine.joined.filter((i) => !isDone(i.room.status));
+  const completed = [...mine.created, ...mine.joined].filter(
+    (i, idx, arr) => isDone(i.room.status) && arr.findIndex((x) => x.room.id === i.room.id) === idx,
   );
-  const completed = [...created, ...joined].filter(
-    (r, i, arr) => completedIds.has(r.id) && arr.findIndex((x) => x.id === r.id) === i,
-  );
 
-  const hasAnything = activeCreated.length + activeJoined.length + completed.length > 0;
-
-  if (!hasAnything) {
-    return (
-      <div className="rounded-lg border border-border bg-surface p-8 text-center">
-        <p className="text-sm text-muted">
-          Nothing here yet. Create a room or join one to see it show up.
-        </p>
-      </div>
-    );
+  if (activeCreated.length + activeJoined.length + completed.length === 0) {
+    return <EmptyRooms title="Nothing here yet" body="Create a room or join one and it'll show up here." />;
   }
 
   const current = sub === "created" ? activeCreated : sub === "joined" ? activeJoined : completed;
@@ -146,15 +109,13 @@ export function RoomsMineFeed() {
 
       {current.length > 0 ? (
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {current.map((room) => {
-            const match = matchById(room.matchId);
-            if (!match) return null;
-            return sub === "completed" ? (
-              <CompletedRoomCard key={room.id} room={room} />
+          {current.map((item) =>
+            sub === "completed" ? (
+              <CompletedRoomCard key={item.room.id} item={item} result={mine.results.get(item.room.id)} />
             ) : (
-              <RoomCard key={room.id} room={room} match={match} />
-            );
-          })}
+              <RoomCard key={item.room.id} room={item.room} match={item.match} />
+            ),
+          )}
         </div>
       ) : (
         <p className="mt-6 text-sm text-muted">{emptyCopy[sub]}</p>

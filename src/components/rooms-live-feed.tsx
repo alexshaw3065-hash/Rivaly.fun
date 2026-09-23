@@ -1,25 +1,22 @@
-import { rooms, matchById } from "@/lib/mock-data";
+"use client";
+
+import { usePublicRooms } from "@/lib/use-real-rooms";
 import { RoomCard } from "./room-card";
 import { LiveBadge } from "./live-badge";
-import type { Room } from "@/lib/types";
+import { EmptyRooms } from "./empty-rooms";
 
 // Live now, then a taste of what's coming — per the founder's direction,
 // this tab should "subtly introduce upcoming rooms" rather than being a
 // dead end once the live list runs dry.
-function isOpen(r: Room) {
-  return r.status !== "settled";
-}
-
 export function RoomsLiveFeed() {
-  const live = rooms.filter((r) => isOpen(r) && matchById(r.matchId)?.status === "live");
-  const upcoming = [...rooms]
-    .filter((r) => isOpen(r) && matchById(r.matchId)?.status === "scheduled")
-    .sort((a, b) => {
-      const ka = matchById(a.matchId)?.kickoffAt ?? "";
-      const kb = matchById(b.matchId)?.kickoffAt ?? "";
-      return +new Date(ka) - +new Date(kb);
-    })
+  const { items, isLoading } = usePublicRooms();
+  const live = items.filter((i) => i.match.status === "live");
+  const upcoming = items
+    .filter((i) => i.match.status === "scheduled")
+    .sort((a, b) => +new Date(a.match.kickoffAt) - +new Date(b.match.kickoffAt))
     .slice(0, 6);
+
+  if (!isLoading && items.length === 0) return <EmptyRooms />;
 
   return (
     <div className="flex flex-col gap-10">
@@ -31,9 +28,9 @@ export function RoomsLiveFeed() {
           <p className="mt-3 text-sm text-muted">Nothing live right now — check back at kickoff.</p>
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {live.map((room, i) => (
+            {live.map(({ room, match }, i) => (
               <div key={room.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>
-                <RoomCard room={room} match={matchById(room.matchId)!} />
+                <RoomCard room={room} match={match} />
               </div>
             ))}
           </div>
@@ -44,8 +41,8 @@ export function RoomsLiveFeed() {
         <section>
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Starting soon</p>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {upcoming.map((room) => (
-              <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
+            {upcoming.map(({ room, match }) => (
+              <RoomCard key={room.id} room={room} match={match} />
             ))}
           </div>
         </section>

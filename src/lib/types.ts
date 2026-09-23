@@ -178,6 +178,10 @@ export interface Room {
   marketLine: number | null;
   marketSideDefinition: MarketSideDefinition | null;
   settlementMode: SettlementMode;
+  // Stake limits — any entry sits between these; max null = no limit.
+  minStakeCents: number;
+  maxStakeCents: number | null;
+  allowSpectators: boolean;
 }
 
 export type EntrySide = "yes" | "no";

@@ -1,4 +1,13 @@
-import { profiles, entriesByUser } from "./mock-data";
+import { profiles } from "./mock-data";
+import type { Entry } from "./types";
+
+// Entries came from mock rooms, which were removed. Until real settled
+// entries are wired in here, the entry-derived parts (win rate, volume,
+// PNL) read zero rather than inventing a history.
+const entriesByUser = (profileId: string): Entry[] => {
+  void profileId;
+  return [];
+};
 
 export type ScoreTier = "gold" | "silver" | "bronze";
 

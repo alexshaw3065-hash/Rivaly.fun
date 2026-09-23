@@ -1,6 +1,5 @@
 "use client";
 
-import { roomById } from "@/lib/mock-data";
 import { useCurrentUser } from "@/components/current-user-provider";
 import { useWalletTransactions } from "@/lib/wallet/use-wallet-transactions";
 import { USDC_DECIMALS, explorerTxUrl } from "@/lib/wallet/constants";
@@ -33,14 +32,13 @@ export function WalletHistory() {
     return (
       <div className="mt-4 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
         {history.transactions.map((tx) => {
-          const room = tx.roomId ? roomById(tx.roomId) : undefined;
           const positive = tx.amountCents >= 0;
           return (
             <div key={tx.id} className="flex items-center justify-between px-4 py-3.5">
               <div className="min-w-0">
                 <p className="text-sm text-foreground">{mockTypeLabel[tx.type]}</p>
                 <p className="mt-0.5 truncate font-mono text-xs text-muted">
-                  {room ? room.prediction : formatDate(tx.createdAt)}
+                  {formatDate(tx.createdAt)}
                 </p>
               </div>
               <p

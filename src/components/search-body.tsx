@@ -2,13 +2,14 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { rooms, matches, profiles, matchById, leagues, type SearchTopic } from "@/lib/mock-data";
+import { matches, profiles, leagues, type SearchTopic } from "@/lib/mock-data";
+import { searchRooms, usePublicRooms } from "@/lib/use-real-rooms";
 import { RoomFeed, type FilterTab } from "@/components/room-feed";
 import { SearchRollup } from "@/components/search-rollup";
 import { SearchResultsList } from "@/components/search-results-list";
 import { SearchIcon, SlidersIcon, BookmarkIcon } from "@/components/icons";
 import { addRecentSearch } from "@/lib/use-recent-searches";
-import type { Room } from "@/lib/types";
+import type { Match, Room } from "@/lib/types";
 
 // The actual search UI — input, advanced filters, and the idle/browse/query
 // states — with no opinion on what contains it. Used two ways: /search/
@@ -45,8 +46,10 @@ export function SearchBody() {
     (room: Room) => {
       const min = entryMin ? Number(entryMin) * 100 : null;
       const max = entryMax ? Number(entryMax) * 100 : null;
-      if (min != null && room.entryAmountCents < min) return false;
-      if (max != null && room.entryAmountCents > max) return false;
+      // A room's entry range is min..max stake now; "min entry" filters on
+      // the cheapest way in, "max entry" on the room's own minimum too.
+      if (min != null && room.minStakeCents < min) return false;
+      if (max != null && room.minStakeCents > max) return false;
       if (status && room.status !== status) return false;
       return true;
     },
@@ -54,22 +57,17 @@ export function SearchBody() {
   );
 
   const roomMatchesAllFilters = useCallback(
-    (room: Room) => {
-      if (selectedLeagues.length > 0) {
-        const competition = matchById(room.matchId)?.competition;
-        if (!competition || !selectedLeagues.includes(competition)) return false;
-      }
+    (room: Room, match: Match) => {
+      if (selectedLeagues.length > 0 && !selectedLeagues.includes(match.competition)) return false;
       return entryStatusFilter(room);
     },
     [selectedLeagues, entryStatusFilter],
   );
 
+  const { items: publicRooms } = usePublicRooms();
   const matchedRooms = useMemo(
-    () =>
-      q
-        ? rooms.filter((r) => r.prediction.toLowerCase().includes(q)).filter(roomMatchesAllFilters)
-        : [],
-    [q, roomMatchesAllFilters],
+    () => searchRooms(publicRooms, q).filter(({ room, match }) => roomMatchesAllFilters(room, match)),
+    [publicRooms, q, roomMatchesAllFilters],
   );
   const matchedMatches = useMemo(
     () =>

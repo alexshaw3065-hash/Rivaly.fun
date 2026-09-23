@@ -1,12 +1,9 @@
 import Link from "next/link";
-import {
-  formatMoney,
-  splitPct,
-} from "@/lib/mock-data";
-import { getRoomById, splitPctFromTotals } from "@/lib/supabase/rooms";
+import { formatMoney } from "@/lib/mock-data";
+import { getRoomById, getRoomByInviteCode, splitPctFromTotals } from "@/lib/supabase/rooms";
 import { getMatchById } from "@/lib/supabase/matches";
 import { getProfileById } from "@/lib/supabase/profiles";
-import { getMyEntryForRoom } from "@/lib/supabase/entries";
+import { getMyEntryForRoom, getRoomRivals } from "@/lib/supabase/entries";
 import { getRoomMessages } from "@/lib/supabase/messages";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { LiveBadge } from "@/components/live-badge";
@@ -14,6 +11,8 @@ import { SplitBar } from "@/components/split-bar";
 import { Avatar } from "@/components/avatar";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
+import { ShareButton } from "@/components/share-button";
+import type { EntrySide } from "@/lib/types";
 
 // The heart of the product. Per docs/masterplan/07-product-blueprint.md#45-room.
 // Timeline events are rendered as system messages inline in chat rather than a
@@ -23,11 +22,21 @@ import { ChatComposer } from "@/components/chat-composer";
 // the "what do I need to know" job pinned messages would otherwise do.
 export default async function RoomPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ roomId: string }>;
+  searchParams: Promise<{ code?: string; side?: string }>;
 }) {
   const { roomId } = await params;
-  const room = await getRoomById(roomId);
+  const { code, side } = await searchParams;
+  // A private room is only visible to members — unless you arrived with its
+  // invite code, which is exactly what the code is for.
+  let room = await getRoomById(roomId);
+  if (!room && code) {
+    const byCode = await getRoomByInviteCode(code);
+    if (byCode?.id === roomId) room = byCode;
+  }
+  const preselect: EntrySide | null = side === "yes" || side === "no" ? side : null;
 
   if (!room) {
     return (
@@ -45,13 +54,13 @@ export default async function RoomPage({
   const creator = await getProfileById(room.creatorId);
   const myEntry = await getMyEntryForRoom(room.id);
   const currentUser = await getCurrentProfile();
-  const leftPct =
-    room.yesTotalCents !== undefined
-      ? splitPctFromTotals(room.yesTotalCents, room.noTotalCents ?? 0)
-      : splitPct(room);
+  const leftPct = splitPctFromTotals(room.yesTotalCents ?? 0, room.noTotalCents ?? 0);
   const isSettled = room.status === "settled";
   const messages = await getRoomMessages(room.id);
-  const payoutPerWinner = room.poolTotalCents / room.participantCount;
+  const rivals = await getRoomRivals(room.id);
+  const sharePath = `/rooms/${room.id}${room.visibility === "private" ? `?code=${room.inviteCode}` : ""}`;
+  const stakeLimitLabel =
+    room.maxStakeCents === null ? "No limit" : `${formatMoney(room.minStakeCents)}–${formatMoney(room.maxStakeCents)}`;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 md:px-6">
@@ -118,7 +127,7 @@ export default async function RoomPage({
             >
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Settled</p>
               <p className="mt-1.5 text-sm text-foreground">
-                {creator?.displayName ?? "The creator"} called it — {formatMoney(payoutPerWinner)} per winner.
+                The {formatMoney(room.poolTotalCents)} pool went to the winning side, split by stake.
               </p>
               <Link
                 href="/rooms/create"
@@ -129,21 +138,38 @@ export default async function RoomPage({
             </div>
           ) : (
             <div className="stagger-in" style={{ animationDelay: "30ms" }}>
-              <JoinPanel roomId={room.id} entryAmountCents={room.entryAmountCents} initialEntry={myEntry} />
+              <JoinPanel
+                roomId={room.id}
+                minStakeCents={room.minStakeCents}
+                maxStakeCents={room.maxStakeCents}
+                initialEntry={myEntry}
+                initialSide={preselect}
+                returnPath={sharePath}
+              />
             </div>
           )}
 
-          <div className="stagger-in" style={{ animationDelay: "90ms" }}>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">Rivals</p>
-            <div className="mt-2 flex -space-x-2">
-              <Avatar name="Alex" size={28} />
-              <Avatar name="Daniel" size={28} />
-              <Avatar name="Victor" size={28} />
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-elevated font-mono text-[10px] text-muted">
-                +{Math.max(room.participantCount - 3, 0)}
+          {rivals.length > 0 && (
+            <div className="stagger-in" style={{ animationDelay: "90ms" }}>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Rivals</p>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  {rivals.slice(0, 5).map((r) => (
+                    <span
+                      key={r.userId}
+                      className="rounded-full"
+                      style={{ boxShadow: `0 0 0 2px ${r.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)"}` }}
+                    >
+                      <Avatar name={r.displayName} size={28} imageUrl={r.avatarUrl} />
+                    </span>
+                  ))}
+                </div>
+                <span className="font-mono text-xs text-muted">
+                  {room.participantCount} {room.participantCount === 1 ? "rival" : "rivals"}
+                </span>
               </div>
             </div>
-          </div>
+          )}
 
           <div
             className="stagger-in rounded-lg border border-border bg-surface p-4"
@@ -152,8 +178,8 @@ export default async function RoomPage({
             <p className="text-xs font-medium uppercase tracking-wide text-muted">Room rules</p>
             <dl className="mt-2.5 flex flex-col gap-1.5 text-sm">
               <div className="flex justify-between">
-                <dt className="text-muted">Entry</dt>
-                <dd className="text-foreground">{formatMoney(room.entryAmountCents)}</dd>
+                <dt className="text-muted">Stakes</dt>
+                <dd className="text-foreground">{stakeLimitLabel}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">Resolves via</dt>
@@ -172,13 +198,12 @@ export default async function RoomPage({
             className="stagger-in flex items-center justify-between"
             style={{ animationDelay: "210ms" }}
           >
-            <button className="hover-link text-sm text-muted transition-colors">
-              Share room →
-            </button>
-            {!isSettled && (
-              <button className="hover-link-danger text-sm text-muted transition-colors">
-                Leave
-              </button>
+            <span className="flex items-center gap-2 text-sm text-muted">
+              <ShareButton path={sharePath} label="room" />
+              Share room
+            </span>
+            {room.visibility === "private" && (
+              <span className="font-mono text-xs text-muted">Code {room.inviteCode}</span>
             )}
           </div>
         </aside>

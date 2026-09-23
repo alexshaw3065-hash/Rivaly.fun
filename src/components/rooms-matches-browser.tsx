@@ -1,16 +1,15 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { matchById, leagues as mockLeagues, packs } from "@/lib/mock-data";
+import { leagues as mockLeagues } from "@/lib/mock-data";
 import { useRealMatches } from "@/lib/use-real-matches";
 import { RoomFeed, type FilterTab } from "./room-feed";
 import { MatchChip } from "./match-chip";
-import { PackCard } from "./pack-card";
 import { BottomSheet } from "./bottom-sheet";
 import { FilterIcon } from "./icons";
-import type { Room, Match, Pack } from "@/lib/types";
+import type { Room, Match } from "@/lib/types";
 
-// The [filter icon][Rooms][Matches][Packs] content-type switcher, per the
+// The [filter icon][Rooms][Matches] content-type switcher, per the
 // founder's FOMO reference (their filter-icon-leading Tokens/Perps row).
 // Home-only (per founder direction — Search stays a plain search, see
 // search/page.tsx) so the league-filtering behavior only lives in one
@@ -20,7 +19,7 @@ import type { Room, Match, Pack } from "@/lib/types";
 // Multi-select: "All leagues" is exclusive (picking it clears everything
 // else); specific leagues toggle independently and combine with each
 // other — an empty array means "All leagues."
-type Tab = "rooms" | "matches" | "packs";
+type Tab = "rooms" | "matches";
 
 // Home's own filter-chip set — per founder direction, Home shows a
 // shorter, differently-ordered row than Search's full 7-tab default
@@ -92,20 +91,15 @@ export function RoomsMatchesBrowser({
   }
 
   const roomMatchesLeagues = useCallback(
-    (room: Room) => {
-      if (selectedLeagues.length > 0) {
-        const competition = matchById(room.matchId)?.competition;
-        if (!competition || !selectedLeagues.includes(competition)) return false;
-      }
+    (room: Room, match: Match) => {
+      if (selectedLeagues.length > 0 && !selectedLeagues.includes(match.competition)) return false;
       return extraRoomFilter ? extraRoomFilter(room) : true;
     },
     [selectedLeagues, extraRoomFilter],
   );
 
   // Real fixtures and live scores, falling back to the seeded roster when the
-  // matches table is empty. Rooms and packs still resolve through
-  // mock-data's matchById — they reference mock fixture ids, and pointing them
-  // at real matches is its own piece of work.
+  // matches table is empty.
   const { matches: liveMatches, isReal } = useRealMatches();
 
   const matchMatchesLeagues = useCallback(
@@ -121,19 +115,6 @@ export function RoomsMatchesBrowser({
     [isReal, liveMatches],
   );
 
-  // A pack matches the league filter if any of its legs does — it's still
-  // relevant to "show me Premier League stuff" even if one leg is Serie A.
-  const packMatchesLeagues = useCallback(
-    (p: Pack) =>
-      selectedLeagues.length === 0 ||
-      p.legs.some((leg) => {
-        const competition = matchById(leg.matchId)?.competition;
-        return competition && selectedLeagues.includes(competition);
-      }),
-    [selectedLeagues],
-  );
-  const browsePacks = useMemo(() => packs.filter(packMatchesLeagues), [packMatchesLeagues]);
-
   const summary = summarizeLeagues(selectedLeagues);
 
   return (
@@ -148,7 +129,7 @@ export function RoomsMatchesBrowser({
         >
           <FilterIcon />
         </button>
-        {(["rooms", "matches", "packs"] as const).map((t) => (
+        {(["rooms", "matches"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -207,7 +188,7 @@ export function RoomsMatchesBrowser({
             highlightTabId="live"
           />
         </div>
-      ) : tab === "matches" ? (
+      ) : (
         <div className="mt-10">
           {browseMatches.length === 0 ? (
             <p className="text-sm text-muted">No matches for this league yet.</p>
@@ -215,18 +196,6 @@ export function RoomsMatchesBrowser({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {browseMatches.map((m) => (
                 <MatchChip key={m.id} match={m} />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="mt-10">
-          {browsePacks.length === 0 ? (
-            <p className="text-sm text-muted">No packs for this league yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {browsePacks.map((p) => (
-                <PackCard key={p.id} pack={p} />
               ))}
             </div>
           )}

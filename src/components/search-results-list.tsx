@@ -1,12 +1,13 @@
-import { matchById } from "@/lib/mock-data";
 import { RoomCard } from "./room-card";
 import { MatchChip } from "./match-chip";
 import { PersonRow } from "./person-row";
 import { BookmarkButton } from "./bookmark-button";
-import type { Room, Match, Profile } from "@/lib/types";
+import type { Match, Profile } from "@/lib/types";
+import type { RoomWithMatch } from "@/lib/use-real-rooms";
 
 // Grouped, live-updating search results — recomputes on every keystroke in
-// the caller (no debounce needed against a mock dataset this small), so
+// the caller (no debounce needed at this size — rooms are read once and
+// filtered locally), so
 // typing already reads as "suggest while typing." Shared by the full
 // Search page and the desktop header's compact dropdown (compact caps each
 // section instead of showing everything, since it renders in a small
@@ -19,7 +20,7 @@ export function SearchResultsList({
   compact = false,
 }: {
   query: string;
-  rooms: Room[];
+  rooms: RoomWithMatch[];
   matches: Match[];
   people: Profile[];
   compact?: boolean;
@@ -58,8 +59,8 @@ export function SearchResultsList({
                     : "mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
                 }
               >
-                {rooms.slice(0, cap).map((room) => (
-                  <RoomCard key={room.id} room={room} match={matchById(room.matchId)!} />
+                {rooms.slice(0, cap).map(({ room, match }) => (
+                  <RoomCard key={room.id} room={room} match={match} />
                 ))}
               </div>
             </section>

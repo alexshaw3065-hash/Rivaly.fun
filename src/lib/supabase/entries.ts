@@ -24,3 +24,32 @@ export async function getMyEntryForRoom(roomId: string): Promise<EntrySide | nul
 
   return (data?.side as EntrySide | undefined) ?? null;
 }
+
+export interface RoomRival {
+  userId: string;
+  side: EntrySide;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+/** Who's actually in a room, newest first — the room page's rival stack. */
+export async function getRoomRivals(roomId: string, limit = 12): Promise<RoomRival[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("entries")
+    .select("user_id, side, profile:profiles(display_name, avatar_url)")
+    .eq("room_id", roomId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const rows = (data ?? []) as unknown as {
+    user_id: string;
+    side: EntrySide;
+    profile: { display_name: string; avatar_url: string | null } | null;
+  }[];
+  return rows.map((r) => ({
+    userId: r.user_id,
+    side: r.side,
+    displayName: r.profile?.display_name ?? "Rival",
+    avatarUrl: r.profile?.avatar_url ?? null,
+  }));
+}

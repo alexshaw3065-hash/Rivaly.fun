@@ -8,7 +8,9 @@ import { RivalCard, GoatedRivalCard, HallOfFameCard } from "@/components/rival-c
 import { RivalDivider } from "@/components/rival-divider";
 import { AutoScrollRow } from "@/components/auto-scroll-row";
 import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
-import { explodingRooms, matchById, followedTopRivals, goatedStreakRivals, goatedRivals } from "@/lib/mock-data";
+import { followedTopRivals, goatedStreakRivals, goatedRivals } from "@/lib/mock-data";
+import { byHeat, usePublicRooms } from "@/lib/use-real-rooms";
+import { EmptyRooms } from "@/components/empty-rooms";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
 // "Exploding Now" carousel (one card at a time — swipe or auto-advance,
@@ -20,7 +22,8 @@ import { explodingRooms, matchById, followedTopRivals, goatedStreakRivals, goate
 // browser Search uses (see rooms-matches-browser.tsx) so both pages share
 // one league-filtered, infinite-scrolling browse experience.
 export default function Home() {
-  const exploding = explodingRooms(6).map((room) => ({ room, match: matchById(room.matchId)! }));
+  const publicRooms = usePublicRooms();
+  const exploding = [...publicRooms.items].sort(byHeat).slice(0, 6);
   const rivals = followedTopRivals(5);
   const goated = goatedStreakRivals(5);
   const hallOfFame = goatedRivals(5);
@@ -48,7 +51,13 @@ export default function Home() {
           </Link>
         </div>
         <div className="mt-5">
-          <ExplodingCarousel items={exploding} />
+          {exploding.length > 0 ? (
+            <ExplodingCarousel items={exploding} />
+          ) : publicRooms.isLoading ? (
+            <div className="h-64 rounded-xl border border-border bg-surface" aria-busy />
+          ) : (
+            <EmptyRooms />
+          )}
         </div>
       </section>
 

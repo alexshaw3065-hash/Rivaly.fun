@@ -11,7 +11,7 @@ import { FollowButton } from "./follow-button";
 import { ShareIcon, PencilIcon, SettingsIcon, GiftIcon, PlusIcon } from "./icons";
 import { ProfileAchievements } from "./profile-achievements";
 import { ProfilePnl } from "./profile-pnl";
-import { ProfilePositions, allPositions, type PositionFilter } from "./profile-positions";
+import { ProfilePositions, useProfilePositions, type PositionFilter } from "./profile-positions";
 import { ProfileReplies } from "./profile-replies";
 import { ProfileActivity } from "./profile-activity";
 import { ProfileEditSheet, BANNER_COLORS } from "./profile-edit-sheet";
@@ -277,9 +277,10 @@ export function ProfileView({
 }) {
   const [tab, setTab] = useState<ProfileTab>("position");
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("open");
+  const positions = useProfilePositions(profile.id);
 
   const tabs: { id: ProfileTab; label: string; count: number }[] = [
-    { id: "position", label: "Position", count: allPositions(profile.id).length },
+    { id: "position", label: "Position", count: positions.items.length },
     { id: "replies", label: "Replies", count: repliesByAuthor(profile.id).length },
     { id: "activity", label: "Activity", count: activityForProfile(profile.id).length },
   ];
@@ -357,7 +358,7 @@ export function ProfileView({
         )}
 
         <div className="mt-6">
-          {tab === "position" && <ProfilePositions profileId={profile.id} filter={positionFilter} />}
+          {tab === "position" && <ProfilePositions items={positions.items} isLoading={positions.isLoading} filter={positionFilter} />}
           {tab === "replies" && <ProfileReplies profileId={profile.id} />}
           {tab === "activity" && <ProfileActivity profileId={profile.id} />}
         </div>

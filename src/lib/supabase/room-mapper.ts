@@ -25,6 +25,9 @@ export interface RoomRow {
   market_line: number | null;
   market_side_definition: Room["marketSideDefinition"];
   settlement_mode: Room["settlementMode"];
+  min_stake_cents: number;
+  max_stake_cents: number | null;
+  allow_spectators: boolean;
 }
 
 /**
@@ -57,11 +60,14 @@ export function mapRoomRow(row: RoomRow): RoomWithTotals {
     marketLine: row.market_line,
     marketSideDefinition: row.market_side_definition,
     settlementMode: row.settlement_mode,
+    minStakeCents: row.min_stake_cents,
+    maxStakeCents: row.max_stake_cents,
+    allowSpectators: row.allow_spectators,
   };
 }
 
 export const ROOM_COLUMNS =
-  "id, creator_id, match_id, prediction, entry_amount_cents, visibility, status, pool_total_cents, yes_total_cents, no_total_cents, participant_count, resolution_source, invite_code, created_at, settled_at, market_type, market_line, market_side_definition, settlement_mode";
+  "id, creator_id, match_id, prediction, entry_amount_cents, visibility, status, pool_total_cents, yes_total_cents, no_total_cents, participant_count, resolution_source, invite_code, created_at, settled_at, market_type, market_line, market_side_definition, settlement_mode, min_stake_cents, max_stake_cents, allow_spectators";
 
 // Real ids are UUIDs; every mock room id is a short "r1"-style string —
 // cheap, reliable way to know which source to query without hitting both.

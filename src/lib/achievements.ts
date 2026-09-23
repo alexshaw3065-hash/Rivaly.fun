@@ -1,5 +1,4 @@
 import type { Profile } from "./types";
-import { entriesByUser, roomsJoinedBy } from "./mock-data";
 
 // A real achievements system — every definition is an honest predicate
 // over data that already exists (Profile stats, actual Entry records),
@@ -27,8 +26,12 @@ export interface Achievement {
   progress?: (profile: Profile) => { current: number; target: number };
 }
 
+// Wins and joins came from mock rooms' entries, which were removed; these
+// read zero until real settled entries are wired in, so no badge unlocks on
+// a history nobody earned.
 function winCount(profile: Profile): number {
-  return entriesByUser(profile.id).filter((e) => e.isWinner === true).length;
+  void profile;
+  return 0;
 }
 
 export const achievements: Achievement[] = [
@@ -71,7 +74,7 @@ export const achievements: Achievement[] = [
     label: "In the Arena",
     description: "Joined your first room.",
     icon: "🎟️",
-    isUnlocked: (p) => roomsJoinedBy(p.id).length > 0,
+    isUnlocked: () => false,
   },
   {
     id: "five-followed",

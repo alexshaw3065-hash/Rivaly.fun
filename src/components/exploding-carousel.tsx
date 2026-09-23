@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Match, Room } from "@/lib/types";
+import type { Match } from "@/lib/types";
+import type { RoomWithTotals } from "@/lib/supabase/room-mapper";
 import { ExplodingRoomCard } from "./exploding-room-card";
 
 const AUTO_ADVANCE_MS = 8000;
@@ -11,7 +12,7 @@ const SWIPE_THRESHOLD = 50;
 // while the user is actually touching it and for a beat after, per Emil's
 // "asymmetric enter/exit" idea: the user's own gesture should never fight
 // the auto-advance mid-swipe.
-export function ExplodingCarousel({ items }: { items: { room: Room; match: Match }[] }) {
+export function ExplodingCarousel({ items }: { items: { room: RoomWithTotals; match: Match }[] }) {
   const [index, setIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -19,6 +20,7 @@ export function ExplodingCarousel({ items }: { items: { room: Room; match: Match
   const pausedUntil = useRef(0);
 
   useEffect(() => {
+    if (items.length < 2) return;
     const id = window.setInterval(() => {
       if (Date.now() < pausedUntil.current) return;
       setIndex((i) => (i + 1) % items.length);

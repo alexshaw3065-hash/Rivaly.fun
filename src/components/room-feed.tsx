@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { rooms as allRooms, matchById, momentumCount, splitPct } from "@/lib/mock-data";
+import { byHeat, usePublicRooms, type RoomWithMatch } from "@/lib/use-real-rooms";
+import { splitPctFromTotals } from "@/lib/supabase/room-mapper";
 import { RoomCard } from "./room-card";
+import { EmptyRooms } from "./empty-rooms";
 import { TvIcon } from "./icons";
-import type { Match, Room } from "@/lib/types";
+import type { Match } from "@/lib/types";
 
 // Six, not five — matches the founder's Polymarket reference (their Browse
 // row is New/Trending/Popular/Liquid/Ending Soon/Competitive), but every
@@ -40,61 +42,53 @@ export const filters: { id: FilterTab; label: string }[] = [
 
 const PAGE_SIZE = 6;
 
-function applyFilter(tab: FilterTab): Room[] {
-  const openRooms = allRooms.filter((r) => r.status !== "settled");
+const closeness = ({ room }: RoomWithMatch) =>
+  Math.abs(splitPctFromTotals(room.yesTotalCents ?? 0, room.noTotalCents ?? 0) - 50);
+
+// Every sort reads a real field on a real room — "Trending" is the same
+// honest heat order Home uses (rivals in, then pool, then newest), not a
+// per-hour momentum number there's no data behind.
+function applyFilter(items: RoomWithMatch[], tab: FilterTab): RoomWithMatch[] {
   switch (tab) {
     case "live":
-      return openRooms.filter((r) => matchById(r.matchId)?.status === "live");
+      return items.filter((i) => i.match.status === "live");
     case "new":
-      return [...openRooms].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-    // "For You" aliases to the same momentum sort as Trending until there's
-    // real user-preference data to personalize with — no point faking a
-    // signal that doesn't exist yet.
+      return [...items].sort((a, b) => +new Date(b.room.createdAt) - +new Date(a.room.createdAt));
+    // "For You" aliases to Trending until there's real preference data.
     case "trending":
     case "personal":
-      return [...openRooms].sort(
-        (a, b) => momentumCount(b) / b.participantCount - momentumCount(a) / a.participantCount,
-      );
+      return [...items].sort(byHeat);
     case "closing":
-      return [...openRooms]
-        .filter((r) => matchById(r.matchId)?.status === "scheduled")
-        .sort((a, b) => {
-          const ka = matchById(a.matchId)?.kickoffAt ?? "";
-          const kb = matchById(b.matchId)?.kickoffAt ?? "";
-          return +new Date(ka) - +new Date(kb);
-        });
+      return items
+        .filter((i) => i.match.status === "scheduled")
+        .sort((a, b) => +new Date(a.match.kickoffAt) - +new Date(b.match.kickoffAt));
     case "pools":
-      return [...openRooms].sort((a, b) => b.poolTotalCents - a.poolTotalCents);
+      return [...items].sort((a, b) => b.room.poolTotalCents - a.room.poolTotalCents);
     case "close-call":
-      return [...openRooms].sort(
-        (a, b) => Math.abs(splitPct(a) - 50) - Math.abs(splitPct(b) - 50),
-      );
+      return [...items].sort((a, b) => closeness(a) - closeness(b));
     case "most-rivals":
-      return [...openRooms].sort((a, b) => b.participantCount - a.participantCount);
+      return [...items].sort((a, b) => b.room.participantCount - a.room.participantCount);
     default:
-      return openRooms;
+      return items;
   }
 }
 
-interface FeedRow {
-  room: Room;
-  match: Match;
+interface FeedRow extends RoomWithMatch {
   showHeader: boolean;
 }
 
-function buildRows(items: Room[]): FeedRow[] {
+function buildRows(items: RoomWithMatch[]): FeedRow[] {
   let lastCompetition = "";
-  return items.map((room) => {
-    const match = matchById(room.matchId)!;
-    const showHeader = match.competition !== lastCompetition;
-    lastCompetition = match.competition;
-    return { room, match, showHeader };
+  return items.map((item) => {
+    const showHeader = item.match.competition !== lastCompetition;
+    lastCompetition = item.match.competition;
+    return { ...item, showHeader };
   });
 }
 
 // Infinite-scroll pattern per the Polymarket reference: keep appending pages
 // on scroll (IntersectionObserver on a sentinel, not a "load more" click),
-// and end in a real closing moment once the (finite, mock) data runs out —
+// and end in a real closing moment once the (finite) real rooms run out —
 // brand mark + "Back to top" — rather than looping forever.
 //
 // extraFilter is how Search layers its advanced-filter panel (league, entry
@@ -139,7 +133,7 @@ export function RoomFeed({
   activeChipBg = "var(--surface-elevated)",
   highlightTabId,
 }: {
-  extraFilter?: (room: Room) => boolean;
+  extraFilter?: (room: RoomWithMatch["room"], match: Match) => boolean;
   chipRowEnd?: ReactNode;
   initialTab?: FilterTab;
   tab?: FilterTab;
@@ -166,8 +160,9 @@ export function RoomFeed({
     setVisibleCount(PAGE_SIZE);
   }
 
-  const base = useMemo(() => applyFilter(tab), [tab]);
-  const filtered = useMemo(() => (extraFilter ? base.filter(extraFilter) : base), [base, extraFilter]);
+  const { items, isLoading } = usePublicRooms();
+  const base = useMemo(() => applyFilter(items, tab), [items, tab]);
+  const filtered = useMemo(() => (extraFilter ? base.filter((i) => extraFilter(i.room, i.match)) : base), [base, extraFilter]);
   const rows = useMemo(() => buildRows(filtered.slice(0, visibleCount)), [filtered, visibleCount]);
   const done = visibleCount >= filtered.length;
 
@@ -283,7 +278,8 @@ export function RoomFeed({
         </div>
       )}
 
-      {filtered.length === 0 && (
+      {!isLoading && items.length === 0 && <EmptyRooms />}
+      {items.length > 0 && filtered.length === 0 && (
         <p className="py-14 text-center text-sm text-muted">No rooms match this filter yet.</p>
       )}
     </div>

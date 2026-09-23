@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { rooms, matches, profiles } from "@/lib/mock-data";
+import { matches, profiles } from "@/lib/mock-data";
+import { searchRooms, usePublicRooms } from "@/lib/use-real-rooms";
 import { SearchIcon } from "./icons";
 import { SearchRollup } from "./search-rollup";
 import { SearchResultsList } from "./search-results-list";
@@ -26,10 +27,8 @@ export function DesktopSearchBox() {
 
   const q = query.trim().toLowerCase();
 
-  const matchedRooms = useMemo(
-    () => (q ? rooms.filter((r) => r.prediction.toLowerCase().includes(q)) : []),
-    [q],
-  );
+  const { items: publicRooms } = usePublicRooms();
+  const matchedRooms = useMemo(() => searchRooms(publicRooms, q), [publicRooms, q]);
   const matchedMatches = useMemo(
     () =>
       q
