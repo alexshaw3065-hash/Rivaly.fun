@@ -416,7 +416,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
               disabled={currentUser ? (blocker ? Boolean(blocker.busy) : !ready) : Boolean(stakeProblem || limits.error)}
               color={sideColor}
             >
-              {currentUser && blocker
+              {currentUser && blocker?.label
                 ? blocker.label
                 : stakeProblem
                   ? "Throw down →"

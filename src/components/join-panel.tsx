@@ -163,10 +163,10 @@ export function JoinPanel({
           <StakeButton
             phase={phase}
             onClick={submit}
-            disabled={blocker ? Boolean(blocker.busy) : Boolean(problem) || short}
+            disabled={blocker?.busy || (!blocker && (Boolean(problem) || short))}
             color={accent}
           >
-            {blocker ? blocker.label : problem ? "Join" : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}
+            {blocker?.label ? blocker.label : problem ? "Join" : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}
           </StakeButton>
           {blocker?.hint && <p className="-mt-2 text-center text-xs text-muted">{blocker.hint}</p>}
         </>

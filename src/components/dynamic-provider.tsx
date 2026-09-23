@@ -35,9 +35,28 @@ const BRIDGING_PHRASES = ["Verifying your login…", "Setting up your account…
 const BRIDGE_TIMEOUT_MS = 15000;
 
 const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
+
+// Dynamic's wallet catalogue marks Phantom (and a few others) as Ledger-
+// capable, which inserts a "Using Ledger? Toggle / Connect" screen before
+// every wallet sign-in. Almost nobody signs in with a hardware wallet, so
+// that screen is pure friction: report no hardware support and the wallet
+// connects straight away. (Worth revisiting on mainnet if Ledger users ask.)
+type ConnectorClass = ReturnType<typeof SolanaWalletConnectors>[number];
+const SolanaConnectorsWithoutLedgerStep = (props: unknown): ConnectorClass[] =>
+  SolanaWalletConnectors(props).map((Connector) => {
+    // The catalogue's constructor types are abstract-ish; treat it as a plain class.
+    const Base = Connector as unknown as new (...args: never[]) => object;
+    class NoLedgerStep extends Base {
+      canConnectWithHardwareWallet() {
+        return false;
+      }
+    }
+    return NoLedgerStep as unknown as ConnectorClass;
+  });
+
 // Stable reference across renders — see the memoization note below on why
 // this matters.
-const walletConnectors = [SolanaWalletConnectors];
+const walletConnectors = [SolanaConnectorsWithoutLedgerStep];
 
 // Covers the case onAuthSuccess alone can't: Dynamic already considers
 // this browser authenticated (a previous attempt got past Dynamic but
@@ -49,10 +68,16 @@ const walletConnectors = [SolanaWalletConnectors];
 // every navigation once someone is actually fully signed in — Dynamic
 // stays "logged in" forever after a real login, that alone isn't a signal
 // anything needs to happen.
-function DynamicAuthWatcher({ onAuthSuccess }: { onAuthSuccess: () => void }) {
+//
+// Also follows account switches: each wallet is its own Rivaly account, so
+// when the wallet app switches to a different wallet and Dynamic signs in as
+// that one, the Rivaly account switches with it — same page, no prompt.
+function DynamicAuthWatcher({ onAuthSuccess }: { onAuthSuccess: (opts?: { stayHere?: boolean }) => void }) {
   const isLoggedIn = useIsLoggedIn();
+  const { user: dynamicUser } = useDynamicContext();
   const currentUser = useCurrentUser();
   const attempted = useRef(false);
+  const switchedFor = useRef<string | null>(null);
 
   useEffect(() => {
     if (isLoggedIn && !currentUser && !attempted.current) {
@@ -60,6 +85,16 @@ function DynamicAuthWatcher({ onAuthSuccess }: { onAuthSuccess: () => void }) {
       onAuthSuccess();
     }
   }, [isLoggedIn, currentUser, onAuthSuccess]);
+
+  useEffect(() => {
+    const address = currentUser?.dynamicWalletAddress;
+    if (!isLoggedIn || !dynamicUser || !address) return;
+    const credentials = dynamicUser.verifiedCredentials ?? [];
+    const sameAccount = credentials.some((c) => c.address === address);
+    if (sameAccount || switchedFor.current === dynamicUser.userId) return;
+    switchedFor.current = dynamicUser.userId ?? null;
+    onAuthSuccess({ stayHere: true });
+  }, [isLoggedIn, dynamicUser, currentUser, onAuthSuccess]);
 
   return null;
 }
@@ -140,7 +175,7 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
   // it — a re-entrant call while one is already running is just a no-op.
   const inFlightRef = useRef(false);
 
-  const handleAuthSuccess = useCallback(async () => {
+  const handleAuthSuccess = useCallback(async (opts?: { stayHere?: boolean }) => {
     if (inFlightRef.current) return;
     const dynamicJwt = getAuthToken();
     if (!dynamicJwt) return;
@@ -188,7 +223,7 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
       // user is sitting on may have no relationship to where they were
       // headed. The store is the one place that value still reliably
       // exists.
-      const next = getAuthModalNext();
+      const next = opts?.stayHere ? `${window.location.pathname}${window.location.search}` : getAuthModalNext();
       const destination = result.usernameIsPlaceholder
         ? `/auth/complete-profile?next=${encodeURIComponent(next)}`
         : next;
@@ -220,7 +255,7 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
     () => ({
       environmentId: environmentId ?? "",
       walletConnectors,
-      events: { onAuthSuccess: handleAuthSuccess },
+      events: { onAuthSuccess: () => void handleAuthSuccess() },
     }),
     [handleAuthSuccess],
   );

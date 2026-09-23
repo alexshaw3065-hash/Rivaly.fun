@@ -38,10 +38,14 @@ export function walletBlocker(
   status: string,
   address: string | null,
   connectedAddress: string | null,
-): { label: string; hint: string; busy?: boolean } | null {
+): { label?: string; hint: string; busy?: boolean } | null {
   switch (status) {
     case "loading":
       return { label: "Getting your wallet ready…", hint: "", busy: true };
+    case "expired":
+      // Keep the normal "Throw down…" label — the tap is just a quick
+      // sign-in that returns to this exact stake.
+      return { hint: "Your login timed out — tap to sign back in. Your pick is kept." };
     case "no_wallet":
       return { label: "Sign in again to finish your wallet", hint: "Your wallet didn't finish setting up. One sign-in completes it — your pick stays put." };
     case "mismatch":

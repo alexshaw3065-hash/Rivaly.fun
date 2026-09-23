@@ -7,7 +7,7 @@
 // API key (Helius, QuickNode) never has to ship to the browser. In client
 // bundles process.env.SOLANA_RPC_URL isn't inlined at all, so it falls
 // through to the public one there.
-const RPC_URL =
+export const RPC_URL =
   process.env.SOLANA_RPC_URL ??
   process.env.NEXT_PUBLIC_SOLANA_RPC_URL ??
   "https://api.devnet.solana.com";
@@ -34,7 +34,9 @@ export async function getUsdcTokenAccounts(owner: string, mint: string): Promise
   const result = await solanaRpc<{ value: RpcTokenAccount[] }>("getTokenAccountsByOwner", [
     owner,
     { mint },
-    { encoding: "jsonParsed" },
+    // "confirmed", not the default "finalized": finalized trails a landed
+    // transfer by 15-30s, which is why balances used to lag after a stake.
+    { encoding: "jsonParsed", commitment: "confirmed" },
   ]);
   return result.value ?? [];
 }
