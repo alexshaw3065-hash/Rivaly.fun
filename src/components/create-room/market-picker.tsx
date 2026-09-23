@@ -328,7 +328,7 @@ function NflPanel({ tab, match, pick, onPick }: PickerProps & { tab: string }) {
   return (
     <>
       <Accordion title="Winner"
-          help="Who wins the game, overtime included. If it ends in a tie, nobody's pick wins — both sides are backing a winner." icon={<TrophyIcon />} summary={summaryFor("winner:")}>
+          help="Who wins the game, overtime included. The room is “this team wins”, so a tie counts as NO." icon={<TrophyIcon />} summary={summaryFor("winner:")}>
         <TeamResultRow
           match={match}
           isSelected={(o) => sel(`winner:${o}`)}
