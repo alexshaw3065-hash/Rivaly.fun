@@ -52,7 +52,7 @@ Match finishes (TxLINE data already in our DB)
 - **If something breaks mid-way:** chain transfer failed → nothing is written, the user sees a plain-language error and can retry. Transfer succeeded but the database write failed → a recovery job finds the confirmed intent and completes (or refunds) it, idempotently by signature. Money is never lost in the gap.
 
 ### 3. When stakes close
-- **Stakes close at kickoff** (recommended — see decisions). After kickoff, someone could join "Over 2.5 goals" already knowing it's 2–0. Rooms flip to `live` at kickoff; join/create is refused on-server after that, and the UI shows "Stakes closed — kicked off" instead of the join panel.
+- **Stakes close at kickoff.** After kickoff, someone could join "Over 2.5 goals" already knowing it's 2–0. Rooms flip to `live` at kickoff; join/create is refused on-server after that, and the UI shows "Stakes closed — kicked off" instead of the join panel.
 
 ### 4. Early resolution
 
@@ -74,7 +74,7 @@ A room resolves the moment its outcome can no longer change — winners get paid
 `resolveMarket(market, match, events)` returns `yes`, `no`, `void` or `pending`, and its tests cover every row above — including a goal that VAR removes inside the buffer (must *not* settle).
 
 ### 5. Settlement
-- One pure function `resolveMarket(market, match) → "yes" | "no" | "void"` covering all 20+ market types (goals, halves, corners, red card, NFL points/touchdowns/field goals/overtime…), reading the stats the TxLINE ingester already stores. Unit-tested per market type, including edge cases (0–0, overtime, missing HT data → wait, don't guess).
+- The same `resolveMarket(market, match, events) → yes | no | void | pending` covers all 20+ market types (goals, halves, corners, red card, NFL points/touchdowns/field goals/overtime…), reading the stats the TxLINE ingester already stores. Unit-tested per market type, including edge cases (0–0, overtime, missing HT data → wait, don't guess).
 - A job (every minute, alongside the existing TxLINE worker) picks up `live` rooms and asks `resolveMarket` whether they're decided yet — mid-match (per the table above) or at full time:
   - outcome → winners split the pool pro rata; cents floored, leftover cents to the largest winning stake, so every cent is paid;
   - sends payouts from escrow (several per transaction), stores `payout_tx_signature` per entry **before** marking done — re-running the job never pays twice;
