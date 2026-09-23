@@ -14,7 +14,8 @@ import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
 import { ShareButton } from "@/components/share-button";
 import { RoomResult } from "@/components/room-result";
-import { RoomLiveRefresh } from "@/components/room-live-refresh";
+import { RoomLive } from "@/components/room-live";
+import { AnimatedMoney } from "@/components/animated-money";
 import { settleRoom } from "@/lib/settlement/settle";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import type { EntrySide } from "@/lib/types";
@@ -84,8 +85,8 @@ export default async function RoomPage({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 md:px-6">
-      {/* While the room can still move, keep the pool, split and result fresh. */}
-      {unfinished && <RoomLiveRefresh />}
+      {/* Realtime: re-renders only when the room, its entries or the match change. */}
+      {unfinished && <RoomLive roomId={room.id} matchId={room.matchId} kickoffAt={match.kickoffAt} />}
       <Link href="/" className="hover-link text-sm text-muted transition-colors">
         ← Home
       </Link>
@@ -128,7 +129,9 @@ export default async function RoomPage({
           <div className="stagger-in rounded-lg border border-border bg-surface p-4">
             <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
             <div className="mt-3 flex items-center justify-between font-mono text-xs text-muted">
-              <span>{formatMoney(room.poolTotalCents)} pool</span>
+              <span>
+                <AnimatedMoney cents={room.poolTotalCents} /> pool
+              </span>
               <span>{room.participantCount} rivals</span>
             </div>
           </div>
@@ -206,7 +209,7 @@ export default async function RoomPage({
                   {rivals.slice(0, 5).map((r) => (
                     <span
                       key={r.userId}
-                      className="rounded-full"
+                      className="enter-pop rounded-full"
                       style={{ boxShadow: `0 0 0 2px ${r.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)"}` }}
                     >
                       <Avatar name={r.displayName} size={28} imageUrl={r.avatarUrl} />

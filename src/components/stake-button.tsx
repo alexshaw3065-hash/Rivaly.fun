@@ -63,6 +63,15 @@ export function StakeButton({
         </svg>
       )}
       <span>{step ? step.label : children}</span>
+      {phase === "done" && (
+        <span
+          aria-hidden
+          className="coin-rise pointer-events-none absolute left-1/2 top-1/2 -ml-2.5 -mt-2.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
+          style={{ background: "#2775CA", color: "#fff", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,0.55)" }}
+        >
+          $
+        </span>
+      )}
     </button>
   );
 }

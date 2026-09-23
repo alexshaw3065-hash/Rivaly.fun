@@ -40,16 +40,16 @@ export function SplitBar({
           <span className="text-rival-blue">
             {leftLabel} · {leftPct}%
           </span>
-          <span className="text-danger-red">
+          <span className="text-rival-red">
             {rightPct}% · {rightLabel}
           </span>
         </div>
       )}
       <div
-        className={`h-[6px] w-full rounded-[1px] transition-[filter] duration-200 ease-out hover:brightness-125 ${showLabels ? "mt-1.5" : ""}`}
-        style={{
-          background: `linear-gradient(78deg, var(--rival-blue) 0%, var(--rival-blue) calc(${leftPct}% - 1px), var(--danger-red) calc(${leftPct}% + 1px), var(--danger-red) 100%)`,
-        }}
+        className={`split-bar h-[6px] w-full rounded-[1px] hover:brightness-125 ${showLabels ? "mt-1.5" : ""}`}
+        // --split is a registered <percentage> (globals.css), so when a new
+        // entry moves the balance the divide slides instead of jumping.
+        style={{ "--split": `${leftPct}%` } as React.CSSProperties}
       />
     </div>
   );
