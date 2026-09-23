@@ -7,10 +7,11 @@
  * ThemeToggle in Nav, applied as a `.light` class on <html>, not a second
  * "equal" theme picked by system preference.
  *
- * Per docs/design-references/rivaly-redesign-brief.md: Rivaly blue + Rivaly
- * green as the two opposing sides (this is the core product mechanic, not
- * decoration), no purple/gold/rainbow gradients. Red is kept as a strictly
- * functional danger/live signal, never decorative. Depth comes from surface
+ * The two opposing sides are Rivaly blue (YES) and Rivaly red (NO) — the
+ * core product mechanic, not decoration (founder's call, 2026-09-23,
+ * superseding the redesign brief's blue + green). Green now means only
+ * "won / money up". No purple/gold/rainbow gradients; beyond the NO side,
+ * red stays a functional danger/live signal, never decorative. Depth comes from surface
  * layering + borders, not a colored background tint. Loud only for the
  * moments that deserve it (goals, wins, whales) — everywhere else calm.
  *
@@ -34,6 +35,10 @@
   --rival-blue-dim: #1c2e6b;
   --rival-green: #1fae63;
   --rival-green-dim: #113a28;
+  /* NO side. Same hue as danger-red (the split bar already paints NO red),
+     with its own dim fill so a chosen NO reads as tinted, not alarming. */
+  --rival-red: #ef4444;
+  --rival-red-dim: #3a1517;
   --danger-red: #ef4444;
 
   --font-display: var(--font-cabinet-grotesk), var(--font-geist-sans), sans-serif;
@@ -68,6 +73,8 @@
   --rival-blue-dim: #e8edff;
   --rival-green: #128a4e;
   --rival-green-dim: #e3f5ea;
+  --rival-red: #dc2626;
+  --rival-red-dim: #fdeaea;
   --danger-red: #dc2626;
 }
 
@@ -91,6 +98,8 @@
   --color-rival-blue-dim: var(--rival-blue-dim);
   --color-rival-green: var(--rival-green);
   --color-rival-green-dim: var(--rival-green-dim);
+  --color-rival-red: var(--rival-red);
+  --color-rival-red-dim: var(--rival-red-dim);
   --color-danger-red: var(--danger-red);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

@@ -71,7 +71,7 @@ export function RoomChatPreview({ roomId, messages }: { roomId: string; messages
             {side && (
               <span
                 className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wide"
-                style={{ color: side === "yes" ? "var(--rival-blue)" : "var(--rival-green)" }}
+                style={{ color: side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}
               >
                 {side}
               </span>

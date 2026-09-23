@@ -5,7 +5,7 @@ import { composeMarket, sportOf, type CreateRoomMarket, type Sport } from "@/lib
 import { playersFor } from "@/lib/squads";
 import type { EntrySide, Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
-import { Accordion, OptionCell, OverUnderGrid, ScoreStepper, Segmented } from "./controls";
+import { Accordion, HelpTip, OptionCell, OverUnderGrid, ScoreStepper, Segmented } from "./controls";
 import {
   BootIcon,
   BothScoreIcon,
@@ -175,7 +175,13 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
     const key = `cs:${fullTime.home}-${fullTime.away}`;
     return (
       <div className="flex flex-col gap-3 py-4">
-        <p className="text-sm text-muted">Call the full-time score.</p>
+        <p className="flex items-center gap-1 text-sm text-muted">
+          Call the full-time score.
+          <HelpTip label="exact score">
+            The score after 90 minutes plus stoppage time. Both numbers have to match exactly — extra time and penalties
+            don&rsquo;t count.
+          </HelpTip>
+        </p>
         <ScoreStepper
           homeTeam={match.homeTeam}
           awayTeam={match.awayTeam}
@@ -198,7 +204,8 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
     const key = `htcs:${halfTime.home}-${halfTime.away}`;
     return (
       <>
-        <Accordion title="Half-time score" icon={<ScoreboardIcon />} summary={summaryFor("htcs:")}>
+        <Accordion title="Half-time score"
+          help="The exact score when the referee blows for half-time. Both numbers have to match." icon={<ScoreboardIcon />} summary={summaryFor("htcs:")}>
           <div className="flex flex-col gap-3">
             <ScoreStepper
               homeTeam={match.homeTeam}
@@ -220,10 +227,12 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
             />
           </div>
         </Accordion>
-        <Accordion title="First-half goals" icon={<HalfClockIcon />} summary={summaryFor("h1:")}>
+        <Accordion title="First-half goals"
+          help="Goals by both teams before half-time. Over 1.5 wins with 2 or more; Under 1.5 wins with 0 or 1." icon={<HalfClockIcon />} summary={summaryFor("h1:")}>
           <OverUnderGrid lines={LINES.half} unit="first-half goals" isSelected={(c, l) => sel(`h1:${c}:${l}`)} onPick={ouPicker(onPick, "h1", "halftime_total_goals")} />
         </Accordion>
-        <Accordion title="Second-half goals" icon={<HalfClockIcon />} summary={summaryFor("h2:")}>
+        <Accordion title="Second-half goals"
+          help="Goals by both teams after half-time only — first-half goals don't count." icon={<HalfClockIcon />} summary={summaryFor("h2:")}>
           <OverUnderGrid lines={LINES.half} unit="second-half goals" isSelected={(c, l) => sel(`h2:${c}:${l}`)} onPick={ouPicker(onPick, "h2", "second_half_total_goals")} />
         </Accordion>
       </>
@@ -233,10 +242,12 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
   if (tab === "extras") {
     return (
       <>
-        <Accordion title="Corners over/under" icon={<CornerFlagIcon />} summary={summaryFor("corners:")}>
+        <Accordion title="Corners over/under"
+          help="Corners taken by both teams in normal time, stoppage time included." icon={<CornerFlagIcon />} summary={summaryFor("corners:")}>
           <OverUnderGrid lines={LINES.corners} unit="corners" isSelected={(c, l) => sel(`corners:${c}:${l}`)} onPick={ouPicker(onPick, "corners", "corners")} />
         </Accordion>
-        <Accordion title="Red card shown" icon={<RefCardIcon />} summary={summaryFor("red:")}>
+        <Accordion title="Red card shown"
+          help="Yes wins if any player on either team is sent off — a second yellow counts. No wins if nobody is." icon={<RefCardIcon />} summary={summaryFor("red:")}>
           <YesNoRow selected={sideFor("red:")} onPick={(side) => onPick({ key: `red:${side}`, market: { type: "red_card" }, side })} />
         </Accordion>
       </>
@@ -245,7 +256,8 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
 
   return (
     <>
-      <Accordion title="Team result" icon={<TrophyIcon />} summary={summaryFor("winner:")}>
+      <Accordion title="Team result"
+          help="Who wins after 90 minutes plus stoppage time. Extra time and penalty shootouts don't count." icon={<TrophyIcon />} summary={summaryFor("winner:")}>
         <TeamResultRow
           match={match}
           withDraw
@@ -253,14 +265,17 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
           onPick={(o) => onPick({ key: `winner:${o}`, market: { type: "winner", outcome: o }, side: "yes" })}
         />
       </Accordion>
-      <Accordion title="Goals over/under" icon={<GoalIcon />} summary={summaryFor("goals:")}>
+      <Accordion title="Goals over/under"
+          help="Goals by both teams combined. Over 2.5 wins with 3 or more; Under 2.5 wins with 2 or fewer." icon={<GoalIcon />} summary={summaryFor("goals:")}>
         <OverUnderGrid lines={LINES.goals} unit="goals" isSelected={(c, l) => sel(`goals:${c}:${l}`)} onPick={ouPicker(onPick, "goals", "total_goals")} />
       </Accordion>
-      <Accordion title="Both teams to score" icon={<BothScoreIcon />} summary={summaryFor("btts:")}>
+      <Accordion title="Both teams to score"
+          help="Yes wins if each team scores at least once. No wins if either team keeps a clean sheet." icon={<BothScoreIcon />} summary={summaryFor("btts:")}>
         <YesNoRow selected={sideFor("btts:")} onPick={(side) => onPick({ key: `btts:${side}`, market: { type: "both_score" }, side })} />
       </Accordion>
       <Accordion
         title="Anytime goalscorer"
+          help="Your player scores at least once in normal time. Own goals don't count. The room creator confirms it from the official scoresheet."
         icon={<BootIcon />}
         summary={summaryFor("scorer:")}
         defaultOpen={pick?.key.startsWith("scorer:") ?? false}
@@ -279,7 +294,8 @@ function NflPanel({ tab, match, pick, onPick }: PickerProps & { tab: string }) {
   if (tab === "halves") {
     return (
       <>
-        <Accordion title="Half-time leader" icon={<HalfClockIcon />} summary={summaryFor("htr:")}>
+        <Accordion title="Half-time leader"
+          help="Who's ahead when the second quarter ends. Tied wins if the score is level." icon={<HalfClockIcon />} summary={summaryFor("htr:")}>
           <TeamResultRow
             match={match}
             withDraw
@@ -288,7 +304,8 @@ function NflPanel({ tab, match, pick, onPick }: PickerProps & { tab: string }) {
             onPick={(o) => onPick({ key: `htr:${o}`, market: { type: "halftime_result", outcome: o }, side: "yes" })}
           />
         </Accordion>
-        <Accordion title="First-half points" icon={<ScoreboardIcon />} summary={summaryFor("h1p:")}>
+        <Accordion title="First-half points"
+          help="Points by both teams across the first and second quarters." icon={<ScoreboardIcon />} summary={summaryFor("h1p:")}>
           <OverUnderGrid lines={LINES.nflHalf} unit="first-half points" isSelected={(c, l) => sel(`h1p:${c}:${l}`)} onPick={ouPicker(onPick, "h1p", "first_half_points")} />
         </Accordion>
       </>
@@ -298,13 +315,16 @@ function NflPanel({ tab, match, pick, onPick }: PickerProps & { tab: string }) {
   if (tab === "scoring") {
     return (
       <>
-        <Accordion title="Total touchdowns" icon={<GridironIcon />} summary={summaryFor("td:")}>
+        <Accordion title="Total touchdowns"
+          help="Touchdowns by both teams, overtime included." icon={<GridironIcon />} summary={summaryFor("td:")}>
           <OverUnderGrid lines={LINES.touchdowns} unit="touchdowns" isSelected={(c, l) => sel(`td:${c}:${l}`)} onPick={ouPicker(onPick, "td", "total_touchdowns")} />
         </Accordion>
-        <Accordion title="Total field goals" icon={<GoalpostIcon />} summary={summaryFor("fg:")}>
+        <Accordion title="Total field goals"
+          help="Successful field goals by both teams, overtime included." icon={<GoalpostIcon />} summary={summaryFor("fg:")}>
           <OverUnderGrid lines={LINES.fieldGoals} unit="field goals" isSelected={(c, l) => sel(`fg:${c}:${l}`)} onPick={ouPicker(onPick, "fg", "total_field_goals")} />
         </Accordion>
-        <Accordion title="Goes to overtime" icon={<OvertimeIcon />} summary={summaryFor("ot:")}>
+        <Accordion title="Goes to overtime"
+          help="Yes wins if the game is level after four quarters and goes to overtime." icon={<OvertimeIcon />} summary={summaryFor("ot:")}>
           <YesNoRow selected={sideFor("ot:")} onPick={(side) => onPick({ key: `ot:${side}`, market: { type: "overtime" }, side })} />
         </Accordion>
       </>
@@ -313,14 +333,16 @@ function NflPanel({ tab, match, pick, onPick }: PickerProps & { tab: string }) {
 
   return (
     <>
-      <Accordion title="Winner" icon={<TrophyIcon />} summary={summaryFor("winner:")}>
+      <Accordion title="Winner"
+          help="Who wins the game, overtime included. If it ends in a tie, nobody's pick wins — both sides are backing a winner." icon={<TrophyIcon />} summary={summaryFor("winner:")}>
         <TeamResultRow
           match={match}
           isSelected={(o) => sel(`winner:${o}`)}
           onPick={(o) => onPick({ key: `winner:${o}`, market: { type: "winner", outcome: o }, side: "yes" })}
         />
       </Accordion>
-      <Accordion title="Winning margin" icon={<MarginIcon />} summary={summaryFor("margin:")}>
+      <Accordion title="Winning margin"
+          help="Your team wins by at least this many points, overtime included. A narrower win or a loss means No wins." icon={<MarginIcon />} summary={summaryFor("margin:")}>
         <div className="grid grid-cols-2 gap-2">
           {LINES.nflMargin.flatMap((line) =>
             (["home", "away"] as const).map((team) => {
@@ -342,7 +364,8 @@ function NflPanel({ tab, match, pick, onPick }: PickerProps & { tab: string }) {
           )}
         </div>
       </Accordion>
-      <Accordion title="Total points" icon={<ScoreboardIcon />} summary={summaryFor("pts:")}>
+      <Accordion title="Total points"
+          help="Points by both teams combined, overtime included. Over 44.5 wins with 45 or more." icon={<ScoreboardIcon />} summary={summaryFor("pts:")}>
         <OverUnderGrid lines={LINES.nflTotal} unit="points" isSelected={(c, l) => sel(`pts:${c}:${l}`)} onPick={ouPicker(onPick, "pts", "total_points")} />
       </Accordion>
     </>
@@ -366,6 +389,7 @@ function TeamTotals({ match, pick, onPick }: { match: Match; pick: Pick | null; 
       <p className="flex items-center gap-2 text-sm text-muted">
         <TeamCrest name={name} size={18} />
         Points {name} score
+        <HelpTip label="team totals">Points this team scores on its own, overtime included.</HelpTip>
       </p>
       <OverUnderGrid
         lines={LINES.nflTeam}

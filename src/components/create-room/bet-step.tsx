@@ -17,7 +17,7 @@ export function stakeError(stakeCents: number, limits: StakeLimits): string | nu
 
 const SIDE = {
   yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
-  no: { label: "NO", color: "var(--rival-green)", dim: "var(--rival-green-dim)" },
+  no: { label: "NO", color: "var(--rival-red)", dim: "var(--rival-red-dim)" },
 } as const;
 
 /**

@@ -76,8 +76,9 @@ export interface ComposedMarket {
   settlementMode: SettlementMode;
 }
 
-// Hard floor for any stake, including "no limit" rooms — $1 of USDC.
-export const MIN_STAKE_FLOOR_CENTS = 100;
+// "No limit" means no limit: the only floor is one cent, the smallest amount
+// a USDC balance in this app can hold — not a product minimum.
+export const MIN_STAKE_FLOOR_CENTS = 1;
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

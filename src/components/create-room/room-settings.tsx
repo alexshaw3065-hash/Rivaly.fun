@@ -35,13 +35,14 @@ export function stakeLimits(s: RoomSettings): StakeLimits {
   const minCents = Number(s.minDollars || 0) * 100;
   const maxCents = Number(s.maxDollars || 0) * 100;
   let error: string | null = null;
-  if (minCents < MIN_STAKE_FLOOR_CENTS) error = `Minimum can't go below ${formatMoney(MIN_STAKE_FLOOR_CENTS)}.`;
+  if (minCents < MIN_STAKE_FLOOR_CENTS) error = "Set a minimum above $0.";
   else if (maxCents < minCents) error = "Max has to be at least the minimum.";
   return { minCents, maxCents, error };
 }
 
 export function limitsLabel(l: StakeLimits): string {
-  return l.maxCents === null ? `From ${formatMoney(l.minCents)}` : `${formatMoney(l.minCents)}–${formatMoney(l.maxCents)}`;
+  if (l.maxCents === null) return "No limit";
+  return `${formatMoney(l.minCents)}–${formatMoney(l.maxCents)}`;
 }
 
 const digits = (v: string) => v.replace(/\D/g, "").slice(0, 7);
@@ -82,7 +83,7 @@ export function RoomSettingsStep({ value, onChange }: { value: RoomSettings; onC
           ]}
         />
         {value.limits === "none" ? (
-          <Hint>Anyone can back their side with {formatMoney(MIN_STAKE_FLOOR_CENTS)} USDC or more.</Hint>
+          <Hint>Any amount. No minimum, no maximum — everyone stakes what they like.</Hint>
         ) : (
           <div className="enter-row mt-3">
             <div className="grid grid-cols-2 gap-2">

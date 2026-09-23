@@ -163,7 +163,7 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
   }
 
   const initialMatchMissing = !isLoading && matchId !== null && !match;
-  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-green)";
+  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-red)";
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-6 pt-5 md:px-6 md:pt-8">
@@ -233,7 +233,14 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
                   {sportOf(match) === "nfl" ? "Settles on the official NFL result" : "Settles on the official match result"}
                 </span>
               )}
-              <button type="button" onClick={() => go("match")} className="hover-link shrink-0 text-xs font-medium text-foreground/70 underline underline-offset-2">
+              <button
+                type="button"
+                onClick={() => go("match")}
+                className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-foreground/25 bg-background/60 px-3 text-xs font-semibold text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-background/80 active:scale-[0.96]"
+              >
+                <svg viewBox="0 0 20 20" width="14" height="14" fill="none" aria-hidden>
+                  <path d="M4 7h11m0 0-3-3m3 3-3 3M16 13H5m0 0 3-3m-3 3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 Change match
               </button>
             </div>
@@ -534,7 +541,7 @@ function CreatedView({
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const copiedTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
-  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-green)";
+  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-red)";
 
   function flash(kind: "code" | "link") {
     setCopied(kind);

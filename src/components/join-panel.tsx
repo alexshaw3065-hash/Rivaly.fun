@@ -30,7 +30,7 @@ export function JoinPanel({
       <div className="enter-pop rounded-lg border border-border-strong bg-surface p-4">
         <p className="text-sm font-medium text-foreground">
           You&rsquo;re in — backing{" "}
-          <span className={entered === "yes" ? "text-rival-blue" : "text-rival-green"}>
+          <span className={entered === "yes" ? "text-rival-blue" : "text-rival-red"}>
             {entered === "yes" ? "Yes" : "No"}
           </span>
         </p>
@@ -92,9 +92,9 @@ export function JoinPanel({
           onClick={() => pick("no")}
           className="rounded-md border py-3 text-sm font-medium active:scale-[0.97]"
           style={{
-            borderColor: side === "no" ? "var(--rival-green)" : "var(--border)",
-            color: side === "no" ? "var(--rival-green)" : "var(--foreground)",
-            background: side === "no" ? "var(--rival-green-dim)" : "transparent",
+            borderColor: side === "no" ? "var(--rival-red)" : "var(--border)",
+            color: side === "no" ? "var(--rival-red)" : "var(--foreground)",
+            background: side === "no" ? "var(--rival-red-dim)" : "transparent",
             transition:
               "transform 150ms ease-out, background-color 150ms ease, border-color 150ms ease, color 150ms ease",
           }}
