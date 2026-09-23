@@ -1,6 +1,6 @@
 # Escrow wallet build — gasless stakes, automatic payouts (devnet)
 
-Status: **awaiting founder approval.** Nothing below is built yet.
+Status: **decisions approved (2026-09-23).** Nothing below is built yet.
 
 ## Decisions already made
 
@@ -11,6 +11,10 @@ Status: **awaiting founder approval.** Nothing below is built yet.
 | Cancelled / postponed match | **Full refund** of every stake. |
 | Rivaly's cut | None. Winners split the whole pool, pro rata to stake. |
 | Balance | The user's own Dynamic embedded wallet. Rivaly only ever holds money that's staked in an open room. |
+| Stakes close | **At kickoff.** |
+| Anytime goalscorer | **Hidden** until a lineup feed exists. |
+| Wallet confirm screen | **Kept** — the user sees and confirms each stake before it's sent. |
+| When rooms resolve | **As soon as the outcome can no longer change** (see *Early resolution*), not only at full time. |
 
 ## The one-screen version
 
@@ -39,7 +43,7 @@ Match finishes (TxLINE data already in our DB)
 
 ### 2. Gasless stake (create + join)
 - **`prepareStake`** — validates the room/stake exactly as today, then builds the transfer (user's USDC account → escrow's USDC account, exact amount, a memo with a one-time stake ID, fee payer = escrow, fresh blockhash). Saves a `stake_intents` row (who, what room/draft, amount, expires in ~90 s). Returns the unsigned transaction.
-- **Client** — the embedded wallet signs it (`getSigner().signTransaction`). No SOL, one tap.
+- **Client** — the embedded wallet signs it (`getSigner().signTransaction`), after Dynamic's own confirm screen shows the amount and destination (kept on purpose, to prevent mistakes). No SOL needed.
 - **`submitStake`** — the server:
   1. checks the signed transaction is **byte-for-byte the one it built** (so nobody can change the amount, destination or make the escrow pay for something else),
   2. adds the escrow's fee signature, sends it, waits for `confirmed`,
@@ -50,16 +54,35 @@ Match finishes (TxLINE data already in our DB)
 ### 3. When stakes close
 - **Stakes close at kickoff** (recommended — see decisions). After kickoff, someone could join "Over 2.5 goals" already knowing it's 2–0. Rooms flip to `live` at kickoff; join/create is refused on-server after that, and the UI shows "Stakes closed — kicked off" instead of the join panel.
 
-### 4. Settlement
+### 4. Early resolution
+
+A room resolves the moment its outcome can no longer change — winners get paid mid-match — with one safety rule: a stat can still be reversed after it first appears (VAR disallows a goal or rescinds a red, the feed amends a stat, devnet data is ~60 s sampled). So an early result only settles once **no VAR review is open** (`var` without its `var_end`) **and the deciding stat has held for ~3 minutes**. Checkpoint whistles (half-time, full-time) settle immediately.
+
+| Market | Early when… | Otherwise |
+| --- | --- | --- |
+| Over X (goals, corners, points, touchdowns, field goals) | count > X → YES | full time |
+| Under X | count > X → NO (under has lost) | full time → under wins |
+| Both teams to score | both have scored → YES | full time |
+| Red card | first red → YES | full time |
+| Half-time result / score, first-half O/U, first-half points | half-time whistle | — |
+| Second-half goals Over X | 2H goals > X → YES | full time |
+| Exact score (full time) | either team past the called score → NO | full time |
+| Goes to overtime (NFL) | end of Q4 → tied YES / not NO | — |
+| Winner, winning margin, team points Under | — | full time |
+| Cancelled / postponed match | refund, whenever it happens | — |
+
+`resolveMarket(market, match, events)` returns `yes`, `no`, `void` or `pending`, and its tests cover every row above — including a goal that VAR removes inside the buffer (must *not* settle).
+
+### 5. Settlement
 - One pure function `resolveMarket(market, match) → "yes" | "no" | "void"` covering all 20+ market types (goals, halves, corners, red card, NFL points/touchdowns/field goals/overtime…), reading the stats the TxLINE ingester already stores. Unit-tested per market type, including edge cases (0–0, overtime, missing HT data → wait, don't guess).
-- A job (every minute, alongside the existing TxLINE worker) picks up rooms whose match is `finished`:
+- A job (every minute, alongside the existing TxLINE worker) picks up `live` rooms and asks `resolveMarket` whether they're decided yet — mid-match (per the table above) or at full time:
   - outcome → winners split the pool pro rata; cents floored, leftover cents to the largest winning stake, so every cent is paid;
   - sends payouts from escrow (several per transaction), stores `payout_tx_signature` per entry **before** marking done — re-running the job never pays twice;
   - `cancelled` / `postponed` match, or nobody on the winning side → refund every stake;
   - room → `settled` / `refunded`.
-- **Anytime goalscorer** can't settle automatically (no player names in the feed) — see decisions.
+- **Anytime goalscorer** is hidden from the picker until a lineup feed can settle it.
 
-### 5. Trust you can see
+### 6. Trust you can see
 - Every stake, payout and refund shows in wallet history with a **"Verify on Solana"** explorer link.
 - Room page shows the escrow address and the room's total locked, so anyone can check the chain.
 - Reconciliation: escrow USDC vs. sum of open stakes, checked on every settlement run; any gap is logged loudly.
@@ -71,7 +94,8 @@ Every money moment gets a clear state, colour and motion. Loud only where it mat
 
 | Moment | What the user sees |
 | --- | --- |
-| **Stake button** | Side colour (YES blue / NO red). On tap: presses in, then shows real progress in three beats — *Signing → Locking your stake → Locked* — a ring that fills per real step, never a fake timer. |
+| **Stake button** | Side colour (YES blue / NO red). On tap: presses in, then shows real progress in three beats — *Confirm in wallet → Locking your stake → Locked* — a ring that fills per real step, never a fake timer. |
+| **Early win mid-match** | A goal-moment banner in the room: "Over 2.5 hit — YES wins", payout lands while the match is still on. |
 | **Stake locked** | The card settles into its confirmed state, a small USDC coin glides from the stake field into the pool figure, the pool counts up to its new total, a light haptic tick on phones. ~600 ms, never blocks. |
 | **Room, live** | Pool and YES/NO split update in real time as rivals join (Supabase realtime): the split bar slides, the pool ticks up, the newest rival's avatar drops into the stack with their side colour. |
 | **Stakes closed** | At kickoff the join panel folds into a "Kicked off — stakes locked" strip with the live score. |
@@ -98,8 +122,9 @@ Engagement mechanisms (rivaly-engagement-psychology): **#2 anticipation** (live 
 
 Every phase: typecheck, lint, build, devnet test, commit, push. Estimated 2–3 days of agent work, plus your setup time.
 
-## Needs your call at approval
+## Approved answers
 
-1. **Close stakes at kickoff?** Recommended: yes.
-2. **Anytime goalscorer while money moves:** hide it until a lineup feed exists (recommended — the creator confirming a result they have money on isn't fair), or keep it with Rivaly confirming manually.
-3. **Wallet confirm screen:** Dynamic can show a "confirm transaction" screen for embedded wallets. For one-tap stakes, turn it off in the Dynamic dashboard (embedded wallet settings). I'll point to the exact switch when we get there.
+1. Stakes close at kickoff — **yes**.
+2. Anytime goalscorer — **hidden** until a lineup feed exists.
+3. Dynamic's confirm screen — **kept**, to prevent mistakes.
+4. Rooms resolve **as soon as the outcome is locked**, behind the VAR/stability buffer above.
