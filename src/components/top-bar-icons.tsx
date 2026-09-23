@@ -3,17 +3,23 @@
 import Link from "next/link";
 import { notifications, formatMoneyCompact } from "@/lib/mock-data";
 import { GiftIcon, BellIcon, PlusIcon } from "./icons";
-import { useRivalyBalance } from "@/lib/wallet/use-rivaly-balance";
+import { useWalletBalance } from "@/lib/use-wallet-balance";
+import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
+import { formatUsdcCompact } from "@/lib/wallet/format";
+import { openQuickDeposit } from "@/lib/quick-deposit-store";
 import { useCurrentUser } from "./current-user-provider";
 import { openAuthModal } from "@/lib/auth-modal-store";
 
 export function TopBarIcons({ walletBordered = false }: { walletBordered?: boolean }) {
   const currentUser = useCurrentUser();
   const hasUnread = notifications.some((n) => !n.read);
-  // The Rivaly balance — what you can stake right now — not the on-chain
-  // wallet behind it (that lives on /wallet, clearly labelled).
-  const balance = useRivalyBalance();
-  const balanceLabel = balance.hasLoaded && balance.cents !== null ? formatMoneyCompact(balance.cents) : "—";
+  const mockBalance = useWalletBalance();
+  const live = useLiveWalletBalance();
+  const balanceLabel = live.isReal
+    ? live.hasLoaded
+      ? formatUsdcCompact(live.usdcBalance)
+      : "—"
+    : formatMoneyCompact(mockBalance);
 
   // Signed out: invite/notifications/balance are all meaningless (there's
   // nothing to invite people to yet, no notifications belong to you, and
@@ -64,23 +70,25 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
           pill holding both the balance and a nested "+" — a single
           container, not two separate elements side by side, so it reads
           as one compact control rather than two competing for space.
-          The balance and the "+" are sibling links inside that pill (real
-          <a>s, never one nested inside the other — that's invalid HTML).
-          The "+" goes to /wallet, where the balance is topped up. */}
+          The balance and the "+" are siblings inside that pill (a real
+          <a> and a real <button>, never a button nested inside an anchor —
+          that's invalid HTML and the click would double-fire both). The
+          sheet itself isn't rendered here — see quick-deposit-sheet.tsx's
+          comment on why it's mounted at the Nav root instead. */}
       {walletBordered ? (
         <div className="flex items-center gap-2 rounded-full border border-border bg-surface py-1 pl-2.5 pr-1">
           <Link href="/wallet" className="font-mono text-xs font-medium text-foreground">
             {balanceLabel}
           </Link>
-          <Link
-            href="/wallet"
-            aria-label="Add funds"
+          <button
+            onClick={openQuickDeposit}
+            aria-label="Deposit"
             className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-transform duration-150 ease-out active:scale-[0.88]"
           >
             <span className="[&>svg]:h-2.5 [&>svg]:w-2.5">
               <PlusIcon />
             </span>
-          </Link>
+          </button>
         </div>
       ) : (
         <Link href="/wallet" className="font-mono text-xs font-medium text-foreground">

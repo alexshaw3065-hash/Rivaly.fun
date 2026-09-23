@@ -16,9 +16,9 @@ import { DEFAULT_SETTINGS, limitsLabel, RoomSettingsStep, stakeLimits, type Room
 import { RoomPreviewCard, StakeInput, stakeError } from "./create-room/bet-step";
 import { kickoffLabel, MatchBanner } from "./create-room/match-hero";
 import { GridironIcon, SoccerIcon } from "./create-room/market-icons";
-import { BalanceLine } from "./wallet/top-up";
+import { WalletLine } from "./wallet/wallet-line";
 import { openAuthModal } from "@/lib/auth-modal-store";
-import { refreshRivalyBalance, useRivalyBalance } from "@/lib/wallet/use-rivaly-balance";
+import { useStakeable } from "@/lib/wallet/use-stakeable";
 
 // Matches further out than this aren't real decisions yet — showing them
 // just crowds the list. A week matches how people actually think about a
@@ -95,7 +95,7 @@ const STEPS: { id: Step; label: string; title: string }[] = [
 export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatchId?: string; resume?: boolean }) {
   const router = useRouter();
   const currentUser = useCurrentUser();
-  const balance = useRivalyBalance();
+  const stakeable = useStakeable();
   const { matches, isLoading } = useRealMatches();
 
   const [matchId, setMatchId] = useState<string | null>(initialMatchId ?? null);
@@ -175,7 +175,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
     advanceTimer.current = window.setTimeout(() => go("room"), ADVANCE_DELAY_MS);
   }
 
-  const short = balance.hasLoaded && balance.cents !== null && balance.cents < stakeCents;
+  const short = stakeable.hasLoaded && stakeable.availableCents !== null && stakeable.availableCents < stakeCents;
   const ready = Boolean(currentUser && match && pick && !limits.error && !stakeProblem && !short);
 
   function submit() {
@@ -202,13 +202,13 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
         });
         if (res.ok) {
           clearDraft();
-          void refreshRivalyBalance();
+          stakeable.refresh();
           router.prefetch(`/rooms/${res.roomId}`);
           setResult({ roomId: res.roomId, inviteCode: res.inviteCode });
           window.scrollTo({ top: 0 });
         } else {
           setError(res.error);
-          if (res.code === "insufficient_balance") void refreshRivalyBalance();
+          if (res.code === "insufficient_balance") stakeable.refresh();
         }
       } catch {
         setError("Couldn't reach Rivaly — check your connection and try again.");
@@ -221,9 +221,9 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
   // The "room is created the moment they're back" half of sign-in-at-the-end:
   // once the restored draft, the session and the balance are all in, fire
   // the create once. If the balance doesn't cover it, stop and let the
-  // stake step's top-up do its job instead.
+  // stake step's "Add USDC" do its job instead.
   useEffect(() => {
-    if (!autoSubmit.current || !currentUser || !match || !pick || !balance.hasLoaded) return;
+    if (!autoSubmit.current || !currentUser || !match || !pick || !stakeable.hasLoaded) return;
     autoSubmit.current = false;
     if (ready) submit();
   });
@@ -358,7 +358,12 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
           <div className="flex flex-col gap-6">
             <RoomPreviewCard match={match} claim={claim} side={side} onSide={setSide} meta={meta} />
             <StakeInput valueDollars={stakeDollars} onChange={setStakeDollars} limits={limits} error={stakeProblem} side={side} />
-            <BalanceLine needCents={stakeCents} signedIn={Boolean(currentUser)} />
+            <WalletLine
+              needCents={stakeCents}
+              signedIn={Boolean(currentUser)}
+              availableCents={stakeable.availableCents}
+              hasLoaded={stakeable.hasLoaded}
+            />
           </div>
         )}
       </div>

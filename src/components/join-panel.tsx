@@ -7,9 +7,9 @@ import { formatMoney } from "@/lib/mock-data";
 import { useCurrentUser } from "./current-user-provider";
 import { joinRoom } from "@/app/rooms/actions";
 import { openAuthModal } from "@/lib/auth-modal-store";
-import { refreshRivalyBalance, useRivalyBalance } from "@/lib/wallet/use-rivaly-balance";
+import { useStakeable } from "@/lib/wallet/use-stakeable";
 import { StakeInput, stakeError } from "./create-room/bet-step";
-import { BalanceLine } from "./wallet/top-up";
+import { WalletLine } from "./wallet/wallet-line";
 
 const SIDE = {
   yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
@@ -18,9 +18,9 @@ const SIDE = {
 
 const SUGGESTED_STAKE_CENTS = 10_00;
 
-// Take a side, pick a stake inside the room's limits, join — the stake comes
-// straight off the Rivaly balance, no wallet popup. A "no limit" room means
-// the joiner chooses the amount; it never silently enters everyone at the
+// Take a side, pick a stake inside the room's limits, join — backed by the
+// devnet USDC in your own embedded wallet. A "no limit" room means the
+// joiner chooses the amount; it never silently enters everyone at the
 // minimum. Signed-out visitors are sent to sign in and come straight back
 // here with their side still picked.
 export function JoinPanel({
@@ -40,7 +40,7 @@ export function JoinPanel({
 }) {
   const router = useRouter();
   const currentUser = useCurrentUser();
-  const balance = useRivalyBalance();
+  const stakeable = useStakeable();
   const limits = { minCents: minStakeCents, maxCents: maxStakeCents, error: null };
   const suggested = Math.max(minStakeCents, SUGGESTED_STAKE_CENTS);
   const [side, setSide] = useState<EntrySide>(initialSide ?? "yes");
@@ -67,7 +67,7 @@ export function JoinPanel({
 
   const stakeCents = Number(stakeDollars || 0) * 100;
   const problem = stakeError(stakeCents, limits);
-  const short = balance.hasLoaded && balance.cents !== null && balance.cents < stakeCents;
+  const short = stakeable.hasLoaded && stakeable.availableCents !== null && stakeable.availableCents < stakeCents;
   const accent = SIDE[side].color;
 
   function submit() {
@@ -81,11 +81,11 @@ export function JoinPanel({
       const res = await joinRoom(roomId, side, stakeCents);
       if (res.ok) {
         setEntered({ side, cents: stakeCents });
-        void refreshRivalyBalance();
+        stakeable.refresh();
         router.refresh();
       } else {
         setError(res.error);
-        if (res.code === "insufficient_balance") void refreshRivalyBalance();
+        if (res.code === "insufficient_balance") stakeable.refresh();
       }
     });
   }
@@ -120,7 +120,12 @@ export function JoinPanel({
       </div>
 
       <StakeInput valueDollars={stakeDollars} onChange={setStakeDollars} limits={limits} error={problem} side={side} />
-      <BalanceLine needCents={stakeCents} signedIn={Boolean(currentUser)} />
+      <WalletLine
+        needCents={stakeCents}
+        signedIn={Boolean(currentUser)}
+        availableCents={stakeable.availableCents}
+        hasLoaded={stakeable.hasLoaded}
+      />
 
       {error && (
         <p role="alert" className="text-xs text-danger-red">

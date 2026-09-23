@@ -1,17 +1,18 @@
 # Fast deposit → create room
 
-Goal: a new visitor goes from "I have an opinion" to a live room with money on it in under 30 seconds, with one sign-in and no wallet popups.
+Goal: a new visitor goes from "I have an opinion" to a live room in under 30 seconds, with one sign-in.
 
 Decisions (founder, 2026-09-23):
 
 | Question | Decision |
 | --- | --- |
-| How money moves | **Rivaly balance.** Deposit once; creating/joining a room is an instant balance move. Rivaly holds pooled stakes and pays winners — referee, never house. |
-| Test funding (devnet) | **One-tap faucet button** — "Get $100 test USDC". |
+| Where the money is | **The user's own Dynamic embedded Solana wallet.** Its devnet USDC *is* the balance. No separate Rivaly balance. |
+| How people get funds (devnet) | The top-bar wallet shows the address + QR; they take devnet USDC from the faucet (faucet.circle.com). |
 | When to sign in | **Only at "Throw down".** Build the room signed-out; the draft survives sign-in and the room is created on return. |
-| Mock data | **Remove mock rooms + packs** (and their cards). Mock profiles/leaderboards stay for now. |
+| Where a stake goes | **An escrow wallet** — but not wired yet (see *Escrow, next phase*). |
+| Mock data | Mock rooms + packs removed. Mock profiles/leaderboards stay for now. |
 
-## The new user's path
+## The path today
 
 ```
 Pick match → call → room rules → stake → [Throw down]
@@ -21,47 +22,27 @@ Pick match → call → room rules → stake → [Throw down]
                                               │ draft kept in sessionStorage
                                               ▼
                         back on the stake step, draft restored
-                                              │ balance < stake?
+                                              │ wallet short?
                                               ▼
-                                  [Get $100 test USDC]  (one tap, instant)
+                     [Add USDC] (address + QR) / devnet faucet
                                               ▼
-                                  [Throw down $10 on YES] → room live
+                              room created automatically / on tap
 ```
 
-Returning users with a balance: pick → call → Continue → Throw down. Four taps, no signing.
+## What happens at a stake, right now
 
-## Money model
+- **No USDC moves yet.** The server reads the wallet's devnet USDC on-chain, subtracts stakes already open in unfinished rooms, and only writes the entry if the stake fits. That stops the same $10 backing ten rooms.
+- This is a **guard, not a security boundary**: until escrow exists the money isn't locked. It becomes a boundary the moment each stake is a verified on-chain transfer.
+- `create_room_with_stake` / `join_room_with_stake` (Postgres) write the room + entry atomically; direct inserts into `rooms` / `entries` are closed.
 
-Two tables, written **only** by `SECURITY DEFINER` Postgres functions — the browser can read its own rows, never write them:
+## Escrow, next phase
 
-- `user_balances(user_id, balance_cents ≥ 0)` — the number shown everywhere.
-- `balance_ledger(user_id, delta_cents, kind, room_id, entry_id)` — every movement, append-only. `kind`: `faucet · deposit · withdrawal · stake · payout · refund`. The balance always equals the sum of its ledger rows.
+Recommended shape, in order of when it's worth doing:
 
-Functions (each one transaction, row-locked, so double-taps and races can't overspend):
+1. **Devnet: one escrow wallet, key in a managed signer.** Each create/join sends the stake from the user's embedded wallet to the escrow's USDC account (one signature, ~1–2 s on devnet). The server verifies the transaction on-chain *before* the entry exists: finalized/confirmed, USDC mint, exact amount, source = the user's own wallet, destination = escrow, signature never used before (stored with a unique constraint, so a replay can't create a second entry). Settlement pays winners from escrow. The key lives in a managed signer (Turnkey, Dynamic server wallets, or a KMS) — never in client code or a plain env var.
+2. **Gasless stakes.** Rivaly pays the network fee as fee payer, so users never need SOL — USDC only.
+3. **Mainnet: on-chain escrow program (per-room vault).** Funds sit in a program-owned account that can only release by the program's rules, settled from TxLINE's on-chain stat validation (`market_side_definition` already mirrors TxLINE's predicate shape for exactly this). No single key can move pooled money — the "Trust must be visible" end state. Needs an audit before real money.
 
-| Function | Who | Does |
-| --- | --- | --- |
-| `claim_test_usdc()` | signed-in user | +$100 when balance is under $100 (devnet only) |
-| `create_room_with_stake(...)` | signed-in user | inserts the room, the creator's entry, debits the stake, writes the ledger row — or nothing at all |
-| `join_room_with_stake(room, side, amount)` | signed-in user | checks open + limits + balance, inserts entry, debits |
-| `settle_room(room, winning_side)` | service role only | winners split the whole pool pro rata to stake; no fee; if nobody backed the winning side everyone is refunded |
-| `refund_room(room)` | service role only | returns every stake (postponed/cancelled matches) |
+Operational musts at any stage: a reconciliation job (escrow balance vs. open stakes), per-user rate limits on create/join, and a treasury multisig (e.g. Squads) for anything swept out of escrow.
 
-Direct `insert` on `rooms` and `entries` is removed from RLS, so the only way a stake exists is through a function that also moved the money.
-
-## Execution order
-
-1. **DB** — migration `rivaly_balance`: tables, RLS, the five functions, drop direct insert policies.
-2. **Server actions** — `createRoom` / `joinRoom` call the functions and map `insufficient_balance` to a typed result; new `claimTestUsdc`.
-3. **Balance store** — one client store read from `user_balances`, refreshed after every stake/claim. Top-bar chip, wallet page, create flow and join panel all read it.
-4. **Create flow** — balance line on the stake step, inline faucet CTA when short, signed-out Throw down saves the draft and opens sign-in with `next=/rooms/create?resume=1`, resume restores the draft and auto-submits once if the balance covers it.
-5. **Join panel** — pick a side *and* a stake inside the room's limits (a "no limit" room can't silently join everyone at one cent).
-6. **Wallet page** — Rivaly balance first, faucet button, ledger history.
-7. **Mock removal** — delete mock rooms, packs, `PackCard`, mock room chat and the mock-room fallbacks; every surface reads real rooms and shows a "create the first room" empty state.
-
-## Next phase (needs a founder input before it can ship)
-
-- **Real USDC deposit into the Rivaly balance** — user signs one transfer from their embedded wallet to a Rivaly treasury address; the server verifies the transaction on-chain and credits the ledger (`kind = deposit`, keyed by signature so it can't be credited twice). Needs: **the treasury wallet's public address** (Rivaly-controlled, never generated by the app).
-- **Withdraw from the Rivaly balance** — server sends USDC from the treasury. Needs the treasury signing key held as a server secret — custody decision for the founder, not the codebase.
-- **Auto-settlement** — a job that reads final match stats and calls `settle_room` / `refund_room`. The functions exist after step 1; the job that calls them is separate.
-- Mainnet: swap USDC mint + Dynamic environment + RPC together, and the faucet switches off.
+Needs from the founder before step 1: the escrow wallet's **public address**, and the choice of signer that will hold its key.
