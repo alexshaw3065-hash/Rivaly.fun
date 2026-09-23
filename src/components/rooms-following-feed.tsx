@@ -103,9 +103,11 @@ export function RoomsFollowingFeed() {
   useEffect(() => {
     if (!viewer) return;
     let cancelled = false;
-    loadFollowing(viewer.id).then((value) => {
-      if (!cancelled) setData({ viewerId: viewer.id, value });
-    });
+    loadFollowing(viewer.id)
+      .catch((): FollowingData => ({ created: [], joined: [], profiles: new Map() }))
+      .then((value) => {
+        if (!cancelled) setData({ viewerId: viewer.id, value });
+      });
     return () => {
       cancelled = true;
     };

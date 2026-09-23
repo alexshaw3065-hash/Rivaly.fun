@@ -25,14 +25,22 @@ export function WalletSetupButton({ next, centered = false }: { next: string; ce
         className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
         style={{ background: "var(--rival-blue)" }}
       >
-        {status === "no_wallet" ? "Sign in again to finish your wallet" : status === "expired" ? "Sign back in" : "Sign in with this wallet"}
+        {status === "no_wallet"
+          ? "Sign in again to finish your wallet"
+          : status === "expired"
+            ? "Sign back in"
+            : status === "unavailable"
+              ? "Retry"
+              : "Sign in with this wallet"}
       </button>
       <p className="text-xs text-muted">
         {status === "no_wallet"
           ? "Your wallet didn't finish setting up — one sign-in completes it."
           : status === "expired"
             ? "Your login timed out while you were away."
-            : "Your wallet app is on a different account than this one."}
+            : status === "unavailable"
+              ? "Your wallet didn't load — check your connection."
+              : "Your wallet app is on a different account than this one."}
       </p>
     </div>
   );

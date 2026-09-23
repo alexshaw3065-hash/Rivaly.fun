@@ -55,7 +55,11 @@ export function RoomsMineFeed() {
     let cancelled = false;
     Promise.all([
       fetchRoomsForProfile(currentUser.id),
-      createClient().from("entries").select("room_id, is_winner, payout_cents, amount_cents").eq("user_id", currentUser.id),
+      createClient()
+        .from("entries")
+        .select("room_id, is_winner, payout_cents, amount_cents")
+        .eq("user_id", currentUser.id)
+        .then((res) => res, () => ({ data: null })),
     ]).then(([rooms, { data: entries }]) => {
       if (cancelled) return;
       const results = new Map<string, MyResult>(

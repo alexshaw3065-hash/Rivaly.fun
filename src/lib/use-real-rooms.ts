@@ -45,7 +45,10 @@ export function fetchPublicRooms(): Promise<RoomWithMatch[]> {
       .order("created_at", { ascending: false })
       .limit(PUBLIC_LIMIT);
     return withMatches((data ?? []) as RoomRow[]);
-  })();
+  })().catch(() => {
+    publicCache = null; // don't keep serving a failure for the cache window
+    return [] as RoomWithMatch[];
+  });
   publicCache = { at: Date.now(), promise };
   return promise;
 }
@@ -53,6 +56,14 @@ export function fetchPublicRooms(): Promise<RoomWithMatch[]> {
 /** Rooms a profile created, and rooms they entered without creating. */
 export async function fetchRoomsForProfile(profileId: string): Promise<{ created: RoomWithMatch[]; joined: RoomWithMatch[] }> {
   if (!ROOM_UUID_RE.test(profileId)) return { created: [], joined: [] };
+  try {
+    return await roomsForProfile(profileId);
+  } catch {
+    return { created: [], joined: [] };
+  }
+}
+
+async function roomsForProfile(profileId: string): Promise<{ created: RoomWithMatch[]; joined: RoomWithMatch[] }> {
   const supabase = createClient();
   const [createdRes, joinedRes] = await Promise.all([
     supabase.from("rooms").select(ROOM_COLUMNS).eq("creator_id", profileId).order("created_at", { ascending: false }),
@@ -74,9 +85,13 @@ export async function fetchRoomsForProfile(profileId: string): Promise<{ created
 export async function fetchRoomsByIds(ids: string[]): Promise<RoomWithMatch[]> {
   const real = ids.filter((id) => ROOM_UUID_RE.test(id));
   if (real.length === 0) return [];
-  const { data } = await createClient().from("rooms").select(ROOM_COLUMNS).in("id", real);
-  const items = await withMatches((data ?? []) as RoomRow[]);
-  return real.flatMap((id) => items.filter((i) => i.room.id === id));
+  try {
+    const { data } = await createClient().from("rooms").select(ROOM_COLUMNS).in("id", real);
+    const items = await withMatches((data ?? []) as RoomRow[]);
+    return real.flatMap((id) => items.filter((i) => i.room.id === id));
+  } catch {
+    return [];
+  }
 }
 
 export function usePublicRooms(): { items: RoomWithMatch[]; isLoading: boolean } {

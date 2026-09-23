@@ -42,6 +42,8 @@ export function walletBlocker(
   switch (status) {
     case "loading":
       return { label: "Getting your wallet ready…", hint: "", busy: true };
+    case "unavailable":
+      return { label: "Wallet didn't load — retry", hint: "Check your connection. Your pick is kept." };
     case "expired":
       // Keep the normal "Throw down…" label — the tap is just a quick
       // sign-in that returns to this exact stake.

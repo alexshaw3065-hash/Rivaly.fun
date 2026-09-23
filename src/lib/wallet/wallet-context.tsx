@@ -48,9 +48,11 @@ export interface WalletState {
    * mismatch — Phantom etc. is switched to a different account than this one;
    * expired — the wallet login timed out while this page was open. Rivaly
    *   never signs anyone out mid-use: the stake button keeps its normal label
-   *   and a tap is a quick sign-in that comes straight back to the stake.
+   *   and a tap is a quick sign-in that comes straight back to the stake;
+   * unavailable — Dynamic's script never loaded (blocked, offline). Offered
+   *   as a retry instead of an endless "getting ready".
    */
-  status: "signed_out" | "loading" | "ready" | "no_wallet" | "mismatch" | "expired";
+  status: "signed_out" | "loading" | "ready" | "no_wallet" | "mismatch" | "expired" | "unavailable";
   connectedAddress: string | null;
   /** Fresh wallet sign-in, then back to `next` — only for the rare states above. */
   reconnect: (next: string) => Promise<void>;
@@ -180,6 +182,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     };
   }, [profile, address, dynamicLoggedIn, dynamicSolAddress, refreshUser, router]);
 
+  // Dynamic's script normally loads in a second or two; if it never does,
+  // say so and offer a retry rather than "getting ready" forever.
+  const [sdkSlow, setSdkSlow] = useState(false);
+  useEffect(() => {
+    if (!profile || sdkHasLoaded) return;
+    const id = window.setTimeout(() => setSdkSlow(true), 12000);
+    return () => window.clearTimeout(id);
+  }, [profile, sdkHasLoaded]);
+
   // Waiting on wallet creation shouldn't spin forever if it never comes.
   // (No address yet means nothing to watch either.)
   useEffect(() => {
@@ -199,24 +210,31 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     [wallets, address],
   );
 
+  const retryTimer = useRef<number | undefined>(undefined);
   const load = useCallback(async () => {
     if (!address) return;
-    try {
-      const { usdc, sol } = await readBalances(address);
-      setUsdcBalance(usdc);
-      setSolBalance(sol);
-      setHasLoaded(true);
-    } catch {
-      // Keep the last known-good value. Showing a stale-but-real number
-      // beats replacing it with a zero that never happened.
+    const owner = address;
+    // Keep the last known-good value on failure — a stale-but-real number
+    // beats a zero that never happened — and retry a few times with backoff
+    // so a blip on the first read doesn't leave "—" up until the next focus.
+    async function read(attempt: number): Promise<void> {
+      window.clearTimeout(retryTimer.current);
+      try {
+        const { usdc, sol } = await readBalances(owner);
+        setUsdcBalance(usdc);
+        setSolBalance(sol);
+        setHasLoaded(true);
+      } catch {
+        if (attempt < 4) retryTimer.current = window.setTimeout(() => void read(attempt + 1), 2000 * 2 ** attempt);
+      }
     }
+    await read(0);
   }, [address]);
+  useEffect(() => () => window.clearTimeout(retryTimer.current), []);
 
   useEffect(() => {
     if (!address) return;
-    // One read on mount / when the address first becomes known. The lint
-    // rule can't see that load()'s state updates happen after its await.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // One read on mount / when the address first becomes known.
     void load();
   }, [address, load]);
 
@@ -253,7 +271,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     ? "signed_out"
     : signingWallet && isSolanaWallet(signingWallet)
       ? "ready"
-      : sdkHasLoaded && !dynamicLoggedIn && wasLoggedIn
+      : !sdkHasLoaded && sdkSlow
+        ? "unavailable"
+        : sdkHasLoaded && !dynamicLoggedIn && wasLoggedIn
         ? "expired"
         : !sdkHasLoaded || !dynamicLoggedIn || syncing
         ? "loading" // restoring, or the arrival check is about to sign out
@@ -270,10 +290,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // returns to `next`.
   const reconnect = useCallback(
     async (next: string) => {
+      // Dynamic never loaded: nothing to sign in with yet — reload into `next`.
+      if (!sdkHasLoaded) {
+        window.location.assign(next);
+        return;
+      }
       if (dynamicLoggedIn) await handleLogOut().catch(() => undefined);
       openAuthModal({ next });
     },
-    [dynamicLoggedIn, handleLogOut],
+    [sdkHasLoaded, dynamicLoggedIn, handleLogOut],
   );
 
   const value = useMemo<WalletState>(
