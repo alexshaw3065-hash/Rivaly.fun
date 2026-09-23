@@ -29,7 +29,7 @@ const MINT = new PublicKey(USDC_MINT);
 const UNITS_PER_CENT = BigInt(10 ** (USDC_DECIMALS - 2));
 // Payouts per transaction — each transfer (plus creating a recipient's USDC
 // account when needed) must fit Solana's 1232-byte transaction limit.
-const PAYOUTS_PER_TX = 6;
+export const PAYOUTS_PER_TX = 6;
 
 export class EscrowError extends Error {}
 
@@ -112,7 +112,16 @@ export async function buildStakeTransaction(userAddress: string, cents: number, 
  * This is what stops anyone getting Rivaly to pay fees for a transaction it
  * didn't write.
  */
-export async function cosignAndSend(signedBase64: string, expectedMessageBase64: string, userAddress: string, lastValidBlockHeight: number): Promise<string> {
+export async function cosignAndSend(
+  signedBase64: string,
+  expectedMessageBase64: string,
+  userAddress: string,
+  lastValidBlockHeight: number,
+  // Called with the transaction's signature once it's fully signed and
+  // BEFORE it's sent, so the caller can record it — if confirmation then
+  // times out, a recovery pass can still look the transfer up on-chain.
+  onSigned: (signature: string) => Promise<void>,
+): Promise<string> {
   const { keypair, connection } = escrow();
   const tx = Transaction.from(Buffer.from(signedBase64, "base64"));
 
@@ -125,6 +134,7 @@ export async function cosignAndSend(signedBase64: string, expectedMessageBase64:
   tx.partialSign(keypair);
   if (!tx.verifySignatures()) throw new EscrowError("Signature check failed.");
 
+  await onSigned(bs58.encode(tx.signature!));
   const signature = await connection.sendRawTransaction(tx.serialize(), { preflightCommitment: COMMITMENT });
   const result = await connection.confirmTransaction(
     { signature, blockhash: tx.recentBlockhash!, lastValidBlockHeight },
@@ -139,36 +149,71 @@ export interface Payout {
   cents: number;
 }
 
+export interface SignedBatch {
+  payouts: Payout[];
+  /** Known before sending — recorded first so a re-run can't pay twice. */
+  signature: string;
+  serialized: string;
+  blockhash: string;
+  lastValidBlockHeight: number;
+}
+
 /**
- * Sends USDC from escrow — winnings or refunds — batching several per
- * transaction, creating any recipient's USDC account if it doesn't exist
- * yet. Returns one signature per batch, in order.
+ * Builds and signs one payout batch (winnings or refunds) from escrow,
+ * creating any recipient's USDC account if it doesn't exist yet — but does
+ * NOT send it. The caller records the signature, then calls sendSignedBatch.
  */
-export async function sendFromEscrow(payouts: Payout[]): Promise<{ payouts: Payout[]; signature: string }[]> {
+export async function signPayoutBatch(batch: Payout[]): Promise<SignedBatch> {
   const { keypair, connection } = escrow();
   const escrowAta = getAssociatedTokenAddressSync(MINT, keypair.publicKey);
-  const results: { payouts: Payout[]; signature: string }[] = [];
-
-  for (let i = 0; i < payouts.length; i += PAYOUTS_PER_TX) {
-    const batch = payouts.slice(i, i + PAYOUTS_PER_TX).filter((p) => p.cents > 0);
-    if (batch.length === 0) continue;
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash(COMMITMENT);
-    const tx = new Transaction({ feePayer: keypair.publicKey, blockhash, lastValidBlockHeight });
-    for (const p of batch) {
-      const owner = new PublicKey(p.to);
-      const ata = getAssociatedTokenAddressSync(MINT, owner);
-      tx.add(
-        createAssociatedTokenAccountIdempotentInstruction(keypair.publicKey, ata, owner, MINT),
-        createTransferCheckedInstruction(escrowAta, MINT, ata, keypair.publicKey, toUnits(p.cents), USDC_DECIMALS),
-      );
-    }
-    tx.sign(keypair);
-    const signature = await connection.sendRawTransaction(tx.serialize(), { preflightCommitment: COMMITMENT });
-    const result = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, COMMITMENT);
-    if (result.value.err) throw new EscrowError(`Payout batch failed on-chain (${signature}).`);
-    results.push({ payouts: batch, signature });
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash(COMMITMENT);
+  const tx = new Transaction({ feePayer: keypair.publicKey, blockhash, lastValidBlockHeight });
+  for (const p of batch) {
+    const owner = new PublicKey(p.to);
+    const ata = getAssociatedTokenAddressSync(MINT, owner);
+    tx.add(
+      createAssociatedTokenAccountIdempotentInstruction(keypair.publicKey, ata, owner, MINT),
+      createTransferCheckedInstruction(escrowAta, MINT, ata, keypair.publicKey, toUnits(p.cents), USDC_DECIMALS),
+    );
   }
-  return results;
+  tx.sign(keypair);
+  return {
+    payouts: batch,
+    signature: bs58.encode(tx.signature!),
+    serialized: tx.serialize().toString("base64"),
+    blockhash,
+    lastValidBlockHeight,
+  };
+}
+
+export async function sendSignedBatch(batch: SignedBatch): Promise<void> {
+  const { connection } = escrow();
+  const signature = await connection.sendRawTransaction(Buffer.from(batch.serialized, "base64"), {
+    preflightCommitment: COMMITMENT,
+  });
+  const result = await connection.confirmTransaction(
+    { signature, blockhash: batch.blockhash, lastValidBlockHeight: batch.lastValidBlockHeight },
+    COMMITMENT,
+  );
+  if (result.value.err) throw new EscrowError(`Payout failed on-chain (${signature}).`);
+}
+
+/**
+ * Where a previously-sent transaction stands: landed, failed, or not found.
+ * With the current block height, "not found" past its validity means it
+ * can never land and is safe to rebuild; before that, it may still land.
+ */
+export async function transactionState(signature: string): Promise<"confirmed" | "failed" | "unknown"> {
+  const { connection } = escrow();
+  const { value } = await connection.getSignatureStatuses([signature], { searchTransactionHistory: true });
+  const status = value[0];
+  if (!status) return "unknown";
+  if (status.err) return "failed";
+  return status.confirmationStatus === "confirmed" || status.confirmationStatus === "finalized" ? "confirmed" : "unknown";
+}
+
+export async function currentBlockHeight(): Promise<number> {
+  return escrow().connection.getBlockHeight(COMMITMENT);
 }
 
 /** The escrow's USDC balance in cents — for reconciliation against open stakes. */

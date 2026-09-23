@@ -42,3 +42,10 @@ services:
       # anywhere a browser can reach.
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # Settlement heartbeat (optional): the worker pings the app's settle
+      # route every minute. The escrow key stays on Vercel — Render only
+      # needs the URL and the shared cron secret.
+      - key: SETTLE_URL
+        sync: false
+      - key: CRON_SECRET
+        sync: false

@@ -8,7 +8,7 @@ import { openQuickDeposit } from "@/lib/quick-deposit-store";
 const FAUCET_URL = "https://faucet.circle.com/";
 
 /**
- * "Wallet $X free to stake", under the stake. When the stake doesn't fit,
+ * "Wallet $X USDC", under the stake. When the stake doesn't fit,
  * the fix is right there: open the same receive sheet as the top-bar "+"
  * (address + QR), or go grab devnet USDC from the faucet. Renders nothing
  * for signed-out visitors — the primary button already says what's next.
@@ -33,7 +33,7 @@ export function WalletLine({
         <span className="font-mono font-semibold text-foreground">
           {hasLoaded && availableCents !== null ? formatMoney(availableCents) : "…"}
         </span>
-        <span className="text-muted"> free to stake</span>
+        <span className="text-muted"> USDC</span>
         {short && <span className="ml-1.5 text-xs text-danger-red">Not enough for this stake</span>}
       </p>
       {short && (

@@ -184,6 +184,8 @@ export interface Room {
   minStakeCents: number;
   maxStakeCents: number | null;
   allowSpectators: boolean;
+  // Set once settlement decides the room (early or at the whistle).
+  resolvedOutcome?: "yes" | "no" | "void" | null;
 }
 
 export type EntrySide = "yes" | "no";

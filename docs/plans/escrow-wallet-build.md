@@ -1,6 +1,8 @@
 # Escrow wallet build — gasless stakes, automatic payouts (devnet)
 
-Status: **decisions approved (2026-09-23).** Nothing below is built yet.
+Status: **built (2026-09-24)** — phases 1–4 live on devnet; phase 5 (a real two-wallet run) needs a funded test wallet. Escrow: `7XBmYHxvBFe5XTpkoytxFKDbaMqxZrs4qcEjoNHnsfWJ`.
+
+Where it lives: rules `src/lib/settlement/resolve.ts` + `payouts.ts` (tested, `npm test`) · escrow `src/lib/escrow/escrow.ts` · stake actions `src/app/rooms/actions.ts` · browser signing `src/lib/escrow/use-stake.ts` · settlement engine `src/lib/settlement/settle.ts`, run by `/api/cron/settle` (Render worker pings it every minute when `SETTLE_URL` + `CRON_SECRET` are set) and on room view.
 
 ## Decisions already made
 

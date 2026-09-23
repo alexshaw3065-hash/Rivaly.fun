@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/mock-data";
@@ -9,7 +9,6 @@ import { useCurrentUser } from "./current-user-provider";
 import { useRealMatches } from "@/lib/use-real-matches";
 import { LiveBadge } from "./live-badge";
 import { TeamCrest } from "./team-crest";
-import { createRoom } from "@/app/rooms/actions";
 import type { EntrySide, Match } from "@/lib/types";
 import { MarketPicker, pickLabel, type Pick, type Score } from "./create-room/market-picker";
 import { DEFAULT_SETTINGS, limitsLabel, RoomSettingsStep, stakeLimits, type RoomSettings } from "./create-room/room-settings";
@@ -19,6 +18,9 @@ import { GridironIcon, SoccerIcon } from "./create-room/market-icons";
 import { WalletLine } from "./wallet/wallet-line";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { useStakeable } from "@/lib/wallet/use-stakeable";
+import { useStake } from "@/lib/escrow/use-stake";
+import { StakeButton } from "./stake-button";
+import { explorerTxUrl } from "@/lib/wallet/constants";
 
 // Matches further out than this aren't real decisions yet — showing them
 // just crowds the list. A week matches how people actually think about a
@@ -107,10 +109,10 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
   const [settings, setSettings] = useState<RoomSettings>(DEFAULT_SETTINGS);
   const [side, setSide] = useState<EntrySide>("yes");
   const [stakeDollars, setStakeDollars] = useState("");
-  const [result, setResult] = useState<{ roomId: string; inviteCode: string } | null>(null);
+  const [result, setResult] = useState<{ roomId: string; inviteCode: string; signature: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const submitting = useRef(false);
+  const { stake, phase, walletReady } = useStake();
+  const pending = phase !== "idle";
   const advanceTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => window.clearTimeout(advanceTimer.current), []);
@@ -185,12 +187,14 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
       openAuthModal({ next: "/rooms/create?resume=1" });
       return;
     }
-    if (!ready || !match || !pick || submitting.current) return;
-    submitting.current = true;
+    if (!ready || !match || !pick || pending) return;
     setError(null);
-    startTransition(async () => {
-      try {
-        const res = await createRoom({
+    void (async () => {
+      // Gasless on-chain stake: prepare → wallet confirm → lock in escrow.
+      // The room only exists once the transfer has been verified.
+      const res = await stake({
+        kind: "create",
+        room: {
           matchId: match.id,
           market: pick.market,
           side,
@@ -199,23 +203,24 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
           maxStakeCents: limits.maxCents,
           visibility: settings.visibility,
           allowSpectators: settings.allowSpectators,
-        });
-        if (res.ok) {
-          clearDraft();
-          stakeable.refresh();
-          router.prefetch(`/rooms/${res.roomId}`);
-          setResult({ roomId: res.roomId, inviteCode: res.inviteCode });
+        },
+      });
+      if (res.ok) {
+        clearDraft();
+        stakeable.refresh();
+        router.prefetch(`/rooms/${res.roomId}`);
+        navigator.vibrate?.(12);
+        // Let the button sit on "Locked" for a beat — the confirmation that
+        // the money actually moved — before the card takes over.
+        window.setTimeout(() => {
+          setResult({ roomId: res.roomId, inviteCode: res.inviteCode ?? "", signature: res.signature });
           window.scrollTo({ top: 0 });
-        } else {
-          setError(res.error);
-          if (res.code === "insufficient_balance") stakeable.refresh();
-        }
-      } catch {
-        setError("Couldn't reach Rivaly — check your connection and try again.");
-      } finally {
-        submitting.current = false;
+        }, 450);
+      } else {
+        setError(res.error);
+        if (res.code === "insufficient_balance") stakeable.refresh();
       }
-    });
+    })();
   }
 
   // The "room is created the moment they're back" half of sign-in-at-the-end:
@@ -223,9 +228,11 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
   // the create once. If the balance doesn't cover it, stop and let the
   // stake step's "Add USDC" do its job instead.
   useEffect(() => {
-    if (!autoSubmit.current || !currentUser || !match || !pick || !stakeable.hasLoaded) return;
+    if (!autoSubmit.current || !currentUser || !match || !pick || !stakeable.hasLoaded || !walletReady) return;
     autoSubmit.current = false;
-    if (ready) submit();
+    // Deferred a tick: submit() sets state, which mustn't happen synchronously
+    // inside the effect. The wallet's confirm screen opens right after.
+    if (ready) window.setTimeout(submit, 0);
   });
 
   const meta = [
@@ -245,6 +252,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
         meta={meta}
         roomId={result.roomId}
         inviteCode={result.inviteCode}
+        signature={result.signature}
       />
     );
   }
@@ -394,18 +402,14 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
                 {error}
               </p>
             )}
-            <PrimaryButton
+            <StakeButton
+              phase={phase}
               onClick={submit}
-              disabled={currentUser ? !ready || pending : Boolean(stakeProblem || limits.error)}
-              wide
+              disabled={currentUser ? !ready : Boolean(stakeProblem || limits.error)}
               color={sideColor}
             >
-              {pending
-                ? "Creating your room…"
-                : stakeProblem
-                  ? "Throw down →"
-                  : `Throw down ${formatMoney(stakeCents)} on ${side === "yes" ? "YES" : "NO"}`}
-            </PrimaryButton>
+              {stakeProblem ? "Throw down →" : `Throw down ${formatMoney(stakeCents)} on ${side === "yes" ? "YES" : "NO"}`}
+            </StakeButton>
             {!currentUser && (
               <p className="text-center text-xs text-muted">One quick sign-in, then your room goes live — your picks are kept.</p>
             )}
@@ -614,6 +618,7 @@ function CreatedView({
   meta,
   roomId,
   inviteCode,
+  signature,
 }: {
   match: Match;
   claim: string;
@@ -622,6 +627,7 @@ function CreatedView({
   meta: string[];
   roomId: string;
   inviteCode: string;
+  signature: string;
 }) {
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const copiedTimer = useRef<number | undefined>(undefined);
@@ -664,8 +670,16 @@ function CreatedView({
         <span style={{ color: sideColor }} className="font-semibold">
           {side === "yes" ? "YES" : "NO"}
         </span>
-        . A room without opponents isn&rsquo;t a room.
+        , locked in escrow. A room without opponents isn&rsquo;t a room.
       </p>
+      <a
+        href={explorerTxUrl(signature)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="enter-row hover-link mt-1.5 inline-flex items-center gap-1 text-xs text-muted underline underline-offset-2"
+      >
+        Verify your stake on Solana ↗
+      </a>
 
       <div className="enter-row mt-6 flex items-center gap-2">
         <code className="flex min-h-12 flex-1 items-center rounded-md border border-border bg-surface px-4 font-mono text-sm font-semibold tracking-wider text-foreground">

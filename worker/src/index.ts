@@ -219,6 +219,27 @@ async function main(): Promise<void> {
   }
 }
 
+// Settlement heartbeat. Settling needs the escrow key, which lives only on
+// Vercel — so this always-on process just pings the app's settle route once
+// a minute (rooms go live at kickoff, resolve early behind the safety window,
+// winners get paid). Optional: without SETTLE_URL + CRON_SECRET it's off, and
+// rooms still settle when they're viewed. The route is idempotent, so an
+// overlapping ping can't pay anyone twice.
+const SETTLE_URL = process.env.SETTLE_URL;
+const CRON_SECRET = process.env.CRON_SECRET;
+if (SETTLE_URL && CRON_SECRET) {
+  const settleTick = async () => {
+    try {
+      const res = await fetch(SETTLE_URL, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+      if (!res.ok) console.error(`[settle] ${res.status}`);
+    } catch (e) {
+      console.error("[settle] ping failed:", (e as Error).message);
+    }
+  };
+  setInterval(settleTick, 60_000);
+  console.log("[settle] heartbeat on — every 60s");
+}
+
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
   process.on(signal, () => {
     console.log(`[worker] ${signal} — exiting`);

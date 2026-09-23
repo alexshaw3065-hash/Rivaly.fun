@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EntrySide } from "@/lib/types";
 import { formatMoney } from "@/lib/mock-data";
 import { useCurrentUser } from "./current-user-provider";
-import { joinRoom } from "@/app/rooms/actions";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { useStakeable } from "@/lib/wallet/use-stakeable";
 import { StakeInput, stakeError } from "./create-room/bet-step";
 import { WalletLine } from "./wallet/wallet-line";
+import { StakeButton } from "./stake-button";
+import { useStake } from "@/lib/escrow/use-stake";
+import { explorerTxUrl } from "@/lib/wallet/constants";
 
 const SIDE = {
   yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
@@ -47,11 +49,12 @@ export function JoinPanel({
   const [stakeDollars, setStakeDollars] = useState(
     String(Math.ceil((maxStakeCents === null ? suggested : Math.min(suggested, maxStakeCents)) / 100)),
   );
-  const [entered, setEntered] = useState<{ side: EntrySide; cents: number | null } | null>(
-    initialEntry ? { side: initialEntry, cents: null } : null,
+  const [entered, setEntered] = useState<{ side: EntrySide; cents: number | null; signature: string | null } | null>(
+    initialEntry ? { side: initialEntry, cents: null, signature: null } : null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { stake, phase } = useStake();
+  const pending = phase !== "idle";
 
   if (entered) {
     return (
@@ -60,7 +63,19 @@ export function JoinPanel({
           You&rsquo;re in — backing <span style={{ color: SIDE[entered.side].color }}>{SIDE[entered.side].label}</span>
           {entered.cents !== null && <> with {formatMoney(entered.cents)}</>}
         </p>
-        <p className="mt-1 text-xs text-muted">Win and you split the pool with everyone on your side.</p>
+        <p className="mt-1 text-xs text-muted">
+          Locked in escrow. Win and you split the pool with everyone on your side.
+        </p>
+        {entered.signature && (
+          <a
+            href={explorerTxUrl(entered.signature)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover-link mt-1.5 inline-block text-xs text-muted underline underline-offset-2"
+          >
+            Verify your stake on Solana ↗
+          </a>
+        )}
       </div>
     );
   }
@@ -77,17 +92,22 @@ export function JoinPanel({
     }
     if (problem || short || pending) return;
     setError(null);
-    startTransition(async () => {
-      const res = await joinRoom(roomId, side, stakeCents);
+    void (async () => {
+      // Gasless on-chain stake into escrow; the entry exists only once the
+      // transfer is verified.
+      const res = await stake({ kind: "join", roomId, side, amountCents: stakeCents });
       if (res.ok) {
-        setEntered({ side, cents: stakeCents });
-        stakeable.refresh();
-        router.refresh();
+        navigator.vibrate?.(12);
+        window.setTimeout(() => {
+          setEntered({ side, cents: stakeCents, signature: res.signature });
+          stakeable.refresh();
+          router.refresh();
+        }, 450);
       } else {
         setError(res.error);
         if (res.code === "insufficient_balance") stakeable.refresh();
       }
-    });
+    })();
   }
 
   return (
@@ -132,21 +152,20 @@ export function JoinPanel({
           {error}
         </p>
       )}
-      <button
-        type="button"
-        onClick={submit}
-        disabled={Boolean(currentUser) && (Boolean(problem) || short || pending)}
-        className="min-h-12 w-full rounded-md text-sm font-semibold text-white transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] disabled:opacity-40"
-        style={{ background: accent }}
-      >
-        {!currentUser
-          ? "Sign in to join"
-          : pending
-            ? "Joining…"
-            : problem
-              ? "Join"
-              : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}
-      </button>
+      {currentUser ? (
+        <StakeButton phase={phase} onClick={submit} disabled={Boolean(problem) || short} color={accent}>
+          {problem ? "Join" : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}
+        </StakeButton>
+      ) : (
+        <button
+          type="button"
+          onClick={submit}
+          className="min-h-12 w-full rounded-md text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.98]"
+          style={{ background: accent }}
+        >
+          Sign in to join
+        </button>
+      )}
     </div>
   );
 }

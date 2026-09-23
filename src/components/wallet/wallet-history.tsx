@@ -15,6 +15,14 @@ const mockTypeLabel: Record<string, string> = {
   fee: "Fee",
 };
 
+// Transfers with Rivaly's escrow are stakes going in and winnings/refunds
+// coming back — named for what they are, not as generic deposits.
+const ESCROW = process.env.NEXT_PUBLIC_ESCROW_ADDRESS;
+function historyLabel(incoming: boolean, counterparty: string | null): string {
+  if (ESCROW && counterparty === ESCROW) return incoming ? "Payout from a room" : "Stake into a room";
+  return incoming ? "Deposit" : "Withdrawal";
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
@@ -80,7 +88,7 @@ export function WalletHistory() {
             style={{ transition: "background-color 150ms ease" }}
           >
             <div className="min-w-0">
-              <p className="text-sm text-foreground">{positive ? "Deposit" : "Withdrawal"}</p>
+              <p className="text-sm text-foreground">{historyLabel(positive, tx.counterpartyAddress)}</p>
               <p className="mt-0.5 truncate font-mono text-xs text-muted">{formatDate(tx.createdAt)}</p>
             </div>
             <p

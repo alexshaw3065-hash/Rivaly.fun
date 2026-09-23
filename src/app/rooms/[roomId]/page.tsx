@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { after } from "next/server";
 import { formatMoney } from "@/lib/mock-data";
 import { getRoomById, getRoomByInviteCode, splitPctFromTotals } from "@/lib/supabase/rooms";
 import { getMatchById } from "@/lib/supabase/matches";
@@ -12,6 +13,10 @@ import { Avatar } from "@/components/avatar";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
 import { ShareButton } from "@/components/share-button";
+import { RoomResult } from "@/components/room-result";
+import { RoomLiveRefresh } from "@/components/room-live-refresh";
+import { settleRoom } from "@/lib/settlement/settle";
+import { explorerTxUrl } from "@/lib/wallet/constants";
 import type { EntrySide } from "@/lib/types";
 
 // The heart of the product. Per docs/masterplan/07-product-blueprint.md#45-room.
@@ -61,7 +66,16 @@ export default async function RoomPage({
   const currentUser = await getCurrentProfile();
   const stakesClosed = stakesAreClosed(match);
   const leftPct = splitPctFromTotals(room.yesTotalCents ?? 0, room.noTotalCents ?? 0);
-  const isSettled = room.status === "settled";
+  const settled = room.status === "settled" || room.status === "refunded";
+  const outcome = room.resolvedOutcome ?? null;
+  const unfinished = room.status === "open" || room.status === "live";
+
+  // Settle on view, after the response is sent: a room whose match has
+  // started or ended gets its settlement pass right away, even between cron
+  // runs. Idempotent, so a concurrent cron run can't double-pay.
+  if (unfinished && (match.status !== "scheduled" || outcome)) {
+    after(() => settleRoom(room.id).then(() => undefined, () => undefined));
+  }
   const messages = await getRoomMessages(room.id);
   const rivals = await getRoomRivals(room.id);
   const sharePath = `/rooms/${room.id}${room.visibility === "private" ? `?code=${room.inviteCode}` : ""}`;
@@ -70,6 +84,8 @@ export default async function RoomPage({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 md:px-6">
+      {/* While the room can still move, keep the pool, split and result fresh. */}
+      {unfinished && <RoomLiveRefresh />}
       <Link href="/" className="hover-link text-sm text-muted transition-colors">
         ← Home
       </Link>
@@ -126,21 +142,15 @@ export default async function RoomPage({
         </div>
 
         <aside className="flex flex-col gap-5">
-          {isSettled ? (
-            <div
-              className="stagger-in rounded-lg border border-border-strong bg-surface p-4"
-              style={{ animationDelay: "30ms" }}
-            >
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Settled</p>
-              <p className="mt-1.5 text-sm text-foreground">
-                The {formatMoney(room.poolTotalCents)} pool went to the winning side, split by stake.
-              </p>
-              <Link
-                href="/rooms/create"
-                className="mt-3 block rounded-md bg-foreground py-2.5 text-center text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
-              >
-                Rematch →
-              </Link>
+          {outcome ? (
+            <div className="stagger-in" style={{ animationDelay: "30ms" }}>
+              <RoomResult
+                outcome={outcome}
+                settled={settled}
+                refunded={room.status === "refunded" || outcome === "void"}
+                matchStillLive={match.status === "live"}
+                entry={myEntry}
+              />
             </div>
           ) : stakesClosed ? (
             <div
@@ -158,8 +168,21 @@ export default async function RoomPage({
                   {match.status === "live" ? "Kicked off — stakes locked" : "Stakes closed"}
                 </p>
                 <p className="mt-0.5 text-xs text-muted">
-                  {myEntry ? "You're in. " : ""}The room settles on the official result.
+                  {myEntry
+                    ? `You're in with ${formatMoney(myEntry.amountCents)} on ${myEntry.side.toUpperCase()}. `
+                    : ""}
+                  Settles as soon as the result is certain.
                 </p>
+                {myEntry?.stakeTxSignature && (
+                  <a
+                    href={explorerTxUrl(myEntry.stakeTxSignature)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover-link mt-1 inline-block text-xs text-muted underline underline-offset-2"
+                  >
+                    Verify your stake on Solana ↗
+                  </a>
+                )}
               </div>
             </div>
           ) : (
@@ -168,7 +191,7 @@ export default async function RoomPage({
                 roomId={room.id}
                 minStakeCents={room.minStakeCents}
                 maxStakeCents={room.maxStakeCents}
-                initialEntry={myEntry}
+                initialEntry={myEntry?.side ?? null}
                 initialSide={preselect}
                 returnPath={sharePath}
               />

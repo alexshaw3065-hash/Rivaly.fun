@@ -4,8 +4,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 // Every other table/query in this app goes through RLS via the anon key —
 // that's been a deliberate, hard-held line since the very first migration.
 //
-// There are exactly two intentional exceptions, both cases where no user
-// session exists to authenticate as:
+// There are exactly three intentional exceptions:
 //
 //   1. The Dynamic login bridge (src/app/auth/dynamic-actions.ts) has to
 //      create/look up auth.users rows before a session exists at all.
@@ -14,6 +13,11 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 //      must never be able to invent a fixture or a score once rooms hold
 //      money, so those tables are read-only to every client and written
 //      only by server-side sync jobs.
+//   3. The escrow money path (src/app/rooms/actions.ts, src/lib/settlement)
+//      writes stake intents, entries and payouts. An entry may only exist
+//      after the server has verified its USDC transfer into escrow
+//      on-chain, so clients can't write entries at all; the verified user
+//      id comes from their session, never from the request body.
 //
 // Never import this from anywhere else, and never let it anywhere near a
 // client component — it bypasses every RLS policy in the database.

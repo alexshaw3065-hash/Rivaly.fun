@@ -1,14 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import type { EntrySide } from "@/lib/types";
 
+export interface MyEntry {
+  side: EntrySide;
+  amountCents: number;
+  isWinner: boolean | null;
+  payoutCents: number | null;
+  stakeTxSignature: string | null;
+  payoutTxSignature: string | null;
+}
+
 /**
- * The signed-in user's own entry in a real room, if any — lets the room
- * page render "You're in — backing Yes" correctly on a fresh page load
- * (not just right after clicking Join, which local-only useState could
- * already do but lost on refresh). Only meaningful for real (UUID) rooms;
- * mock rooms have no real entries table backing them.
+ * The signed-in user's own entry in a room, if any — side, stake, result and
+ * both on-chain receipts (the stake into escrow, the payout back), so the
+ * room page can show "you're in", the win/loss moment, and "Verify on
+ * Solana" links on a fresh load.
  */
-export async function getMyEntryForRoom(roomId: string): Promise<EntrySide | null> {
+export async function getMyEntryForRoom(roomId: string): Promise<MyEntry | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,12 +25,19 @@ export async function getMyEntryForRoom(roomId: string): Promise<EntrySide | nul
 
   const { data } = await supabase
     .from("entries")
-    .select("side")
+    .select("side, amount_cents, is_winner, payout_cents, stake_tx_signature, payout_tx_signature")
     .eq("room_id", roomId)
     .eq("user_id", user.id)
     .maybeSingle();
-
-  return (data?.side as EntrySide | undefined) ?? null;
+  if (!data) return null;
+  return {
+    side: data.side as EntrySide,
+    amountCents: data.amount_cents,
+    isWinner: data.is_winner,
+    payoutCents: data.payout_cents,
+    stakeTxSignature: data.stake_tx_signature,
+    payoutTxSignature: data.payout_tx_signature,
+  };
 }
 
 export interface RoomRival {
