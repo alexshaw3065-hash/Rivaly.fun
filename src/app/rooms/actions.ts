@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getMatchById } from "@/lib/supabase/matches";
-import { composeMarket, invalidMarketReason, MIN_STAKE_FLOOR_CENTS, type CreateRoomMarket } from "@/lib/markets";
+import { composeMarket, invalidMarketReason, marketFitsSport, MIN_STAKE_FLOOR_CENTS, sportOf, type CreateRoomMarket } from "@/lib/markets";
 import type { EntrySide } from "@/lib/types";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I — avoids ambiguous codes read aloud or handwritten
@@ -63,6 +63,9 @@ export async function createRoom(input: CreateRoomInput): Promise<CreateRoomResu
   if (!match) return { ok: false, error: "Couldn't find that match — try again." };
   if (match.status === "finished" || match.status === "cancelled") {
     return { ok: false, error: "That match is already over." };
+  }
+  if (!marketFitsSport(input.market, sportOf(match))) {
+    return { ok: false, error: "That market doesn't exist for this match." };
   }
 
   const composed = composeMarket(input.market, match);

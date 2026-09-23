@@ -62,6 +62,25 @@ function periodStat(
   return typeof value === "number" ? value : 0;
 }
 
+/**
+ * NFL period stat — HT/Total carry {Score, Touchdown, FieldGoal,
+ * 1ptConversion} per participant (verified against a real finished
+ * Chiefs v Colts snapshot, including its OT period). Null for soccer.
+ */
+function nflStat(
+  record: TxLineScores,
+  participant: "Participant1" | "Participant2",
+  sportId: number,
+  period: "HT" | "Total",
+  stat: "Score" | "Touchdown" | "FieldGoal",
+): number | null {
+  if (sportId !== SPORT_US_FOOTBALL) return null;
+  const p = record.Score?.[participant]?.[period] as Record<string, number> | undefined;
+  if (!p) return null;
+  const value = p[stat];
+  return typeof value === "number" ? value : 0;
+}
+
 export interface NormalizedMatch {
   status: MatchStatus;
   homeScore: number | null;
@@ -72,6 +91,11 @@ export interface NormalizedMatch {
   awayCorners: number | null;
   homeYellowCards: number | null;
   awayYellowCards: number | null;
+  homeTouchdowns: number | null;
+  awayTouchdowns: number | null;
+  homeFieldGoals: number | null;
+  awayFieldGoals: number | null;
+  wentToOvertime: boolean | null;
   lastSeq: number | null;
   providerStatusId: number | null;
   stats: Record<string, number> | null;
@@ -120,6 +144,11 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
   let awayCorners: number | null = null;
   let homeYellowCards: number | null = null;
   let awayYellowCards: number | null = null;
+  let homeTouchdowns: number | null = null;
+  let awayTouchdowns: number | null = null;
+  let homeFieldGoals: number | null = null;
+  let awayFieldGoals: number | null = null;
+  let wentToOvertime: boolean | null = null;
 
   if (latest) {
     const p1 = totalFor(latest, "Participant1", sportId);
@@ -127,8 +156,10 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
     homeScore = latest.Participant1IsHome ? p1 : p2;
     awayScore = latest.Participant1IsHome ? p2 : p1;
 
-    const p1Ht = periodStat(latest, "Participant1", sportId, "HT", "Goals");
-    const p2Ht = periodStat(latest, "Participant2", sportId, "HT", "Goals");
+    // Half-time score: Goals for soccer, Score (points) for NFL — same HT
+    // period in both feeds, so both land in the same columns.
+    const p1Ht = periodStat(latest, "Participant1", sportId, "HT", "Goals") ?? nflStat(latest, "Participant1", sportId, "HT", "Score");
+    const p2Ht = periodStat(latest, "Participant2", sportId, "HT", "Goals") ?? nflStat(latest, "Participant2", sportId, "HT", "Score");
     homeScoreHt = latest.Participant1IsHome ? p1Ht : p2Ht;
     awayScoreHt = latest.Participant1IsHome ? p2Ht : p1Ht;
 
@@ -141,6 +172,25 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
     const p2Cards = periodStat(latest, "Participant2", sportId, "Total", "YellowCards");
     homeYellowCards = latest.Participant1IsHome ? p1Cards : p2Cards;
     awayYellowCards = latest.Participant1IsHome ? p2Cards : p1Cards;
+
+    const p1Td = nflStat(latest, "Participant1", sportId, "Total", "Touchdown");
+    const p2Td = nflStat(latest, "Participant2", sportId, "Total", "Touchdown");
+    homeTouchdowns = latest.Participant1IsHome ? p1Td : p2Td;
+    awayTouchdowns = latest.Participant1IsHome ? p2Td : p1Td;
+
+    const p1Fg = nflStat(latest, "Participant1", sportId, "Total", "FieldGoal");
+    const p2Fg = nflStat(latest, "Participant2", sportId, "Total", "FieldGoal");
+    homeFieldGoals = latest.Participant1IsHome ? p1Fg : p2Fg;
+    awayFieldGoals = latest.Participant1IsHome ? p2Fg : p1Fg;
+
+    // An OT period only appears once overtime is played, so "no OT" is only
+    // a fact after the final whistle — before that it's still unknown.
+    if (sportId === SPORT_US_FOOTBALL) {
+      const s1 = latest.Score?.Participant1 as Record<string, unknown> | undefined;
+      const s2 = latest.Score?.Participant2 as Record<string, unknown> | undefined;
+      const hasOt = Boolean(s1?.OTTotal || s2?.OTTotal);
+      wentToOvertime = hasOt ? true : status === "finished" ? false : null;
+    }
   }
 
   return {
@@ -153,6 +203,11 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
     awayCorners,
     homeYellowCards,
     awayYellowCards,
+    homeTouchdowns,
+    awayTouchdowns,
+    homeFieldGoals,
+    awayFieldGoals,
+    wentToOvertime,
     lastSeq: last.Seq ?? null,
     providerStatusId: last.StatusId ?? null,
     stats: last.Stats ?? null,

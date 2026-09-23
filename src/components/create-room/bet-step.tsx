@@ -2,22 +2,11 @@
 
 import { formatMoney } from "@/lib/mock-data";
 import type { EntrySide, Match } from "@/lib/types";
-import { LiveBadge } from "../live-badge";
 import { limitsLabel, type StakeLimits } from "./room-settings";
+import { MatchBanner } from "./match-hero";
+import { CheckIcon } from "./market-icons";
 
-const QUICK_STAKES_NAIRA = [500, 1_000, 2_000, 5_000, 10_000];
-
-export function kickoffLabel(kickoffAt: string): string {
-  const diffMs = +new Date(kickoffAt) - Date.now();
-  if (diffMs <= 0) return "Kicking off";
-  const totalMinutes = Math.round(diffMs / 60000);
-  const days = Math.floor(totalMinutes / 1440);
-  const hours = Math.floor((totalMinutes % 1440) / 60);
-  const minutes = totalMinutes % 60;
-  if (days > 0) return `Kicks off in ${days}d ${hours}h`;
-  if (hours > 0) return `Kicks off in ${hours}h ${minutes}m`;
-  return `Kicks off in ${minutes}m`;
-}
+const QUICK_STAKES_DOLLARS = [5, 10, 25, 50, 100];
 
 export function stakeError(stakeCents: number, limits: StakeLimits): string | null {
   if (!stakeCents) return "Enter your stake.";
@@ -26,11 +15,17 @@ export function stakeError(stakeCents: number, limits: StakeLimits): string | nu
   return null;
 }
 
+const SIDE = {
+  yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
+  no: { label: "NO", color: "var(--rival-green)", dim: "var(--rival-green-dim)" },
+} as const;
+
 /**
- * The room as other people will meet it — competition, the claim, and the
- * two sides. Interactive during the bet step (tap a side), then the same card
- * settles into its confirmed state once the server has actually created the
- * room, so "what I built" and "what exists" are visibly one object.
+ * The room as other people will meet it — both crests over their kit
+ * colours, the claim, and the two sides. Interactive during the stake step
+ * (tap a side), then the same card settles into its confirmed state once the
+ * server has actually created the room, so "what I built" and "what exists"
+ * are visibly one object.
  */
 export function RoomPreviewCard({
   match,
@@ -47,124 +42,123 @@ export function RoomPreviewCard({
   meta: string[];
   confirmed?: boolean;
 }) {
-  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-green)";
   return (
     <div
-      className={`rounded-xl border bg-surface p-4 md:p-5 ${confirmed ? "room-confirmed" : ""}`}
-      style={{ borderColor: confirmed ? sideColor : "var(--border)" }}
+      className={`relative overflow-hidden rounded-xl border bg-surface ${confirmed ? "room-confirmed" : ""}`}
+      style={{ borderColor: confirmed ? SIDE[side].color : "var(--border)" }}
     >
-      <div className="flex items-center justify-between gap-3">
-        <p className="truncate font-mono text-[11px] uppercase tracking-wider text-muted">{match.competition}</p>
-        {match.status === "live" ? (
-          <LiveBadge />
-        ) : (
-          <span className="shrink-0 font-mono text-[11px] text-muted">{kickoffLabel(match.kickoffAt)}</span>
-        )}
-      </div>
-      <p className="mt-3 text-sm text-muted">
-        {match.homeTeam} v {match.awayTeam}
-      </p>
-      <p className="mt-1 font-display text-2xl font-bold leading-tight text-foreground md:text-3xl">{claim}</p>
+      <MatchBanner match={match} size="sm" />
+      <div className="border-t border-border p-4">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted">The call</p>
+        <p className="mt-1 font-display text-2xl font-bold leading-tight text-foreground md:text-[28px]">{claim}</p>
 
-      <div className="mt-5 grid grid-cols-2 gap-2" role={onSide ? "radiogroup" : undefined} aria-label={onSide ? "Your side" : undefined}>
-        {(["yes", "no"] as const).map((s) => {
-          const active = side === s;
-          const color = s === "yes" ? "var(--rival-blue)" : "var(--rival-green)";
-          const dim = s === "yes" ? "var(--rival-blue-dim)" : "var(--rival-green-dim)";
-          const content = (
-            <>
-              <span className="font-display text-lg font-bold tracking-wide">{s === "yes" ? "YES" : "NO"}</span>
-              {active && <span className="text-[11px] font-medium opacity-80">{confirmed ? "Your side" : "You"}</span>}
-            </>
-          );
-          const style = {
-            borderColor: active ? color : "var(--border)",
-            background: active ? dim : "transparent",
-            color: active ? color : "var(--muted)",
-          };
-          const cls =
-            "flex min-h-14 items-center justify-center gap-2 rounded-lg border transition-[transform,background-color,border-color,color] duration-150 ease-out";
-          return onSide ? (
-            <button
-              key={s}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onSide(s)}
-              className={`${cls} active:scale-[0.97]`}
-              style={style}
-            >
-              {content}
-            </button>
-          ) : (
-            <div key={s} className={cls} style={style}>
-              {content}
-            </div>
-          );
-        })}
-      </div>
+        <div className="mt-4 grid grid-cols-2 gap-2" role={onSide ? "radiogroup" : undefined} aria-label={onSide ? "Your side" : undefined}>
+          {(["yes", "no"] as const).map((s) => {
+            const active = side === s;
+            const content = (
+              <>
+                <span className="font-display text-lg font-bold tracking-wide">{SIDE[s].label}</span>
+                {active && (
+                  <span className="enter-pop flex items-center gap-1 text-[11px] font-semibold">
+                    <CheckIcon className="h-3 w-3" />
+                    {confirmed ? "Your side" : "You"}
+                  </span>
+                )}
+              </>
+            );
+            const style = {
+              borderColor: active ? SIDE[s].color : "var(--border)",
+              background: active ? SIDE[s].dim : "transparent",
+              color: active ? SIDE[s].color : "var(--muted)",
+              boxShadow: active ? `inset 0 0 0 1px ${SIDE[s].color}` : "none",
+            };
+            const cls =
+              "flex min-h-14 items-center justify-center gap-2 rounded-lg border transition-[transform,background-color,border-color,color] duration-150 ease-out";
+            return onSide ? (
+              <button key={s} type="button" role="radio" aria-checked={active} onClick={() => onSide(s)} className={`${cls} active:scale-[0.97]`} style={style}>
+                {content}
+              </button>
+            ) : (
+              <div key={s} className={cls} style={style}>
+                {content}
+              </div>
+            );
+          })}
+        </div>
 
-      <p className="mt-4 text-xs text-muted">{meta.join(" · ")}</p>
+        <p className="mt-3.5 text-xs leading-relaxed text-muted">{meta.join(" · ")}</p>
+      </div>
+      {confirmed && <span aria-hidden className="confirm-sweep" />}
     </div>
   );
 }
 
 export function StakeInput({
-  valueNaira,
+  valueDollars,
   onChange,
   limits,
   error,
+  side,
 }: {
-  valueNaira: string;
+  valueDollars: string;
   onChange: (v: string) => void;
   limits: StakeLimits;
   error: string | null;
+  side: EntrySide;
 }) {
-  const inRange = QUICK_STAKES_NAIRA.filter(
+  const inRange = QUICK_STAKES_DOLLARS.filter(
     (n) => n * 100 >= limits.minCents && (limits.maxCents === null || n * 100 <= limits.maxCents),
   );
   const quick = inRange.length
     ? inRange
     : [limits.minCents / 100, ...(limits.maxCents !== null ? [limits.maxCents / 100] : [])];
+  const accent = SIDE[side].color;
+  const showError = Boolean(error && valueDollars);
 
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor="stake" className="text-sm font-medium text-foreground">
+        <label htmlFor="stake" className="text-sm font-semibold text-foreground">
           Your stake
         </label>
         <span className="text-xs text-muted">{limitsLabel(limits)}</span>
       </div>
       <div
-        className="mt-2.5 flex min-h-14 items-center gap-2 rounded-lg border bg-surface px-4 transition-colors duration-150 focus-within:border-border-strong"
-        style={{ borderColor: error && valueNaira ? "var(--danger-red)" : undefined }}
+        className="mt-2.5 flex min-h-16 items-center gap-2 rounded-lg border bg-surface px-4 transition-colors duration-150"
+        style={{ borderColor: showError ? "var(--danger-red)" : accent }}
       >
-        <span className="font-mono text-xl text-muted">₦</span>
+        <span className="font-display text-2xl font-bold" style={{ color: accent }}>
+          $
+        </span>
         <input
           id="stake"
-          value={valueNaira ? Number(valueNaira).toLocaleString("en-NG") : ""}
-          onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 9))}
+          value={valueDollars ? Number(valueDollars).toLocaleString("en-US") : ""}
+          onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 7))}
           inputMode="numeric"
           autoComplete="off"
           placeholder="0"
-          aria-invalid={Boolean(error && valueNaira)}
+          aria-invalid={showError}
           aria-describedby="stake-error"
-          className="min-w-0 flex-1 bg-transparent font-mono text-2xl text-foreground placeholder:text-muted focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent font-display font-bold tabular-nums text-foreground placeholder:text-muted focus:outline-none"
+          // Inline, not text-3xl: globals.css pins inputs to 16px on mobile
+          // (stops iOS focus-zoom), which would otherwise win over the class.
+          style={{ fontSize: 30 }}
         />
+        <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wider text-muted">USDC</span>
       </div>
       <div className="mt-2.5 flex flex-wrap gap-2">
         {quick.map((n) => {
-          const active = Number(valueNaira) === n;
+          const active = Number(valueDollars) === n;
           return (
             <button
               key={n}
               type="button"
               onClick={() => onChange(String(n))}
-              className="min-h-10 rounded-md border px-3.5 font-mono text-sm transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.96]"
+              className="min-h-10 min-w-14 rounded-md border px-3.5 font-mono text-sm font-medium transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.96]"
               style={{
-                borderColor: active ? "var(--rival-blue)" : "var(--border)",
-                background: active ? "var(--rival-blue-dim)" : "transparent",
-                color: active ? "var(--rival-blue)" : "var(--foreground)",
+                borderColor: active ? accent : "var(--border)",
+                background: active ? SIDE[side].dim : "var(--surface)",
+                color: active ? accent : "var(--foreground)",
               }}
             >
               {formatMoney(n * 100)}
@@ -172,8 +166,12 @@ export function StakeInput({
           );
         })}
       </div>
-      <p id="stake-error" role="alert" className="mt-2 min-h-4 text-xs text-danger-red">
-        {valueNaira ? error : null}
+      <p id="stake-error" role="alert" className="mt-2 min-h-4 text-xs">
+        {showError ? (
+          <span className="text-danger-red">{error}</span>
+        ) : (
+          <span className="text-muted">Win and you split the whole pool with everyone on your side.</span>
+        )}
       </p>
     </div>
   );

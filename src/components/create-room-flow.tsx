@@ -4,15 +4,18 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/mock-data";
-import { composeMarket } from "@/lib/markets";
+import { composeMarket, sportOf, type Sport } from "@/lib/markets";
 import { useCurrentUser } from "./current-user-provider";
 import { useRealMatches } from "@/lib/use-real-matches";
 import { LiveBadge } from "./live-badge";
+import { TeamCrest } from "./team-crest";
 import { createRoom } from "@/app/rooms/actions";
 import type { EntrySide, Match } from "@/lib/types";
 import { MarketPicker, pickLabel, type Pick, type Score } from "./create-room/market-picker";
 import { DEFAULT_SETTINGS, limitsLabel, RoomSettingsStep, stakeLimits, type RoomSettings } from "./create-room/room-settings";
-import { kickoffLabel, RoomPreviewCard, StakeInput, stakeError } from "./create-room/bet-step";
+import { RoomPreviewCard, StakeInput, stakeError } from "./create-room/bet-step";
+import { kickoffLabel, MatchBanner } from "./create-room/match-hero";
+import { GridironIcon, SoccerIcon } from "./create-room/market-icons";
 
 // Matches further out than this aren't real decisions yet — showing them
 // just crowds the list. A week matches how people actually think about a
@@ -25,6 +28,10 @@ const MATCH_WINDOW_DAYS = 7;
 // landed), short enough that the move to the next step still feels like the
 // tap's direct consequence rather than a wait.
 const ADVANCE_DELAY_MS = 240;
+
+// First stake suggested on arrival at the stake step, clamped into the
+// room's limits — the fastest path is a single confirm tap.
+const SUGGESTED_STAKE_CENTS = 10_00;
 
 type Step = "match" | "pick" | "room" | "bet";
 
@@ -53,7 +60,7 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
   const [halfTime, setHalfTime] = useState<Score>({ home: 0, away: 0 });
   const [settings, setSettings] = useState<RoomSettings>(DEFAULT_SETTINGS);
   const [side, setSide] = useState<EntrySide>("yes");
-  const [stakeNaira, setStakeNaira] = useState("");
+  const [stakeDollars, setStakeDollars] = useState("");
   const [result, setResult] = useState<{ roomId: string; inviteCode: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -65,7 +72,7 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
   const match = matches.find((m) => m.id === matchId);
   const currentIndex = STEPS.findIndex((s) => s.id === step);
   const limits = stakeLimits(settings);
-  const stakeCents = Number(stakeNaira || 0) * 100;
+  const stakeCents = Number(stakeDollars || 0) * 100;
   const stakeProblem = stakeError(stakeCents, limits);
   const claim = pick && match ? composeMarket(pick.market, match).prediction : "";
 
@@ -73,11 +80,9 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
     window.clearTimeout(advanceTimer.current);
     const targetIndex = STEPS.findIndex((s) => s.id === target);
     setDirection(targetIndex >= currentIndex ? "forward" : "back");
-    // First arrival at the stake step: pre-fill a sensible stake inside the
-    // room's limits so the fastest path is a single confirm tap.
-    if (target === "bet" && !stakeNaira) {
-      const suggested = Math.max(limits.minCents, 1_000_00);
-      setStakeNaira(String((limits.maxCents === null ? suggested : Math.min(suggested, limits.maxCents)) / 100));
+    if (target === "bet" && !stakeDollars) {
+      const suggested = Math.max(limits.minCents, SUGGESTED_STAKE_CENTS);
+      setStakeDollars(String((limits.maxCents === null ? suggested : Math.min(suggested, limits.maxCents)) / 100));
     }
     setStep(target);
     window.scrollTo({ top: 0 });
@@ -158,6 +163,7 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
   }
 
   const initialMatchMissing = !isLoading && matchId !== null && !match;
+  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-green)";
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-6 pt-5 md:px-6 md:pt-8">
@@ -175,14 +181,17 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
                     onClick={() => available && go(s.id)}
                     disabled={!available}
                     aria-current={s.id === step ? "step" : undefined}
+                    aria-label={`Step ${i + 1}: ${s.label}`}
                     className="w-full pt-2 text-left disabled:cursor-default"
                   >
+                    <span className="block h-1 overflow-hidden rounded-full bg-border">
+                      <span
+                        className="block h-full rounded-full bg-rival-blue transition-transform duration-500 ease-out"
+                        style={{ transform: reached ? "translateX(0)" : "translateX(-101%)" }}
+                      />
+                    </span>
                     <span
-                      className="block h-[3px] rounded-full transition-colors duration-300 ease-out"
-                      style={{ background: reached ? "var(--rival-blue)" : "var(--border)" }}
-                    />
-                    <span
-                      className="mt-1.5 block text-[11px] font-medium transition-colors duration-200"
+                      className="mt-1.5 block text-[11px] font-semibold transition-colors duration-200"
                       style={{ color: s.id === step ? "var(--foreground)" : "var(--muted)" }}
                     >
                       {s.label}
@@ -201,7 +210,7 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
       <h1 className="mt-6 font-display text-3xl font-bold text-foreground md:text-4xl">{STEPS[currentIndex].title}</h1>
 
       {!currentUser && (
-        <p className="mt-3 text-sm text-muted">
+        <p className="mt-2 text-sm text-muted">
           <Link href="/login?next=/rooms/create" className="hover-link text-foreground underline underline-offset-2 transition-colors">
             Sign in
           </Link>{" "}
@@ -211,13 +220,29 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
 
       {/* The stake step's preview card already carries the match. */}
       {(step === "pick" || step === "room") && match && (
-        <MatchStrip match={match} call={step === "room" && pick ? pickLabel(pick, match) : null} onChange={() => go("match")} />
+        <div className="mt-4 overflow-hidden rounded-xl border border-border">
+          <MatchBanner match={match}>
+            <div className="mt-3.5 flex items-center justify-between gap-3 border-t border-foreground/10 pt-3">
+              {step === "room" && pick ? (
+                <span className="min-w-0 truncate text-sm">
+                  <span className="text-foreground/70">Your call </span>
+                  <span className="font-semibold text-foreground">{pickLabel(pick, match)}</span>
+                </span>
+              ) : (
+                <span className="text-xs text-foreground/70">
+                  {sportOf(match) === "nfl" ? "Settles on the official NFL result" : "Settles on the official match result"}
+                </span>
+              )}
+              <button type="button" onClick={() => go("match")} className="hover-link shrink-0 text-xs font-medium text-foreground/70 underline underline-offset-2">
+                Change match
+              </button>
+            </div>
+          </MatchBanner>
+        </div>
       )}
 
       <div key={step} className={`mt-5 ${direction === "forward" ? "step-enter-forward" : "step-enter-back"}`}>
-        {step === "match" && (
-          <MatchList matches={matches} isLoading={isLoading} selectedId={matchId} onPick={pickMatch} />
-        )}
+        {step === "match" && <MatchList matches={matches} isLoading={isLoading} selectedId={matchId} onPick={pickMatch} />}
 
         {step !== "match" && initialMatchMissing && (
           <div className="rounded-lg border border-border bg-surface p-4 text-sm text-muted">
@@ -247,18 +272,18 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
         {step === "bet" && match && pick && (
           <div className="flex flex-col gap-6">
             <RoomPreviewCard match={match} claim={claim} side={side} onSide={setSide} meta={meta} />
-            <StakeInput valueNaira={stakeNaira} onChange={setStakeNaira} limits={limits} error={stakeProblem} />
+            <StakeInput valueDollars={stakeDollars} onChange={setStakeDollars} limits={limits} error={stakeProblem} side={side} />
           </div>
         )}
       </div>
 
       {/* One primary action per screen, pinned above the mobile tab bar so it
-          never scrolls away or hides under the keyboard's reach. */}
+          never scrolls away. */}
       {step === "pick" && pick && match && (
         <StickyBar>
           <p className="min-w-0 flex-1 truncate text-sm">
             <span className="text-muted">Your call </span>
-            <span className="font-medium text-foreground">{pickLabel(pick, match)}</span>
+            <span className="font-semibold text-rival-blue">{pickLabel(pick, match)}</span>
           </p>
           <PrimaryButton onClick={() => go("room")}>Continue</PrimaryButton>
         </StickyBar>
@@ -279,7 +304,7 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
               </p>
             )}
             {currentUser ? (
-              <PrimaryButton onClick={submit} disabled={!ready || pending} wide>
+              <PrimaryButton onClick={submit} disabled={!ready || pending} wide color={sideColor}>
                 {pending
                   ? "Creating your room…"
                   : stakeProblem
@@ -289,7 +314,8 @@ export function CreateRoomFlow({ initialMatchId }: { initialMatchId?: string }) 
             ) : (
               <Link
                 href="/login?next=/rooms/create"
-                className="flex min-h-12 w-full items-center justify-center rounded-md bg-foreground text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.98]"
+                className="flex min-h-12 w-full items-center justify-center rounded-md text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.98]"
+                style={{ background: sideColor }}
               >
                 Sign in to throw down
               </Link>
@@ -313,11 +339,13 @@ function PrimaryButton({
   onClick,
   disabled,
   wide,
+  color = "var(--rival-blue)",
   children,
 }: {
   onClick: () => void;
   disabled?: boolean;
   wide?: boolean;
+  color?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -325,34 +353,15 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`min-h-12 shrink-0 rounded-md bg-foreground px-6 text-sm font-medium text-background transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 ${wide ? "w-full" : ""}`}
+      className={`min-h-12 shrink-0 rounded-md px-6 text-sm font-semibold text-white transition-[transform,opacity,background-color] duration-150 ease-out active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 ${wide ? "w-full" : ""}`}
+      style={{ background: color }}
     >
       {children}
     </button>
   );
 }
 
-function MatchStrip({ match, call, onChange }: { match: Match; call: string | null; onChange: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      className="hover-border mt-4 flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3.5 py-2.5 text-left transition-colors duration-150"
-    >
-      <span className="min-w-0">
-        <span className="block truncate font-mono text-[10px] uppercase tracking-wider text-muted">{match.competition}</span>
-        <span className="mt-0.5 block text-sm font-medium leading-snug text-foreground">
-          {match.homeTeam} v {match.awayTeam}
-        </span>
-        {call && <span className="mt-1 block text-xs font-medium text-rival-blue">{call}</span>}
-      </span>
-      <span className="flex shrink-0 flex-col items-end gap-1">
-        {match.status === "live" ? <LiveBadge /> : <span className="font-mono text-[11px] text-muted">{kickoffLabel(match.kickoffAt)}</span>}
-        <span className="text-[11px] text-muted">Change</span>
-      </span>
-    </button>
-  );
-}
+type SportFilter = "all" | Sport;
 
 function MatchList({
   matches,
@@ -367,6 +376,7 @@ function MatchList({
 }) {
   const [search, setSearch] = useState("");
   const [league, setLeague] = useState("all");
+  const [sport, setSport] = useState<SportFilter>("all");
 
   // Lazy useState init, not a plain Date.now() call in the render body:
   // render has to be idempotent, and a lazy initializer runs exactly once —
@@ -374,9 +384,11 @@ function MatchList({
   const [openedAt] = useState(() => Date.now());
   const horizon = openedAt + MATCH_WINDOW_DAYS * 86_400_000;
   const withinWindow = matches.filter((m) => m.status !== "finished" && +new Date(m.kickoffAt) <= horizon);
-  const leagues = [...new Set(withinWindow.map((m) => m.competition))].sort();
+  const hasNfl = withinWindow.some((m) => sportOf(m) === "nfl");
+  const bySport = withinWindow.filter((m) => sport === "all" || sportOf(m) === sport);
+  const leagues = [...new Set(bySport.map((m) => m.competition))].sort();
   const q = search.trim().toLowerCase();
-  const creatable = withinWindow.filter((m) => {
+  const creatable = bySport.filter((m) => {
     if (league !== "all" && m.competition !== league) return false;
     if (!q) return true;
     return m.homeTeam.toLowerCase().includes(q) || m.awayTeam.toLowerCase().includes(q) || m.competition.toLowerCase().includes(q);
@@ -384,18 +396,55 @@ function MatchList({
 
   return (
     <div>
+      {hasNfl && (
+        <div role="radiogroup" aria-label="Sport" className="mb-3 flex gap-2">
+          {(
+            [
+              { id: "all", label: "All", icon: null },
+              { id: "soccer", label: "Football", icon: <SoccerIcon /> },
+              { id: "nfl", label: "NFL", icon: <GridironIcon /> },
+            ] as const
+          ).map((o) => {
+            const active = sport === o.id;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => {
+                  setSport(o.id);
+                  setLeague("all");
+                }}
+                className="flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-[background-color,border-color,color] duration-150"
+                style={{
+                  borderColor: active ? "var(--rival-blue)" : "var(--border)",
+                  background: active ? "var(--rival-blue-dim)" : "transparent",
+                  color: active ? "var(--rival-blue)" : "var(--muted)",
+                }}
+              >
+                {o.icon}
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search teams or league…"
-          className="min-h-12 flex-1 rounded-md border border-border bg-surface px-3.5 text-sm text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
+          aria-label="Search matches"
+          className="min-h-12 flex-1 rounded-md border border-border bg-surface px-3.5 text-sm text-foreground placeholder:text-muted focus:border-rival-blue focus:outline-none"
           style={{ transition: "border-color 150ms ease" }}
         />
         <select
           value={league}
           onChange={(e) => setLeague(e.target.value)}
-          className="min-h-12 rounded-md border border-border bg-surface px-3.5 text-sm text-foreground focus:border-border-strong focus:outline-none"
+          aria-label="League"
+          className="min-h-12 rounded-md border border-border bg-surface px-3.5 text-sm text-foreground focus:border-rival-blue focus:outline-none"
         >
           <option value="all">All leagues</option>
           {leagues.map((l) => (
@@ -411,44 +460,57 @@ function MatchList({
       {isLoading ? (
         <div className="mt-3 flex flex-col gap-2" aria-busy>
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-[62px] rounded-md border border-border bg-surface" />
+            <div key={i} className="h-[72px] rounded-lg border border-border bg-surface" />
           ))}
         </div>
       ) : creatable.length === 0 ? (
         <p className="mt-3 text-sm text-muted">No matches match that search.</p>
       ) : (
         <div className="mt-3 flex flex-col gap-2">
-          {creatable.map((m) => {
-            const selected = m.id === selectedId;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onPick(m.id)}
-                aria-pressed={selected}
-                className="hover-border flex min-h-[62px] items-center justify-between gap-3 rounded-md border px-3.5 py-3 text-left transition-[transform,background-color,border-color] duration-150 ease-out active:scale-[0.98]"
-                style={{
-                  borderColor: selected ? "var(--rival-blue)" : "var(--border)",
-                  background: selected ? "var(--rival-blue-dim)" : "transparent",
-                }}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-mono text-[10px] uppercase tracking-wider text-muted">{m.competition}</span>
-                  <span className="mt-0.5 block truncate text-sm font-medium text-foreground">
-                    {m.homeTeam} v {m.awayTeam}
-                  </span>
-                </span>
-                {m.status === "live" ? (
-                  <LiveBadge />
-                ) : (
-                  <span className="shrink-0 font-mono text-[11px] text-muted">{kickoffLabel(m.kickoffAt)}</span>
-                )}
-              </button>
-            );
-          })}
+          {creatable.map((m) => (
+            <MatchRow key={m.id} match={m} selected={m.id === selectedId} onPick={() => onPick(m.id)} />
+          ))}
         </div>
       )}
     </div>
+  );
+}
+
+function MatchRow({ match: m, selected, onPick }: { match: Match; selected: boolean; onPick: () => void }) {
+  const nfl = sportOf(m) === "nfl";
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      aria-pressed={selected}
+      className="hover-border flex min-h-[72px] items-center gap-3 rounded-lg border px-3.5 py-3 text-left transition-[transform,background-color,border-color] duration-150 ease-out active:scale-[0.98]"
+      style={{
+        borderColor: selected ? "var(--rival-blue)" : "var(--border)",
+        background: selected ? "var(--rival-blue-dim)" : "var(--surface)",
+        boxShadow: selected ? "inset 0 0 0 1px var(--rival-blue)" : "none",
+      }}
+    >
+      <span className="flex shrink-0 -space-x-1.5">
+        <TeamCrest name={m.homeTeam} size={26} />
+        <TeamCrest name={m.awayTeam} size={26} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1 text-muted">
+          {nfl ? <GridironIcon className="h-3 w-3" /> : <SoccerIcon className="h-3 w-3" />}
+          <span className="truncate font-mono text-[10px] uppercase tracking-wider">{m.competition}</span>
+        </span>
+        <span className="mt-0.5 block truncate text-sm font-semibold text-foreground">
+          {m.homeTeam} <span className="font-normal text-muted">v</span> {m.awayTeam}
+        </span>
+      </span>
+      {m.status === "live" ? (
+        <LiveBadge />
+      ) : (
+        <span className="shrink-0 text-right font-mono text-[11px] leading-tight text-muted">
+          {kickoffLabel(m.kickoffAt).replace("Kicks off in ", "")}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -472,6 +534,7 @@ function CreatedView({
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const copiedTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
+  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-green)";
 
   function flash(kind: "code" | "link") {
     setCopied(kind);
@@ -485,11 +548,10 @@ function CreatedView({
     if (navigator.share) {
       try {
         await navigator.share({ title: "Rivaly", text, url });
-        return;
       } catch {
         // Dismissed share sheet — nothing to do.
-        return;
       }
+      return;
     }
     await navigator.clipboard.writeText(`${text} ${url}`);
     flash("link");
@@ -497,22 +559,24 @@ function CreatedView({
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-8 pt-8 md:px-6 md:pt-12">
-      <p className="enter-row font-mono text-[11px] uppercase tracking-wider text-rival-blue">You created the room</p>
+      <p className="enter-row font-mono text-[11px] font-semibold uppercase tracking-wider" style={{ color: sideColor }}>
+        You created the room
+      </p>
       <h1 className="enter-row mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">Now find your rival.</h1>
 
       <div className="mt-6">
         <RoomPreviewCard match={match} claim={claim} side={side} meta={meta} confirmed />
       </div>
       <p className="enter-row mt-3 text-sm text-muted">
-        You&rsquo;re in with <span className="font-mono text-foreground">{formatMoney(stakeCents)}</span> on{" "}
-        <span style={{ color: side === "yes" ? "var(--rival-blue)" : "var(--rival-green)" }} className="font-medium">
+        You&rsquo;re in with <span className="font-mono font-semibold text-foreground">{formatMoney(stakeCents)}</span> on{" "}
+        <span style={{ color: sideColor }} className="font-semibold">
           {side === "yes" ? "YES" : "NO"}
         </span>
         . A room without opponents isn&rsquo;t a room.
       </p>
 
       <div className="enter-row mt-6 flex items-center gap-2">
-        <code className="flex min-h-12 flex-1 items-center rounded-md border border-border bg-surface px-4 font-mono text-sm text-foreground">
+        <code className="flex min-h-12 flex-1 items-center rounded-md border border-border bg-surface px-4 font-mono text-sm font-semibold tracking-wider text-foreground">
           {inviteCode}
         </code>
         <button
@@ -522,21 +586,25 @@ function CreatedView({
         >
           {copied === "code" ? "Copied" : "Copy"}
         </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={share}
-          className="min-h-12 rounded-md border border-border-strong px-4 text-sm font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
+          className="min-h-12 rounded-md border px-4 text-sm font-semibold transition-transform duration-150 ease-out active:scale-[0.98]"
+          style={{ borderColor: sideColor, color: sideColor }}
         >
-          {copied === "link" ? "Link copied" : "Share"}
+          {copied === "link" ? "Link copied" : "Challenge a rival"}
         </button>
+        <Link
+          href={`/rooms/${roomId}`}
+          className="flex min-h-12 items-center justify-center rounded-md text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.98]"
+          style={{ background: sideColor }}
+        >
+          Open room →
+        </Link>
       </div>
-
-      <Link
-        href={`/rooms/${roomId}`}
-        className="mt-4 flex min-h-12 w-full items-center justify-center rounded-md bg-foreground text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.98]"
-      >
-        Open room →
-      </Link>
     </main>
   );
 }

@@ -32,6 +32,7 @@ export function OptionCell({
         borderColor: selected ? "var(--rival-blue)" : "var(--border)",
         background: selected ? "var(--rival-blue-dim)" : "var(--surface)",
         color: selected ? "var(--rival-blue)" : "var(--foreground)",
+        boxShadow: selected ? "inset 0 0 0 1px var(--rival-blue)" : "none",
       }}
     >
       {children}
@@ -41,11 +42,13 @@ export function OptionCell({
 
 export function Accordion({
   title,
+  icon,
   summary,
   defaultOpen = true,
   children,
 }: {
   title: string;
+  icon?: ReactNode;
   /** Shown beside the title while collapsed — e.g. the current pick in this group. */
   summary?: string | null;
   defaultOpen?: boolean;
@@ -68,7 +71,12 @@ export function Accordion({
         >
           <ChevronDownIcon />
         </span>
-        <span className="flex-1 text-sm font-medium text-foreground">{title}</span>
+        {icon && (
+          <span className="transition-colors duration-150" style={{ color: summary ? "var(--rival-blue)" : "var(--muted)" }}>
+            {icon}
+          </span>
+        )}
+        <span className="flex-1 text-sm font-semibold text-foreground">{title}</span>
         {!open && summary && <span className="truncate text-xs font-medium text-rival-blue">{summary}</span>}
       </button>
       <div id={bodyId} className="accordion-body" data-open={open} inert={!open}>

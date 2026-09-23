@@ -30,9 +30,9 @@ export function WalletActions({
   const [amount, setAmount] = useState("");
 
   function confirmMock() {
-    const naira = parseFloat(amount);
-    if (!naira || naira <= 0) return;
-    const cents = Math.round(naira * 100);
+    const dollars = parseFloat(amount);
+    if (!dollars || dollars <= 0) return;
+    const cents = Math.round(dollars * 100);
     if (mode === "deposit") depositToWallet(cents);
     else withdrawFromWallet(cents);
     setMode(null);
@@ -78,7 +78,7 @@ export function WalletActions({
             onChange={(e) => setAmount(e.target.value)}
             type="number"
             min="0"
-            placeholder="Amount in ₦"
+            placeholder="Amount in USDC"
             className="w-40 rounded-md border border-border bg-surface px-3.5 py-2.5 font-mono text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
             style={{ transition: "border-color 150ms ease" }}
           />

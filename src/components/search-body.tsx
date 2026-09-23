@@ -219,7 +219,7 @@ export function SearchBody() {
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Min entry (₦)</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Min entry ($)</p>
               <input
                 type="number"
                 min="0"
@@ -230,7 +230,7 @@ export function SearchBody() {
               />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Max entry (₦)</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Max entry ($)</p>
               <input
                 type="number"
                 min="0"

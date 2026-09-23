@@ -24,9 +24,9 @@ export function QuickDepositSheet() {
   }
 
   function confirm() {
-    const naira = parseFloat(amount);
-    if (!naira || naira <= 0) return;
-    depositToWallet(Math.round(naira * 100));
+    const dollars = parseFloat(amount);
+    if (!dollars || dollars <= 0) return;
+    depositToWallet(Math.round(dollars * 100));
     setAmount("");
     closeQuickDeposit();
   }
@@ -40,7 +40,7 @@ export function QuickDepositSheet() {
           onChange={(e) => setAmount(e.target.value)}
           type="number"
           min="0"
-          placeholder="Amount in ₦"
+          placeholder="Amount in USDC"
           className="w-full rounded-md border border-border bg-surface px-3.5 py-2.5 font-mono text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
           style={{ transition: "border-color 150ms ease" }}
         />

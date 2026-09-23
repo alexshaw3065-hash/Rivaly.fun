@@ -44,25 +44,25 @@ export const matches: Match[] = [
 // Seeded roster never went through Dynamic — dynamicWalletAddress is always
 // null here, injected once below rather than repeated on every literal.
 const seedProfiles: Omit<Profile, "dynamicWalletAddress">[] = [
-  { id: "u1", username: "danielk", displayName: "Daniel", avatarUrl: null, bio: "Arsenal 'til I die. Wrong sometimes, loud always.", socialLinks: [], followerCount: 842, followingCount: 210, roomsCreated: 34, predictionAccuracy: 0.72, totalWinningsCents: 84_000_00, createdAt: "2025-11-02T00:00:00Z" },
-  { id: "u2", username: "alexr", displayName: "Alex", avatarUrl: null, bio: null, socialLinks: [], followerCount: 156, followingCount: 98, roomsCreated: 12, predictionAccuracy: 0.58, totalWinningsCents: 12_400_00, createdAt: "2026-01-14T00:00:00Z" },
-  { id: "u3", username: "victorj", displayName: "Victor", avatarUrl: null, bio: "Building Rivaly. Predicting on Rivaly.", socialLinks: [], followerCount: 2_310, followingCount: 45, roomsCreated: 61, predictionAccuracy: 0.66, totalWinningsCents: 250_000_00, createdAt: "2025-09-01T00:00:00Z" },
-  { id: "u4", username: "jamesb", displayName: "James", avatarUrl: null, bio: "Spurs. Pain is a lifestyle.", socialLinks: [], followerCount: 310, followingCount: 140, roomsCreated: 18, predictionAccuracy: 0.61, totalWinningsCents: 31_200_00, createdAt: "2026-02-20T00:00:00Z" },
-  { id: "u5", username: "sarahk", displayName: "Sarah", avatarUrl: null, bio: "Called Bayern in 12 straight rooms.", socialLinks: [], followerCount: 4_120, followingCount: 60, roomsCreated: 89, predictionAccuracy: 0.79, totalWinningsCents: 612_000_00, createdAt: "2025-08-10T00:00:00Z" },
-  { id: "u6", username: "tunde", displayName: "Tunde", avatarUrl: null, bio: "Down bad on NPFL upsets.", socialLinks: [], followerCount: 92, followingCount: 210, roomsCreated: 7, predictionAccuracy: 0.34, totalWinningsCents: 2_100_00, createdAt: "2026-05-01T00:00:00Z" },
-  { id: "u7", username: "chioma", displayName: "Chioma", avatarUrl: null, bio: "Enyimba or nothing.", socialLinks: [], followerCount: 675, followingCount: 88, roomsCreated: 22, predictionAccuracy: 0.68, totalWinningsCents: 58_900_00, createdAt: "2025-12-11T00:00:00Z" },
-  { id: "u8", username: "marcus", displayName: "Marcus", avatarUrl: null, bio: null, socialLinks: [], followerCount: 41, followingCount: 30, roomsCreated: 3, predictionAccuracy: 0.5, totalWinningsCents: 4_000_00, createdAt: "2026-08-01T00:00:00Z" },
-  { id: "u9", username: "ada", displayName: "Ada", avatarUrl: null, bio: "Room creator. Champions League specialist.", socialLinks: [], followerCount: 1_890, followingCount: 52, roomsCreated: 47, predictionAccuracy: 0.7, totalWinningsCents: 198_500_00, createdAt: "2025-10-05T00:00:00Z" },
-  { id: "u10", username: "marissa", displayName: "Marissa", avatarUrl: null, bio: "Chelsea die-hard. Bridge or nowhere.", socialLinks: [], followerCount: 320, followingCount: 140, roomsCreated: 9, predictionAccuracy: 0.55, totalWinningsCents: 8_200_00, createdAt: "2026-03-10T00:00:00Z" },
-  { id: "u11", username: "kelechi", displayName: "Kelechi", avatarUrl: null, bio: "NPFL nerd. I watch the games nobody else does.", socialLinks: [], followerCount: 512, followingCount: 75, roomsCreated: 28, predictionAccuracy: 0.64, totalWinningsCents: 41_000_00, createdAt: "2025-12-28T00:00:00Z" },
-  { id: "u12", username: "priya", displayName: "Priya", avatarUrl: null, bio: "Man City or nothing. Treble szn forever.", socialLinks: [], followerCount: 980, followingCount: 210, roomsCreated: 15, predictionAccuracy: 0.61, totalWinningsCents: 22_500_00, createdAt: "2026-01-05T00:00:00Z" },
-  { id: "u13", username: "femi", displayName: "Femi", avatarUrl: null, bio: null, socialLinks: [], followerCount: 64, followingCount: 40, roomsCreated: 2, predictionAccuracy: 0.48, totalWinningsCents: 900_00, createdAt: "2026-07-20T00:00:00Z" },
-  { id: "u14", username: "grace", displayName: "Grace", avatarUrl: null, bio: "Arsenal since Wenger. Patient to a fault.", socialLinks: [], followerCount: 1_240, followingCount: 88, roomsCreated: 33, predictionAccuracy: 0.7, totalWinningsCents: 76_300_00, createdAt: "2025-10-30T00:00:00Z" },
-  { id: "u15", username: "obinna", displayName: "Obinna", avatarUrl: null, bio: "Rivers United ultras.", socialLinks: [], followerCount: 205, followingCount: 120, roomsCreated: 11, predictionAccuracy: 0.52, totalWinningsCents: 6_400_00, createdAt: "2026-04-12T00:00:00Z" },
-  { id: "u16", username: "hassan", displayName: "Hassan", avatarUrl: null, bio: null, socialLinks: [], followerCount: 88, followingCount: 55, roomsCreated: 4, predictionAccuracy: 0.45, totalWinningsCents: 1_800_00, createdAt: "2026-06-18T00:00:00Z" },
-  { id: "u17", username: "zainab", displayName: "Zainab", avatarUrl: null, bio: "Called the Bundesliga table in March. Screenshot saved.", socialLinks: [], followerCount: 3_050, followingCount: 95, roomsCreated: 58, predictionAccuracy: 0.74, totalWinningsCents: 310_000_00, createdAt: "2025-09-22T00:00:00Z" },
-  { id: "u18", username: "kwame", displayName: "Kwame", avatarUrl: null, bio: "Serie A tactics nerd.", socialLinks: [], followerCount: 430, followingCount: 66, roomsCreated: 19, predictionAccuracy: 0.59, totalWinningsCents: 27_800_00, createdAt: "2026-02-08T00:00:00Z" },
-  { id: "u19", username: "ify", displayName: "Ify", avatarUrl: null, bio: "Enyimba till I die. Doubted, then vindicated.", socialLinks: [], followerCount: 715, followingCount: 102, roomsCreated: 24, predictionAccuracy: 0.67, totalWinningsCents: 63_500_00, createdAt: "2025-11-19T00:00:00Z" },
+  { id: "u1", username: "danielk", displayName: "Daniel", avatarUrl: null, bio: "Arsenal 'til I die. Wrong sometimes, loud always.", socialLinks: [], followerCount: 842, followingCount: 210, roomsCreated: 34, predictionAccuracy: 0.72, totalWinningsCents: 84_000, createdAt: "2025-11-02T00:00:00Z" },
+  { id: "u2", username: "alexr", displayName: "Alex", avatarUrl: null, bio: null, socialLinks: [], followerCount: 156, followingCount: 98, roomsCreated: 12, predictionAccuracy: 0.58, totalWinningsCents: 12_400, createdAt: "2026-01-14T00:00:00Z" },
+  { id: "u3", username: "victorj", displayName: "Victor", avatarUrl: null, bio: "Building Rivaly. Predicting on Rivaly.", socialLinks: [], followerCount: 2_310, followingCount: 45, roomsCreated: 61, predictionAccuracy: 0.66, totalWinningsCents: 250_000, createdAt: "2025-09-01T00:00:00Z" },
+  { id: "u4", username: "jamesb", displayName: "James", avatarUrl: null, bio: "Spurs. Pain is a lifestyle.", socialLinks: [], followerCount: 310, followingCount: 140, roomsCreated: 18, predictionAccuracy: 0.61, totalWinningsCents: 31_200, createdAt: "2026-02-20T00:00:00Z" },
+  { id: "u5", username: "sarahk", displayName: "Sarah", avatarUrl: null, bio: "Called Bayern in 12 straight rooms.", socialLinks: [], followerCount: 4_120, followingCount: 60, roomsCreated: 89, predictionAccuracy: 0.79, totalWinningsCents: 612_000, createdAt: "2025-08-10T00:00:00Z" },
+  { id: "u6", username: "tunde", displayName: "Tunde", avatarUrl: null, bio: "Down bad on NPFL upsets.", socialLinks: [], followerCount: 92, followingCount: 210, roomsCreated: 7, predictionAccuracy: 0.34, totalWinningsCents: 2_100, createdAt: "2026-05-01T00:00:00Z" },
+  { id: "u7", username: "chioma", displayName: "Chioma", avatarUrl: null, bio: "Enyimba or nothing.", socialLinks: [], followerCount: 675, followingCount: 88, roomsCreated: 22, predictionAccuracy: 0.68, totalWinningsCents: 58_900, createdAt: "2025-12-11T00:00:00Z" },
+  { id: "u8", username: "marcus", displayName: "Marcus", avatarUrl: null, bio: null, socialLinks: [], followerCount: 41, followingCount: 30, roomsCreated: 3, predictionAccuracy: 0.5, totalWinningsCents: 4_000, createdAt: "2026-08-01T00:00:00Z" },
+  { id: "u9", username: "ada", displayName: "Ada", avatarUrl: null, bio: "Room creator. Champions League specialist.", socialLinks: [], followerCount: 1_890, followingCount: 52, roomsCreated: 47, predictionAccuracy: 0.7, totalWinningsCents: 198_500, createdAt: "2025-10-05T00:00:00Z" },
+  { id: "u10", username: "marissa", displayName: "Marissa", avatarUrl: null, bio: "Chelsea die-hard. Bridge or nowhere.", socialLinks: [], followerCount: 320, followingCount: 140, roomsCreated: 9, predictionAccuracy: 0.55, totalWinningsCents: 8_200, createdAt: "2026-03-10T00:00:00Z" },
+  { id: "u11", username: "kelechi", displayName: "Kelechi", avatarUrl: null, bio: "NPFL nerd. I watch the games nobody else does.", socialLinks: [], followerCount: 512, followingCount: 75, roomsCreated: 28, predictionAccuracy: 0.64, totalWinningsCents: 41_000, createdAt: "2025-12-28T00:00:00Z" },
+  { id: "u12", username: "priya", displayName: "Priya", avatarUrl: null, bio: "Man City or nothing. Treble szn forever.", socialLinks: [], followerCount: 980, followingCount: 210, roomsCreated: 15, predictionAccuracy: 0.61, totalWinningsCents: 22_500, createdAt: "2026-01-05T00:00:00Z" },
+  { id: "u13", username: "femi", displayName: "Femi", avatarUrl: null, bio: null, socialLinks: [], followerCount: 64, followingCount: 40, roomsCreated: 2, predictionAccuracy: 0.48, totalWinningsCents: 900, createdAt: "2026-07-20T00:00:00Z" },
+  { id: "u14", username: "grace", displayName: "Grace", avatarUrl: null, bio: "Arsenal since Wenger. Patient to a fault.", socialLinks: [], followerCount: 1_240, followingCount: 88, roomsCreated: 33, predictionAccuracy: 0.7, totalWinningsCents: 76_300, createdAt: "2025-10-30T00:00:00Z" },
+  { id: "u15", username: "obinna", displayName: "Obinna", avatarUrl: null, bio: "Rivers United ultras.", socialLinks: [], followerCount: 205, followingCount: 120, roomsCreated: 11, predictionAccuracy: 0.52, totalWinningsCents: 6_400, createdAt: "2026-04-12T00:00:00Z" },
+  { id: "u16", username: "hassan", displayName: "Hassan", avatarUrl: null, bio: null, socialLinks: [], followerCount: 88, followingCount: 55, roomsCreated: 4, predictionAccuracy: 0.45, totalWinningsCents: 1_800, createdAt: "2026-06-18T00:00:00Z" },
+  { id: "u17", username: "zainab", displayName: "Zainab", avatarUrl: null, bio: "Called the Bundesliga table in March. Screenshot saved.", socialLinks: [], followerCount: 3_050, followingCount: 95, roomsCreated: 58, predictionAccuracy: 0.74, totalWinningsCents: 310_000, createdAt: "2025-09-22T00:00:00Z" },
+  { id: "u18", username: "kwame", displayName: "Kwame", avatarUrl: null, bio: "Serie A tactics nerd.", socialLinks: [], followerCount: 430, followingCount: 66, roomsCreated: 19, predictionAccuracy: 0.59, totalWinningsCents: 27_800, createdAt: "2026-02-08T00:00:00Z" },
+  { id: "u19", username: "ify", displayName: "Ify", avatarUrl: null, bio: "Enyimba till I die. Doubted, then vindicated.", socialLinks: [], followerCount: 715, followingCount: 102, roomsCreated: 24, predictionAccuracy: 0.67, totalWinningsCents: 63_500, createdAt: "2025-11-19T00:00:00Z" },
 ];
 
 export const profiles: Profile[] = seedProfiles.map((p) => ({ ...p, dynamicWalletAddress: null }));
@@ -70,47 +70,47 @@ export const profiles: Profile[] = seedProfiles.map((p) => ({ ...p, dynamicWalle
 // Seeded demo rooms are all Tier 3 (a free-text claim, creator-confirmed) —
 // the market fields are injected once below rather than repeated 35 times.
 const seedRooms: Omit<Room, "marketType" | "marketLine" | "marketSideDefinition" | "settlementMode">[] = [
-  { id: "r1", creatorId: "u1", matchId: "m1", prediction: "Arsenal scores 3+ tonight", entryAmountCents: 2_000_00, visibility: "public", status: "live", poolTotalCents: 84_000_00, participantCount: 24, resolutionSource: "Official match result", inviteCode: "RIVAL-7X92", createdAt: "2026-08-15T18:00:00Z", settledAt: null },
-  { id: "r2", creatorId: "u3", matchId: "m2", prediction: "Man City win by 2+ goals", entryAmountCents: 5_000_00, visibility: "public", status: "open", poolTotalCents: 210_000_00, participantCount: 41, resolutionSource: "Official match result", inviteCode: "RIVAL-4K18", createdAt: "2026-08-15T16:20:00Z", settledAt: null },
-  { id: "r3", creatorId: "u2", matchId: "m3", prediction: "El Clasico ends in a draw", entryAmountCents: 1_000_00, visibility: "public", status: "open", poolTotalCents: 38_000_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-9Q05", createdAt: "2026-08-15T12:00:00Z", settledAt: null },
-  { id: "r4", creatorId: "u1", matchId: "m4", prediction: "Enyimba win at home", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 22_000_00, participantCount: 15, resolutionSource: "Official match result", inviteCode: "RIVAL-2P77", createdAt: "2026-08-15T10:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r5", creatorId: "u5", matchId: "m5", prediction: "Bayern win by 2+ goals", entryAmountCents: 3_000_00, visibility: "public", status: "live", poolTotalCents: 156_000_00, participantCount: 52, resolutionSource: "Official match result", inviteCode: "RIVAL-3B41", createdAt: "2026-08-15T18:30:00Z", settledAt: null },
-  { id: "r6", creatorId: "u7", matchId: "m5", prediction: "Under 2.5 goals", entryAmountCents: 1_500_00, visibility: "public", status: "live", poolTotalCents: 46_500_00, participantCount: 31, resolutionSource: "Official match result", inviteCode: "RIVAL-6U29", createdAt: "2026-08-15T18:40:00Z", settledAt: null },
-  { id: "r7", creatorId: "u9", matchId: "m6", prediction: "PSG keep a clean sheet", entryAmountCents: 2_500_00, visibility: "public", status: "open", poolTotalCents: 62_500_00, participantCount: 25, resolutionSource: "Official match result", inviteCode: "RIVAL-7P83", createdAt: "2026-08-15T14:10:00Z", settledAt: null },
-  { id: "r8", creatorId: "u4", matchId: "m7", prediction: "Man United win", entryAmountCents: 2_000_00, visibility: "public", status: "live", poolTotalCents: 98_000_00, participantCount: 49, resolutionSource: "Official match result", inviteCode: "RIVAL-8M55", createdAt: "2026-08-15T17:50:00Z", settledAt: null },
-  { id: "r9", creatorId: "u6", matchId: "m7", prediction: "Both teams to score", entryAmountCents: 1_000_00, visibility: "public", status: "live", poolTotalCents: 29_000_00, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-9B17", createdAt: "2026-08-15T17:55:00Z", settledAt: null },
-  { id: "r10", creatorId: "u5", matchId: "m8", prediction: "Napoli win at home", entryAmountCents: 4_000_00, visibility: "public", status: "open", poolTotalCents: 124_000_00, participantCount: 31, resolutionSource: "Official match result", inviteCode: "RIVAL-1N64", createdAt: "2026-08-15T13:30:00Z", settledAt: null },
-  { id: "r11", creatorId: "u7", matchId: "m9", prediction: "Kano Pillars hold Enyimba to a draw", entryAmountCents: 500_00, visibility: "public", status: "open", poolTotalCents: 14_500_00, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-2K90", createdAt: "2026-08-15T09:15:00Z", settledAt: null },
-  { id: "r12", creatorId: "u9", matchId: "m10", prediction: "Real Madrid progress", entryAmountCents: 5_000_00, visibility: "public", status: "open", poolTotalCents: 340_000_00, participantCount: 68, resolutionSource: "Official match result", inviteCode: "RIVAL-3R71", createdAt: "2026-08-14T20:00:00Z", settledAt: null },
-  { id: "r13", creatorId: "u3", matchId: "m10", prediction: "Man City score first", entryAmountCents: 2_000_00, visibility: "public", status: "open", poolTotalCents: 88_000_00, participantCount: 44, resolutionSource: "Official match result", inviteCode: "RIVAL-4M38", createdAt: "2026-08-14T21:00:00Z", settledAt: null },
-  { id: "r14", creatorId: "u1", matchId: "m11", prediction: "Chelsea beat Liverpool", entryAmountCents: 3_000_00, visibility: "public", status: "open", poolTotalCents: 69_000_00, participantCount: 23, resolutionSource: "Official match result", inviteCode: "RIVAL-5C46", createdAt: "2026-08-14T11:00:00Z", settledAt: null },
-  { id: "r15", creatorId: "u4", matchId: "m1", prediction: "Chelsea come back to win", entryAmountCents: 1_000_00, visibility: "public", status: "live", poolTotalCents: 21_000_00, participantCount: 21, resolutionSource: "Official match result", inviteCode: "RIVAL-6C58", createdAt: "2026-08-15T18:20:00Z", settledAt: null },
-  { id: "r16", creatorId: "u6", matchId: "m12", prediction: "Sporting Lagos win", entryAmountCents: 500_00, visibility: "public", status: "live", poolTotalCents: 18_000_00, participantCount: 36, resolutionSource: "Official match result", inviteCode: "RIVAL-7S64", createdAt: "2026-08-15T17:30:00Z", settledAt: null },
-  { id: "r17", creatorId: "u2", matchId: "m3", prediction: "Barcelona win", entryAmountCents: 2_000_00, visibility: "public", status: "open", poolTotalCents: 54_000_00, participantCount: 27, resolutionSource: "Official match result", inviteCode: "RIVAL-8B72", createdAt: "2026-08-15T11:00:00Z", settledAt: null },
-  { id: "r18", creatorId: "u8", matchId: "m6", prediction: "Marseille upset PSG", entryAmountCents: 1_000_00, visibility: "public", status: "open", poolTotalCents: 17_000_00, participantCount: 17, resolutionSource: "Official match result", inviteCode: "RIVAL-9M80", createdAt: "2026-08-15T15:00:00Z", settledAt: null },
-  { id: "r19", creatorId: "u5", matchId: "m8", prediction: "Juventus win away", entryAmountCents: 3_000_00, visibility: "public", status: "open", poolTotalCents: 87_000_00, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-1J93", createdAt: "2026-08-15T13:45:00Z", settledAt: null },
-  { id: "r20", creatorId: "u7", matchId: "m2", prediction: "Liverpool win", entryAmountCents: 2_000_00, visibility: "public", status: "open", poolTotalCents: 76_000_00, participantCount: 38, resolutionSource: "Official match result", inviteCode: "RIVAL-2L15", createdAt: "2026-08-15T16:40:00Z", settledAt: null },
-  { id: "r21", creatorId: "u9", matchId: "m9", prediction: "Enyimba win away", entryAmountCents: 500_00, visibility: "public", status: "open", poolTotalCents: 11_000_00, participantCount: 22, resolutionSource: "Official match result", inviteCode: "RIVAL-3E27", createdAt: "2026-08-15T09:30:00Z", settledAt: null },
-  { id: "r22", creatorId: "u4", matchId: "m11", prediction: "Over 2.5 goals", entryAmountCents: 1_500_00, visibility: "public", status: "open", poolTotalCents: 42_000_00, participantCount: 28, resolutionSource: "Official match result", inviteCode: "RIVAL-4O39", createdAt: "2026-08-14T12:00:00Z", settledAt: null },
-  { id: "r23", creatorId: "u6", matchId: "m4", prediction: "Under 2.5 goals", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 9_500_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-5U41", createdAt: "2026-08-15T10:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r24", creatorId: "u1", matchId: "m5", prediction: "Dortmund hold on for a draw", entryAmountCents: 2_000_00, visibility: "public", status: "live", poolTotalCents: 58_000_00, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-6D53", createdAt: "2026-08-15T18:35:00Z", settledAt: null },
+  { id: "r1", creatorId: "u1", matchId: "m1", prediction: "Arsenal scores 3+ tonight", entryAmountCents: 2_000, visibility: "public", status: "live", poolTotalCents: 84_000, participantCount: 24, resolutionSource: "Official match result", inviteCode: "RIVAL-7X92", createdAt: "2026-08-15T18:00:00Z", settledAt: null },
+  { id: "r2", creatorId: "u3", matchId: "m2", prediction: "Man City win by 2+ goals", entryAmountCents: 5_000, visibility: "public", status: "open", poolTotalCents: 210_000, participantCount: 41, resolutionSource: "Official match result", inviteCode: "RIVAL-4K18", createdAt: "2026-08-15T16:20:00Z", settledAt: null },
+  { id: "r3", creatorId: "u2", matchId: "m3", prediction: "El Clasico ends in a draw", entryAmountCents: 1_000, visibility: "public", status: "open", poolTotalCents: 38_000, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-9Q05", createdAt: "2026-08-15T12:00:00Z", settledAt: null },
+  { id: "r4", creatorId: "u1", matchId: "m4", prediction: "Enyimba win at home", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 22_000, participantCount: 15, resolutionSource: "Official match result", inviteCode: "RIVAL-2P77", createdAt: "2026-08-15T10:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r5", creatorId: "u5", matchId: "m5", prediction: "Bayern win by 2+ goals", entryAmountCents: 3_000, visibility: "public", status: "live", poolTotalCents: 156_000, participantCount: 52, resolutionSource: "Official match result", inviteCode: "RIVAL-3B41", createdAt: "2026-08-15T18:30:00Z", settledAt: null },
+  { id: "r6", creatorId: "u7", matchId: "m5", prediction: "Under 2.5 goals", entryAmountCents: 1_500, visibility: "public", status: "live", poolTotalCents: 46_500, participantCount: 31, resolutionSource: "Official match result", inviteCode: "RIVAL-6U29", createdAt: "2026-08-15T18:40:00Z", settledAt: null },
+  { id: "r7", creatorId: "u9", matchId: "m6", prediction: "PSG keep a clean sheet", entryAmountCents: 2_500, visibility: "public", status: "open", poolTotalCents: 62_500, participantCount: 25, resolutionSource: "Official match result", inviteCode: "RIVAL-7P83", createdAt: "2026-08-15T14:10:00Z", settledAt: null },
+  { id: "r8", creatorId: "u4", matchId: "m7", prediction: "Man United win", entryAmountCents: 2_000, visibility: "public", status: "live", poolTotalCents: 98_000, participantCount: 49, resolutionSource: "Official match result", inviteCode: "RIVAL-8M55", createdAt: "2026-08-15T17:50:00Z", settledAt: null },
+  { id: "r9", creatorId: "u6", matchId: "m7", prediction: "Both teams to score", entryAmountCents: 1_000, visibility: "public", status: "live", poolTotalCents: 29_000, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-9B17", createdAt: "2026-08-15T17:55:00Z", settledAt: null },
+  { id: "r10", creatorId: "u5", matchId: "m8", prediction: "Napoli win at home", entryAmountCents: 4_000, visibility: "public", status: "open", poolTotalCents: 124_000, participantCount: 31, resolutionSource: "Official match result", inviteCode: "RIVAL-1N64", createdAt: "2026-08-15T13:30:00Z", settledAt: null },
+  { id: "r11", creatorId: "u7", matchId: "m9", prediction: "Kano Pillars hold Enyimba to a draw", entryAmountCents: 500, visibility: "public", status: "open", poolTotalCents: 14_500, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-2K90", createdAt: "2026-08-15T09:15:00Z", settledAt: null },
+  { id: "r12", creatorId: "u9", matchId: "m10", prediction: "Real Madrid progress", entryAmountCents: 5_000, visibility: "public", status: "open", poolTotalCents: 340_000, participantCount: 68, resolutionSource: "Official match result", inviteCode: "RIVAL-3R71", createdAt: "2026-08-14T20:00:00Z", settledAt: null },
+  { id: "r13", creatorId: "u3", matchId: "m10", prediction: "Man City score first", entryAmountCents: 2_000, visibility: "public", status: "open", poolTotalCents: 88_000, participantCount: 44, resolutionSource: "Official match result", inviteCode: "RIVAL-4M38", createdAt: "2026-08-14T21:00:00Z", settledAt: null },
+  { id: "r14", creatorId: "u1", matchId: "m11", prediction: "Chelsea beat Liverpool", entryAmountCents: 3_000, visibility: "public", status: "open", poolTotalCents: 69_000, participantCount: 23, resolutionSource: "Official match result", inviteCode: "RIVAL-5C46", createdAt: "2026-08-14T11:00:00Z", settledAt: null },
+  { id: "r15", creatorId: "u4", matchId: "m1", prediction: "Chelsea come back to win", entryAmountCents: 1_000, visibility: "public", status: "live", poolTotalCents: 21_000, participantCount: 21, resolutionSource: "Official match result", inviteCode: "RIVAL-6C58", createdAt: "2026-08-15T18:20:00Z", settledAt: null },
+  { id: "r16", creatorId: "u6", matchId: "m12", prediction: "Sporting Lagos win", entryAmountCents: 500, visibility: "public", status: "live", poolTotalCents: 18_000, participantCount: 36, resolutionSource: "Official match result", inviteCode: "RIVAL-7S64", createdAt: "2026-08-15T17:30:00Z", settledAt: null },
+  { id: "r17", creatorId: "u2", matchId: "m3", prediction: "Barcelona win", entryAmountCents: 2_000, visibility: "public", status: "open", poolTotalCents: 54_000, participantCount: 27, resolutionSource: "Official match result", inviteCode: "RIVAL-8B72", createdAt: "2026-08-15T11:00:00Z", settledAt: null },
+  { id: "r18", creatorId: "u8", matchId: "m6", prediction: "Marseille upset PSG", entryAmountCents: 1_000, visibility: "public", status: "open", poolTotalCents: 17_000, participantCount: 17, resolutionSource: "Official match result", inviteCode: "RIVAL-9M80", createdAt: "2026-08-15T15:00:00Z", settledAt: null },
+  { id: "r19", creatorId: "u5", matchId: "m8", prediction: "Juventus win away", entryAmountCents: 3_000, visibility: "public", status: "open", poolTotalCents: 87_000, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-1J93", createdAt: "2026-08-15T13:45:00Z", settledAt: null },
+  { id: "r20", creatorId: "u7", matchId: "m2", prediction: "Liverpool win", entryAmountCents: 2_000, visibility: "public", status: "open", poolTotalCents: 76_000, participantCount: 38, resolutionSource: "Official match result", inviteCode: "RIVAL-2L15", createdAt: "2026-08-15T16:40:00Z", settledAt: null },
+  { id: "r21", creatorId: "u9", matchId: "m9", prediction: "Enyimba win away", entryAmountCents: 500, visibility: "public", status: "open", poolTotalCents: 11_000, participantCount: 22, resolutionSource: "Official match result", inviteCode: "RIVAL-3E27", createdAt: "2026-08-15T09:30:00Z", settledAt: null },
+  { id: "r22", creatorId: "u4", matchId: "m11", prediction: "Over 2.5 goals", entryAmountCents: 1_500, visibility: "public", status: "open", poolTotalCents: 42_000, participantCount: 28, resolutionSource: "Official match result", inviteCode: "RIVAL-4O39", createdAt: "2026-08-14T12:00:00Z", settledAt: null },
+  { id: "r23", creatorId: "u6", matchId: "m4", prediction: "Under 2.5 goals", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 9_500, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-5U41", createdAt: "2026-08-15T10:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r24", creatorId: "u1", matchId: "m5", prediction: "Dortmund hold on for a draw", entryAmountCents: 2_000, visibility: "public", status: "live", poolTotalCents: 58_000, participantCount: 29, resolutionSource: "Official match result", inviteCode: "RIVAL-6D53", createdAt: "2026-08-15T18:35:00Z", settledAt: null },
   // Extra settled rooms on the one finished match (m4), reusing it the same
   // way r4/r23 already do — these back the real win streaks behind Goated
   // Rivals (see currentStreak / followedGoatedRivals below).
-  { id: "r25", creatorId: "u1", matchId: "m4", prediction: "Enyimba to score twice", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 12_000_00, participantCount: 17, resolutionSource: "Official match result", inviteCode: "RIVAL-2E61", createdAt: "2026-08-15T08:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r26", creatorId: "u6", matchId: "m4", prediction: "Over 1.5 goals", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 15_500_00, participantCount: 22, resolutionSource: "Official match result", inviteCode: "RIVAL-3O74", createdAt: "2026-08-15T08:20:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r27", creatorId: "u2", matchId: "m4", prediction: "Enyimba win by 2+", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 19_000_00, participantCount: 16, resolutionSource: "Official match result", inviteCode: "RIVAL-4E38", createdAt: "2026-08-15T08:40:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r28", creatorId: "u4", matchId: "m4", prediction: "Rivers United to score", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 8_500_00, participantCount: 14, resolutionSource: "Official match result", inviteCode: "RIVAL-5R92", createdAt: "2026-08-15T09:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r29", creatorId: "u8", matchId: "m4", prediction: "Enyimba clean sheet, 1st half", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 6_000_00, participantCount: 11, resolutionSource: "Official match result", inviteCode: "RIVAL-6C15", createdAt: "2026-08-15T09:20:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r30", creatorId: "u1", matchId: "m4", prediction: "Both teams to score", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 13_500_00, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-7B46", createdAt: "2026-08-15T08:10:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r31", creatorId: "u6", matchId: "m4", prediction: "Enyimba win each half", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 21_000_00, participantCount: 20, resolutionSource: "Official match result", inviteCode: "RIVAL-8E29", createdAt: "2026-08-15T08:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r25", creatorId: "u1", matchId: "m4", prediction: "Enyimba to score twice", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 12_000, participantCount: 17, resolutionSource: "Official match result", inviteCode: "RIVAL-2E61", createdAt: "2026-08-15T08:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r26", creatorId: "u6", matchId: "m4", prediction: "Over 1.5 goals", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 15_500, participantCount: 22, resolutionSource: "Official match result", inviteCode: "RIVAL-3O74", createdAt: "2026-08-15T08:20:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r27", creatorId: "u2", matchId: "m4", prediction: "Enyimba win by 2+", entryAmountCents: 1_000, visibility: "public", status: "settled", poolTotalCents: 19_000, participantCount: 16, resolutionSource: "Official match result", inviteCode: "RIVAL-4E38", createdAt: "2026-08-15T08:40:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r28", creatorId: "u4", matchId: "m4", prediction: "Rivers United to score", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 8_500, participantCount: 14, resolutionSource: "Official match result", inviteCode: "RIVAL-5R92", createdAt: "2026-08-15T09:00:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r29", creatorId: "u8", matchId: "m4", prediction: "Enyimba clean sheet, 1st half", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 6_000, participantCount: 11, resolutionSource: "Official match result", inviteCode: "RIVAL-6C15", createdAt: "2026-08-15T09:20:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r30", creatorId: "u1", matchId: "m4", prediction: "Both teams to score", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 13_500, participantCount: 19, resolutionSource: "Official match result", inviteCode: "RIVAL-7B46", createdAt: "2026-08-15T08:10:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r31", creatorId: "u6", matchId: "m4", prediction: "Enyimba win each half", entryAmountCents: 1_000, visibility: "public", status: "settled", poolTotalCents: 21_000, participantCount: 20, resolutionSource: "Official match result", inviteCode: "RIVAL-8E29", createdAt: "2026-08-15T08:30:00Z", settledAt: "2026-08-15T19:10:00Z" },
   // Zainab's real 4-in-a-row (r32-r35) — she isn't in SELF_USER_ID's follow
   // list, so this is what proves Goated Rivals is genuinely global rather
   // than coincidentally matching the followed set above.
-  { id: "r32", creatorId: "u9", matchId: "m4", prediction: "Enyimba to lead at half time", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 9_000_00, participantCount: 13, resolutionSource: "Official match result", inviteCode: "RIVAL-9Z18", createdAt: "2026-08-15T07:40:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r33", creatorId: "u4", matchId: "m4", prediction: "Enyimba win to nil", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 24_000_00, participantCount: 21, resolutionSource: "Official match result", inviteCode: "RIVAL-1Z55", createdAt: "2026-08-15T07:55:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r34", creatorId: "u1", matchId: "m4", prediction: "Enyimba score in both halves", entryAmountCents: 500_00, visibility: "public", status: "settled", poolTotalCents: 11_500_00, participantCount: 16, resolutionSource: "Official match result", inviteCode: "RIVAL-2Z83", createdAt: "2026-08-15T08:05:00Z", settledAt: "2026-08-15T19:10:00Z" },
-  { id: "r35", creatorId: "u6", matchId: "m4", prediction: "Over 2.5 goals", entryAmountCents: 1_000_00, visibility: "public", status: "settled", poolTotalCents: 18_000_00, participantCount: 18, resolutionSource: "Official match result", inviteCode: "RIVAL-3Z67", createdAt: "2026-08-15T08:15:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r32", creatorId: "u9", matchId: "m4", prediction: "Enyimba to lead at half time", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 9_000, participantCount: 13, resolutionSource: "Official match result", inviteCode: "RIVAL-9Z18", createdAt: "2026-08-15T07:40:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r33", creatorId: "u4", matchId: "m4", prediction: "Enyimba win to nil", entryAmountCents: 1_000, visibility: "public", status: "settled", poolTotalCents: 24_000, participantCount: 21, resolutionSource: "Official match result", inviteCode: "RIVAL-1Z55", createdAt: "2026-08-15T07:55:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r34", creatorId: "u1", matchId: "m4", prediction: "Enyimba score in both halves", entryAmountCents: 500, visibility: "public", status: "settled", poolTotalCents: 11_500, participantCount: 16, resolutionSource: "Official match result", inviteCode: "RIVAL-2Z83", createdAt: "2026-08-15T08:05:00Z", settledAt: "2026-08-15T19:10:00Z" },
+  { id: "r35", creatorId: "u6", matchId: "m4", prediction: "Over 2.5 goals", entryAmountCents: 1_000, visibility: "public", status: "settled", poolTotalCents: 18_000, participantCount: 18, resolutionSource: "Official match result", inviteCode: "RIVAL-3Z67", createdAt: "2026-08-15T08:15:00Z", settledAt: "2026-08-15T19:10:00Z" },
 ];
 
 export const rooms: Room[] = seedRooms.map((r) => ({
@@ -138,8 +138,8 @@ export const packs: Pack[] = [
       { matchId: "m5", prediction: "Bayern win by 2+" },
       { matchId: "m10", prediction: "Real Madrid progress" },
     ],
-    entryAmountCents: 2_000_00,
-    poolTotalCents: 96_000_00,
+    entryAmountCents: 2_000,
+    poolTotalCents: 96_000,
     participantCount: 18,
     payoutMultiplier: 4.8,
     status: "live",
@@ -152,8 +152,8 @@ export const packs: Pack[] = [
       { matchId: "m2", prediction: "Man City win by 2+" },
       { matchId: "m7", prediction: "Man United win" },
     ],
-    entryAmountCents: 1_000_00,
-    poolTotalCents: 41_000_00,
+    entryAmountCents: 1_000,
+    poolTotalCents: 41_000,
     participantCount: 27,
     payoutMultiplier: 2.6,
     status: "open",
@@ -168,8 +168,8 @@ export const packs: Pack[] = [
       { matchId: "m10", prediction: "Real Madrid progress" },
       { matchId: "m3", prediction: "El Clasico ends in a draw" },
     ],
-    entryAmountCents: 3_000_00,
-    poolTotalCents: 132_000_00,
+    entryAmountCents: 3_000,
+    poolTotalCents: 132_000,
     participantCount: 14,
     payoutMultiplier: 7.2,
     status: "open",
@@ -182,8 +182,8 @@ export const packs: Pack[] = [
       { matchId: "m4", prediction: "Enyimba win at home" },
       { matchId: "m12", prediction: "Sporting Lagos win" },
     ],
-    entryAmountCents: 500_00,
-    poolTotalCents: 18_500_00,
+    entryAmountCents: 500,
+    poolTotalCents: 18_500,
     participantCount: 22,
     payoutMultiplier: 3.1,
     status: "settled",
@@ -197,8 +197,8 @@ export const packs: Pack[] = [
       { matchId: "m9", prediction: "Kano Pillars hold Enyimba to a draw" },
       { matchId: "m2", prediction: "Man City win by 2+" },
     ],
-    entryAmountCents: 1_500_00,
-    poolTotalCents: 54_000_00,
+    entryAmountCents: 1_500,
+    poolTotalCents: 54_000,
     participantCount: 19,
     payoutMultiplier: 5.4,
     status: "open",
@@ -300,18 +300,18 @@ export function roomById(id: string): Room | undefined {
 
 export const wallet: Wallet = {
   userId: "u3",
-  balanceCents: 45_000_00,
+  balanceCents: 45_000,
   pendingCents: 0,
-  escrowCents: 2_500_00,
+  escrowCents: 2_500,
 };
 
 export const transactions: Transaction[] = [
-  { id: "t1", userId: "u3", type: "payout", status: "completed", amountCents: 1_467_00, roomId: "r4", createdAt: "2026-08-15T19:10:00Z" },
+  { id: "t1", userId: "u3", type: "payout", status: "completed", amountCents: 1_467, roomId: "r4", createdAt: "2026-08-15T19:10:00Z" },
   { id: "t2", userId: "u3", type: "entry", status: "completed", amountCents: -500_00, roomId: "r4", createdAt: "2026-08-15T10:05:00Z" },
   { id: "t3", userId: "u3", type: "entry", status: "completed", amountCents: -2_000_00, roomId: "r1", createdAt: "2026-08-15T18:02:00Z" },
-  { id: "t4", userId: "u3", type: "deposit", status: "completed", amountCents: 20_000_00, roomId: null, createdAt: "2026-08-14T09:00:00Z" },
+  { id: "t4", userId: "u3", type: "deposit", status: "completed", amountCents: 20_000, roomId: null, createdAt: "2026-08-14T09:00:00Z" },
   { id: "t5", userId: "u3", type: "withdrawal", status: "completed", amountCents: -10_000_00, roomId: null, createdAt: "2026-08-10T14:20:00Z" },
-  { id: "t6", userId: "u3", type: "deposit", status: "completed", amountCents: 40_000_00, roomId: null, createdAt: "2026-08-01T12:00:00Z" },
+  { id: "t6", userId: "u3", type: "deposit", status: "completed", amountCents: 40_000, roomId: null, createdAt: "2026-08-01T12:00:00Z" },
 ];
 
 export function matchById(id: string): Match | undefined {
@@ -398,47 +398,47 @@ export function followedProfileIds(): string[] {
 // Amounts/sides match the existing `transactions` entries for self so the
 // two datasets don't disagree with each other.
 export const entries: Entry[] = [
-  { id: "e1", roomId: "r1", userId: SELF_USER_ID, side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T18:02:00Z", isWinner: null, payoutCents: null },
-  { id: "e2", roomId: "r4", userId: SELF_USER_ID, side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:05:00Z", isWinner: true, payoutCents: 1_467_00 },
-  { id: "e3", roomId: "r23", userId: SELF_USER_ID, side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:30:00Z", isWinner: false, payoutCents: null },
-  { id: "e4", roomId: "r5", userId: "u1", side: "yes", amountCents: 3_000_00, createdAt: "2026-08-15T18:31:00Z", isWinner: null, payoutCents: null },
-  { id: "e5", roomId: "r8", userId: "u1", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T17:52:00Z", isWinner: null, payoutCents: null },
-  { id: "e6", roomId: "r2", userId: "u5", side: "yes", amountCents: 5_000_00, createdAt: "2026-08-15T16:25:00Z", isWinner: null, payoutCents: null },
-  { id: "e7", roomId: "r12", userId: "u5", side: "yes", amountCents: 5_000_00, createdAt: "2026-08-14T20:10:00Z", isWinner: null, payoutCents: null },
-  { id: "e8", roomId: "r1", userId: "u9", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T18:05:00Z", isWinner: null, payoutCents: null },
-  { id: "e9", roomId: "r16", userId: "u9", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T17:35:00Z", isWinner: null, payoutCents: null },
-  { id: "e10", roomId: "r4", userId: "u7", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:20:00Z", isWinner: true, payoutCents: 1_467_00 },
+  { id: "e1", roomId: "r1", userId: SELF_USER_ID, side: "yes", amountCents: 2_000, createdAt: "2026-08-15T18:02:00Z", isWinner: null, payoutCents: null },
+  { id: "e2", roomId: "r4", userId: SELF_USER_ID, side: "yes", amountCents: 500, createdAt: "2026-08-15T10:05:00Z", isWinner: true, payoutCents: 1_467 },
+  { id: "e3", roomId: "r23", userId: SELF_USER_ID, side: "yes", amountCents: 500, createdAt: "2026-08-15T10:30:00Z", isWinner: false, payoutCents: null },
+  { id: "e4", roomId: "r5", userId: "u1", side: "yes", amountCents: 3_000, createdAt: "2026-08-15T18:31:00Z", isWinner: null, payoutCents: null },
+  { id: "e5", roomId: "r8", userId: "u1", side: "yes", amountCents: 2_000, createdAt: "2026-08-15T17:52:00Z", isWinner: null, payoutCents: null },
+  { id: "e6", roomId: "r2", userId: "u5", side: "yes", amountCents: 5_000, createdAt: "2026-08-15T16:25:00Z", isWinner: null, payoutCents: null },
+  { id: "e7", roomId: "r12", userId: "u5", side: "yes", amountCents: 5_000, createdAt: "2026-08-14T20:10:00Z", isWinner: null, payoutCents: null },
+  { id: "e8", roomId: "r1", userId: "u9", side: "yes", amountCents: 2_000, createdAt: "2026-08-15T18:05:00Z", isWinner: null, payoutCents: null },
+  { id: "e9", roomId: "r16", userId: "u9", side: "yes", amountCents: 500, createdAt: "2026-08-15T17:35:00Z", isWinner: null, payoutCents: null },
+  { id: "e10", roomId: "r4", userId: "u7", side: "yes", amountCents: 500, createdAt: "2026-08-15T10:20:00Z", isWinner: true, payoutCents: 1_467 },
   // A settled room realistically has more than one or two participants —
   // these round out win_loss variety for Arena's feed (see buildArenaFeed
   // below) across profiles beyond just self + one followed rival.
-  { id: "e11", roomId: "r4", userId: "u4", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T10:40:00Z", isWinner: true, payoutCents: 2_934_00 },
-  { id: "e12", roomId: "r4", userId: "u9", side: "yes", amountCents: 2_000_00, createdAt: "2026-08-15T10:50:00Z", isWinner: true, payoutCents: 5_868_00 },
-  { id: "e13", roomId: "r23", userId: "u2", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T10:35:00Z", isWinner: false, payoutCents: null },
-  { id: "e14", roomId: "r23", userId: "u8", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T10:45:00Z", isWinner: false, payoutCents: null },
+  { id: "e11", roomId: "r4", userId: "u4", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T10:40:00Z", isWinner: true, payoutCents: 2_934 },
+  { id: "e12", roomId: "r4", userId: "u9", side: "yes", amountCents: 2_000, createdAt: "2026-08-15T10:50:00Z", isWinner: true, payoutCents: 5_868 },
+  { id: "e13", roomId: "r23", userId: "u2", side: "yes", amountCents: 500, createdAt: "2026-08-15T10:35:00Z", isWinner: false, payoutCents: null },
+  { id: "e14", roomId: "r23", userId: "u8", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T10:45:00Z", isWinner: false, payoutCents: null },
   // Sarah's real 5-in-a-row (r25-r29) and Ada's real 3-in-a-row (r30, r31,
   // plus the existing e12 on r4) — back Goated Rivals' streak claim with
   // an actual settled win history rather than a number invented at render
   // time. No entry here that isn't tied to a real settled room above.
-  { id: "e15", roomId: "r25", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:00:00Z", isWinner: true, payoutCents: 1_450_00 },
-  { id: "e16", roomId: "r26", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:20:00Z", isWinner: true, payoutCents: 1_450_00 },
-  { id: "e17", roomId: "r27", userId: "u5", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:40:00Z", isWinner: true, payoutCents: 2_900_00 },
-  { id: "e18", roomId: "r28", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T09:00:00Z", isWinner: true, payoutCents: 1_450_00 },
-  { id: "e19", roomId: "r29", userId: "u5", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T09:20:00Z", isWinner: true, payoutCents: 1_450_00 },
-  { id: "e20", roomId: "r30", userId: "u9", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:10:00Z", isWinner: true, payoutCents: 1_450_00 },
-  { id: "e21", roomId: "r31", userId: "u9", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:30:00Z", isWinner: true, payoutCents: 2_900_00 },
-  { id: "e22", roomId: "r32", userId: "u17", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T07:40:00Z", isWinner: true, payoutCents: 1_450_00 },
-  { id: "e23", roomId: "r33", userId: "u17", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T07:55:00Z", isWinner: true, payoutCents: 2_900_00 },
-  { id: "e24", roomId: "r34", userId: "u17", side: "yes", amountCents: 500_00, createdAt: "2026-08-15T08:05:00Z", isWinner: true, payoutCents: 1_450_00 },
-  { id: "e25", roomId: "r35", userId: "u17", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T08:15:00Z", isWinner: true, payoutCents: 2_900_00 },
+  { id: "e15", roomId: "r25", userId: "u5", side: "yes", amountCents: 500, createdAt: "2026-08-15T08:00:00Z", isWinner: true, payoutCents: 1_450 },
+  { id: "e16", roomId: "r26", userId: "u5", side: "yes", amountCents: 500, createdAt: "2026-08-15T08:20:00Z", isWinner: true, payoutCents: 1_450 },
+  { id: "e17", roomId: "r27", userId: "u5", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T08:40:00Z", isWinner: true, payoutCents: 2_900 },
+  { id: "e18", roomId: "r28", userId: "u5", side: "yes", amountCents: 500, createdAt: "2026-08-15T09:00:00Z", isWinner: true, payoutCents: 1_450 },
+  { id: "e19", roomId: "r29", userId: "u5", side: "yes", amountCents: 500, createdAt: "2026-08-15T09:20:00Z", isWinner: true, payoutCents: 1_450 },
+  { id: "e20", roomId: "r30", userId: "u9", side: "yes", amountCents: 500, createdAt: "2026-08-15T08:10:00Z", isWinner: true, payoutCents: 1_450 },
+  { id: "e21", roomId: "r31", userId: "u9", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T08:30:00Z", isWinner: true, payoutCents: 2_900 },
+  { id: "e22", roomId: "r32", userId: "u17", side: "yes", amountCents: 500, createdAt: "2026-08-15T07:40:00Z", isWinner: true, payoutCents: 1_450 },
+  { id: "e23", roomId: "r33", userId: "u17", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T07:55:00Z", isWinner: true, payoutCents: 2_900 },
+  { id: "e24", roomId: "r34", userId: "u17", side: "yes", amountCents: 500, createdAt: "2026-08-15T08:05:00Z", isWinner: true, payoutCents: 1_450 },
+  { id: "e25", roomId: "r35", userId: "u17", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T08:15:00Z", isWinner: true, payoutCents: 2_900 },
   // Real entries for the room's own chatters (r15's James/Daniel/Ada, r6's
   // Sarah/Chioma already talk there — see roomMessages above) so
   // RivalsInRoom's avatar stack (exploding-room-card.tsx) has real faces
   // to show on the rooms that actually make Exploding Now's top 6.
-  { id: "e26", roomId: "r15", userId: "u4", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T18:19:00Z", isWinner: null, payoutCents: null },
-  { id: "e27", roomId: "r15", userId: "u1", side: "yes", amountCents: 1_000_00, createdAt: "2026-08-15T18:21:00Z", isWinner: null, payoutCents: null },
-  { id: "e28", roomId: "r15", userId: "u9", side: "no", amountCents: 500_00, createdAt: "2026-08-15T18:23:00Z", isWinner: null, payoutCents: null },
-  { id: "e29", roomId: "r6", userId: "u5", side: "no", amountCents: 1_500_00, createdAt: "2026-08-15T18:41:00Z", isWinner: null, payoutCents: null },
-  { id: "e30", roomId: "r6", userId: "u7", side: "no", amountCents: 1_500_00, createdAt: "2026-08-15T18:39:00Z", isWinner: null, payoutCents: null },
+  { id: "e26", roomId: "r15", userId: "u4", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T18:19:00Z", isWinner: null, payoutCents: null },
+  { id: "e27", roomId: "r15", userId: "u1", side: "yes", amountCents: 1_000, createdAt: "2026-08-15T18:21:00Z", isWinner: null, payoutCents: null },
+  { id: "e28", roomId: "r15", userId: "u9", side: "no", amountCents: 500, createdAt: "2026-08-15T18:23:00Z", isWinner: null, payoutCents: null },
+  { id: "e29", roomId: "r6", userId: "u5", side: "no", amountCents: 1_500, createdAt: "2026-08-15T18:41:00Z", isWinner: null, payoutCents: null },
+  { id: "e30", roomId: "r6", userId: "u7", side: "no", amountCents: 1_500, createdAt: "2026-08-15T18:39:00Z", isWinner: null, payoutCents: null },
 ];
 
 export function entriesByUser(userId: string): Entry[] {
@@ -477,22 +477,27 @@ export function roomsJoinedBy(userId: string): Room[] {
   return rooms.filter((r) => roomIds.has(r.id));
 }
 
+// Rivaly settles in USDC — every amount in the app is US cents, shown as
+// dollars. Whole-dollar amounts drop the ".00" (a $25 stake reads as $25),
+// anything with cents keeps both decimals ($14.67, never $14.7).
 export function formatMoney(cents: number): string {
-  return `₦${Math.round(cents / 100).toLocaleString("en-NG")}`;
+  const dollars = cents / 100;
+  const whole = Number.isInteger(dollars);
+  return `$${dollars.toLocaleString("en-US", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })}`;
 }
 
 // Compact form for tight spaces (the mobile top bar's balance chip) —
-// ₦45,000 -> ₦45K, ₦1,250,000 -> ₦1.3M.
+// $450 -> $450, $12,500 -> $12.5K, $1,250,000 -> $1.3M.
 export function formatMoneyCompact(cents: number): string {
-  const naira = Math.round(cents / 100);
-  if (naira >= 1_000_000) return `₦${(naira / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (naira >= 1_000) return `₦${(naira / 1_000).toFixed(0)}K`;
-  return `₦${naira}`;
+  const dollars = cents / 100;
+  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (dollars >= 1_000) return `$${(dollars / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  return formatMoney(Math.round(cents));
 }
 
 export function formatSignedMoney(cents: number): string {
   const sign = cents >= 0 ? "+" : "−";
-  return `${sign}₦${Math.round(Math.abs(cents) / 100).toLocaleString("en-NG")}`;
+  return `${sign}${formatMoney(Math.abs(cents))}`;
 }
 
 // Deterministic mock YES/NO split so the same room shows the same number
@@ -503,7 +508,7 @@ export function splitPct(room: Room): number {
   return 50 + (seed % 30);
 }
 
-// Estimated payout per ₦1 staked on a side, given that side's real share of
+// Estimated payout per $1 staked on a side, given that side's real share of
 // the pool — the exact same split already shown on the bar (splitPct
 // above), just reframed. Pari-mutuel math (poolTotal / sideStake): verified
 // against the mock dataset's own real settled payoutCents (e.g. entries
@@ -517,7 +522,7 @@ export function splitPct(room: Room): number {
 // only ever surfaced once real entries could produce a genuine 100/0
 // split). Callers should show something like "Be the first" instead of a
 // number in that case, never a fabricated or nonsensical value.
-export function estimatedPayoutPerNaira(sidePct: number): number | null {
+export function estimatedPayoutPerDollar(sidePct: number): number | null {
   if (sidePct <= 0) return null;
   return 100 / sidePct;
 }
@@ -550,7 +555,7 @@ export function rivalPnlCents(profile: Profile): number {
   // Scaled off their real totalWinnings so the ordering still tracks who's
   // actually good (a modulo here would erase that and collide on round
   // numbers — Sarah's 79% accuracy should not be showing up worst).
-  const magnitude = Math.round(profile.totalWinningsCents * 0.08) + 20_000;
+  const magnitude = Math.round(profile.totalWinningsCents * 0.08) + 200;
   return sign * magnitude;
 }
 
@@ -616,12 +621,12 @@ export interface NotificationItem {
 // Per docs/masterplan/07-product-blueprint.md#410-notifications.
 export const notifications: NotificationItem[] = [
   { id: "n1", kind: "goal_scored", actorId: null, roomId: "r1", body: "GOAL — Arsenal 2–1 Chelsea (58′)", createdAt: "2026-08-15T18:58:00Z", read: false },
-  { id: "n2", kind: "whale_entered", actorId: "u5", roomId: "r12", body: "Sarah entered Real Madrid progress with ₦25,000", createdAt: "2026-08-15T18:40:00Z", read: false },
+  { id: "n2", kind: "whale_entered", actorId: "u5", roomId: "r12", body: "Sarah entered Real Madrid progress with $250", createdAt: "2026-08-15T18:40:00Z", read: false },
   { id: "n3", kind: "challenge_received", actorId: "u4", roomId: "r15", body: "James challenged you — Chelsea come back to win", createdAt: "2026-08-15T18:20:00Z", read: false },
   { id: "n4", kind: "friend_joined", actorId: "u2", roomId: "r1", body: "Alex joined your room — Arsenal scores 3+ tonight", createdAt: "2026-08-15T18:02:00Z", read: true },
   { id: "n5", kind: "new_follower", actorId: "u7", roomId: null, body: "Chioma started following you", createdAt: "2026-08-15T15:10:00Z", read: true },
   { id: "n6", kind: "room_filled", actorId: null, roomId: "r5", body: "Bayern win by 2+ goals just hit 50 rivals", createdAt: "2026-08-15T14:30:00Z", read: true },
-  { id: "n7", kind: "settlement_complete", actorId: null, roomId: "r4", body: "Enyimba win at home settled — you won ₦1,467", createdAt: "2026-08-15T19:10:00Z", read: true },
+  { id: "n7", kind: "settlement_complete", actorId: null, roomId: "r4", body: "Enyimba win at home settled — you won $14.67", createdAt: "2026-08-15T19:10:00Z", read: true },
   { id: "n8", kind: "new_follower", actorId: "u8", roomId: null, body: "Marcus started following you", createdAt: "2026-08-14T09:00:00Z", read: true },
 ];
 

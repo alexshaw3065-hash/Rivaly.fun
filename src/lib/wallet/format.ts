@@ -1,8 +1,6 @@
-// USDC is a real USD-pegged stablecoin, not Naira — labelling it "USDC"
-// instead of reusing mock-data.ts's ₦ formatters is the honest call here.
-// Inventing a live USDC→NGN conversion would mean displaying a number
-// nobody can verify against anything real; that's the opposite of "Trust
-// Must Be Visible" (masterplan principle #5).
+// On-chain USDC balances arrive as whole-dollar floats (not cents like the
+// rest of the app), so they get their own formatter — always two decimals,
+// the way a wallet balance reads.
 export function formatUsdc(amount: number): string {
   return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

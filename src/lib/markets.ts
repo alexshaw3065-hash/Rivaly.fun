@@ -32,7 +32,41 @@ export type CreateRoomMarket =
   | { type: "red_card" }
   | { type: "var" }
   | { type: "anytime_scorer"; player: string; team: "home" | "away" }
+  // NFL — every one of these reads a stat TxLINE's NFL feed actually
+  // carries (Score/Touchdown/FieldGoal per HT and Total, plus an OT period).
+  | { type: "total_points"; comparison: "over" | "under"; line: number }
+  | { type: "team_points"; team: "home" | "away"; comparison: "over" | "under"; line: number }
+  | { type: "first_half_points"; comparison: "over" | "under"; line: number }
+  | { type: "total_touchdowns"; comparison: "over" | "under"; line: number }
+  | { type: "total_field_goals"; comparison: "over" | "under"; line: number }
+  | { type: "overtime" }
   | { type: "custom"; prediction: string };
+
+export type Sport = "soccer" | "nfl";
+
+// TxLINE sport ids — 6 is US football. Anything else (including the mock
+// roster, which carries no sport id) is soccer.
+export function sportOf(match: { sportId?: number }): Sport {
+  return match.sportId === 6 ? "nfl" : "soccer";
+}
+
+const SPORT_MARKETS: Record<Sport, ReadonlySet<CreateRoomMarket["type"]>> = {
+  soccer: new Set([
+    "winner", "total_goals", "both_score", "correct_score", "handicap", "halftime_result",
+    "halftime_total_goals", "halftime_correct_score", "second_half_total_goals", "corners",
+    "cards", "penalty", "red_card", "var", "anytime_scorer", "custom",
+  ]),
+  nfl: new Set([
+    "winner", "handicap", "halftime_result", "total_points", "team_points", "first_half_points",
+    "total_touchdowns", "total_field_goals", "overtime", "custom",
+  ]),
+};
+
+/** Whether this market means anything for this match's sport (no corners in the NFL). */
+export function marketFitsSport(market: CreateRoomMarket, sport: Sport): boolean {
+  if (sport === "nfl" && market.type === "winner" && market.outcome === "draw") return false;
+  return SPORT_MARKETS[sport].has(market.type);
+}
 
 export interface ComposedMarket {
   prediction: string;
@@ -42,8 +76,8 @@ export interface ComposedMarket {
   settlementMode: SettlementMode;
 }
 
-// Hard floor for any stake, including "no limit" rooms — ₦100, in kobo.
-export const MIN_STAKE_FLOOR_CENTS = 100_00;
+// Hard floor for any stake, including "no limit" rooms — $1 of USDC.
+export const MIN_STAKE_FLOOR_CENTS = 100;
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -151,6 +185,43 @@ export function composeMarket(market: CreateRoomMarket, match: { homeTeam: strin
         marketSideDefinition: { stat: "anytime_scorer", player: market.player.trim(), team: market.team },
         settlementMode: "creator_confirms",
       };
+    case "total_points":
+      return auto(
+        "total_points",
+        `${cap(market.comparison)} ${market.line} points`,
+        { comparison: market.comparison, threshold: market.line },
+        market.line,
+      );
+    case "team_points":
+      return auto(
+        "team_points",
+        `${teamName(market.team)} ${market.comparison} ${market.line} points`,
+        { team: market.team, comparison: market.comparison, threshold: market.line },
+        market.line,
+      );
+    case "first_half_points":
+      return auto(
+        "first_half_points",
+        `${cap(market.comparison)} ${market.line} first-half points`,
+        { comparison: market.comparison, threshold: market.line },
+        market.line,
+      );
+    case "total_touchdowns":
+      return auto(
+        "total_touchdowns",
+        `${cap(market.comparison)} ${market.line} touchdowns`,
+        { comparison: market.comparison, threshold: market.line },
+        market.line,
+      );
+    case "total_field_goals":
+      return auto(
+        "total_field_goals",
+        `${cap(market.comparison)} ${market.line} field goals`,
+        { comparison: market.comparison, threshold: market.line },
+        market.line,
+      );
+    case "overtime":
+      return auto("overtime", "The game goes to overtime");
     case "custom":
       return {
         prediction: market.prediction.trim(),
@@ -173,7 +244,12 @@ export function invalidMarketReason(market: CreateRoomMarket): string | null {
     case "second_half_total_goals":
     case "corners":
     case "cards":
-      return market.line > 0 ? null : "Pick a real line.";
+    case "total_points":
+    case "team_points":
+    case "first_half_points":
+    case "total_touchdowns":
+    case "total_field_goals":
+      return market.line > 0 && market.line < 200 ? null : "Pick a real line.";
     case "correct_score":
     case "halftime_correct_score": {
       const ok = [market.homeGoals, market.awayGoals].every((g) => Number.isInteger(g) && g >= 0 && g <= 20);

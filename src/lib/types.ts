@@ -69,6 +69,15 @@ export interface Match {
   awayCorners?: number | null;
   homeYellowCards?: number | null;
   awayYellowCards?: number | null;
+  // TxLINE sport id (1 = soccer, 6 = NFL). Absent on the mock roster, which
+  // is all soccer — read it through sportOf() in src/lib/markets.ts.
+  sportId?: number;
+  // NFL-only stats, same "absent until the ingester extracts them" rule.
+  homeTouchdowns?: number | null;
+  awayTouchdowns?: number | null;
+  homeFieldGoals?: number | null;
+  awayFieldGoals?: number | null;
+  wentToOvertime?: boolean | null;
 }
 
 export type RoomVisibility = "public" | "private";
@@ -107,6 +116,15 @@ export type MarketType =
   | "red_card"
   | "var"
   | "anytime_scorer"
+  // NFL: total_points / team_points read home_score/away_score (points for
+  // NFL), first_half_points reads the HT columns, touchdowns and field goals
+  // read their own columns, overtime reads went_to_overtime.
+  | "total_points"
+  | "team_points"
+  | "first_half_points"
+  | "total_touchdowns"
+  | "total_field_goals"
+  | "overtime"
   | "custom";
 export type SettlementMode = "auto" | "creator_confirms";
 

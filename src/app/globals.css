@@ -361,6 +361,22 @@ html {
   }
 }
 
+/* One pass of light across the card the moment it's confirmed — a single
+   state-driven beat, never a loop. Rests off-card, so with reduced motion
+   (or no animation support) it simply never shows. */
+.confirm-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--foreground) 12%, transparent) 50%, transparent 65%);
+  transform: translateX(110%);
+  animation: confirm-sweep 900ms cubic-bezier(0.23, 1, 0.32, 1) 120ms both;
+}
+@keyframes confirm-sweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(110%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

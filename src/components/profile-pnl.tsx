@@ -23,12 +23,12 @@ const RANGES = [
 ] as const;
 
 function splitMoney(cents: number) {
-  const naira = cents / 100;
-  const whole = Math.floor(naira);
-  const decimals = Math.round((naira - whole) * 100)
+  const dollars = cents / 100;
+  const whole = Math.floor(dollars);
+  const decimals = Math.round((dollars - whole) * 100)
     .toString()
     .padStart(2, "0");
-  return { whole: `₦${whole.toLocaleString("en-NG")}`, decimals };
+  return { whole: `$${whole.toLocaleString("en-US")}`, decimals };
 }
 
 // Standard Catmull-Rom → cubic-bezier conversion — a genuinely smooth
@@ -176,7 +176,7 @@ export function ProfilePnl() {
       <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-sm text-muted">
-            {live.isReal ? "$" : "₦"}
+            $
           </span>
           <span className="text-sm text-muted">Total cash</span>
         </div>
