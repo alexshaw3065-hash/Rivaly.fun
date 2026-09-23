@@ -27,22 +27,27 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
-/** What the stake button should offer when the wallet can't sign yet. */
+const short = (addr: string | null) => (addr ? `${addr.slice(0, 4)}…${addr.slice(-4)}` : "another wallet");
+
+/**
+ * What the stake button shows while the wallet can't sign yet. Signed in to
+ * Rivaly always means signed in to the wallet, so this is only ever a brief
+ * "getting ready" beat, or one of two rare cases worth a clear sentence.
+ */
 export function walletBlocker(
   status: string,
+  address: string | null,
   connectedAddress: string | null,
 ): { label: string; hint: string; busy?: boolean } | null {
   switch (status) {
     case "loading":
       return { label: "Getting your wallet ready…", hint: "", busy: true };
     case "no_wallet":
-      return { label: "Set up your wallet", hint: "Your account doesn't have a wallet yet — one quick sign-in creates it." };
-    case "disconnected":
-      return { label: "Reconnect wallet to stake", hint: "Your wallet's session ended. Reconnect it — your pick stays put." };
+      return { label: "Sign in again to finish your wallet", hint: "Your wallet didn't finish setting up. One sign-in completes it — your pick stays put." };
     case "mismatch":
       return {
-        label: "Reconnect wallet to stake",
-        hint: `A different wallet${connectedAddress ? ` (${connectedAddress.slice(0, 4)}…)` : ""} is connected. Reconnect with the one on your account.`,
+        label: "Sign in with this wallet",
+        hint: `Your wallet app is on ${short(connectedAddress)}, but this account uses ${short(address)}. Switch accounts in the wallet app, or sign in with the one that's open.`,
       };
     default:
       return null;
@@ -50,7 +55,7 @@ export function walletBlocker(
 }
 
 export function useStake() {
-  const { signingWallet, status, connectedAddress, reconnect } = useWallet();
+  const { signingWallet, status, address, connectedAddress, reconnect } = useWallet();
   const [phase, setPhase] = useState<StakePhase>("idle");
   const busy = useRef(false);
 
@@ -58,7 +63,7 @@ export function useStake() {
     async (req: StakeRequest): Promise<SubmitResult> => {
       if (busy.current) return { ok: false, error: "A stake is already on its way." };
       if (!signingWallet || !isSolanaWallet(signingWallet)) {
-        return { ok: false, error: walletBlocker(status, connectedAddress)?.hint || "Reconnect your wallet to stake." };
+        return { ok: false, error: walletBlocker(status, address, connectedAddress)?.hint || "Reconnect your wallet to stake." };
       }
       busy.current = true;
       try {
@@ -91,10 +96,10 @@ export function useStake() {
         busy.current = false;
       }
     },
-    [signingWallet, status, connectedAddress],
+    [signingWallet, status, address, connectedAddress],
   );
 
   const walletReady = status === "ready";
-  const blocker = status === "signed_out" ? null : walletBlocker(status, connectedAddress);
+  const blocker = status === "signed_out" ? null : walletBlocker(status, address, connectedAddress);
   return { stake, phase, walletReady, blocker, reconnect };
 }

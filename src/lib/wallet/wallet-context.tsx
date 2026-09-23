@@ -6,6 +6,7 @@ import { getAuthToken, useDynamicContext, useIsLoggedIn, useRefreshUser, useUser
 import { isSolanaWallet } from "@dynamic-labs/solana";
 import { syncWalletAddress } from "@/app/auth/wallet-sync-action";
 import { openAuthModal } from "@/lib/auth-modal-store";
+import { createClient } from "@/lib/supabase/client";
 import { useCurrentUser } from "@/components/current-user-provider";
 import { USDC_MINT } from "./constants";
 import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
@@ -18,7 +19,7 @@ import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
 export type UserWallet = ReturnType<typeof useUserWallets>[number];
 
 export interface WalletState {
-  /** A real Dynamic-backed wallet exists for this user (vs. the seeded mock roster). */
+  /** This account has a saved wallet address (balance can be read). */
   isReal: boolean;
   /** The user's own Solana address — the deposit/receive address. */
   address: string | null;
@@ -31,19 +32,18 @@ export interface WalletState {
   /** The wallet object that can actually sign — matched to `address`. */
   signingWallet: UserWallet | null;
   /**
-   * Can this user stake right now, and if not, why:
-   * ready — the account's wallet is connected and can sign;
-   * no_wallet — the account has no wallet address yet (being set up);
-   * disconnected — it has one, but Dynamic has no wallet connected in this tab;
-   * mismatch — a different wallet is connected (`connectedAddress`).
+   * Can this user stake right now:
+   * ready — the account's wallet is live and can sign;
+   * loading — Dynamic is restoring the session or still creating/saving the
+   *   wallet (a fresh signup's embedded wallet lands a moment after login);
+   * no_wallet — the wallet never appeared (rare; offer a fresh sign-in);
+   * mismatch — Phantom etc. is switched to a different account than this one.
+   * There is deliberately no "signed in but disconnected" state: signed in to
+   * Rivaly always means signed in to the wallet (see the session guard).
    */
-  status: "signed_out" | "loading" | "ready" | "no_wallet" | "disconnected" | "mismatch";
+  status: "signed_out" | "loading" | "ready" | "no_wallet" | "mismatch";
   connectedAddress: string | null;
-  /**
-   * Re-runs the wallet login and comes back to `next`. A stale Dynamic
-   * session (Rivaly's own session outlived it) is cleared first — Dynamic
-   * won't reopen its login while it still believes someone is logged in.
-   */
+  /** Fresh wallet sign-in, then back to `next` — only for the rare states above. */
   reconnect: (next: string) => Promise<void>;
   refresh: () => void;
 }
@@ -88,16 +88,39 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useRefreshUser();
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
-  const syncTried = useRef(false);
+  const [walletTimedOut, setWalletTimedOut] = useState(false);
+  const syncedFor = useRef<string | null>(null);
 
-  // Self-heal a missing wallet address without making anyone sign in again:
-  // Dynamic often finishes provisioning the embedded wallet after the login
-  // that created the account, so the address wasn't in that first token.
-  // Refresh Dynamic's view of the user, hand its fresh token to the server
-  // (which verifies it and only ever fills a missing address), then reload.
+  // The Solana wallet Dynamic has for this user right now (embedded or
+  // Phantom etc.). Dynamic builds this list from its own logged-in user.
+  const dynamicSolAddress = wallets.find((w) => isSolanaWallet(w))?.address ?? null;
+
+  // Session guard. Dynamic's login expires on its own clock (2 hours unless
+  // raised in its dashboard) while Rivaly's Supabase session doesn't — which
+  // left people "signed in" with no wallet able to sign. Rivaly's session now
+  // follows Dynamic's: once Dynamic has finished restoring and says nobody is
+  // logged in, sign out of Rivaly too. The next action that needs an account
+  // asks for one sign-in (create keeps its draft), and both come back together.
+  // The short grace period rides out Dynamic settling right after load.
   useEffect(() => {
-    if (!profile || address || !sdkHasLoaded || !dynamicLoggedIn || syncTried.current) return;
-    syncTried.current = true;
+    if (!profile || !sdkHasLoaded || dynamicLoggedIn) return;
+    const id = window.setTimeout(() => {
+      void createClient()
+        .auth.signOut()
+        .then(() => router.refresh());
+    }, 1500);
+    return () => window.clearTimeout(id);
+  }, [profile, sdkHasLoaded, dynamicLoggedIn, router]);
+
+  // Save a missing wallet address the moment Dynamic's wallet exists. A fresh
+  // signup's embedded wallet is created a beat after login, so the address
+  // often wasn't in the token the sign-in bridge saw. Refresh Dynamic's user,
+  // hand its fresh token to the server (which verifies it and only ever fills
+  // a missing address), then reload. Re-runs whenever a new wallet appears.
+  useEffect(() => {
+    if (!profile || address || !dynamicLoggedIn || !dynamicSolAddress) return;
+    if (syncedFor.current === dynamicSolAddress) return;
+    syncedFor.current = dynamicSolAddress;
     let cancelled = false;
     void (async () => {
       setSyncing(true);
@@ -112,7 +135,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [profile, address, sdkHasLoaded, dynamicLoggedIn, refreshUser, router]);
+  }, [profile, address, dynamicLoggedIn, dynamicSolAddress, refreshUser, router]);
+
+  // Waiting on wallet creation shouldn't spin forever if it never comes.
+  useEffect(() => {
+    if (!profile || address || !dynamicLoggedIn) return;
+    const id = window.setTimeout(() => setWalletTimedOut(true), 20000);
+    return () => window.clearTimeout(id);
+  }, [profile, address, dynamicLoggedIn]);
 
   const [usdcBalance, setUsdcBalance] = useState(0);
   const [solBalance, setSolBalance] = useState(0);
@@ -168,19 +198,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // that effect each time. This way its identity only changes with `address`.
   const refresh = useCallback(() => void load(), [load]);
 
-  const connectedAddress = wallets.find((w) => w.chain === "SOL")?.address ?? wallets[0]?.address ?? null;
+  const connectedAddress = dynamicSolAddress;
   const status: WalletState["status"] = !profile
     ? "signed_out"
-    : !sdkHasLoaded || syncing
-      ? "loading"
-      : !address
-        ? "no_wallet"
-        : signingWallet && isSolanaWallet(signingWallet)
-          ? "ready"
-          : wallets.length === 0
-            ? "disconnected"
-            : "mismatch";
+    : signingWallet && isSolanaWallet(signingWallet)
+      ? "ready"
+      : !sdkHasLoaded || !dynamicLoggedIn || syncing
+        ? "loading" // restoring, or the session guard is about to sign out
+        : !address
+          ? walletTimedOut
+            ? "no_wallet"
+            : "loading"
+          : dynamicSolAddress
+            ? "mismatch"
+            : "loading";
 
+  // Dynamic won't reopen its login while it believes someone is logged in,
+  // so clear it first. The session guard then signs Rivaly out too, and the
+  // sign-in that follows restores both and returns to `next`.
   const reconnect = useCallback(
     async (next: string) => {
       if (dynamicLoggedIn) await handleLogOut().catch(() => undefined);

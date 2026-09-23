@@ -29,7 +29,7 @@ export function WalletHistory() {
   if (!history.isReal) {
     return (
       <div className="mt-4 rounded-lg border border-border bg-surface p-6 text-center">
-        <p className="text-sm text-muted">No wallet yet — set one up above and your history starts here.</p>
+        <p className="text-sm text-muted">Your history shows up here as soon as your wallet is ready.</p>
       </div>
     );
   }

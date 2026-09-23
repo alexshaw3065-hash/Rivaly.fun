@@ -2,33 +2,36 @@
 
 import { useWallet } from "@/lib/wallet/wallet-context";
 
-// Shown wherever a balance would be, for a signed-in account whose wallet
-// isn't usable yet — never a demo balance standing in for it. The wallet
-// provider already tries to fill a missing address silently; this is the
-// one-tap fallback when that can't (e.g. Dynamic's session had ended).
+// Shown wherever a balance would be while a signed-in account's wallet isn't
+// usable yet — never a demo balance standing in for it. Normally that's just
+// a moment of "getting ready" (the provider saves a new wallet's address by
+// itself); the button only matters in the two rare cases in wallet-context.
 export function WalletSetupButton({ next, centered = false }: { next: string; centered?: boolean }) {
   const { status, reconnect } = useWallet();
   if (status === "ready" || status === "signed_out") return null;
-  const busy = status === "loading";
+  if (status === "loading") {
+    return (
+      <p role="status" className={`text-sm text-muted ${centered ? "text-center" : ""}`}>
+        Getting your wallet ready…
+      </p>
+    );
+  }
 
   return (
     <div className={`flex flex-col gap-2 ${centered ? "items-center text-center" : "items-start"}`}>
       <button
         type="button"
         onClick={() => void reconnect(next)}
-        disabled={busy}
-        className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition-[transform,opacity] duration-150 ease-out active:scale-[0.97] disabled:opacity-50"
+        className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
         style={{ background: "var(--rival-blue)" }}
       >
-        {busy ? "Getting your wallet ready…" : status === "no_wallet" ? "Set up your wallet" : "Reconnect wallet"}
+        {status === "no_wallet" ? "Sign in again to finish your wallet" : "Sign in with this wallet"}
       </button>
-      {!busy && (
-        <p className="text-xs text-muted">
-          {status === "no_wallet"
-            ? "One quick sign-in creates your USDC wallet."
-            : "Your wallet's session ended — reconnect to see your balance and stake."}
-        </p>
-      )}
+      <p className="text-xs text-muted">
+        {status === "no_wallet"
+          ? "Your wallet didn't finish setting up — one sign-in completes it."
+          : "Your wallet app is on a different account than this one."}
+      </p>
     </div>
   );
 }

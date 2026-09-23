@@ -31,7 +31,7 @@ export function WalletActions({
         {!hideBalance && (
           <>
             <p className="font-mono text-4xl font-medium text-muted md:text-5xl">—</p>
-            <p className="mb-5 mt-1 text-sm text-muted">No wallet yet</p>
+            <p className="mb-4 mt-1 text-sm text-muted">Available balance</p>
           </>
         )}
         <WalletSetupButton next="/wallet" centered={centered} />
