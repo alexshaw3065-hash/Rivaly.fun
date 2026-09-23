@@ -20,6 +20,7 @@ import {
 } from "@solana/spl-token";
 import bs58 from "bs58";
 import { USDC_DECIMALS, USDC_MINT } from "@/lib/wallet/constants";
+import { checkStakeTransaction } from "./verify-stake-tx";
 
 const RPC_URL = process.env.SOLANA_RPC_URL ?? process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
 const COMMITMENT: Commitment = "confirmed";
@@ -106,8 +107,9 @@ export async function buildStakeTransaction(userAddress: string, cents: number, 
 }
 
 /**
- * Takes the user-signed stake transaction, and only if it is byte-for-byte
- * the one this server built — same amount, destination, fee payer, memo —
+ * Takes the user-signed stake transaction, and only if it is the one this
+ * server built — same amount, destination, fee payer, memo, with nothing
+ * added beyond a wallet's own harmless extras (see verify-stake-tx.ts) —
  * adds the escrow's fee signature, sends it and waits for confirmation.
  * This is what stops anyone getting Rivaly to pay fees for a transaction it
  * didn't write.
@@ -123,11 +125,13 @@ export async function cosignAndSend(
   onSigned: (signature: string) => Promise<void>,
 ): Promise<string> {
   const { keypair, connection } = escrow();
-  const tx = Transaction.from(Buffer.from(signedBase64, "base64"));
-
-  if (tx.serializeMessage().toString("base64") !== expectedMessageBase64) {
-    throw new EscrowError("That transaction isn't the one Rivaly prepared.");
+  const user = new PublicKey(userAddress);
+  const check = checkStakeTransaction(signedBase64, expectedMessageBase64, keypair.publicKey, user);
+  if (!check.ok) {
+    console.warn(`[escrow] refused stake transaction: ${check.reason}`);
+    throw new EscrowError("Your wallet changed the stake, so Rivaly didn't send it — nothing moved. Try again.");
   }
+  const tx = check.transaction;
   const userSig = tx.signatures.find((s) => s.publicKey.toBase58() === userAddress);
   if (!userSig?.signature) throw new EscrowError("The stake wasn't signed by your wallet.");
 
