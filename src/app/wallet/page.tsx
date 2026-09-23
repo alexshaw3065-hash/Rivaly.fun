@@ -1,5 +1,4 @@
-import { WalletActions } from "@/components/wallet-actions";
-import { WalletHistory } from "@/components/wallet/wallet-history";
+import { SolanaWalletSection } from "@/components/wallet/solana-wallet-section";
 import { BalanceActivity, RivalyBalanceCard } from "@/components/wallet/rivaly-balance";
 
 // Per docs/masterplan/07-product-blueprint.md#48-wallet — the user should
@@ -18,16 +17,7 @@ export default function WalletPage() {
         <BalanceActivity />
       </section>
 
-      <section className="mt-12 border-t border-border pt-8">
-        <p className="font-display text-xl font-semibold text-foreground">Solana wallet</p>
-        <p className="mt-1 text-sm text-muted">
-          The on-chain wallet behind your account. Moving USDC from here into your Rivaly balance is coming next.
-        </p>
-        <div className="mt-5">
-          <WalletActions />
-        </div>
-        <WalletHistory />
-      </section>
+      <SolanaWalletSection />
     </main>
   );
 }

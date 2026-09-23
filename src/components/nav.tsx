@@ -85,10 +85,11 @@ export function Nav({ children }: { children: ReactNode }) {
       <div className="content-shell md:pl-[var(--sidebar-width)] md:pt-16">{children}</div>
 
       {/* Floating create button — mobile only, matches the X compose-button
-          reference exactly. Sits above the bottom tab bar. Hidden on the
-          create page itself, where it would only cover that flow's sticky
-          confirm bar. */}
-      {pathname !== "/rooms/create" && (
+          reference exactly. Sits above the bottom tab bar. Hidden inside a
+          room and on the create page, where the page's own primary action
+          (join / throw down) is the one thing to press and the "+" would
+          only sit on top of it. */}
+      {!pathname.startsWith("/rooms/") && (
         <Link
           href="/rooms/create"
           aria-label="Create room"

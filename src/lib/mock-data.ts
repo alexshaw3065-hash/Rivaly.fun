@@ -71,7 +71,7 @@ export const wallet: Wallet = {
 
 export const transactions: Transaction[] = [
   { id: "t4", userId: "u3", type: "deposit", status: "completed", amountCents: 20_000, roomId: null, createdAt: "2026-08-14T09:00:00Z" },
-  { id: "t5", userId: "u3", type: "withdrawal", status: "completed", amountCents: -10_000_00, roomId: null, createdAt: "2026-08-10T14:20:00Z" },
+  { id: "t5", userId: "u3", type: "withdrawal", status: "completed", amountCents: -10_000, roomId: null, createdAt: "2026-08-10T14:20:00Z" },
   { id: "t6", userId: "u3", type: "deposit", status: "completed", amountCents: 40_000, roomId: null, createdAt: "2026-08-01T12:00:00Z" },
 ];
 
