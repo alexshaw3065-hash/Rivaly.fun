@@ -1,18 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { formatMoney } from "@/lib/mock-data";
-import { useWalletBalance, depositToWallet, withdrawFromWallet } from "@/lib/use-wallet-balance";
 import { useCurrentUser } from "./current-user-provider";
 import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
 import { formatUsdc } from "@/lib/wallet/format";
 import { DepositSheet } from "./wallet/deposit-sheet";
 import { WithdrawSheet } from "./wallet/withdraw-sheet";
+import { WalletSetupButton } from "./wallet/wallet-setup-button";
 
-// Real users (profile.dynamicWalletAddress set) get a live on-chain USDC
-// balance and real deposit/withdraw flows through Dynamic + Solana — see
-// the deposits/withdrawals plan. The seeded mock roster keeps the original
-// optimistic-local-state behavior unchanged below.
+// A live on-chain USDC balance and real deposit/withdraw flows through
+// Dynamic + Solana. An account without a wallet yet gets the setup prompt
+// instead — there is no demo balance.
 export function WalletActions({
   centered = false,
   hideBalance = false,
@@ -25,18 +23,20 @@ export function WalletActions({
 }) {
   const profile = useCurrentUser();
   const live = useLiveWalletBalance();
-  const mockBalance = useWalletBalance();
   const [mode, setMode] = useState<"deposit" | "withdraw" | null>(null);
-  const [amount, setAmount] = useState("");
 
-  function confirmMock() {
-    const dollars = parseFloat(amount);
-    if (!dollars || dollars <= 0) return;
-    const cents = Math.round(dollars * 100);
-    if (mode === "deposit") depositToWallet(cents);
-    else withdrawFromWallet(cents);
-    setMode(null);
-    setAmount("");
+  if (!live.isReal) {
+    return (
+      <div className={centered ? "flex flex-col items-center text-center" : undefined}>
+        {!hideBalance && (
+          <>
+            <p className="font-mono text-4xl font-medium text-muted md:text-5xl">—</p>
+            <p className="mb-5 mt-1 text-sm text-muted">No wallet yet</p>
+          </>
+        )}
+        <WalletSetupButton next="/wallet" centered={centered} />
+      </div>
+    );
   }
 
   return (
@@ -44,13 +44,9 @@ export function WalletActions({
       {!hideBalance && (
         <>
           <p className="font-mono text-4xl font-medium text-foreground md:text-5xl">
-            {live.isReal
-              ? // Never a confident "$0.00" before the first real read — see
-                // hasLoaded in wallet-context.tsx.
-                live.hasLoaded
-                ? `${formatUsdc(live.usdcBalance)} USDC`
-                : "—"
-              : formatMoney(mockBalance)}
+            {/* Never a confident "$0.00" before the first real read — see
+                hasLoaded in wallet-context.tsx. */}
+            {live.hasLoaded ? `${formatUsdc(live.usdcBalance)} USDC` : "—"}
           </p>
           <p className="mt-1 text-sm text-muted">Available balance</p>
         </>
@@ -71,27 +67,7 @@ export function WalletActions({
         </button>
       </div>
 
-      {!live.isReal && mode && (
-        <div className={`mt-3 flex items-center gap-2 ${centered ? "justify-center" : ""}`}>
-          <input
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            type="number"
-            min="0"
-            placeholder="Amount in USDC"
-            className="w-40 rounded-md border border-border bg-surface px-3.5 py-2.5 font-mono text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
-            style={{ transition: "border-color 150ms ease" }}
-          />
-          <button
-            onClick={confirmMock}
-            className="rounded-md border border-border-strong px-4 py-2.5 text-sm font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
-          >
-            Confirm {mode}
-          </button>
-        </div>
-      )}
-
-      {live.isReal && profile && (
+      {profile && (
         <>
           <DepositSheet open={mode === "deposit"} onClose={() => setMode(null)} />
           <WithdrawSheet

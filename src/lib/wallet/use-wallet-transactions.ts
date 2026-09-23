@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { transactions as mockTransactions } from "@/lib/mock-data";
 import type { Profile } from "@/lib/types";
 import { reconcileWalletTransactions } from "./reconcile";
 
@@ -17,8 +16,8 @@ export interface WalletTransactionRow {
 
 // The history list and the balance live in separate components, so a
 // withdrawal completing in one has to tell the other to re-read. Same
-// window-event convention the mock balance store already uses
-// (use-wallet-balance.ts) rather than a second state-management approach.
+// window-event convention used elsewhere rather than a second
+// state-management approach.
 const CHANGED_EVENT = "rivaly-wallet-transactions-change";
 
 export function notifyWalletTransactionsChanged() {
@@ -113,7 +112,7 @@ export function useWalletTransactions(profile: Profile | null) {
   }, [profile, load]);
 
   if (!isReal) {
-    return { isReal: false as const, transactions: mockTransactions, isLoading: false, refresh: () => {} };
+    return { isReal: false as const, transactions: [] as WalletTransactionRow[], isLoading: false, refresh: () => {} };
   }
 
   return { isReal: true as const, transactions: rows, isLoading, refresh };

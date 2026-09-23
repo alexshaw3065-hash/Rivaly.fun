@@ -1,7 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useUserWallets } from "@dynamic-labs/sdk-react-core";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getAuthToken, useDynamicContext, useIsLoggedIn, useRefreshUser, useUserWallets } from "@dynamic-labs/sdk-react-core";
+import { isSolanaWallet } from "@dynamic-labs/solana";
+import { syncWalletAddress } from "@/app/auth/wallet-sync-action";
+import { openAuthModal } from "@/lib/auth-modal-store";
 import { useCurrentUser } from "@/components/current-user-provider";
 import { USDC_MINT } from "./constants";
 import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
@@ -26,6 +30,21 @@ export interface WalletState {
   hasLoaded: boolean;
   /** The wallet object that can actually sign — matched to `address`. */
   signingWallet: UserWallet | null;
+  /**
+   * Can this user stake right now, and if not, why:
+   * ready — the account's wallet is connected and can sign;
+   * no_wallet — the account has no wallet address yet (being set up);
+   * disconnected — it has one, but Dynamic has no wallet connected in this tab;
+   * mismatch — a different wallet is connected (`connectedAddress`).
+   */
+  status: "signed_out" | "loading" | "ready" | "no_wallet" | "disconnected" | "mismatch";
+  connectedAddress: string | null;
+  /**
+   * Re-runs the wallet login and comes back to `next`. A stale Dynamic
+   * session (Rivaly's own session outlived it) is cleared first — Dynamic
+   * won't reopen its login while it still believes someone is logged in.
+   */
+  reconnect: (next: string) => Promise<void>;
   refresh: () => void;
 }
 
@@ -64,6 +83,36 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const profile = useCurrentUser();
   const address = profile?.dynamicWalletAddress ?? null;
   const wallets = useUserWallets();
+  const { sdkHasLoaded, handleLogOut } = useDynamicContext();
+  const dynamicLoggedIn = useIsLoggedIn();
+  const refreshUser = useRefreshUser();
+  const router = useRouter();
+  const [syncing, setSyncing] = useState(false);
+  const syncTried = useRef(false);
+
+  // Self-heal a missing wallet address without making anyone sign in again:
+  // Dynamic often finishes provisioning the embedded wallet after the login
+  // that created the account, so the address wasn't in that first token.
+  // Refresh Dynamic's view of the user, hand its fresh token to the server
+  // (which verifies it and only ever fills a missing address), then reload.
+  useEffect(() => {
+    if (!profile || address || !sdkHasLoaded || !dynamicLoggedIn || syncTried.current) return;
+    syncTried.current = true;
+    let cancelled = false;
+    void (async () => {
+      setSyncing(true);
+      try {
+        await refreshUser().catch(() => undefined);
+        const res = await syncWalletAddress(getAuthToken());
+        if (res.filled && !cancelled) router.refresh();
+      } finally {
+        if (!cancelled) setSyncing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile, address, sdkHasLoaded, dynamicLoggedIn, refreshUser, router]);
 
   const [usdcBalance, setUsdcBalance] = useState(0);
   const [solBalance, setSolBalance] = useState(0);
@@ -119,6 +168,27 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // that effect each time. This way its identity only changes with `address`.
   const refresh = useCallback(() => void load(), [load]);
 
+  const connectedAddress = wallets.find((w) => w.chain === "SOL")?.address ?? wallets[0]?.address ?? null;
+  const status: WalletState["status"] = !profile
+    ? "signed_out"
+    : !sdkHasLoaded || syncing
+      ? "loading"
+      : !address
+        ? "no_wallet"
+        : signingWallet && isSolanaWallet(signingWallet)
+          ? "ready"
+          : wallets.length === 0
+            ? "disconnected"
+            : "mismatch";
+
+  const reconnect = useCallback(
+    async (next: string) => {
+      if (dynamicLoggedIn) await handleLogOut().catch(() => undefined);
+      openAuthModal({ next });
+    },
+    [dynamicLoggedIn, handleLogOut],
+  );
+
   const value = useMemo<WalletState>(
     () => ({
       isReal: address !== null,
@@ -127,9 +197,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       solBalance,
       hasLoaded,
       signingWallet,
+      status,
+      connectedAddress,
+      reconnect,
       refresh,
     }),
-    [address, usdcBalance, solBalance, hasLoaded, signingWallet, refresh],
+    [address, usdcBalance, solBalance, hasLoaded, signingWallet, status, connectedAddress, reconnect, refresh],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

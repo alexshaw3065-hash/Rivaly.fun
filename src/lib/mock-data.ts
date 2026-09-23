@@ -7,8 +7,6 @@
 import type {
   Match,
   Profile,
-  Transaction,
-  Wallet,
   Follow,
   Post,
   PostReply,
@@ -62,19 +60,6 @@ const seedProfiles: Omit<Profile, "dynamicWalletAddress">[] = [
 
 export const profiles: Profile[] = seedProfiles.map((p) => ({ ...p, dynamicWalletAddress: null }));
 
-export const wallet: Wallet = {
-  userId: "u3",
-  balanceCents: 45_000,
-  pendingCents: 0,
-  escrowCents: 2_500,
-};
-
-export const transactions: Transaction[] = [
-  { id: "t4", userId: "u3", type: "deposit", status: "completed", amountCents: 20_000, roomId: null, createdAt: "2026-08-14T09:00:00Z" },
-  { id: "t5", userId: "u3", type: "withdrawal", status: "completed", amountCents: -10_000, roomId: null, createdAt: "2026-08-10T14:20:00Z" },
-  { id: "t6", userId: "u3", type: "deposit", status: "completed", amountCents: 40_000, roomId: null, createdAt: "2026-08-01T12:00:00Z" },
-];
-
 export function matchById(id: string): Match | undefined {
   return matches.find((m) => m.id === id);
 }
@@ -83,8 +68,7 @@ export function matchById(id: string): Match | undefined {
 // .claude/skills/rivaly-engagement-psychology): a scheduled match with no
 // visible countdown wastes a real, free anticipation beat that's already
 // sitting in kickoffAt. Anchored to the story's own internal clock rather
-// than the real system clock — same reasoning as balanceHistory()'s 24h/
-// 7d/30d windows: kickoffAt values cluster around mid-August, before
+// than the real system clock — kickoffAt values cluster around mid-August, before
 // whatever "today" the system reports, so comparing against real Date.now()
 // would make every scheduled match read as already overdue. The latest
 // kickoff among currently-live matches is a real, derived stand-in for
@@ -524,27 +508,6 @@ export function goatedStreakRivals(count: number): Profile[] {
     .filter((p) => currentStreak(p.id) >= GOATED_STREAK_THRESHOLD)
     .sort((a, b) => currentStreak(b.id) - currentStreak(a.id))
     .slice(0, count);
-}
-
-export interface BalancePoint {
-  createdAt: string;
-  balanceCents: number;
-}
-
-// Real running-balance series built by walking the actual `transactions`
-// array chronologically, ending exactly at the current `wallet.balanceCents`
-// — a genuine derived series, not a decorative curve shaped to look nice.
-// Self-only: `transactions` only has rows for SELF_USER_ID.
-export function balanceHistory(): BalancePoint[] {
-  const sorted = [...transactions].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
-  const totalDelta = sorted.reduce((sum, t) => sum + t.amountCents, 0);
-  let running = wallet.balanceCents - totalDelta;
-  const points: BalancePoint[] = [];
-  for (const t of sorted) {
-    running += t.amountCents;
-    points.push({ createdAt: t.createdAt, balanceCents: running });
-  }
-  return points;
 }
 
 export interface AuthoredReply {

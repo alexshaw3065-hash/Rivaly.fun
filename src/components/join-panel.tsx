@@ -53,7 +53,7 @@ export function JoinPanel({
     initialEntry ? { side: initialEntry, cents: null, signature: null } : null,
   );
   const [error, setError] = useState<string | null>(null);
-  const { stake, phase } = useStake();
+  const { stake, phase, blocker, reconnect } = useStake();
   const pending = phase !== "idle";
 
   if (entered) {
@@ -85,9 +85,15 @@ export function JoinPanel({
   const short = stakeable.hasLoaded && stakeable.availableCents !== null && stakeable.availableCents < stakeCents;
   const accent = SIDE[side].color;
 
+  const comeBackTo = `${returnPath}${returnPath.includes("?") ? "&" : "?"}side=${side}`;
+
   function submit() {
     if (!currentUser) {
-      openAuthModal({ next: `${returnPath}${returnPath.includes("?") ? "&" : "?"}side=${side}` });
+      openAuthModal({ next: comeBackTo });
+      return;
+    }
+    if (blocker) {
+      if (!blocker.busy) void reconnect(comeBackTo);
       return;
     }
     if (problem || short || pending) return;
@@ -153,9 +159,17 @@ export function JoinPanel({
         </p>
       )}
       {currentUser ? (
-        <StakeButton phase={phase} onClick={submit} disabled={Boolean(problem) || short} color={accent}>
-          {problem ? "Join" : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}
-        </StakeButton>
+        <>
+          <StakeButton
+            phase={phase}
+            onClick={submit}
+            disabled={blocker ? Boolean(blocker.busy) : Boolean(problem) || short}
+            color={accent}
+          >
+            {blocker ? blocker.label : problem ? "Join" : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}
+          </StakeButton>
+          {blocker?.hint && <p className="-mt-2 text-center text-xs text-muted">{blocker.hint}</p>}
+        </>
       ) : (
         <button
           type="button"

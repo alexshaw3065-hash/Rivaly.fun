@@ -27,8 +27,30 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
+/** What the stake button should offer when the wallet can't sign yet. */
+export function walletBlocker(
+  status: string,
+  connectedAddress: string | null,
+): { label: string; hint: string; busy?: boolean } | null {
+  switch (status) {
+    case "loading":
+      return { label: "Getting your wallet ready…", hint: "", busy: true };
+    case "no_wallet":
+      return { label: "Set up your wallet", hint: "Your account doesn't have a wallet yet — one quick sign-in creates it." };
+    case "disconnected":
+      return { label: "Reconnect wallet to stake", hint: "Your wallet's session ended. Reconnect it — your pick stays put." };
+    case "mismatch":
+      return {
+        label: "Reconnect wallet to stake",
+        hint: `A different wallet${connectedAddress ? ` (${connectedAddress.slice(0, 4)}…)` : ""} is connected. Reconnect with the one on your account.`,
+      };
+    default:
+      return null;
+  }
+}
+
 export function useStake() {
-  const { signingWallet } = useWallet();
+  const { signingWallet, status, connectedAddress, reconnect } = useWallet();
   const [phase, setPhase] = useState<StakePhase>("idle");
   const busy = useRef(false);
 
@@ -36,7 +58,7 @@ export function useStake() {
     async (req: StakeRequest): Promise<SubmitResult> => {
       if (busy.current) return { ok: false, error: "A stake is already on its way." };
       if (!signingWallet || !isSolanaWallet(signingWallet)) {
-        return { ok: false, error: "Your wallet isn't connected — sign in again to stake." };
+        return { ok: false, error: walletBlocker(status, connectedAddress)?.hint || "Reconnect your wallet to stake." };
       }
       busy.current = true;
       try {
@@ -69,9 +91,10 @@ export function useStake() {
         busy.current = false;
       }
     },
-    [signingWallet],
+    [signingWallet, status, connectedAddress],
   );
 
-  const walletReady = Boolean(signingWallet && isSolanaWallet(signingWallet));
-  return { stake, phase, walletReady };
+  const walletReady = status === "ready";
+  const blocker = status === "signed_out" ? null : walletBlocker(status, connectedAddress);
+  return { stake, phase, walletReady, blocker, reconnect };
 }

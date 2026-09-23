@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { notifications, formatMoneyCompact } from "@/lib/mock-data";
+import { notifications } from "@/lib/mock-data";
 import { GiftIcon, BellIcon, PlusIcon } from "./icons";
-import { useWalletBalance } from "@/lib/use-wallet-balance";
 import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
 import { formatUsdcCompact } from "@/lib/wallet/format";
 import { openQuickDeposit } from "@/lib/quick-deposit-store";
@@ -13,13 +12,10 @@ import { openAuthModal } from "@/lib/auth-modal-store";
 export function TopBarIcons({ walletBordered = false }: { walletBordered?: boolean }) {
   const currentUser = useCurrentUser();
   const hasUnread = notifications.some((n) => !n.read);
-  const mockBalance = useWalletBalance();
   const live = useLiveWalletBalance();
-  const balanceLabel = live.isReal
-    ? live.hasLoaded
-      ? formatUsdcCompact(live.usdcBalance)
-      : "—"
-    : formatMoneyCompact(mockBalance);
+  // No wallet yet (or not read yet) is "—", never a made-up number — the
+  // wallet page it links to offers the setup.
+  const balanceLabel = live.isReal && live.hasLoaded ? formatUsdcCompact(live.usdcBalance) : "—";
 
   // Signed out: invite/notifications/balance are all meaningless (there's
   // nothing to invite people to yet, no notifications belong to you, and

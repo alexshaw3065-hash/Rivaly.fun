@@ -111,7 +111,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
   const [stakeDollars, setStakeDollars] = useState("");
   const [result, setResult] = useState<{ roomId: string; inviteCode: string; signature: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { stake, phase, walletReady } = useStake();
+  const { stake, phase, walletReady, blocker, reconnect } = useStake();
   const pending = phase !== "idle";
   const advanceTimer = useRef<number | undefined>(undefined);
 
@@ -185,6 +185,14 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
       if (!match || !pick || stakeProblem || limits.error) return;
       saveDraft({ matchId: match.id, pick, fullTime, halfTime, settings, side, stakeDollars });
       openAuthModal({ next: "/rooms/create?resume=1" });
+      return;
+    }
+    if (blocker) {
+      // Signed in, but the wallet can't sign here yet — reconnect it and
+      // come straight back to this stake, draft intact.
+      if (blocker.busy || !match || !pick) return;
+      saveDraft({ matchId: match.id, pick, fullTime, halfTime, settings, side, stakeDollars });
+      void reconnect("/rooms/create?resume=1");
       return;
     }
     if (!ready || !match || !pick || pending) return;
@@ -405,14 +413,19 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
             <StakeButton
               phase={phase}
               onClick={submit}
-              disabled={currentUser ? !ready : Boolean(stakeProblem || limits.error)}
+              disabled={currentUser ? (blocker ? Boolean(blocker.busy) : !ready) : Boolean(stakeProblem || limits.error)}
               color={sideColor}
             >
-              {stakeProblem ? "Throw down →" : `Throw down ${formatMoney(stakeCents)} on ${side === "yes" ? "YES" : "NO"}`}
+              {currentUser && blocker
+                ? blocker.label
+                : stakeProblem
+                  ? "Throw down →"
+                  : `Throw down ${formatMoney(stakeCents)} on ${side === "yes" ? "YES" : "NO"}`}
             </StakeButton>
             {!currentUser && (
               <p className="text-center text-xs text-muted">One quick sign-in, then your room goes live — your picks are kept.</p>
             )}
+            {currentUser && blocker?.hint && <p className="text-center text-xs text-muted">{blocker.hint}</p>}
           </div>
         </StickyBar>
       )}

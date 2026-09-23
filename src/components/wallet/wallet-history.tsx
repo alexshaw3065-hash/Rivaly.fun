@@ -4,16 +4,6 @@ import { useCurrentUser } from "@/components/current-user-provider";
 import { useWalletTransactions } from "@/lib/wallet/use-wallet-transactions";
 import { USDC_DECIMALS, explorerTxUrl } from "@/lib/wallet/constants";
 import { formatUsdc } from "@/lib/wallet/format";
-import { formatMoney } from "@/lib/mock-data";
-
-const mockTypeLabel: Record<string, string> = {
-  deposit: "Deposit",
-  withdrawal: "Withdrawal",
-  entry: "Room entry",
-  payout: "Payout",
-  refund: "Refund",
-  fee: "Fee",
-};
 
 // Transfers with Rivaly's escrow are stakes going in and winnings/refunds
 // coming back — named for what they are, not as generic deposits.
@@ -38,27 +28,8 @@ export function WalletHistory() {
 
   if (!history.isReal) {
     return (
-      <div className="mt-4 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
-        {history.transactions.map((tx) => {
-          const positive = tx.amountCents >= 0;
-          return (
-            <div key={tx.id} className="flex items-center justify-between px-4 py-3.5">
-              <div className="min-w-0">
-                <p className="text-sm text-foreground">{mockTypeLabel[tx.type]}</p>
-                <p className="mt-0.5 truncate font-mono text-xs text-muted">
-                  {formatDate(tx.createdAt)}
-                </p>
-              </div>
-              <p
-                className="shrink-0 font-mono text-sm font-medium"
-                style={{ color: positive ? "var(--rival-green)" : "var(--foreground)" }}
-              >
-                {positive ? "+" : "−"}
-                {formatMoney(Math.abs(tx.amountCents))}
-              </p>
-            </div>
-          );
-        })}
+      <div className="mt-4 rounded-lg border border-border bg-surface p-6 text-center">
+        <p className="text-sm text-muted">No wallet yet — set one up above and your history starts here.</p>
       </div>
     );
   }
