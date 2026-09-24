@@ -10,7 +10,7 @@ import { LiveBadge } from "../live-badge";
 import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
 import { Stadium } from "./stadium";
-import { endLevels, useRoomEnergy } from "@/lib/room-energy";
+import { useRoomRace } from "@/lib/room-energy";
 import { RoomShareButton } from "./room-share-button";
 
 export const REACTION_EVENT = "rivaly:reaction";
@@ -25,17 +25,24 @@ const MAX_FLOATS = 14;
 // scoring side's stand floods with light, a GOAL banner sweeps across and
 // the phone buzzes. Reactions sent in chat float up over the stadium
 // (mechanism #4, collective effervescence) — only ever real ones.
+//
+// The stadium race (room-race.ts): each end of the room climbs as its
+// backers chat; the first to break through takes the stadium — its fans hold
+// up a card mosaic and a banner sweeps the room — and holds it until the
+// other side fights back. After the result, the winning call's end celebrates.
 export function RoomStage({
   match,
   claim,
   creator,
   sharePath,
+  outcome = null,
   children,
 }: {
   match: Match;
   claim: string;
   creator: { displayName: string; username: string; avatarUrl: string | null } | null;
   sharePath: string;
+  outcome?: "yes" | "no" | "void" | null;
   children?: React.ReactNode;
 }) {
   const home = teamIdentity(match.homeTeam);
@@ -77,7 +84,33 @@ export function RoomStage({
   }, []);
 
   const scorer = goal ? (goal.side === "home" ? home : away) : null;
-  const energy = endLevels(useRoomEnergy());
+
+  // The race. Once the call is settled the result outranks the noise: the
+  // winning end celebrates and holds the stadium, the other end goes quiet.
+  const race = useRoomRace();
+  const decided = outcome === "yes" || outcome === "no" ? outcome : null;
+  const levels = decided ? { yes: decided === "yes" ? 1 : 0, no: decided === "no" ? 1 : 0 } : race.levels;
+  const holder = decided ?? race.holder;
+
+  // Banner when an end takes the stadium while you're watching (not on load).
+  const seen = useRef(-1);
+  const [takeover, setTakeover] = useState<{ side: "yes" | "no"; key: number } | null>(null);
+  useEffect(() => {
+    const count = race.takeovers.length;
+    if (seen.current === -1 || count <= seen.current) {
+      seen.current = Math.max(seen.current, count);
+      return;
+    }
+    seen.current = count;
+    const latest = race.takeovers[count - 1];
+    const show = window.setTimeout(() => setTakeover({ side: latest.side, key: latest.at }), 0);
+    navigator.vibrate?.([30, 50, 30, 50, 60]);
+    const hide = window.setTimeout(() => setTakeover(null), 2800);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, [race.takeovers]);
 
   return (
     <section className="stadium-art relative -mx-4 overflow-hidden rounded-b-3xl bg-[var(--st-pitch-2)] md:mx-0 md:rounded-2xl">
@@ -86,7 +119,8 @@ export function RoomStage({
         awayTeam={match.awayTeam}
         sport={sportOf(match)}
         live={live}
-        energy={energy}
+        energy={levels}
+        holder={holder}
         flare={goal?.side ?? null}
         flareKey={goal?.key ?? 0}
       />
@@ -152,6 +186,18 @@ export function RoomStage({
 
         {children}
       </div>
+
+      {/* An end takes the stadium — sweeps across in the side's colour */}
+      {takeover && !goal && (
+        <div key={takeover.key} role="status" className="goal-sweep pointer-events-none absolute inset-x-0 top-[18%] z-20 flex justify-center px-4">
+          <span
+            className="rounded-lg px-4 py-2 text-center font-display text-xl font-extrabold tracking-wide text-white shadow-lg"
+            style={{ background: takeover.side === "yes" ? "#3d6bff" : "#ef4444" }}
+          >
+            {takeover.side.toUpperCase()} END TAKES THE STADIUM
+          </span>
+        </div>
+      )}
 
       {/* GOAL — sweeps across in the scorer's colours, then clears */}
       {goal && scorer && (

@@ -1,65 +1,44 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { EntrySide } from "@/lib/types";
+import { foldMessage, levelsAt, newRace, type RaceSide, type RaceState, type Takeover } from "@/lib/room-race";
 
-// Crowd energy per end of the room — the stadium's glow and the crowd-noise
-// meter read it; the chat feeds it. Every message or reaction from someone
-// who backed a side adds to that side; energy decays with a one-minute half
-// life, so it's always "who's loud right now", never who was loud an hour
-// ago. Spectators don't count. Only real messages ever add energy.
+// The live stadium race for the open room, shared by the stadium, its
+// takeover banner and the chat feed. The server folds the room's whole
+// message log into a starting RaceState (room-race.ts); the chat then feeds
+// every new backer message in with its server timestamp, so every phone
+// holds the same race and agrees on who holds the stadium.
 //
 // Engagement mechanisms #4 (collective effervescence) and #5 (social
-// identity/rivalry) — .claude/skills/rivaly-engagement-psychology: two ends
-// of a ground trying to out-sing each other.
+// identity/rivalry) — .claude/skills/rivaly-engagement-psychology.
 
-const HALF_LIFE_MS = 60_000;
 const TICK_MS = 1000;
-const FLOOR = 0.01;
 
-export interface RoomEnergy {
-  yes: number;
-  no: number;
+export interface RoomRace {
+  levels: Record<RaceSide, number>;
+  holder: RaceSide | null;
+  takeovers: Takeover[];
 }
 
-let yes = 0;
-let no = 0;
-let at = Date.now();
-let snapshot: RoomEnergy = { yes: 0, no: 0 };
+let state: RaceState = newRace(0);
+let snapshot: RoomRace = { levels: { yes: 0, no: 0 }, holder: null, takeovers: [] };
 const listeners = new Set<() => void>();
 let ticker: number | undefined;
 
-const decayFactor = (ms: number) => Math.pow(0.5, Math.max(0, ms) / HALF_LIFE_MS);
-
-function decay(now: number) {
-  const k = decayFactor(now - at);
-  yes *= k;
-  no *= k;
-  if (yes < FLOOR) yes = 0;
-  if (no < FLOOR) no = 0;
-  at = now;
-}
-
 function emit() {
-  snapshot = { yes, no };
+  snapshot = { levels: levelsAt(state, Date.now()), holder: state.holder, takeovers: state.takeovers };
   listeners.forEach((l) => l());
 }
 
-/** One message or reaction from a backer of `side`, optionally in the past. */
-export function addEnergy(side: EntrySide, amount = 1, when = Date.now()) {
-  const now = Date.now();
-  decay(now);
-  const value = amount * decayFactor(now - when);
-  if (side === "yes") yes += value;
-  else no += value;
+/** Start from the server's fold of the room's history. */
+export function initRace(initial: RaceState) {
+  state = initial;
   emit();
 }
 
-/** A new room: start from silence. */
-export function resetEnergy() {
-  yes = 0;
-  no = 0;
-  at = Date.now();
+/** A new message from a backer, at its server time. */
+export function addRaceMessage(userId: string, side: RaceSide, at: number) {
+  state = foldMessage(state, userId, side, at);
   emit();
 }
 
@@ -67,8 +46,7 @@ function subscribe(listener: () => void) {
   listeners.add(listener);
   if (ticker === undefined) {
     ticker = window.setInterval(() => {
-      if (yes === 0 && no === 0) return;
-      decay(Date.now());
+      if (state.energy.yes === 0 && state.energy.no === 0) return;
       emit();
     }, TICK_MS);
   }
@@ -81,20 +59,12 @@ function subscribe(listener: () => void) {
   };
 }
 
-const SERVER: RoomEnergy = { yes: 0, no: 0 };
+const SERVER: RoomRace = { levels: { yes: 0, no: 0 }, holder: null, takeovers: [] };
 
-export function useRoomEnergy(): RoomEnergy {
+export function useRoomRace(): RoomRace {
   return useSyncExternalStore(
     subscribe,
     () => snapshot,
     () => SERVER,
   );
-}
-
-/**
- * How loud each end is, 0–1 — ~5 recent messages from an end's backers and
- * that end's fans are fully up. The stadium's crowd reads this directly.
- */
-export function endLevels(e: RoomEnergy): { yes: number; no: number } {
-  return { yes: Math.min(1, e.yes / 5), no: Math.min(1, e.no / 5) };
 }

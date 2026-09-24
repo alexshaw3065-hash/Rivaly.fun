@@ -4,7 +4,7 @@
 // server's initial fetch and the browser's realtime stream so both read the
 // same. Environment-agnostic: no Supabase client here.
 
-export type EventTone = "goal" | "card" | "var" | "whistle";
+export type EventTone = "goal" | "card" | "var" | "whistle" | "takeover-yes" | "takeover-no";
 
 export interface MatchMoment {
   label: string;
@@ -46,7 +46,19 @@ export function matchMoment(action: string, minute: number | null | undefined, p
 }
 
 /** System feed rows carry their tone in the body prefix so one field round-trips. */
-export const MOMENT_PREFIX: Record<EventTone, string> = { goal: "§goal§", card: "§card§", var: "§var§", whistle: "§whistle§" };
+export const MOMENT_PREFIX: Record<EventTone, string> = {
+  goal: "§goal§",
+  card: "§card§",
+  var: "§var§",
+  whistle: "§whistle§",
+  "takeover-yes": "§takeover-yes§",
+  "takeover-no": "§takeover-no§",
+};
+
+/** The feed line when an end of the room takes over the stadium. */
+export function takeoverMoment(side: "yes" | "no"): MatchMoment {
+  return { label: `🏟 ${side.toUpperCase()} end took the stadium`, tone: side === "yes" ? "takeover-yes" : "takeover-no" };
+}
 
 export function encodeMoment(m: MatchMoment): string {
   return `${MOMENT_PREFIX[m.tone]}${m.label}`;

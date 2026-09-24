@@ -5,7 +5,9 @@ import { getRoomById, getRoomByInviteCode, splitPctFromTotals } from "@/lib/supa
 import { getMatchById } from "@/lib/supabase/matches";
 import { getProfileById } from "@/lib/supabase/profiles";
 import { getMyEntryForRoom, getRoomRivals } from "@/lib/supabase/entries";
-import { getRoomMessages } from "@/lib/supabase/messages";
+import { getRoomMessageLog, getRoomMessages } from "@/lib/supabase/messages";
+import { raceFrom } from "@/lib/room-race";
+import { encodeMoment, takeoverMoment } from "@/lib/match-event-label";
 import { getMatchMoments } from "@/lib/supabase/match-events";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
@@ -78,14 +80,25 @@ export default async function RoomPage({
   if (unfinished && (match.status !== "scheduled" || outcome)) {
     after(() => settleRoom(room.id).then(() => undefined, () => undefined));
   }
-  const [messages, moments, rivals] = await Promise.all([
+  const [messages, moments, rivals, messageLog] = await Promise.all([
     getRoomMessages(room.id),
     getMatchMoments(match.id, room.id),
     getRoomRivals(room.id, 200),
+    getRoomMessageLog(room.id),
   ]);
-  // Chat and match moments in one feed, by time.
-  const feed = [...messages, ...moments].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   const sides = Object.fromEntries(rivals.map((r) => [r.userId, r.side])) as Record<string, EntrySide>;
+  // The stadium race, folded from the room's whole log — backers only.
+  const race = raceFrom(messageLog.flatMap((m) => (sides[m.userId] ? [{ userId: m.userId, side: sides[m.userId], at: m.at }] : [])));
+  const takeoverLines = race.takeovers.map((t, i) => ({
+    id: `takeover-${i}`,
+    roomId: room.id,
+    userId: null,
+    kind: "system" as const,
+    body: encodeMoment(takeoverMoment(t.side)),
+    createdAt: new Date(t.at).toISOString(),
+  }));
+  // Chat, match moments and takeovers in one feed, by time.
+  const feed = [...messages, ...moments, ...takeoverLines].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   const claim = abbreviateClaim(room.prediction, match.homeTeam, match.awayTeam);
   const sharePath = `/rooms/${room.id}${room.visibility === "private" ? `?code=${room.inviteCode}` : ""}`;
   const stakeLimitLabel =
@@ -104,6 +117,7 @@ export default async function RoomPage({
               claim={claim}
               creator={creator ? { displayName: creator.displayName, username: creator.username, avatarUrl: creator.avatarUrl } : null}
               sharePath={sharePath}
+              outcome={outcome}
             />
             {outcome && (
               <RoomResult
@@ -127,7 +141,7 @@ export default async function RoomPage({
               claim={claim}
             />
 
-            <ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} />
+            <ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} />
           </div>
 
           <aside className="flex flex-col gap-4 md:sticky md:top-[calc(var(--header-height)+16px)] md:self-start">

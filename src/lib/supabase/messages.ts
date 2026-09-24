@@ -17,10 +17,27 @@ export async function getRoomMessages(roomId: string): Promise<DisplayChatMessag
     .from("messages")
     .select("id, room_id, user_id, body, created_at, author:profiles(display_name, avatar_url)")
     .eq("room_id", roomId)
-    .order("created_at", { ascending: true })
+    // Newest first then reversed: a busy room opens on its latest chat, not
+    // its first 50 messages.
+    .order("created_at", { ascending: false })
     .limit(HISTORY_LIMIT);
 
   if (!data) return [];
   const rows = data as unknown as (MessageRow & { author: { display_name: string; avatar_url: string | null } | null })[];
-  return rows.map((row) => mapMessageRow(row, row.author ?? undefined));
+  return rows.map((row) => mapMessageRow(row, row.author ?? undefined)).reverse();
+}
+
+const LOG_LIMIT = 5000;
+
+/** Who said something when — the whole room, for folding the stadium race (room-race.ts). */
+export async function getRoomMessageLog(roomId: string): Promise<{ userId: string; at: number }[]> {
+  if (!MESSAGE_UUID_RE.test(roomId)) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("messages")
+    .select("user_id, created_at")
+    .eq("room_id", roomId)
+    .order("created_at", { ascending: true })
+    .limit(LOG_LIMIT);
+  return (data ?? []).map((r) => ({ userId: r.user_id as string, at: +new Date(r.created_at as string) }));
 }

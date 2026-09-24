@@ -9,9 +9,10 @@ import {
   type DisplayChatMessage,
   type MessageRow,
 } from "@/lib/supabase/message-mapper";
-import { encodeMoment, matchMoment } from "@/lib/match-event-label";
+import { encodeMoment, matchMoment, takeoverMoment } from "@/lib/match-event-label";
 import { openAuthModal } from "@/lib/auth-modal-store";
-import { addEnergy, resetEnergy } from "@/lib/room-energy";
+import { addRaceMessage, initRace, useRoomRace } from "@/lib/room-energy";
+import type { RaceState } from "@/lib/room-race";
 import type { EntrySide } from "@/lib/types";
 import { useCurrentUser } from "./current-user-provider";
 import { ChatFeedRows } from "./chat-feed-rows";
@@ -34,8 +35,6 @@ const ROW_HEIGHT = 40;
 const EXIT_MS = 300;
 const HEAT_WINDOW_MS = 120_000;
 const QUICK_COOLDOWN_MS = 1200;
-/** Messages older than this don't count toward the crowd's starting energy. */
-const ENERGY_SEED_MS = 5 * 60_000;
 
 /** One tap, no typing: the things people actually shout at a screen. */
 const QUICK = ["🔥", "😂", "😤", "👀", "⚽ GOAL!", "Told you 😏", "🧢 Cap", "Robbed 😭"];
@@ -57,6 +56,7 @@ export function ChatComposer({
   matchId,
   initialMessages,
   sides = {},
+  initialRace,
 }: {
   roomId: string;
   matchId?: string;
@@ -64,6 +64,8 @@ export function ChatComposer({
   initialMessages: DisplayChatMessage[];
   /** userId → the side they backed, for colouring names. */
   sides?: Record<string, EntrySide>;
+  /** The stadium race folded from the room's whole log on the server. */
+  initialRace?: RaceState;
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
@@ -78,18 +80,25 @@ export function ChatComposer({
     sidesRef.current = sides;
   }, [sides]);
 
-  // Crowd energy: start from the last few minutes of real chat, by side.
+  // The stadium race: start from the server's fold of the whole room, then
+  // every new backer message is folded in at its server time (below).
   useEffect(() => {
-    resetEnergy();
-    const cutoff = Date.now() - ENERGY_SEED_MS;
-    for (const m of initialMessages) {
-      const side = m.kind === "message" && m.userId ? sidesRef.current[m.userId] : undefined;
-      const when = +new Date(m.createdAt);
-      if (side && when >= cutoff) addEnergy(side, 1, when);
-    }
-    // Per room: re-seeding on every re-render would double-count.
+    if (initialRace) initRace(initialRace);
+    // Per room: the server's fold is the starting point, once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
+
+  // A takeover that happens while you're here gets its line in the feed.
+  const { takeovers } = useRoomRace();
+  const seenTakeovers = useRef(initialRace?.takeovers.length ?? 0);
+  useEffect(() => {
+    if (takeovers.length <= seenTakeovers.current) return;
+    const fresh = takeovers.slice(seenTakeovers.current);
+    seenTakeovers.current = takeovers.length;
+    for (const t of fresh) {
+      push({ id: `takeover-${t.at}`, roomId, userId: null, kind: "system", body: encodeMoment(takeoverMoment(t.side)), createdAt: new Date(t.at).toISOString() }, EXIT_MS);
+    }
+  }, [takeovers, push, roomId]);
 
   // Realtime rows carry no joined author: seeded from the server fetch and
   // extended on demand for a brand-new poster's first message.
@@ -121,7 +130,7 @@ export function ChatComposer({
         push(mapMessageRow(row, author), EXIT_MS);
         floatReaction(row.body);
         const side = sidesRef.current[row.user_id];
-        if (side) addEnergy(side);
+        if (side) addRaceMessage(row.user_id, side, +new Date(row.created_at));
       })
       .on("presence", { event: "sync" }, () => setWatching(Object.keys(channel.presenceState()).length));
 

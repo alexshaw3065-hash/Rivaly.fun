@@ -9,6 +9,10 @@ import { buildCrowd, type CrowdLayer, type End } from "./crowd";
 // the away end behind the netting on the right), executive boxes between the
 // tiers, LED boards on the touchline, and the pitch below.
 //
+// The stadium race (room-race.ts): the end that takes the stadium holds up
+// a card mosaic spelling its side across its upper tier until the other side
+// fights back and takes it off them.
+//
 // Crowd energy lives in the people, not over them (room-energy.ts): the
 // room's YES backers are the left end of the ground, NO the right. As an
 // end's backers chat and react, its fans come alive — more arms up, more
@@ -46,6 +50,60 @@ const FLAGS: [number, "upper" | "lower", number][] = [
   [318, "upper", 1],
   [364, "lower", 0],
 ];
+
+// 5x7 letters for the card mosaic.
+const GLYPHS: Record<string, string[]> = {
+  Y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+  E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+  S: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+  N: ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+  O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+};
+
+// The takeover: the holding end's upper tier holds up coloured cards that
+// spell their side — a tifo, the way real ends take a ground. One path per
+// colour, so ~800 cards cost three SVG elements.
+function Tifo({ side }: { side: End }) {
+  const cell = 3.5;
+  const x0 = side === "yes" ? 6 : END_SPLIT + 6;
+  const width = END_SPLIT - 12;
+  const cols = Math.floor(width / cell);
+  const rows = Math.floor((UPPER.rows * UPPER.rowH - 2) / cell);
+  const word = side === "yes" ? "YES" : "NO";
+  const scale = 2; // cards per letter pixel
+  const wordCols = (word.length * 6 - 1) * scale;
+  const startCol = Math.floor((cols - wordCols) / 2);
+  const startRow = Math.floor((rows - 7 * scale) / 2);
+  const lit = new Set<string>();
+  [...word].forEach((ch, li) =>
+    GLYPHS[ch].forEach((line, gy) =>
+      [...line].forEach((bit, gx) => {
+        if (bit !== "1") return;
+        for (let dy = 0; dy < scale; dy++)
+          for (let dx = 0; dx < scale; dx++) lit.add(`${startCol + (li * 6 + gx) * scale + dx},${startRow + gy * scale + dy}`);
+      }),
+    ),
+  );
+  let base = "";
+  let shade = "";
+  let letters = "";
+  const size = cell - 0.6;
+  const card = (c: number, r: number) => `M${(x0 + c * cell).toFixed(1)} ${(UPPER.top + 1 + r * cell).toFixed(1)}h${size}v${size}h${-size}Z`;
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      if (lit.has(`${c},${r}`)) letters += card(c, r);
+      else if ((c + r) % 3 === 0) shade += card(c, r);
+      else base += card(c, r);
+    }
+  const color = SIDE_GLOW[side];
+  return (
+    <g className="tifo-raise">
+      <path d={base} fill={color} />
+      <path d={shade} fill={color} opacity={0.78} />
+      <path d={letters} fill="#fff" />
+    </g>
+  );
+}
 
 function CrowdGroup({ layer, end, level, flare }: { layer: CrowdLayer; end: End; level: number; flare: "home" | "away" | null }) {
   const bouncing = level > 0.45;
@@ -97,6 +155,7 @@ export function Stadium({
   sport,
   live = false,
   energy = { yes: 0, no: 0 },
+  holder = null,
   flare,
   flareKey,
 }: {
@@ -106,6 +165,8 @@ export function Stadium({
   live?: boolean;
   /** How loud each end of the room is, 0–1 (see endLevels in room-energy.ts). */
   energy?: Record<End, number>;
+  /** The end that holds the stadium — its upper tier shows the card mosaic. */
+  holder?: End | null;
   flare: "home" | "away" | null;
   flareKey: number;
 }) {
@@ -199,6 +260,7 @@ export function Stadium({
             <CrowdGroup key={`u${end}`} layer={crowd.upper[end]} end={end} level={clamp01(energy[end])} flare={flare} />
           ))}
           <rect x="0" y={UPPER.top} width={W} height={UPPER.rows * UPPER.rowH} fill="#000" style={{ opacity: "var(--st-depth)" }} />
+          {holder && <Tifo key={holder} side={holder} />}
           {(["yes", "no"] as const).map((end) => (
             <CrowdGroup key={`l${end}`} layer={crowd.lower[end]} end={end} level={clamp01(energy[end])} flare={flare} />
           ))}

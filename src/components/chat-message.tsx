@@ -10,6 +10,8 @@ const TONE: Record<string, { color: string; weight: string }> = {
   card: { color: "#f5c542", weight: "font-semibold" },
   var: { color: "#14b8c4", weight: "font-semibold" },
   whistle: { color: "var(--muted)", weight: "font-medium" },
+  "takeover-yes": { color: "var(--rival-blue)", weight: "font-bold" },
+  "takeover-no": { color: "var(--rival-red)", weight: "font-bold" },
 };
 
 // Inert content only — entrance/exit motion belongs to the wrapping
