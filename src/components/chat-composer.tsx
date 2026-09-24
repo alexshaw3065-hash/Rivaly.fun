@@ -57,6 +57,7 @@ export function ChatComposer({
   initialMessages,
   sides = {},
   initialRace,
+  players,
 }: {
   roomId: string;
   matchId?: string;
@@ -66,6 +67,8 @@ export function ChatComposer({
   sides?: Record<string, EntrySide>;
   /** The stadium race folded from the room's whole log on the server. */
   initialRace?: RaceState;
+  /** Player id → name from the line-ups, so a goal line can say who scored. */
+  players?: Record<number, string>;
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
@@ -79,6 +82,14 @@ export function ChatComposer({
   useEffect(() => {
     sidesRef.current = sides;
   }, [sides]);
+  const playersRef = useRef(players);
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+  // The feed sends each event more than once (first report, confirmation,
+  // the scorer's name) under one event id; the room hears it once — the
+  // first, fastest report.
+  const seenEvents = useRef(new Set<string>());
 
   // The stadium race: start from the server's fold of the whole room, then
   // every new backer message is folded in at its server time (below).
@@ -137,7 +148,13 @@ export function ChatComposer({
     if (matchId) {
       channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${matchId}` }, (payload) => {
         const e = payload.new as { id: string; action: string; minute: number | null; payload: Record<string, unknown> | null; occurred_at: string };
-        const moment = matchMoment(e.action, e.minute, e.payload);
+        const eid = e.payload?._eid;
+        if (typeof eid === "number") {
+          const key = `${e.action}:${eid}`;
+          if (seenEvents.current.has(key)) return;
+          seenEvents.current.add(key);
+        }
+        const moment = matchMoment(e.action, e.minute, e.payload, playersRef.current);
         if (!moment) return;
         push({ id: `event-${e.id}`, roomId, userId: null, kind: "system", body: encodeMoment(moment), createdAt: e.occurred_at }, EXIT_MS);
       });

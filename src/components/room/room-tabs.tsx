@@ -5,18 +5,22 @@ import { formatMoney } from "@/lib/mock-data";
 import { teamIdentity } from "@/lib/team-identity";
 import { useRoomRace } from "@/lib/room-energy";
 import type { StatRow } from "@/lib/match-stats";
+import type { MatchLineups } from "@/lib/match-lineups";
 import type { Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
+import { LineupPanel } from "./room-lineup";
 
-// Everything under the pool, in tabs: the crowd (chat), the match stats, the
-// room's activity and an overview. Chat stays mounted when you switch away,
+// Everything under the pool, in tabs: the line-ups, the crowd (chat), the
+// match stats, the room's activity and an overview. Chat stays mounted when you switch away,
 // so it keeps listening (and keeps feeding the stadium race) in the
-// background. All real data: TxLINE's team stats, the room's own entries and
-// takeovers — nothing filled in.
+// background. All real data: TxLINE's line-ups and team stats, the room's own
+// entries and takeovers — nothing filled in. Chat is where the room opens:
+// the crowd is the point (engagement mechanism #4).
 
-type Tab = "chat" | "stats" | "activity" | "overview";
+type Tab = "lineup" | "chat" | "stats" | "activity" | "overview";
 const TABS: { id: Tab; label: string }[] = [
+  { id: "lineup", label: "Lineup" },
   { id: "chat", label: "Chat" },
   { id: "stats", label: "Stats" },
   { id: "activity", label: "Activity" },
@@ -42,12 +46,15 @@ export interface OverviewFact {
 export function RoomTabs({
   chat,
   match,
+  lineups,
   stats,
   activity,
   overview,
 }: {
   chat: ReactNode;
   match: Match;
+  /** null before they're out; undefined where there's no line-up to show (NFL). */
+  lineups: MatchLineups | null | undefined;
   stats: StatRow[];
   activity: ActivityItem[];
   overview: OverviewFact[];
@@ -57,14 +64,14 @@ export function RoomTabs({
   return (
     <section className="flex flex-col">
       <div role="tablist" aria-label="Room" className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl bg-surface p-1">
-        {TABS.map((t) => (
+        {TABS.filter((t) => t.id !== "lineup" || lineups !== undefined).map((t) => (
           <button
             key={t.id}
             role="tab"
             type="button"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className="h-9 flex-1 shrink-0 rounded-lg px-3 text-sm font-semibold transition-[background-color,color] duration-150"
+            className="h-9 flex-1 shrink-0 rounded-lg px-2.5 text-[13px] font-semibold transition-[background-color,color] duration-150 md:px-3 md:text-sm"
             style={{
               background: tab === t.id ? "var(--background)" : "transparent",
               color: tab === t.id ? "var(--foreground)" : "var(--muted)",
@@ -79,6 +86,7 @@ export function RoomTabs({
       <div className="mt-3">
         {/* Chat stays mounted so the room keeps listening while you look elsewhere. */}
         <div hidden={tab !== "chat"}>{chat}</div>
+        {tab === "lineup" && lineups !== undefined && <LineupPanel match={match} lineups={lineups} />}
         {tab === "stats" && <StatsPanel match={match} rows={stats} />}
         {tab === "activity" && <ActivityPanel items={activity} />}
         {tab === "overview" && <OverviewPanel facts={overview} />}

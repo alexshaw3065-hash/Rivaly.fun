@@ -14,6 +14,7 @@ import { sportOf } from "@/lib/markets";
 import { MatchTimeline } from "@/components/room/match-timeline";
 import { RoomTabs, type ActivityItem } from "@/components/room/room-tabs";
 import { matchStats } from "@/lib/match-stats";
+import { buildLineups, playerNames } from "@/lib/match-lineups";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
 import { RoomResult } from "@/components/room-result";
@@ -90,13 +91,16 @@ export default async function RoomPage({
     getRoomRivals(room.id, 200),
     getRoomMessageLog(room.id),
   ]);
-  const moments = momentsFromRows(eventRows, room.id);
+  // Player names from the line-ups, so moments can say who scored.
+  const names = playerNames(eventRows);
+  const moments = momentsFromRows(eventRows, room.id, names);
   // The match on one line under the stadium, with the room's pulse beneath it.
   const timeline = buildTimeline({
     sport: sportOf(match),
     kickoffAt: +new Date(match.kickoffAt),
     rows: eventRows,
     messageTimes: messageLog.map((m) => m.at),
+    players: names,
   });
   const sides = Object.fromEntries(rivals.map((r) => [r.userId, r.side])) as Record<string, EntrySide>;
   // The stadium race, folded from the room's whole log — backers only.
@@ -115,6 +119,9 @@ export default async function RoomPage({
   // The tabs under the pool: stats from the match feed, the room's activity,
   // and the overview facts.
   const stats = matchStats(match, eventRows);
+  // Football only: NFL sends "lineups" too, but a pitch of 53-man rosters isn't one.
+  const soccer = sportOf(match) === "soccer";
+  const lineups = soccer ? buildLineups(eventRows, match.homeTeam, match.awayTeam) : null;
   const activity: ActivityItem[] = [
     ...rivals.map((r) => ({
       id: `entry-${r.userId}`,
@@ -177,8 +184,9 @@ export default async function RoomPage({
             />
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} />}
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} players={names} />}
               match={match}
+              lineups={soccer ? lineups : undefined}
               stats={stats}
               activity={activity}
               overview={[

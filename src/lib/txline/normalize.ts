@@ -3,7 +3,8 @@
 // path-alias config. Keeping it relative means one copy of the sport-branching
 // logic serves both.
 import type { MatchStatus } from "../types";
-import { SPORT_SOCCER, SPORT_US_FOOTBALL, type TxLineScores } from "./types";
+import type { LineupPosition, StoredLineupTeam } from "../match-lineups";
+import { SPORT_SOCCER, SPORT_US_FOOTBALL, type TxLineScores, type TxLineTeamLineup } from "./types";
 
 // Actions worth keeping as discrete events. The feed emits ~40 action types
 // per match including weather, pitch, jersey and possession, which would bury
@@ -26,7 +27,44 @@ const NOTABLE_ACTIONS = new Set([
   "kickoff",
   "halftime_finalised",
   "game_finalised",
+  // The squads, shortly before kick-off — the room's Lineup tab.
+  "lineups",
+  // Corrections. Names arrive on amends (a card's player, a substitution's
+  // in/out), and a discard withdraws an event reported in error. Settlement
+  // already reads both as "the feed changed its mind" (resolve.ts).
+  "action_amend",
+  "action_discarded",
 ]);
+
+const POSITIONS: Record<number, LineupPosition> = { 34: "GK", 35: "DEF", 36: "MID", 37: "FWD" };
+
+/** "Last, First" → "First Last". */
+function displayName(preferred: string): string {
+  const [last, first] = preferred.split(",").map((x) => x.trim());
+  return first ? `${first} ${last}` : preferred.trim();
+}
+
+/** The matchday squads only — starters and the bench, not everyone registered. */
+function compactLineups(teams: TxLineTeamLineup[]): StoredLineupTeam[] {
+  return teams.map((t) => ({
+    name: t.preferredName,
+    players: (t.lineups ?? [])
+      .filter((p) => p.starter || p.statusId === 0)
+      .map((p) => ({
+        id: p.player.normativeId,
+        name: displayName(p.player.preferredName),
+        surname: p.player.preferredName.split(",")[0].trim(),
+        number: p.rosterNumber,
+        pos: POSITIONS[p.positionId] ?? "MID",
+        starter: p.starter,
+      })),
+  }));
+}
+
+/** Clock seconds → the match minute as football counts it (0:00–0:59 is the 1st). */
+function clockMinute(seconds: number | undefined): number | null {
+  return typeof seconds === "number" && seconds >= 0 ? Math.floor(seconds / 60) + 1 : null;
+}
 
 /**
  * Total points/goals for a participant, per sport.
@@ -269,15 +307,23 @@ export function normalizeEvents(records: TxLineScores[], sportId: number): Norma
       snapshot._home = p1Home ? p1 : p2;
       snapshot._away = p1Home ? p2 : p1;
     }
-    const participant = r.Data?.Participant;
+    // Shots, goals and cards carry the team at the top level; substitutions
+    // carry it in Data.
+    const participant = r.Data?.Participant ?? r.Participant;
     if (participant === 1 || participant === 2) snapshot._side = (participant === 1) === p1Home ? "home" : "away";
+    // The event's id and clock: a first report, its confirmation and later
+    // detail (the scorer's name) arrive as separate records sharing one id,
+    // and an amend finds its event by clock — see collapseEvents().
+    if (typeof r.Id === "number") snapshot._eid = r.Id;
+    if (typeof r.Clock?.Seconds === "number") snapshot._clock = r.Clock.Seconds;
+    if (r.Action === "lineups" && Array.isArray(r.Lineups)) snapshot.teams = compactLineups(r.Lineups);
 
     events.push({
       providerSeq: r.Seq,
       action: r.Action,
-      minute: r.Data?.Minutes ?? null,
-      participant: r.Data?.Participant ?? null,
-      playerId: r.Data?.PlayerId ?? null,
+      minute: r.Data?.Minutes ?? (r.Clock?.Running ? clockMinute(r.Clock.Seconds) : null),
+      participant: participant ?? null,
+      playerId: r.Data?.PlayerId ?? r.Data?.New?.PlayerId ?? null,
       payload: { ...((r.Data as Record<string, unknown>) ?? {}), ...snapshot },
       occurredAt: new Date(Number(r.Ts)).toISOString(),
     });

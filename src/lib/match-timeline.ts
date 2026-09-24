@@ -5,9 +5,11 @@
 // browser extends it with live events the same way. Tested in
 // match-timeline.test.ts.
 //
-// TxLINE sends player IDs but no names, so markers describe the moment —
-// type, minute, goal type, card reason, VAR outcome, the score, the team
-// where the feed says it — never an invented player.
+// Markers describe the moment — type, minute, goal type, card reason, VAR
+// outcome, the score, the team — and name the player when the feed gave an
+// id the line-ups can put a name to (see match-lineups.ts). Never invented.
+
+import { kickoffKind } from "./match-feed.ts";
 
 export type TimelineKind = "goal" | "penalty" | "yellow" | "red" | "var" | "var-end" | "kickoff" | "halftime" | "fulltime";
 
@@ -17,6 +19,8 @@ export interface TimelineEvent {
   /** Position on the track (match minutes, or wall minutes for NFL). */
   minute: number;
   side: "home" | "away" | null;
+  /** The scorer / booked player, from the line-ups. */
+  player: string | null;
   title: string;
   detail: string | null;
   score: { home: number; away: number } | null;
@@ -40,6 +44,8 @@ export interface TimelineData {
   heat: number[];
   kickoffAt: number;
   halftimeAt: number | null;
+  /** Player id → name, so live moments can be named too. */
+  players?: Record<number, string>;
 }
 
 export const HEAT_BUCKETS = 45;
@@ -51,6 +57,7 @@ const GOAL_TYPES: Record<string, string> = {
   Header: "Header",
   Penalty: "Penalty",
   OwnGoal: "Own goal",
+  Own: "Own goal",
   FreeKick: "Free kick",
   Shot: "Shot",
 };
@@ -87,8 +94,11 @@ function describe(action: string, p: Record<string, unknown>): { kind: TimelineK
       return { kind: "var", title: "VAR check", detail: typeof p.Type === "string" ? `Checking: ${p.Type.toLowerCase()}` : null };
     case "var_end":
       return { kind: "var-end", title: "VAR decision", detail: p.Outcome === "Overturned" ? "Overturned" : "Decision stands" };
-    case "kickoff":
-      return { kind: "kickoff", title: "Kick-off", detail: null };
+    case "kickoff": {
+      const k = kickoffKind(p);
+      if (k === "restart") return null;
+      return { kind: "kickoff", title: k === "second-half" ? "Second half" : k === "extra-time" ? "Extra time" : "Kick-off", detail: null };
+    }
     case "halftime_finalised":
       return { kind: "halftime", title: "Half-time", detail: null };
     case "game_finalised":
@@ -99,7 +109,10 @@ function describe(action: string, p: Record<string, unknown>): { kind: TimelineK
 }
 
 /** One stored event → a marker (null for the actions the timeline skips). */
-export function eventFromRow(row: EventRow, ctx: { sport: "soccer" | "nfl"; kickoffAt: number; halftimeAt: number | null }): TimelineEvent | null {
+export function eventFromRow(
+  row: EventRow,
+  ctx: { sport: "soccer" | "nfl"; kickoffAt: number; halftimeAt: number | null; players?: Record<number, string> },
+): TimelineEvent | null {
   const p = row.payload ?? {};
   const d = describe(row.action, p);
   if (!d) return null;
@@ -109,14 +122,18 @@ export function eventFromRow(row: EventRow, ctx: { sport: "soccer" | "nfl"; kick
       ? typeof row.minute === "number" && row.minute > 0
         ? row.minute
         : d.kind === "kickoff"
-          ? 0
+          ? d.title === "Kick-off" ? 0 : 45
           : d.kind === "halftime"
             ? 45
             : wallToMinute(at, ctx.kickoffAt, ctx.halftimeAt)
       : Math.max(0, (at - ctx.kickoffAt) / 60_000);
   const score = typeof p._home === "number" && typeof p._away === "number" ? { home: p._home, away: p._away } : null;
   const side = p._side === "home" || p._side === "away" ? p._side : null;
-  return { id: row.id, kind: d.kind, minute, side, title: d.title, detail: d.detail, score, at, reactions: null };
+  const player = typeof p.PlayerId === "number" ? (ctx.players?.[p.PlayerId] ?? null) : null;
+  // One marker per real event: the feed's first report, confirmation and
+  // detail share an event id, so live updates replace rather than stack.
+  const id = typeof p._eid === "number" ? `${row.action}:${p._eid}` : row.id;
+  return { id, kind: d.kind, minute, side, player, title: d.title, detail: d.detail, score, at, reactions: null };
 }
 
 /** Which team a goal was for, from the score before and after it. */
@@ -132,11 +149,12 @@ export function buildTimeline(input: {
   kickoffAt: number;
   rows: EventRow[];
   messageTimes: number[];
+  players?: Record<number, string>;
 }): TimelineData {
-  const { sport, kickoffAt } = input;
+  const { sport, kickoffAt, players } = input;
   const ht = input.rows.find((r) => r.action === "halftime_finalised");
   const halftimeAt = ht ? +new Date(ht.occurredAt) : null;
-  const ctx = { sport, kickoffAt, halftimeAt };
+  const ctx = { sport, kickoffAt, halftimeAt, players };
 
   const events = input.rows
     .map((r) => eventFromRow(r, ctx))
@@ -172,7 +190,7 @@ export function buildTimeline(input: {
     if (i >= 0 && i < HEAT_BUCKETS) heat[i]++;
   }
 
-  return { sport, domain, events, heat, kickoffAt, halftimeAt };
+  return { sport, domain, events, heat, kickoffAt, halftimeAt, players };
 }
 
 /** The score at a point on the track: the latest snapshot at or before it. */

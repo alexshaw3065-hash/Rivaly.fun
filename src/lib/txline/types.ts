@@ -61,6 +61,16 @@ export interface TxLineScores {
   };
   /** Stat map keyed by period_prefix + base_key, e.g. 3001 = team 1 H2 goals. */
   Stats?: Record<string, number>;
+  /** The provider's id for the event. Its first report, confirmation and later detail share it. */
+  Id?: number;
+  /** False on a first, unconfirmed report; the confirmed record follows with the same Id. */
+  Confirmed?: boolean;
+  /** The team, on shots, goals and cards (substitutions carry it in Data instead). */
+  Participant?: number;
+  /** The match clock, in seconds since kick-off, counting on through both halves. */
+  Clock?: { Running?: boolean; Seconds?: number };
+  /** Only on the pregame "lineups" action: each team's squad for the match. */
+  Lineups?: TxLineTeamLineup[] | null;
   /** Event detail: Goal, GoalType, Penalty, RedCard, YellowCard, VAR, PlayerId, Minutes… */
   Data?: {
     Goal?: boolean;
@@ -78,7 +88,32 @@ export interface TxLineScores {
     Type?: string;
     Outcome?: string;
     Action?: string;
+    /** On action_amend: the corrected fields, and the clock of the event being corrected. */
+    New?: { Clock?: { Seconds?: number }; PlayerId?: number; PlayerInId?: number; PlayerOutId?: number };
+    Previous?: { Clock?: { Seconds?: number } };
   };
+}
+
+/**
+ * One team's squad from the "lineups" action, sent shortly before kick-off
+ * (about 25 minutes, in real data). Events name players by
+ * player.normativeId — not fixturePlayerId, whatever the feed PDF says;
+ * verified against a finished match, where every scorer, card and
+ * substitution id matched a normativeId.
+ */
+export interface TxLineTeamLineup {
+  id: string;
+  preferredName: string;
+  lineups: {
+    fixturePlayerId: number;
+    /** 34 goalkeeper, 35 defender, 36 midfielder, 37 forward. */
+    positionId: number;
+    rosterNumber: string;
+    starter: boolean;
+    /** 0 in the matchday squad; 1 left out. */
+    statusId: number;
+    player: { normativeId: number; preferredName: string };
+  }[];
 }
 
 /**

@@ -1,9 +1,11 @@
 // Team stats for the room's Stats tab, from what TxLINE actually sends:
 // goals, cards and corners per team (the match row), plus shots, fouls and
 // offsides counted from the event stream (each event carries its team as
-// payload._side — see normalizeEvents). TxLINE has no possession or passing
-// data, so those rows simply don't exist here; a stat only appears when
-// there's real data behind it. Pure — tested in match-stats.test.ts.
+// payload._side — see normalizeEvents). Rows must be collapsed first
+// (collapseEvents) or each shot counts once per record the feed sent about
+// it. No passing data, and possession isn't kept yet (it's ~700 records a
+// match), so those rows don't exist here; a stat only appears when there's
+// real data behind it. Pure — tested in match-stats.test.ts.
 
 import type { EventRow } from "./match-timeline";
 import type { Match } from "./types";

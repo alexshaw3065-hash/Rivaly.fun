@@ -1,8 +1,8 @@
 // Team colours and short codes for the generated crests. TxLINE supplies
 // names only — no logos — so rather than hotlink trademarked badges from a
 // third-party CDN, each team gets a monogram crest in its real kit colours.
-// Curated for the teams that actually appear in the fixture list (NFL,
-// MLS, the national sides in Friendlies); anything else falls back to a
+// Curated for the teams that actually appear in the fixture list (NFL, the
+// Premier League, MLS, the national sides in Friendlies); anything else falls back to a
 // stable colour derived from the name, so every team still reads as itself
 // and never as a grey placeholder.
 
@@ -55,6 +55,27 @@ const NFL: Record<string, Entry> = {
 
 // Clubs and national sides, keyed by lower-cased full name.
 const TEAMS: Record<string, Entry> = {
+  // Premier League — keyed by the feed's own names ("Manchester Utd", "Leeds")
+  arsenal: ["ARS", "#EF0107", "#FFFFFF"],
+  "aston villa": ["AVL", "#670E36", "#95BFE5"],
+  bournemouth: ["BOU", "#DA291C", "#101010"],
+  brentford: ["BRE", "#E30613", "#FFFFFF"],
+  brighton: ["BHA", "#0057B8", "#FFFFFF"],
+  chelsea: ["CHE", "#034694", "#FFFFFF"],
+  coventry: ["COV", "#7BC2E9", "#101010"],
+  "crystal palace": ["CRY", "#1B458F", "#C4122E"],
+  everton: ["EVE", "#003399", "#FFFFFF"],
+  fulham: ["FUL", "#F5F5F5", "#101010"],
+  "hull city": ["HUL", "#F5A12D", "#101010"],
+  ipswich: ["IPS", "#0033A0", "#FFFFFF"],
+  leeds: ["LEE", "#F5F5F5", "#1D428A"],
+  liverpool: ["LIV", "#C8102E", "#F6EB61"],
+  "manchester city": ["MCI", "#6CABDD", "#1C2C5B"],
+  "manchester utd": ["MUN", "#DA291C", "#FBE122"],
+  newcastle: ["NEW", "#241F20", "#F5F5F5"],
+  "nottingham forest": ["NFO", "#DD0000", "#FFFFFF"],
+  sunderland: ["SUN", "#EB172B", "#101010"],
+  tottenham: ["TOT", "#F5F5F5", "#132257"],
   // MLS
   "atlanta united": ["ATL", "#80000A", "#A19060"],
   "austin fc": ["ATX", "#00B140", "#101010"],
@@ -144,6 +165,17 @@ const TEAMS: Record<string, Entry> = {
 };
 
 const ALIASES: Record<string, string> = {
+  "manchester united": "manchester utd",
+  "man utd": "manchester utd",
+  "man city": "manchester city",
+  "tottenham hotspur": "tottenham",
+  "newcastle united": "newcastle",
+  "leeds united": "leeds",
+  "brighton & hove albion": "brighton",
+  "brighton and hove albion": "brighton",
+  "ipswich town": "ipswich",
+  "afc bournemouth": "bournemouth",
+  "coventry city": "coventry",
   "united states": "usa",
   "korea republic": "south korea",
   "cote d'ivoire": "ivory coast",

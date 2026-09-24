@@ -355,7 +355,10 @@ function MomentCard({ event, left, home, away }: { event: TimelineEvent; left: n
     >
       <div className="flex items-center gap-2">
         <MomentMark kind={event.kind} />
-        <p className="min-w-0 flex-1 truncate font-display text-sm font-bold text-foreground">{event.title}</p>
+        <p className="min-w-0 flex-1 truncate font-display text-sm font-bold text-foreground">
+          {event.title}
+          {event.player && <span className="font-semibold text-foreground/80"> · {event.player}</span>}
+        </p>
         <span className="font-mono text-xs font-semibold text-muted">{Math.floor(event.minute)}&rsquo;</span>
       </div>
       {event.detail && <p className="mt-1.5 text-xs text-foreground/85">{event.detail}</p>}

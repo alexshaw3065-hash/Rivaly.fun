@@ -35,7 +35,7 @@ export interface SyncScoresResult {
  * normaliser, and this remains the backstop that repairs anything the stream
  * missed while disconnected.
  */
-export async function syncScores(options: { pastHours?: number } = {}): Promise<SyncScoresResult> {
+export async function syncScores(options: { pastHours?: number; includeFinished?: boolean } = {}): Promise<SyncScoresResult> {
   const pastHours = Math.min(Math.max(options.pastHours ?? PAST_HOURS, 1), MAX_PAST_HOURS);
   const supabase = createAdminClient();
   const result: SyncScoresResult = {
@@ -61,7 +61,9 @@ export async function syncScores(options: { pastHours?: number } = {}): Promise<
     .from("matches")
     .select("id, provider_fixture_id, sport_id, status")
     .in("competition_id", allowed)
-    .in("status", ACTIVE_STATUSES)
+    // A backfill can re-read finished matches too (e.g. to pick up line-ups
+    // and every goal after the switch to the historical log).
+    .in("status", options.includeFinished ? [...ACTIVE_STATUSES, "finished"] : ACTIVE_STATUSES)
     .gte("kickoff_at", new Date(now - pastHours * 3600_000).toISOString())
     .lte("kickoff_at", new Date(now + FUTURE_HOURS * 3600_000).toISOString())
     .order("kickoff_at", { ascending: true })
@@ -77,7 +79,7 @@ export async function syncScores(options: { pastHours?: number } = {}): Promise<
 
     let records: TxLineScores[];
     try {
-      records = await session.get<TxLineScores[]>(`/scores/snapshot/${fixtureId}`);
+      records = await session.scoreRecords(fixtureId);
     } catch (e) {
       result.errors.push({ fixtureId, message: e instanceof TxLineError ? e.message : String(e) });
       continue;

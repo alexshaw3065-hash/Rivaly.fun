@@ -42,10 +42,11 @@ export interface ApplyResult {
  * Write normalised state and events for one fixture.
  *
  * Safe to call repeatedly with overlapping data: the match row is a plain
- * update, and events upsert with ignoreDuplicates against
- * (match_id, provider_seq, action). That matters because the SSE stream has
- * no resume, so every reconnect re-reads a snapshot that overlaps whatever
- * was already stored.
+ * update, and events upsert against (match_id, provider_seq, action). That
+ * matters because the SSE stream has no resume, so every reconnect re-reads
+ * a snapshot that overlaps whatever was already stored. A re-read record
+ * overwrites its stored row (same provider record, so same facts) — which is
+ * how rows stored before the event id and clock were kept pick them up.
  */
 export async function applyScores(
   supabase: ScoresDb,
@@ -98,7 +99,7 @@ export async function applyScores(
         payload: e.payload,
         occurred_at: e.occurredAt,
       })),
-      { onConflict: "match_id,provider_seq,action", ignoreDuplicates: true },
+      { onConflict: "match_id,provider_seq,action", ignoreDuplicates: false },
     )
     .select("id");
   if (eventsError) throw new Error(`events upsert failed: ${eventsError.message}`);

@@ -17,13 +17,16 @@ export async function GET(request: Request) {
 
   // Optional wider lookback for backfills and post-outage repair. Clamped
   // inside syncScores so a huge value can't fan out into thousands of calls.
-  const pastHoursParam = new URL(request.url).searchParams.get("pastHours");
+  const params = new URL(request.url).searchParams;
+  const pastHoursParam = params.get("pastHours");
   const pastHours = pastHoursParam ? Number(pastHoursParam) : undefined;
+  const includeFinished = params.get("includeFinished") === "1";
 
   try {
-    const result = await syncScores(
-      Number.isFinite(pastHours) && pastHours !== undefined ? { pastHours } : {},
-    );
+    const result = await syncScores({
+      ...(Number.isFinite(pastHours) && pastHours !== undefined ? { pastHours } : {}),
+      includeFinished,
+    });
     return Response.json({ ok: true, ...result });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });

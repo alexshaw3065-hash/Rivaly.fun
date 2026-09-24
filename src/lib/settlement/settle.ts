@@ -41,7 +41,14 @@ async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchF
     .eq("id", matchId)
     .maybeSingle();
   if (!m) return null;
-  const { data: ev } = await admin.from("match_events").select("action, occurred_at").eq("match_id", matchId);
+  const { data: ev } = await admin.from("match_events").select("action, occurred_at, payload").eq("match_id", matchId);
+  // An event the feed later discarded (reported in error) never happened —
+  // e.g. a penalty first reported then withdrawn mustn't lock a "penalty"
+  // room. The discard itself stays, so correctedSince() still sees it.
+  const discarded = new Set<unknown>(
+    (ev ?? []).filter((e) => e.action === "action_discarded").map((e) => (e.payload as { _eid?: number } | null)?._eid).filter((id) => typeof id === "number"),
+  );
+  const kept = (ev ?? []).filter((e) => e.action === "action_discarded" || !discarded.has((e.payload as { _eid?: number } | null)?._eid));
   return {
     kickoffAt: m.kickoff_at,
     facts: {
@@ -62,7 +69,7 @@ async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchF
       awayFieldGoals: m.away_field_goals,
       wentToOvertime: m.went_to_overtime,
     },
-    events: (ev ?? []).map((e) => ({ action: e.action as string, at: +new Date(e.occurred_at as string) })),
+    events: kept.map((e) => ({ action: e.action as string, at: +new Date(e.occurred_at as string) })),
   };
 }
 

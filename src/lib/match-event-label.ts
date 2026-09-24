@@ -4,6 +4,8 @@
 // server's initial fetch and the browser's realtime stream so both read the
 // same. Environment-agnostic: no Supabase client here.
 
+import { kickoffKind } from "./match-feed.ts";
+
 export type EventTone = "goal" | "card" | "var" | "whistle" | "takeover-yes" | "takeover-no";
 
 export interface MatchMoment {
@@ -13,17 +15,32 @@ export interface MatchMoment {
 
 const at = (minute: number | null | undefined) => (typeof minute === "number" && minute > 0 ? ` ${minute}'` : "");
 
-export function matchMoment(action: string, minute: number | null | undefined, payload: Record<string, unknown> | null): MatchMoment | null {
+/** " · Cunha" when the feed named the player and the line-ups say who that is. */
+function who(p: Record<string, unknown>, names: Record<number, string> | undefined, suffix = ""): string {
+  const id = typeof p.PlayerId === "number" ? p.PlayerId : null;
+  const name = id !== null ? names?.[id] : undefined;
+  return name ? ` · ${name}${suffix}` : "";
+}
+
+export function matchMoment(
+  action: string,
+  minute: number | null | undefined,
+  payload: Record<string, unknown> | null,
+  names?: Record<number, string>,
+): MatchMoment | null {
   const p = payload ?? {};
   switch (action) {
-    case "kickoff":
-      return { label: "Kick-off", tone: "whistle" };
+    case "kickoff": {
+      const k = kickoffKind(p);
+      if (k === "restart") return null;
+      return { label: k === "second-half" ? "Second half" : k === "extra-time" ? "Extra time" : "Kick-off", tone: "whistle" };
+    }
     case "halftime_finalised":
       return { label: "Half-time", tone: "whistle" };
     case "game_finalised":
       return { label: "Full time", tone: "whistle" };
     case "goal":
-      return { label: `⚽ GOAL${at(minute)}`, tone: "goal" };
+      return { label: `⚽ GOAL${at(minute)}${who(p, names, p.GoalType === "Own" || p.GoalType === "OwnGoal" ? " (OG)" : "")}`, tone: "goal" };
     case "touchdown":
       return { label: `🏈 TOUCHDOWN${at(minute)}`, tone: "goal" };
     case "field_goal":
@@ -33,9 +50,9 @@ export function matchMoment(action: string, minute: number | null | undefined, p
     case "penalty":
       return { label: `Penalty${at(minute)}`, tone: "var" };
     case "yellow_card":
-      return { label: `🟨 Yellow card${at(minute)}`, tone: "card" };
+      return { label: `🟨 Yellow card${at(minute)}${who(p, names)}`, tone: "card" };
     case "red_card":
-      return { label: `🟥 Red card${at(minute)}`, tone: "card" };
+      return { label: `🟥 Red card${at(minute)}${who(p, names)}`, tone: "card" };
     case "var":
       return { label: `VAR check${typeof p.Type === "string" ? ` · ${p.Type.toLowerCase()}` : ""}`, tone: "var" };
     case "var_end":
