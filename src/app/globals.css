@@ -520,6 +520,7 @@ html {
   --st-haze: 0.16;
   --st-shadow: 0;
   --st-board: #070a10;
+  --st-depth: 0.22;
   --st-pitch-1: #0d3a20;
   --st-pitch-2: #16602f;
 }
@@ -534,6 +535,7 @@ html {
   --st-haze: 0;
   --st-shadow: 0.32;
   --st-board: #0f1520;
+  --st-depth: 0.12;
   --st-pitch-1: #2c8a40;
   --st-pitch-2: #3eaa52;
 }

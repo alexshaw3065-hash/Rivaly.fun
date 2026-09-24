@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { teamIdentity } from "@/lib/team-identity";
+import { buildCrowd, type CrowdLayer, type End } from "./crowd";
 
 // The room's backdrop: a broadcast view across the ground — the roof and its
 // floodlight strip, two tiers of seats packed with fans (home colours, with
@@ -18,11 +19,9 @@ import { teamIdentity } from "@/lib/team-identity";
 // Day or night follows the app theme through CSS variables (.stadium-art in
 // globals.css) — so switching theme never flickers.
 //
-// Cheap to draw: ~500 fans grouped by colour into a few dozen SVG paths,
-// generated on the device (not shipped in the HTML) from a seed of the two
-// teams' names, so a room always shows the same crowd.
-
-type End = "yes" | "no";
+// The crowd itself — real-looking people, grouped by colour into a few dozen
+// paths and generated on the device from a seed of the two teams' names —
+// is built in crowd.ts.
 
 const W = 400;
 // Tall so the pitch runs down behind the scoreboard and the call; the stands
@@ -31,115 +30,65 @@ const H = 520;
 const AWAY_FROM = 300; // the away team's end: x ≥ this, behind the netting
 const END_SPLIT = 200; // the room's ends: YES backers left of this, NO right
 const ROOF_BOTTOM = 27;
-const UPPER = { top: 30, rows: 6, rowH: 9.5, head: 2.45, gap: 6.9 };
-const LOWER = { top: 96, rows: 4, rowH: 12.5, head: 3.25, gap: 9.1 };
+// Fewer, bigger people: front-row heads ~10px on a phone, back rows ~7px.
+const UPPER = { top: 30, rows: 4, rowH: 14, head: 3.7, gap: 10.5 };
+const LOWER = { top: 96, rows: 3, rowH: 17, head: 4.9, gap: 13.5 };
 export const BOARDS_Y = 147;
 const PITCH_Y = BOARDS_Y + 11;
-const SKIN = ["#f1c7a5", "#dcaa84", "#b8835c", "#8a5a38", "#5e3a22"];
 const SIDE_GLOW: Record<End, string> = { yes: "#3d6bff", no: "#ef4444" };
+// A few flags in the stands: [x, tier, row]
+const FLAGS: [number, "upper" | "lower", number][] = [
+  [26, "upper", 1],
+  [92, "lower", 0],
+  [150, "upper", 2],
+  [228, "lower", 1],
+  [262, "upper", 0],
+  [318, "upper", 1],
+  [364, "lower", 0],
+];
 
-function seeded(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function hash(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-const r1 = (n: number) => Math.round(n * 10) / 10;
-
-interface Flash {
-  x: number;
-  y: number;
-  delay: number;
-  dur: number;
-  awayTeam: boolean;
-}
-
-interface EndCrowd {
-  /** path data per shirt colour */
-  bodies: Map<string, string>;
-  /** every body in this end, for the side-colour glow layer */
-  allBodies: string;
-  /** path data per skin tone */
-  heads: Map<string, string>;
-  /** always up */
-  arms: string;
-  /** go up as the end gets louder */
-  hypeArms: string;
-  flashes: Flash[];
-  /** extra flashes that only fire when the end is loud */
-  hypeFlashes: Flash[];
-  flags: { x: number; y: number; color: string; stripe: string; delay: number }[];
-}
-
-function emptyEnd(): EndCrowd {
-  return { bodies: new Map(), allBodies: "", heads: new Map(), arms: "", hypeArms: "", flashes: [], hypeFlashes: [], flags: [] };
-}
-
-function buildCrowd(homeTeam: string, awayTeam: string): Record<End, EndCrowd> {
-  const rand = seeded(hash(`${homeTeam}|${awayTeam}`));
-  const home = teamIdentity(homeTeam);
-  const away = teamIdentity(awayTeam);
-  const homeShirts = [home.primary, home.primary, home.primary, home.primary, home.secondary, home.secondary, "#f2f2f2", "#1b1b1b"];
-  const awayShirts = [away.primary, away.primary, away.primary, away.secondary, "#f2f2f2", "#1b1b1b"];
-  const ends: Record<End, EndCrowd> = { yes: emptyEnd(), no: emptyEnd() };
-  const add = (m: Map<string, string>, k: string, d: string) => m.set(k, (m.get(k) ?? "") + d);
-
-  for (const tier of [UPPER, LOWER]) {
-    for (let row = 0; row < tier.rows; row++) {
-      const baseY = tier.top + row * tier.rowH + tier.head + 1.5;
-      const offset = row % 2 ? tier.gap / 2 : 0;
-      for (let x = 3 + offset; x < W - 2; x += tier.gap) {
-        if (Math.abs(x - AWAY_FROM) < tier.gap * 0.8) continue; // the netting gap
-        if (rand() < 0.07) continue; // the odd empty seat
-        const end = ends[x < END_SPLIT ? "yes" : "no"];
-        const awayEnd = x >= AWAY_FROM;
-        const cx = x + (rand() - 0.5) * 1.4;
-        const cy = baseY + (rand() - 0.5) * 1.2;
-        const r = tier.head * (0.9 + rand() * 0.2);
-        const shirts = awayEnd ? awayShirts : homeShirts;
-        const shirt = shirts[Math.floor(rand() * shirts.length)];
-        const skin = SKIN[Math.floor(rand() * SKIN.length)];
-        const w = r * 1.55;
-        const top = cy + r * 0.9;
-        const bottom = cy + tier.rowH * 0.95;
-        const body = `M${r1(cx - w)} ${r1(bottom)}Q${r1(cx - w)} ${r1(top)} ${r1(cx)} ${r1(top)}Q${r1(cx + w)} ${r1(top)} ${r1(cx + w)} ${r1(bottom)}Z`;
-        add(end.bodies, shirt, body);
-        end.allBodies += body;
-        add(end.heads, skin, `M${r1(cx - r)} ${r1(cy)}a${r1(r)} ${r1(r)} 0 1 0 ${r1(2 * r)} 0a${r1(r)} ${r1(r)} 0 1 0 ${r1(-2 * r)} 0`);
-        const reach = r * 2.6;
-        const armPair = `M${r1(cx - w * 0.8)} ${r1(top + 1)}l${r1(-r * 0.6)} ${r1(-reach)}M${r1(cx + w * 0.8)} ${r1(top + 1)}l${r1(r * 0.6)} ${r1(-reach)}`;
-        const roll = rand();
-        if (roll < 0.08) end.arms += armPair;
-        else if (roll < 0.45) end.hypeArms += armPair;
-        const flash = { x: r1(cx), y: r1(cy - r * 0.2), delay: r1(rand() * 6), dur: r1(2.5 + rand() * 4), awayTeam: awayEnd };
-        const f = rand();
-        if (f < 0.025) end.flashes.push(flash);
-        else if (f < 0.08) end.hypeFlashes.push({ ...flash, dur: r1(1.2 + rand() * 1.6) });
-      }
-    }
-  }
-
-  for (let i = 0; i < 7; i++) {
-    const awayFlag = i >= 5;
-    const x = awayFlag ? AWAY_FROM + 16 + (i - 5) * 44 : 22 + i * 58 + rand() * 12;
-    const tier = rand() < 0.5 ? UPPER : LOWER;
-    const y = tier.top + Math.floor(rand() * (tier.rows - 1)) * tier.rowH;
-    const kit = awayFlag ? away : home;
-    ends[x < END_SPLIT ? "yes" : "no"].flags.push({ x: r1(x), y: r1(y), color: kit.primary, stripe: kit.secondary, delay: r1(rand() * 1.5) });
-  }
-
-  return ends;
+function CrowdGroup({ layer, end, level, flare }: { layer: CrowdLayer; end: End; level: number; flare: "home" | "away" | null }) {
+  const bouncing = level > 0.45;
+  const stroke = (m: Map<string, string>) =>
+    [...m].map(([key, d]) => {
+      const [color, width] = key.split("|");
+      return <path key={key} d={d} stroke={color} strokeWidth={width} strokeLinecap="round" fill="none" />;
+    });
+  const fill = (m: Map<string, string>, prefix: string) => [...m].map(([color, d]) => <path key={`${prefix}${color}`} d={d} fill={color} />);
+  return (
+    <g className={bouncing ? "crowd-bounce" : undefined} style={bouncing ? { animationDuration: `${0.75 - level * 0.3}s` } : undefined}>
+      {fill(layer.bodies, "b")}
+      {/* Shirts catch the side's colour as the end gets louder */}
+      <path d={layer.allBodies} fill={SIDE_GLOW[end]} style={{ opacity: level * 0.28, transition: "opacity 900ms ease" }} />
+      {fill(layer.skin, "s")}
+      {fill(layer.hair, "h")}
+      {stroke(layer.arms)}
+      {fill(layer.hands, "k")}
+      <g style={{ opacity: level, transition: "opacity 700ms ease" }}>
+        {stroke(layer.hypeArms)}
+        {fill(layer.hypeHands, "hk")}
+        {fill(layer.scarves, "sc")}
+      </g>
+      {layer.flashes.map((f, i) => (
+        <circle
+          key={i}
+          cx={f.x}
+          cy={f.y}
+          r="1.5"
+          fill="#fff"
+          className={flare && (flare === "away") === f.awayTeam ? "cam-flash-burst" : "cam-flash"}
+          style={{ animationDelay: `${flare ? (i % 7) * 0.12 : f.delay}s`, animationDuration: flare ? undefined : `${f.dur}s` }}
+        />
+      ))}
+      {level > 0.15 && (
+        <g style={{ opacity: level }}>
+          {layer.hypeFlashes.map((f, i) => (
+            <circle key={i} cx={f.x} cy={f.y} r="1.5" fill="#fff" className="cam-flash" style={{ animationDelay: `${f.delay}s`, animationDuration: `${f.dur}s` }} />
+          ))}
+        </g>
+      )}
+    </g>
+  );
 }
 
 export function Stadium({
@@ -170,8 +119,12 @@ export function Stadium({
     const id = requestAnimationFrame(() => setReady(true));
     return () => cancelAnimationFrame(id);
   }, []);
-  const crowd = useMemo(() => (ready ? buildCrowd(homeTeam, awayTeam) : null), [ready, homeTeam, awayTeam]);
+  const crowd = useMemo(
+    () => (ready ? buildCrowd(homeTeam, awayTeam, { width: W, awayFrom: AWAY_FROM, endSplit: END_SPLIT, upper: UPPER, lower: LOWER }) : null),
+    [ready, homeTeam, awayTeam],
+  );
 
+  const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
   const seat = (kit: string) => `color-mix(in srgb, ${kit} 38%, var(--st-stand))`;
   const upperBottom = UPPER.top + UPPER.rows * UPPER.rowH;
   const lowerBottom = LOWER.top + LOWER.rows * LOWER.rowH;
@@ -238,59 +191,28 @@ export function Stadium({
         <rect key={i} x={6 + i * 19.6} y={upperBottom + 1.5} width="15" height={LOWER.top - upperBottom - 3} rx="0.8" style={{ fill: "var(--st-glass)" }} opacity={0.55 + ((i * 37) % 10) / 30} />
       ))}
 
-      {/* The crowd — each end of the room comes alive with its backers' energy */}
+      {/* The crowd — back tier first, set back in the haze, then the front tier.
+          Each end of the room comes alive with its backers' energy. */}
       {crowd && (
         <g clipPath="url(#st-stands)">
-          {(["yes", "no"] as const).map((endKey) => {
-            const end = crowd[endKey];
-            const level = Math.max(0, Math.min(1, energy[endKey]));
-            const bouncing = level > 0.45;
+          {(["yes", "no"] as const).map((end) => (
+            <CrowdGroup key={`u${end}`} layer={crowd.upper[end]} end={end} level={clamp01(energy[end])} flare={flare} />
+          ))}
+          <rect x="0" y={UPPER.top} width={W} height={UPPER.rows * UPPER.rowH} fill="#000" style={{ opacity: "var(--st-depth)" }} />
+          {(["yes", "no"] as const).map((end) => (
+            <CrowdGroup key={`l${end}`} layer={crowd.lower[end]} end={end} level={clamp01(energy[end])} flare={flare} />
+          ))}
+          {FLAGS.map(([x, tierKey, row], i) => {
+            const tier = tierKey === "upper" ? UPPER : LOWER;
+            const kit = x >= AWAY_FROM ? away : home;
+            const level = clamp01(energy[x < END_SPLIT ? "yes" : "no"]);
             return (
-              <g key={endKey} className={bouncing ? "crowd-bounce" : undefined} style={bouncing ? { animationDuration: `${0.75 - level * 0.3}s` } : undefined}>
-                {[...end.bodies].map(([color, d]) => (
-                  <path key={`b${color}`} d={d} fill={color} />
-                ))}
-                {/* Shirts catch the side's colour as the end gets louder */}
-                <path d={end.allBodies} fill={SIDE_GLOW[endKey]} style={{ opacity: level * 0.5, transition: "opacity 900ms ease" }} />
-                {[...end.heads].map(([color, d]) => (
-                  <path key={`h${color}`} d={d} fill={color} />
-                ))}
-                <path d={end.arms} stroke="#e8b995" strokeOpacity="0.9" strokeWidth="1.1" strokeLinecap="round" fill="none" />
-                <path
-                  d={end.hypeArms}
-                  stroke="#e8b995"
-                  strokeWidth="1.1"
-                  strokeLinecap="round"
-                  fill="none"
-                  style={{ opacity: level * 0.9, transition: "opacity 700ms ease" }}
-                />
-                {end.flags.map((f, i) => (
-                  <g key={i} transform={`translate(${f.x} ${f.y})`}>
-                    <path d="M0 0V16" stroke="#d7d7d7" strokeWidth="0.8" />
-                    <g className="flag-wave" style={{ animationDelay: `${f.delay}s`, animationDuration: `${1.4 - level * 0.6}s` }}>
-                      <rect x="0" y="0" width="16" height="10" style={{ fill: f.color }} />
-                      <rect x="0" y="3.6" width="16" height="2.8" style={{ fill: f.stripe }} />
-                    </g>
-                  </g>
-                ))}
-                {end.flashes.map((f, i) => (
-                  <circle
-                    key={i}
-                    cx={f.x}
-                    cy={f.y}
-                    r="1.3"
-                    fill="#fff"
-                    className={flare && (flare === "away") === f.awayTeam ? "cam-flash-burst" : "cam-flash"}
-                    style={{ animationDelay: `${flare ? (i % 7) * 0.12 : f.delay}s`, animationDuration: flare ? undefined : `${f.dur}s` }}
-                  />
-                ))}
-                {level > 0.15 && (
-                  <g style={{ opacity: level }}>
-                    {end.hypeFlashes.map((f, i) => (
-                      <circle key={i} cx={f.x} cy={f.y} r="1.3" fill="#fff" className="cam-flash" style={{ animationDelay: `${f.delay}s`, animationDuration: `${f.dur}s` }} />
-                    ))}
-                  </g>
-                )}
+              <g key={i} transform={`translate(${x} ${tier.top + row * tier.rowH - 4})`}>
+                <path d="M0 0V18" stroke="#d7d7d7" strokeWidth="0.9" />
+                <g className="flag-wave" style={{ animationDelay: `${(i % 4) * 0.35}s`, animationDuration: `${1.4 - level * 0.6}s` }}>
+                  <rect x="0" y="0" width="18" height="11" style={{ fill: kit.primary }} />
+                  <rect x="0" y="4" width="18" height="3" style={{ fill: kit.secondary }} />
+                </g>
               </g>
             );
           })}
