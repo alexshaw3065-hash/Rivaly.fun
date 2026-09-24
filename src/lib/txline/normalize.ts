@@ -254,13 +254,25 @@ export function normalizeEvents(records: TxLineScores[], sportId: number): Norma
     if (!NOTABLE_ACTIONS.has(r.Action) && !scoreChanged) continue;
     if (typeof r.Seq !== "number") continue;
 
+    // Snapshot the score at this moment (home/away, not participant 1/2) and,
+    // where the feed says which participant it was, the team — so the room's
+    // match timeline can say who scored and show the score at any minute.
+    const p1Home = r.Participant1IsHome !== false;
+    const snapshot: Record<string, unknown> = {};
+    if (p1 !== null && p2 !== null) {
+      snapshot._home = p1Home ? p1 : p2;
+      snapshot._away = p1Home ? p2 : p1;
+    }
+    const participant = r.Data?.Participant;
+    if (participant === 1 || participant === 2) snapshot._side = (participant === 1) === p1Home ? "home" : "away";
+
     events.push({
       providerSeq: r.Seq,
       action: r.Action,
       minute: r.Data?.Minutes ?? null,
       participant: r.Data?.Participant ?? null,
       playerId: r.Data?.PlayerId ?? null,
-      payload: (r.Data as Record<string, unknown>) ?? null,
+      payload: { ...((r.Data as Record<string, unknown>) ?? {}), ...snapshot },
       occurredAt: new Date(Number(r.Ts)).toISOString(),
     });
   }

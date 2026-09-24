@@ -8,7 +8,10 @@ import { getMyEntryForRoom, getRoomRivals } from "@/lib/supabase/entries";
 import { getRoomMessageLog, getRoomMessages } from "@/lib/supabase/messages";
 import { raceFrom } from "@/lib/room-race";
 import { encodeMoment, takeoverMoment } from "@/lib/match-event-label";
-import { getMatchMoments } from "@/lib/supabase/match-events";
+import { getMatchEventRows, momentsFromRows } from "@/lib/supabase/match-events";
+import { buildTimeline } from "@/lib/match-timeline";
+import { sportOf } from "@/lib/markets";
+import { MatchTimeline } from "@/components/room/match-timeline";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
 import { RoomResult } from "@/components/room-result";
@@ -80,12 +83,20 @@ export default async function RoomPage({
   if (unfinished && (match.status !== "scheduled" || outcome)) {
     after(() => settleRoom(room.id).then(() => undefined, () => undefined));
   }
-  const [messages, moments, rivals, messageLog] = await Promise.all([
+  const [messages, eventRows, rivals, messageLog] = await Promise.all([
     getRoomMessages(room.id),
-    getMatchMoments(match.id, room.id),
+    getMatchEventRows(match.id),
     getRoomRivals(room.id, 200),
     getRoomMessageLog(room.id),
   ]);
+  const moments = momentsFromRows(eventRows, room.id);
+  // The match on one line under the stadium, with the room's pulse beneath it.
+  const timeline = buildTimeline({
+    sport: sportOf(match),
+    kickoffAt: +new Date(match.kickoffAt),
+    rows: eventRows,
+    messageTimes: messageLog.map((m) => m.at),
+  });
   const sides = Object.fromEntries(rivals.map((r) => [r.userId, r.side])) as Record<string, EntrySide>;
   // The stadium race, folded from the room's whole log — backers only.
   const race = raceFrom(messageLog.flatMap((m) => (sides[m.userId] ? [{ userId: m.userId, side: sides[m.userId], at: m.at }] : [])));
@@ -120,6 +131,8 @@ export default async function RoomPage({
               sharePath={sharePath}
               outcome={outcome}
             />
+
+            <MatchTimeline match={match} initial={timeline} />
             {outcome && (
               <RoomResult
                 outcome={outcome}

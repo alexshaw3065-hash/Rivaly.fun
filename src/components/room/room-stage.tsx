@@ -134,7 +134,7 @@ export function RoomStage({
         </span>
       ))}
 
-      <div className="relative z-[1] flex flex-col px-4 pb-5 pt-3 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
+      <div className="relative z-[1] flex flex-col px-4 pb-4 pt-3 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
         {/* Top bar, over the roof: back + league, then kick-off status, watchlist, share */}
         <div className="flex items-center gap-2">
           <Link href="/" aria-label="Back home" className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-black/40 pl-2 pr-3 text-white/85 transition-colors hover:text-white">
@@ -163,10 +163,10 @@ export function RoomStage({
         {/* Scoreboard — pushed down onto the pitch, so the stands above stay
             clear: the padding is a % of width, matching the stadium's scale
             (its boards end at 158/400 of the width). */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 pt-[calc(39.5%-40px)]">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 pt-[calc(39.5%-44px)]">
           <Team name={match.homeTeam} code={home.code} />
           <div className="flex flex-col items-center">
-            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/55 px-3.5 py-1 font-display text-3xl font-bold tabular-nums text-white">
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/55 px-3 py-0.5 font-display text-2xl font-bold tabular-nums text-white md:text-3xl">
               <span key={`h${match.homeScore ?? "x"}`} className={goal?.side === "home" ? "score-bump" : undefined}>
                 {started ? (match.homeScore ?? 0) : "–"}
               </span>
@@ -180,10 +180,10 @@ export function RoomStage({
         </div>
 
         {/* The call */}
-        <div className="mt-4">
-          <h1 className="font-display text-[22px] font-bold leading-[1.15] text-white md:text-3xl">&ldquo;{claim}&rdquo;</h1>
+        <div className="mt-2.5">
+          <h1 className="font-display text-[19px] font-bold leading-[1.15] text-white md:text-3xl">&ldquo;{claim}&rdquo;</h1>
           {creator && (
-            <Link href={`/profile/${creator.username}`} className="mt-2 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white">
+            <Link href={`/profile/${creator.username}`} className="mt-1.5 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white">
               <RivalCharacter name={creator.username} imageUrl={creator.avatarUrl} size={22} />
               Called by <span className="font-semibold text-white">{creator.displayName}</span>
             </Link>
@@ -230,7 +230,7 @@ function StartsIn({ kickoffAt }: { kickoffAt: string }) {
 function Team({ name, code }: { name: string; code: string }) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-      <TeamCrest name={name} size={40} />
+      <TeamCrest name={name} size={34} />
       <span className="max-w-full truncate text-sm font-semibold text-white">
         <span className="md:hidden">{code}</span>
         <span className="hidden md:inline">{name}</span>
