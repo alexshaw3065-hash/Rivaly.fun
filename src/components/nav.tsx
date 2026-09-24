@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AppPreloader } from "./app-preloader";
 import { usePathname } from "next/navigation";
 import { RivalyWordmark } from "./rivaly-wordmark";
 import { TopBarIcons } from "./top-bar-icons";
@@ -77,6 +78,7 @@ export function Nav({ children }: { children: ReactNode }) {
       <MobileSearchOverlay />
       <QuickDepositSheet />
       <StreakTracker />
+      <AppPreloader />
 
       {/* Fixed positioning throughout (sidebar, header, mobile bars) means
           this wrapper only ever needs padding, never flex, to make room for
@@ -92,6 +94,7 @@ export function Nav({ children }: { children: ReactNode }) {
       {!pathname.startsWith("/rooms/") && (
         <Link
           href="/rooms/create"
+          prefetch
           aria-label="Create room"
           className="fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
           style={{

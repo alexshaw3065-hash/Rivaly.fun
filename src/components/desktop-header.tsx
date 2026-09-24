@@ -37,6 +37,7 @@ export function DesktopHeader({
         <div className="ml-auto flex shrink-0 items-center gap-5">
           <Link
             href="/rooms/create"
+            prefetch
             className="shrink-0 rounded-md bg-foreground px-3.5 py-2 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
           >
             Create room

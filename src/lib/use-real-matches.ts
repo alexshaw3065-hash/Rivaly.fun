@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { matches as mockMatches } from "@/lib/mock-data";
 import { mapMatchRow, MATCH_COLUMNS, type MatchRow } from "@/lib/supabase/match-mapper";
@@ -33,6 +33,41 @@ export interface RealMatches {
   isLoading: boolean;
 }
 
+// One shared cache for the fixtures, so Create Room (and anything else that
+// lists matches) opens with them already there instead of a loading state:
+// preloadMatches() fills it in the background before anyone taps (see
+// app-preloader.tsx), and every hook instance reads and refreshes it.
+const FRESH_MS = 60_000;
+let cache: { rows: Match[]; at: number } | null = null;
+let pending: Promise<Match[]> | null = null;
+
+async function fetchMatches(): Promise<Match[]> {
+  const now = Date.now();
+  const { data } = await createClient()
+    .from("matches")
+    .select(MATCH_COLUMNS)
+    .gte("kickoff_at", new Date(now - PAST_HOURS * 3600_000).toISOString())
+    .lte("kickoff_at", new Date(now + FUTURE_DAYS * 86_400_000).toISOString())
+    .order("kickoff_at", { ascending: true })
+    .limit(LIMIT);
+  return (data ?? []).map((r) => mapMatchRow(r as MatchRow));
+}
+
+/** Fetch into the shared cache (deduplicated). `force` ignores freshness. */
+export function preloadMatches(force = false): Promise<Match[]> {
+  if (!force && cache && Date.now() - cache.at < FRESH_MS) return Promise.resolve(cache.rows);
+  if (pending) return pending;
+  pending = fetchMatches()
+    .then((rows) => {
+      cache = { rows, at: Date.now() };
+      return rows;
+    })
+    .finally(() => {
+      pending = null;
+    });
+  return pending;
+}
+
 /**
  * Real fixtures and scores, with the seeded mock roster as a fallback.
  *
@@ -41,32 +76,25 @@ export interface RealMatches {
  * working on mock data rather than rendering an empty screen.
  */
 export function useRealMatches(): RealMatches {
-  const [rows, setRows] = useState<Match[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const inFlight = useRef(false);
+  // Start from the shared cache when it's there — no loading flash.
+  const [rows, setRows] = useState<Match[] | null>(() => cache?.rows ?? null);
+  const [isLoading, setIsLoading] = useState(() => cache === null);
 
-  const load = useCallback(async () => {
-    if (inFlight.current) return;
-    inFlight.current = true;
+  const load = useCallback(async (force = false) => {
     try {
-      const supabase = createClient();
-      const now = Date.now();
-      const { data } = await supabase
-        .from("matches")
-        .select(MATCH_COLUMNS)
-        .gte("kickoff_at", new Date(now - PAST_HOURS * 3600_000).toISOString())
-        .lte("kickoff_at", new Date(now + FUTURE_DAYS * 86_400_000).toISOString())
-        .order("kickoff_at", { ascending: true })
-        .limit(LIMIT);
-      setRows((data ?? []).map((r) => mapMatchRow(r as MatchRow)));
+      setRows(await preloadMatches(force));
+    } catch {
+      // keep what we have
     } finally {
-      inFlight.current = false;
       setIsLoading(false);
     }
   }, []);
 
+  // Refresh on mount (instant if the preloader already filled the cache).
+  // Deferred a tick: setState must not run synchronously in an effect body.
   useEffect(() => {
-    void load();
+    const t = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(t);
   }, [load]);
 
   // Live updates. The ingester writes one row per change and Supabase fans it
@@ -83,7 +111,7 @@ export function useRealMatches(): RealMatches {
     const channel = supabase
       .channel(`matches-live:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
-        void load();
+        void load(true);
       })
       .subscribe();
     return () => {
