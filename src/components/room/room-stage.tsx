@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { sportOf } from "@/lib/markets";
-import { teamIdentity } from "@/lib/team-identity";
+import { competitionShort, teamIdentity } from "@/lib/team-identity";
 import type { Match } from "@/lib/types";
-import { Countdown } from "../create-room/match-hero";
+import { kickoffLabel } from "../create-room/match-hero";
+import { BookmarkButton } from "../bookmark-button";
 import { LiveBadge } from "../live-badge";
 import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
@@ -31,6 +32,7 @@ const MAX_FLOATS = 14;
 // up a card mosaic and a banner sweeps the room — and holds it until the
 // other side fights back. After the result, the winning call's end celebrates.
 export function RoomStage({
+  roomId,
   match,
   claim,
   creator,
@@ -38,6 +40,7 @@ export function RoomStage({
   outcome = null,
   children,
 }: {
+  roomId: string;
   match: Match;
   claim: string;
   creator: { displayName: string; username: string; avatarUrl: string | null } | null;
@@ -132,14 +135,28 @@ export function RoomStage({
       ))}
 
       <div className="relative z-[1] flex flex-col px-4 pb-5 pt-3 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
-        {/* Top bar, over the roof */}
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" aria-label="Back home" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:text-white">
+        {/* Top bar, over the roof: back + league, then kick-off status, watchlist, share */}
+        <div className="flex items-center gap-2">
+          <Link href="/" aria-label="Back home" className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-black/40 pl-2 pr-3 text-white/85 transition-colors hover:text-white">
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
               <path d="M10 3 5 8l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.1em]" title={match.competition}>
+              {competitionShort(match.competition)}
+            </span>
           </Link>
-          <span className="min-w-0 truncate font-mono text-[11px] uppercase tracking-[0.12em] text-white/70">{match.competition}</span>
+          <span className="ml-auto min-w-0 truncate rounded-full bg-black/40 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em]">
+            {live ? (
+              <LiveBadge />
+            ) : finished ? (
+              <span className="text-white/80">Full time</span>
+            ) : (
+              <span className="text-[#f5c542]">
+                <StartsIn kickoffAt={match.kickoffAt} />
+              </span>
+            )}
+          </span>
+          <BookmarkButton id={roomId} type="room" label="room" variant="stage" />
           <RoomShareButton path={sharePath} claim={claim} />
         </div>
 
@@ -157,17 +174,6 @@ export function RoomStage({
               <span key={`a${match.awayScore ?? "x"}`} className={goal?.side === "away" ? "score-bump" : undefined}>
                 {started ? (match.awayScore ?? 0) : "–"}
               </span>
-            </div>
-            <div className="mt-1.5 h-4">
-              {live ? (
-                <LiveBadge />
-              ) : finished ? (
-                <span className="font-mono text-[11px] uppercase tracking-wider text-white/70">Full time</span>
-              ) : (
-                <span className="font-mono text-[11px] uppercase tracking-wider text-[#f5c542]">
-                  <Countdown kickoffAt={match.kickoffAt} />
-                </span>
-              )}
             </div>
           </div>
           <Team name={match.awayTeam} code={away.code} />
@@ -209,6 +215,16 @@ export function RoomStage({
       )}
     </section>
   );
+}
+
+/** "Starts in 2h 53m" — counts down, re-rendering every 30s. */
+function StartsIn({ kickoffAt }: { kickoffAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(t);
+  }, []);
+  return <>{kickoffLabel(kickoffAt, now).replace("Kicks off in", "Starts in").replace("Kicking off", "Starting now")}</>;
 }
 
 function Team({ name, code }: { name: string; code: string }) {

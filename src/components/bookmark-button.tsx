@@ -12,12 +12,30 @@ export function BookmarkButton({
   id,
   type = "room",
   label = "item",
+  variant = "bare",
 }: {
   id: string;
   type?: SavedItemType;
   label?: string;
+  /** "stage": the round, white button in the room's top bar, over the stadium. */
+  variant?: "bare" | "stage";
 }) {
   const saved = isSaved(useSavedItems(), type, id);
+
+  if (variant === "stage") {
+    return (
+      <button
+        type="button"
+        onClick={() => toggleSaved(type, id)}
+        aria-label={saved ? `Remove ${label} from watchlist` : `Add ${label} to watchlist`}
+        aria-pressed={saved}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 transition-[color,transform] duration-150 active:scale-90 [&_svg]:h-[17px] [&_svg]:w-[17px]"
+        style={{ color: saved ? "#7c9bff" : "rgba(255,255,255,0.85)" }}
+      >
+        <BookmarkIcon filled={saved} />
+      </button>
+    );
+  }
 
   return (
     <button

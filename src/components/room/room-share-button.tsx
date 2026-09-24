@@ -42,10 +42,16 @@ export function RoomShareButton({ path, claim, label }: { path: string; claim: s
       type="button"
       onClick={() => void share()}
       aria-label={copied ? "Link copied" : "Share room"}
-      className="flex h-9 items-center gap-1.5 rounded-full bg-black/40 px-3 text-xs font-semibold text-white/85 transition-[color,transform] duration-150 hover:text-white active:scale-95"
+      className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 transition-[color,transform] duration-150 hover:text-white active:scale-90"
+      style={{ color: copied ? "#7c9bff" : "rgba(255,255,255,0.85)" }}
     >
-      <ShareGlyph />
-      {copied ? "Copied" : "Share"}
+      {copied ? (
+        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
+          <path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <ShareGlyph />
+      )}
     </button>
   );
 }

@@ -113,6 +113,7 @@ export default async function RoomPage({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_340px] md:gap-6">
           <div className="flex min-w-0 flex-col gap-4">
             <RoomStage
+              roomId={room.id}
               match={match}
               claim={claim}
               creator={creator ? { displayName: creator.displayName, username: creator.username, avatarUrl: creator.avatarUrl } : null}

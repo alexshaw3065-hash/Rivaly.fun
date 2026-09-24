@@ -222,3 +222,32 @@ export function abbreviateClaim(claim: string, homeTeam: string, awayTeam: strin
   }
   return named.reduce((text, team) => text.replace(new RegExp(`(${escape(team)})\\s+wins?\\b`, "i"), "$1 to win"), claim);
 }
+
+const COMPETITION_SHORT: Record<string, string> = {
+  "premier league": "EPL",
+  "english premier league": "EPL",
+  "champions league": "UCL",
+  "uefa champions league": "UCL",
+  "europa league": "UEL",
+  "conference league": "UECL",
+  "la liga": "LaLiga",
+  "serie a": "Serie A",
+  bundesliga: "Bundesliga",
+  "ligue 1": "Ligue 1",
+  "fa cup": "FA Cup",
+  "world cup": "WC",
+  "fifa world cup": "WC",
+  friendlies: "Friendly",
+  "international friendlies": "Friendly",
+};
+
+/** A competition's short name for tight spots — "Premier League" → "EPL". */
+export function competitionShort(name: string): string {
+  const known = COMPETITION_SHORT[name.trim().toLowerCase()];
+  if (known) return known;
+  if (name.length <= 10) return name;
+  return name
+    .split(/\s+/)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
