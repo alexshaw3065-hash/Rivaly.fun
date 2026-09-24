@@ -437,3 +437,71 @@ html {
   animation-timing-function: linear;
   animation-fill-mode: forwards;
 }
+
+/* ── Room: the viewing centre ────────────────────────────────────────────
+   The room is always lights-down, whatever the app theme: .stage-dark
+   re-declares the dark tokens for its subtree, so every surface, border
+   and text colour inside reads cinematic without per-component overrides. */
+.stage-dark {
+  --background: #0a0a0a;
+  --surface: #131313;
+  --surface-elevated: #1a1a1a;
+  --foreground: #f5f5f5;
+  --muted: #8a8a8a;
+  --border: #242424;
+  --border-strong: #333333;
+  --rival-blue: #3d6bff;
+  --rival-blue-dim: #1c2e6b;
+  --rival-green: #1fae63;
+  --rival-green-dim: #113a28;
+  --rival-red: #ef4444;
+  --rival-red-dim: #3a1517;
+  --danger-red: #ef4444;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/* A goal: the scoring side's stand floods with light, then settles. */
+@keyframes stand-flare {
+  0% { opacity: 0; }
+  12% { opacity: 0.85; }
+  30% { opacity: 0.45; }
+  45% { opacity: 0.75; }
+  100% { opacity: 0; }
+}
+.stand-flare {
+  opacity: 0;
+  animation: stand-flare 2.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+/* GOAL banner: sweeps in, holds, sweeps out. */
+@keyframes goal-sweep {
+  0% { opacity: 0; transform: translateX(-40%) skewX(-8deg); }
+  14% { opacity: 1; transform: translateX(0) skewX(0); }
+  82% { opacity: 1; transform: translateX(0) scale(1); }
+  100% { opacity: 0; transform: translateX(30%) scale(0.98); }
+}
+.goal-sweep {
+  animation: goal-sweep 2.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+/* A score that just changed lands with a small bump. */
+@keyframes score-bump {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.score-bump {
+  display: inline-block;
+  animation: score-bump 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Crowd reactions rise over the stadium and fade. */
+@keyframes reaction-float {
+  0% { opacity: 0; transform: translateY(0) scale(0.8); }
+  15% { opacity: 1; transform: translateY(-12px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-120px) scale(1); }
+}
+.reaction-float {
+  animation: reaction-float 2.1s ease-out forwards;
+}

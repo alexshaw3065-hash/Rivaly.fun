@@ -104,15 +104,22 @@ export function AutoScrollRow({
     updateActiveSection();
   }
 
-  function onWheel(e: React.WheelEvent) {
+  // Vertical wheel scrolls the row sideways. Attached natively with
+  // passive: false — React's onWheel is passive, so preventDefault there is
+  // ignored and logs an error on every wheel tick.
+  useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      pause();
-      el.scrollLeft += e.deltaY;
-      e.preventDefault();
-    }
-  }
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        pausedUntil.current = performance.now() + RESUME_DELAY_MS;
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [itemCount]);
 
   // The pointer is only captured once it has actually moved a few pixels, so
   // a plain tap still reaches the card under it; the click that ends a real
@@ -148,7 +155,6 @@ export function AutoScrollRow({
     <div
       ref={scrollerRef}
       onScroll={onScroll}
-      onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
