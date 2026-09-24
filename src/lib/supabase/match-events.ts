@@ -3,7 +3,8 @@ import { encodeMoment, matchMoment } from "@/lib/match-event-label";
 import type { EventRow } from "@/lib/match-timeline";
 import type { DisplayChatMessage } from "@/lib/supabase/message-mapper";
 
-const LIMIT = 200;
+// Enough for a whole match now that shots, free kicks and corners are kept too.
+const LIMIT = 800;
 
 /**
  * A match's stored events, oldest first — the source for both the room's

@@ -12,6 +12,8 @@ import { getMatchEventRows, momentsFromRows } from "@/lib/supabase/match-events"
 import { buildTimeline } from "@/lib/match-timeline";
 import { sportOf } from "@/lib/markets";
 import { MatchTimeline } from "@/components/room/match-timeline";
+import { RoomTabs, type ActivityItem } from "@/components/room/room-tabs";
+import { matchStats } from "@/lib/match-stats";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
 import { RoomResult } from "@/components/room-result";
@@ -110,6 +112,22 @@ export default async function RoomPage({
   // Chat, match moments and takeovers in one feed, by time.
   const feed = [...messages, ...moments, ...takeoverLines].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   const claim = abbreviateClaim(room.prediction, match.homeTeam, match.awayTeam);
+  // The tabs under the pool: stats from the match feed, the room's activity,
+  // and the overview facts.
+  const stats = matchStats(match, eventRows);
+  const activity: ActivityItem[] = [
+    ...rivals.map((r) => ({
+      id: `entry-${r.userId}`,
+      at: r.userId === room.creatorId ? +new Date(room.createdAt) : +new Date(r.createdAt),
+      kind: r.userId === room.creatorId ? ("created" as const) : ("joined" as const),
+      name: r.displayName,
+      avatarUrl: r.avatarUrl,
+      side: r.side,
+      cents: r.amountCents,
+    })),
+    ...(stakesClosed ? [{ id: "locked", at: +new Date(match.kickoffAt), kind: "locked" as const }] : []),
+    ...(outcome ? [{ id: "result", at: room.settledAt ? +new Date(room.settledAt) : +new Date(match.kickoffAt) + 1, kind: "result" as const, outcome }] : []),
+  ];
   const sharePath = `/rooms/${room.id}${room.visibility === "private" ? `?code=${room.inviteCode}` : ""}`;
   const stakeLimitLabel =
     room.maxStakeCents === null ? "No limit" : `${formatMoney(room.minStakeCents)}–${formatMoney(room.maxStakeCents)}`;
@@ -158,7 +176,21 @@ export default async function RoomPage({
               claim={claim}
             />
 
-            <ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} />
+            <RoomTabs
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} />}
+              match={match}
+              stats={stats}
+              activity={activity}
+              overview={[
+                { label: "Competition", value: match.competition },
+                { label: "Stakes", value: stakeLimitLabel },
+                { label: "Resolves via", value: room.settlementMode === "auto" ? room.resolutionSource : "Creator confirms after the match" },
+                { label: "Settles", value: "Once the result is certain, after a 10-minute VAR window" },
+                { label: "Payouts", value: "Winners split the whole pool by stake — no fee" },
+                { label: "Room", value: room.visibility === "private" ? `Private · ${room.inviteCode}` : "Public" },
+                { label: "Rivals", value: String(room.participantCount) },
+              ]}
+            />
           </div>
 
           <aside className="flex flex-col gap-4 md:sticky md:top-[calc(var(--header-height)+16px)] md:self-start">
@@ -209,32 +241,6 @@ export default async function RoomPage({
                 />
               ))}
 
-            <div className="rounded-2xl border border-border bg-surface p-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Room rules</p>
-              <dl className="mt-2.5 flex flex-col gap-1.5 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted">Stakes</dt>
-                  <dd className="text-right text-foreground">{stakeLimitLabel}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted">Resolves via</dt>
-                  <dd className="text-right text-foreground">
-                    {room.settlementMode === "auto" ? room.resolutionSource : "Creator confirms after the match"}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted">Room</dt>
-                  <dd className="text-right capitalize text-foreground">
-                    {room.visibility}
-                    {room.visibility === "private" && <span className="ml-2 font-mono normal-case text-muted">{room.inviteCode}</span>}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted">Rivals</dt>
-                  <dd className="text-right text-foreground">{room.participantCount}</dd>
-                </div>
-              </dl>
-            </div>
           </aside>
         </div>
       </div>

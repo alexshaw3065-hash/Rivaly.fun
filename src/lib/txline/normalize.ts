@@ -17,6 +17,12 @@ const NOTABLE_ACTIONS = new Set([
   "red_card",
   "yellow_card",
   "substitution",
+  // For the room's Stats tab: shots (Outcome OnTarget/OffTarget/Woodwork/
+  // Blocked), free kicks (fouls, and offsides via FreeKickType) and corners —
+  // each carries the team, snapshotted as _side below.
+  "shot",
+  "free_kick",
+  "corner",
   "kickoff",
   "halftime_finalised",
   "game_finalised",

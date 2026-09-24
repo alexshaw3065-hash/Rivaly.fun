@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { sportOf } from "@/lib/markets";
 import { competitionShort, teamIdentity } from "@/lib/team-identity";
 import type { Match } from "@/lib/types";
@@ -48,6 +49,14 @@ export function RoomStage({
   outcome?: "yes" | "no" | "void" | null;
   children?: React.ReactNode;
 }) {
+  const router = useRouter();
+  // Back goes where you came from (inside Rivaly); straight into a room from
+  // a shared link, it goes home.
+  function goBack() {
+    const fromHere = typeof document !== "undefined" && document.referrer.startsWith(window.location.origin);
+    if (fromHere && window.history.length > 1) router.back();
+    else router.push("/");
+  }
   const home = teamIdentity(match.homeTeam);
   const away = teamIdentity(match.awayTeam);
   const live = match.status === "live";
@@ -134,22 +143,30 @@ export function RoomStage({
         </span>
       ))}
 
+      {/* A dark wash under the scoreboard and the call, so the text reads on any pitch. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+
       <div className="relative z-[1] flex flex-col px-4 pb-4 pt-3 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
         {/* Top bar, over the roof: back + league, then kick-off status, watchlist, share */}
         <div className="flex items-center gap-2">
-          <Link href="/" aria-label="Back home" className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-black/40 pl-2 pr-3 text-white/85 transition-colors hover:text-white">
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label="Back"
+            className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm pl-2 pr-3 text-white transition-transform duration-150 active:scale-95"
+          >
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
-              <path d="M10 3 5 8l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 3 5 8l5 5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.1em]" title={match.competition}>
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.1em]" title={match.competition}>
               {competitionShort(match.competition)}
             </span>
-          </Link>
-          <span className="ml-auto min-w-0 truncate rounded-full bg-black/40 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em]">
+          </button>
+          <span className="ml-auto min-w-0 truncate rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.1em]">
             {live ? (
               <LiveBadge />
             ) : finished ? (
-              <span className="text-white/80">Full time</span>
+              <span className="text-white">Full time</span>
             ) : (
               <span className="text-[#f5c542]">
                 <StartsIn kickoffAt={match.kickoffAt} />
@@ -181,9 +198,9 @@ export function RoomStage({
 
         {/* The call */}
         <div className="mt-2.5">
-          <h1 className="font-display text-[19px] font-bold leading-[1.15] text-white md:text-3xl">&ldquo;{claim}&rdquo;</h1>
+          <h1 className="font-display text-[21px] font-extrabold leading-[1.15] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] md:text-3xl">&ldquo;{claim}&rdquo;</h1>
           {creator && (
-            <Link href={`/profile/${creator.username}`} className="mt-1.5 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white">
+            <Link href={`/profile/${creator.username}`} className="mt-1.5 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white">
               <RivalCharacter name={creator.username} imageUrl={creator.avatarUrl} size={22} />
               Called by <span className="font-semibold text-white">{creator.displayName}</span>
             </Link>

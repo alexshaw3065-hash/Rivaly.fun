@@ -128,7 +128,7 @@ export function SideStands({
               style={{ background: SIDES[side].color }}
             >
               <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden>
-                <path d="M7 2.5v9M2.5 7h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M7 2.5v9M2.5 7h9" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" />
               </svg>
               Back {SIDES[side].label}
             </button>
@@ -150,11 +150,11 @@ export function SideStands({
 
 // The pot in the middle of a ring split between the sides.
 function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; poolCents: number; decided: "yes" | "no" | null }) {
-  const size = 104;
-  const stroke = 10;
+  const size = 128;
+  const stroke = 14;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const gap = yesShare === null ? 0 : 6; // a hairline between the two arcs
+  const gap = 0; // the sides meet on a straight cut
   const yesLen = yesShare === null ? 0 : Math.max(0, yesShare * c - gap);
   const noLen = yesShare === null ? 0 : Math.max(0, (1 - yesShare) * c - gap);
   return (
@@ -171,7 +171,7 @@ function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; p
               fill="none"
               stroke="var(--rival-blue)"
               strokeWidth={stroke}
-              strokeLinecap="round"
+              strokeLinecap="butt"
               strokeDasharray={`${yesLen} ${c}`}
               strokeDashoffset={-gap / 2}
               style={{ opacity: decided === "no" ? 0.35 : 1, transition: "stroke-dasharray 900ms cubic-bezier(0.23,1,0.32,1), opacity 300ms" }}
@@ -183,7 +183,7 @@ function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; p
               fill="none"
               stroke="var(--rival-red)"
               strokeWidth={stroke}
-              strokeLinecap="round"
+              strokeLinecap="butt"
               strokeDasharray={`${noLen} ${c}`}
               strokeDashoffset={-(yesShare * c + gap / 2)}
               style={{ opacity: decided === "yes" ? 0.35 : 1, transition: "stroke-dasharray 900ms cubic-bezier(0.23,1,0.32,1), stroke-dashoffset 900ms cubic-bezier(0.23,1,0.32,1), opacity 300ms" }}
@@ -192,8 +192,8 @@ function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; p
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">Pool</span>
-        <span className="font-display text-xl font-bold tabular-nums text-foreground">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Pool</span>
+        <span className="font-display text-2xl font-bold tabular-nums text-foreground">
           <AnimatedMoney cents={poolCents} />
         </span>
       </div>

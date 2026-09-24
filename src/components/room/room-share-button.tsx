@@ -67,8 +67,8 @@ export function RoomShareButton({
       type="button"
       onClick={() => void share()}
       aria-label={copied ? "Link copied" : "Share room"}
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 transition-[color,transform] duration-150 hover:text-white active:scale-90"
-      style={{ color: copied ? "#7c9bff" : "rgba(255,255,255,0.85)" }}
+      className="flex h-9 w-9 items-center justify-center rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm transition-[color,transform] duration-150 active:scale-90"
+      style={{ color: copied ? "#7c9bff" : "#fff" }}
     >
       {copied ? (
         <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>

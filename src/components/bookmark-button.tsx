@@ -29,8 +29,8 @@ export function BookmarkButton({
         onClick={() => toggleSaved(type, id)}
         aria-label={saved ? `Remove ${label} from watchlist` : `Add ${label} to watchlist`}
         aria-pressed={saved}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 transition-[color,transform] duration-150 active:scale-90 [&_svg]:h-[17px] [&_svg]:w-[17px]"
-        style={{ color: saved ? "#7c9bff" : "rgba(255,255,255,0.85)" }}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm transition-[color,transform] duration-150 active:scale-90 [&_svg]:h-[17px] [&_svg]:w-[17px]"
+        style={{ color: saved ? "#7c9bff" : "#fff" }}
       >
         <BookmarkIcon filled={saved} />
       </button>

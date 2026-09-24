@@ -40,12 +40,21 @@ export async function getMyEntryForRoom(roomId: string): Promise<MyEntry | null>
   };
 }
 
+// Some accounts carry a raw ID as their display name (a wallet sign-up that
+// never set one) — show their username instead of a UUID.
+const ID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
+function readableName(p: { display_name: string; username: string } | null): string {
+  if (!p) return "Rival";
+  return p.display_name && !ID_LIKE.test(p.display_name) ? p.display_name : p.username || "Rival";
+}
+
 export interface RoomRival {
   userId: string;
   side: EntrySide;
   displayName: string;
   avatarUrl: string | null;
   amountCents: number;
+  createdAt: string;
 }
 
 /** Who's actually in a room, newest first — the room page's rival stack. */
@@ -53,7 +62,7 @@ export async function getRoomRivals(roomId: string, limit = 12): Promise<RoomRiv
   const supabase = await createClient();
   const { data } = await supabase
     .from("entries")
-    .select("user_id, side, amount_cents, profile:profiles(display_name, avatar_url)")
+    .select("user_id, side, amount_cents, created_at, profile:profiles(display_name, username, avatar_url)")
     .eq("room_id", roomId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -61,13 +70,15 @@ export async function getRoomRivals(roomId: string, limit = 12): Promise<RoomRiv
     user_id: string;
     side: EntrySide;
     amount_cents: number;
-    profile: { display_name: string; avatar_url: string | null } | null;
+    created_at: string;
+    profile: { display_name: string; username: string; avatar_url: string | null } | null;
   }[];
   return rows.map((r) => ({
     userId: r.user_id,
     side: r.side,
-    displayName: r.profile?.display_name ?? "Rival",
+    displayName: readableName(r.profile),
     avatarUrl: r.profile?.avatar_url ?? null,
     amountCents: r.amount_cents,
+    createdAt: r.created_at,
   }));
 }
