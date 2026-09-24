@@ -5,7 +5,18 @@ import { useState } from "react";
 // Sharing is gameplay: a room without opponents isn't a room. Opens the
 // phone's own share sheet (WhatsApp, X, DMs) with the call as a dare; falls
 // back to copying the link where there's no native share.
-export function RoomShareButton({ path, claim, label }: { path: string; claim: string; label?: string }) {
+export function RoomShareButton({
+  path,
+  claim,
+  label,
+  tone,
+}: {
+  path: string;
+  claim: string;
+  label?: string;
+  /** An empty side of the pool: a quiet "challenge a rival" nudge in its colour. */
+  tone?: "yes" | "no";
+}) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
@@ -22,6 +33,20 @@ export function RoomShareButton({ path, claim, label }: { path: string; claim: s
     await navigator.clipboard?.writeText(url).catch(() => undefined);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  if (tone) {
+    return (
+      <button
+        type="button"
+        onClick={() => void share()}
+        className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold transition-transform duration-150 active:scale-95"
+        style={{ color: tone === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}
+      >
+        <ShareGlyph />
+        {copied ? "Link copied" : "Empty — challenge a rival"}
+      </button>
+    );
   }
 
   if (label) {

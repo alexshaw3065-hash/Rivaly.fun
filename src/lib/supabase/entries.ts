@@ -45,6 +45,7 @@ export interface RoomRival {
   side: EntrySide;
   displayName: string;
   avatarUrl: string | null;
+  amountCents: number;
 }
 
 /** Who's actually in a room, newest first — the room page's rival stack. */
@@ -52,13 +53,14 @@ export async function getRoomRivals(roomId: string, limit = 12): Promise<RoomRiv
   const supabase = await createClient();
   const { data } = await supabase
     .from("entries")
-    .select("user_id, side, profile:profiles(display_name, avatar_url)")
+    .select("user_id, side, amount_cents, profile:profiles(display_name, avatar_url)")
     .eq("room_id", roomId)
     .order("created_at", { ascending: false })
     .limit(limit);
   const rows = (data ?? []) as unknown as {
     user_id: string;
     side: EntrySide;
+    amount_cents: number;
     profile: { display_name: string; avatar_url: string | null } | null;
   }[];
   return rows.map((r) => ({
@@ -66,5 +68,6 @@ export async function getRoomRivals(roomId: string, limit = 12): Promise<RoomRiv
     side: r.side,
     displayName: r.profile?.display_name ?? "Rival",
     avatarUrl: r.profile?.avatar_url ?? null,
+    amountCents: r.amount_cents,
   }));
 }

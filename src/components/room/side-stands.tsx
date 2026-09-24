@@ -1,6 +1,9 @@
+"use client";
+
 import { formatMoney, formatMoneyCompact } from "@/lib/mock-data";
 import type { RoomRival } from "@/lib/supabase/entries";
 import type { EntrySide } from "@/lib/types";
+import { openStakeSheet } from "@/lib/stake-sheet-store";
 import { AnimatedMoney } from "../animated-money";
 import { RivalCharacter } from "../rival-character";
 import { RoomShareButton } from "./room-share-button";
@@ -10,17 +13,20 @@ const SIDES = {
   no: { label: "NO", color: "var(--rival-red)", dim: "var(--rival-red-dim)" },
 } as const;
 
-// The two ends of the ground: everyone backing YES on one side, NO on the
-// other — their faces, how many, and their share of the pool. Named people,
-// not a percentage (engagement mechanism #5, social identity/rivalry). When
-// one end is empty, the call to action is to fill it: send the room to
-// someone who disagrees. After the result, the winning end lights up.
+const FACES = 3;
+
+// The pool: a ring split between the two sides with the pot in the middle,
+// each side's money, share and backers either side of it, the faces behind
+// the biggest stakes, and — on a phone, while stakes are open — the way in.
+// Named people and their money, not a percentage table (engagement mechanism
+// #5, social identity/rivalry). After the result, the winning side lights up.
 export function SideStands({
   yesCents,
   noCents,
   poolCents,
   rivals,
   mySide,
+  myStakeCents,
   outcome,
   open,
   sharePath,
@@ -31,91 +37,166 @@ export function SideStands({
   poolCents: number;
   rivals: RoomRival[];
   mySide: EntrySide | null;
+  myStakeCents: number | null;
   outcome: "yes" | "no" | "void" | null;
   open: boolean;
   sharePath: string;
   claim: string;
 }) {
   const total = yesCents + noCents;
-  const yesPct = total > 0 ? Math.round((yesCents / total) * 100) : 50;
-  const bySide = { yes: rivals.filter((r) => r.side === "yes"), no: rivals.filter((r) => r.side === "no") };
-  const emptySide: EntrySide | null = open ? (bySide.yes.length === 0 ? "yes" : bySide.no.length === 0 ? "no" : null) : null;
+  const yesShare = total > 0 ? yesCents / total : 0.5;
+  const pct = { yes: Math.round(yesShare * 100), no: 100 - Math.round(yesShare * 100) };
+  const cents = { yes: yesCents, no: noCents };
+  const bySide = {
+    yes: rivals.filter((r) => r.side === "yes").sort((a, b) => b.amountCents - a.amountCents),
+    no: rivals.filter((r) => r.side === "no").sort((a, b) => b.amountCents - a.amountCents),
+  };
+  const decided = outcome === "yes" || outcome === "no" ? outcome : null;
 
   return (
     <section className="rounded-2xl border border-border bg-surface p-4">
-      <div className="flex items-baseline justify-between">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">The pool</p>
-        <p className="font-display text-2xl font-bold tabular-nums text-foreground">
-          <AnimatedMoney cents={poolCents} />
-        </p>
+      {/* Side · ring · side */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        {(["yes", "no"] as const).map((side, i) => {
+          const s = SIDES[side];
+          const lost = decided !== null && decided !== side;
+          const stats = (
+            <div key={side} className={`min-w-0 transition-opacity duration-300 ${i === 1 ? "order-3 text-right" : ""}`} style={{ opacity: lost ? 0.45 : 1 }}>
+              <p className="font-display text-base font-extrabold tracking-wide" style={{ color: s.color }}>
+                {s.label}
+                {decided === side && <span className="ml-1 text-xs">✓</span>}
+              </p>
+              <p className="mt-0.5 truncate font-display text-lg font-bold tabular-nums text-foreground" title={formatMoney(cents[side])}>
+                {formatMoneyCompact(cents[side])}
+              </p>
+              <p className="font-mono text-[11px] text-muted">
+                {pct[side]}% · {bySide[side].length} in
+              </p>
+            </div>
+          );
+          return stats;
+        })}
+        <PoolRing yesShare={total > 0 ? yesShare : null} poolCents={poolCents} decided={decided} />
       </div>
 
-      {/* Tug of war: the split, with the two sides meeting on an angle */}
-      <div className="relative mt-3 flex h-3 overflow-hidden rounded-full bg-background">
-        <span className="h-full transition-[width] duration-700 ease-out" style={{ width: `${yesPct}%`, background: SIDES.yes.color }} />
-        <span className="h-full flex-1" style={{ background: SIDES.no.color }} />
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      {/* The faces behind the money */}
+      <div className="mt-4 grid grid-cols-2 gap-2">
         {(["yes", "no"] as const).map((side) => {
           const s = SIDES[side];
           const people = bySide[side];
-          const cents = side === "yes" ? yesCents : noCents;
-          const pct = side === "yes" ? yesPct : 100 - yesPct;
-          const won = outcome === side;
-          const lost = outcome !== null && outcome !== "void" && outcome !== side;
           return (
             <div
               key={side}
-              className="rounded-xl border p-3 transition-opacity duration-300"
-              style={{
-                borderColor: won ? s.color : "var(--border)",
-                background: won ? s.dim : "var(--background)",
-                opacity: lost ? 0.55 : 1,
-              }}
+              className="flex min-h-[58px] items-center gap-1.5 rounded-xl px-2.5 py-2"
+              style={{ background: `color-mix(in srgb, ${s.dim} 70%, transparent)`, boxShadow: decided === side ? `inset 0 0 0 1.5px ${s.color}` : undefined }}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-display text-lg font-extrabold tracking-wide" style={{ color: s.color }}>
-                  {s.label}
-                </span>
-                <span className="font-mono text-xs text-muted">{pct}%</span>
-              </div>
-              <p className="mt-0.5 font-mono text-xs text-muted" title={formatMoney(cents)}>
-                {formatMoneyCompact(cents)} · {people.length} {people.length === 1 ? "backer" : "backers"}
-              </p>
-              <div className="mt-2.5 flex h-7 items-center">
-                {people.length > 0 ? (
-                  <div className="flex -space-x-1.5">
-                    {people.slice(0, 5).map((p) => (
-                      <span key={p.userId} className="enter-pop rounded-[10px]" style={{ boxShadow: `0 0 0 2px var(--background)` }} title={p.displayName}>
-                        <RivalCharacter name={p.displayName} imageUrl={p.avatarUrl} size={26} />
-                      </span>
-                    ))}
-                    {people.length > 5 && (
-                      <span className="flex h-[26px] items-center pl-3 font-mono text-[11px] text-muted">+{people.length - 5}</span>
-                    )}
-                  </div>
+              {people.length === 0 ? (
+                open ? (
+                  <RoomShareButton path={sharePath} claim={claim} tone={side} />
                 ) : (
-                  <span className="text-xs text-muted">{open ? "Empty — waiting for a rival" : "Nobody took this side"}</span>
-                )}
-              </div>
-              {won && <p className="mt-2 text-xs font-semibold" style={{ color: s.color }}>Called it ✓</p>}
-              {mySide === side && !won && <p className="mt-2 text-xs font-semibold" style={{ color: s.color }}>You&rsquo;re here</p>}
-              {mySide === side && won && <p className="text-xs text-muted">Including you</p>}
+                  <span className="text-xs text-muted">Nobody</span>
+                )
+              ) : (
+                <>
+                  {people.slice(0, FACES).map((p) => (
+                    <span key={p.userId} className="enter-pop flex w-[38px] flex-col items-center gap-0.5" title={`${p.displayName} · ${formatMoney(p.amountCents)}`}>
+                      <RivalCharacter name={p.displayName} imageUrl={p.avatarUrl} size={24} />
+                      <span className="max-w-full truncate font-mono text-[10px] text-foreground/80">{formatMoneyCompact(p.amountCents)}</span>
+                    </span>
+                  ))}
+                  {people.length > FACES && (
+                    <span className="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-semibold" style={{ color: s.color, boxShadow: `inset 0 0 0 1px ${s.color}` }}>
+                      +{people.length - FACES}
+                    </span>
+                  )}
+                </>
+              )}
             </div>
           );
         })}
       </div>
 
-      {emptySide && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-border-strong p-3">
-          <p className="text-sm text-foreground">
-            Nobody&rsquo;s on <span className="font-bold" style={{ color: SIDES[emptySide].color }}>{SIDES[emptySide].label}</span> yet. Send it to someone who
-            disagrees.
-          </p>
-          <RoomShareButton path={sharePath} claim={claim} label="Challenge a rival" />
+      {/* The way in (phones; desktop has the side panel) */}
+      {open && !mySide && (
+        <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
+          {(["yes", "no"] as const).map((side) => (
+            <button
+              key={side}
+              type="button"
+              onClick={() => openStakeSheet(side)}
+              className="flex h-11 items-center justify-center gap-1.5 rounded-xl font-display text-sm font-extrabold tracking-wide text-white transition-transform duration-150 ease-out active:scale-[0.96]"
+              style={{ background: SIDES[side].color }}
+            >
+              <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden>
+                <path d="M7 2.5v9M2.5 7h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Back {SIDES[side].label}
+            </button>
+          ))}
         </div>
       )}
+      {mySide && (
+        <p className="mt-3 text-center text-xs text-muted">
+          You&rsquo;re on{" "}
+          <span className="font-bold" style={{ color: SIDES[mySide].color }}>
+            {SIDES[mySide].label}
+          </span>
+          {myStakeCents !== null && <> · {formatMoney(myStakeCents)}</>}
+        </p>
+      )}
     </section>
+  );
+}
+
+// The pot in the middle of a ring split between the sides.
+function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; poolCents: number; decided: "yes" | "no" | null }) {
+  const size = 104;
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const gap = yesShare === null ? 0 : 6; // a hairline between the two arcs
+  const yesLen = yesShare === null ? 0 : Math.max(0, yesShare * c - gap);
+  const noLen = yesShare === null ? 0 : Math.max(0, (1 - yesShare) * c - gap);
+  return (
+    <div className="order-2 relative flex items-center justify-center" style={{ width: size, height: size }}>
+      {/* Starts at 12 o'clock and runs counter-clockwise, so YES fills the left half beside its numbers. */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "scaleX(-1) rotate(-90deg)" }} aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
+        {yesShare !== null && (
+          <>
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke="var(--rival-blue)"
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={`${yesLen} ${c}`}
+              strokeDashoffset={-gap / 2}
+              style={{ opacity: decided === "no" ? 0.35 : 1, transition: "stroke-dasharray 900ms cubic-bezier(0.23,1,0.32,1), opacity 300ms" }}
+            />
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke="var(--rival-red)"
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={`${noLen} ${c}`}
+              strokeDashoffset={-(yesShare * c + gap / 2)}
+              style={{ opacity: decided === "yes" ? 0.35 : 1, transition: "stroke-dasharray 900ms cubic-bezier(0.23,1,0.32,1), stroke-dashoffset 900ms cubic-bezier(0.23,1,0.32,1), opacity 300ms" }}
+            />
+          </>
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">Pool</span>
+        <span className="font-display text-xl font-bold tabular-nums text-foreground">
+          <AnimatedMoney cents={poolCents} />
+        </span>
+      </div>
+    </div>
   );
 }

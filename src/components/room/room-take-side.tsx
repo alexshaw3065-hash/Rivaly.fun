@@ -1,31 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { Drawer } from "vaul";
 import type { EntrySide } from "@/lib/types";
+import { openStakeSheet, useStakeSheet } from "@/lib/stake-sheet-store";
 import { JoinPanel } from "../join-panel";
 
-// The room's one primary action. On a phone it's a bar pinned above the tab
-// bar — YES or NO, with each side's share — and tapping a side opens the
-// stake sheet with that side picked, so taking a side is two taps from
-// anywhere in the room. On desktop the same panel sits in the side column.
-// Coming back from sign-in with ?side= re-opens the sheet to finish.
+// Taking a side. On a phone, the pool card's "Back YES / Back NO" buttons
+// open this stake sheet with that side picked; on desktop the same panel
+// sits in the side column. Coming back from sign-in with ?side= re-opens
+// the sheet to finish.
 export function RoomTakeSide({
   roomId,
   minStakeCents,
   maxStakeCents,
   returnPath,
-  yesPct,
   preselect,
 }: {
   roomId: string;
   minStakeCents: number;
   maxStakeCents: number | null;
   returnPath: string;
-  yesPct: number;
   preselect: EntrySide | null;
 }) {
-  const [sheetSide, setSheetSide] = useState<EntrySide | null>(preselect);
+  const sheetSide = useStakeSheet();
+  const setSheetSide = openStakeSheet;
+  // Back from sign-in with a side picked: re-open the sheet on it.
+  useEffect(() => {
+    if (preselect) openStakeSheet(preselect);
+    return () => openStakeSheet(null);
+  }, [preselect]);
 
   const panel = (side: EntrySide | null) => (
     <JoinPanel
@@ -43,15 +47,7 @@ export function RoomTakeSide({
       {/* Desktop: inline in the side column */}
       <div className="hidden md:block">{panel(preselect)}</div>
 
-      {/* Phone: pinned bar + stake sheet */}
-      <div className="fixed inset-x-0 bottom-16 z-[15] border-t border-border bg-background/95 px-4 py-3 md:hidden">
-        <p className="mb-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Take a side</p>
-        <div className="grid grid-cols-2 gap-2">
-          <SideButton side="yes" pct={yesPct} onClick={() => setSheetSide("yes")} />
-          <SideButton side="no" pct={100 - yesPct} onClick={() => setSheetSide("no")} />
-        </div>
-      </div>
-
+      {/* Phone: the stake sheet */}
       <Drawer.Root open={sheetSide !== null} onOpenChange={(open) => !open && setSheetSide(null)}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 md:hidden" />
@@ -64,20 +60,5 @@ export function RoomTakeSide({
       </Drawer.Root>
 
     </>
-  );
-}
-
-function SideButton({ side, pct, onClick }: { side: EntrySide; pct: number; onClick: () => void }) {
-  const yes = side === "yes";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-12 items-center justify-between rounded-xl px-4 font-display text-lg font-extrabold tracking-wide text-white transition-transform duration-150 ease-out active:scale-[0.96]"
-      style={{ background: yes ? "var(--rival-blue)" : "var(--rival-red)" }}
-    >
-      {yes ? "YES" : "NO"}
-      <span className="font-mono text-xs font-semibold text-white/80">{pct}%</span>
-    </button>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { after } from "next/server";
 import { formatMoney } from "@/lib/mock-data";
-import { getRoomById, getRoomByInviteCode, splitPctFromTotals } from "@/lib/supabase/rooms";
+import { getRoomById, getRoomByInviteCode } from "@/lib/supabase/rooms";
 import { getMatchById } from "@/lib/supabase/matches";
 import { getProfileById } from "@/lib/supabase/profiles";
 import { getMyEntryForRoom, getRoomRivals } from "@/lib/supabase/entries";
@@ -72,7 +72,6 @@ export default async function RoomPage({
   const creator = await getProfileById(room.creatorId);
   const myEntry = await getMyEntryForRoom(room.id);
   const stakesClosed = stakesAreClosed(match);
-  const leftPct = splitPctFromTotals(room.yesTotalCents ?? 0, room.noTotalCents ?? 0);
   const settled = room.status === "settled" || room.status === "refunded";
   const outcome = room.resolvedOutcome ?? null;
   const unfinished = room.status === "open" || room.status === "live";
@@ -149,6 +148,7 @@ export default async function RoomPage({
               poolCents={room.poolTotalCents}
               rivals={rivals}
               mySide={myEntry?.side ?? null}
+              myStakeCents={myEntry?.amountCents ?? null}
               outcome={outcome}
               open={!stakesClosed && !outcome}
               sharePath={sharePath}
@@ -202,7 +202,6 @@ export default async function RoomPage({
                   minStakeCents={room.minStakeCents}
                   maxStakeCents={room.maxStakeCents}
                   returnPath={sharePath}
-                  yesPct={leftPct}
                   preselect={preselect}
                 />
               ))}
@@ -235,8 +234,6 @@ export default async function RoomPage({
             </div>
           </aside>
         </div>
-        {/* Room below the pinned YES/NO bar on phones, so nothing hides under it */}
-        {!outcome && !stakesClosed && !myEntry && <div aria-hidden className="h-32 md:hidden" />}
       </div>
     </main>
   );
