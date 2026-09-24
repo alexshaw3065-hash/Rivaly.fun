@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/message-mapper";
 import { encodeMoment, matchMoment } from "@/lib/match-event-label";
 import { openAuthModal } from "@/lib/auth-modal-store";
+import { addEnergy, resetEnergy } from "@/lib/room-energy";
 import type { EntrySide } from "@/lib/types";
 import { useCurrentUser } from "./current-user-provider";
 import { ChatFeedRows } from "./chat-feed-rows";
@@ -33,6 +34,8 @@ const ROW_HEIGHT = 40;
 const EXIT_MS = 300;
 const HEAT_WINDOW_MS = 120_000;
 const QUICK_COOLDOWN_MS = 1200;
+/** Messages older than this don't count toward the crowd's starting energy. */
+const ENERGY_SEED_MS = 5 * 60_000;
 
 /** One tap, no typing: the things people actually shout at a screen. */
 const QUICK = ["🔥", "😂", "😤", "👀", "⚽ GOAL!", "Told you 😏", "🧢 Cap", "Robbed 😭"];
@@ -69,6 +72,24 @@ export function ChatComposer({
   const [sending, setSending] = useState(false);
   const [watching, setWatching] = useState(0);
   const lastQuick = useRef(0);
+  // Latest sides map for the realtime handler (entries arrive while we listen).
+  const sidesRef = useRef(sides);
+  useEffect(() => {
+    sidesRef.current = sides;
+  }, [sides]);
+
+  // Crowd energy: start from the last few minutes of real chat, by side.
+  useEffect(() => {
+    resetEnergy();
+    const cutoff = Date.now() - ENERGY_SEED_MS;
+    for (const m of initialMessages) {
+      const side = m.kind === "message" && m.userId ? sidesRef.current[m.userId] : undefined;
+      const when = +new Date(m.createdAt);
+      if (side && when >= cutoff) addEnergy(side, 1, when);
+    }
+    // Per room: re-seeding on every re-render would double-count.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
 
   // Realtime rows carry no joined author: seeded from the server fetch and
   // extended on demand for a brand-new poster's first message.
@@ -99,6 +120,8 @@ export function ChatComposer({
         }
         push(mapMessageRow(row, author), EXIT_MS);
         floatReaction(row.body);
+        const side = sidesRef.current[row.user_id];
+        if (side) addEnergy(side);
       })
       .on("presence", { event: "sync" }, () => setWatching(Object.keys(channel.presenceState()).length));
 

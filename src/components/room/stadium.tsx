@@ -13,6 +13,11 @@ import { teamIdentity } from "@/lib/team-identity";
 // while the match is live. A goal lights up the scoring end and sets the
 // flashes off. Everything else stays still.
 //
+// Crowd energy (room-energy.ts): the room's YES backers are the left end,
+// NO the right. Each end glows in its side's colour as its backers chat and
+// react, and the louder end pushes its light across the ground toward the
+// quieter one — the stadium shows who's winning the noise. Silence, no glow.
+//
 // Day or night follows the app theme through CSS variables (.stadium-art in
 // globals.css) — a floodlit night game in dark mode, a sunlit afternoon in
 // light — so switching theme never flickers.
@@ -119,6 +124,7 @@ export function Stadium({
   awayTeam,
   sport,
   live = false,
+  energy = { intensity: 0, yesShare: 0.5 },
   flare,
   flareKey,
 }: {
@@ -126,6 +132,8 @@ export function Stadium({
   awayTeam: string;
   sport: "soccer" | "nfl";
   live?: boolean;
+  /** 0–1 loudness and YES's share of it (see readEnergy in room-energy.ts). */
+  energy?: { intensity: number; yesShare: number };
   flare: "home" | "away" | null;
   flareKey: number;
 }) {
@@ -141,6 +149,8 @@ export function Stadium({
   }, []);
   const crowd = useMemo(() => (ready ? buildCrowd(homeTeam, awayTeam) : null), [ready, homeTeam, awayTeam]);
 
+  // Where the two ends' light meets: YES's share of the noise, never fully off either end.
+  const split = W * Math.min(0.82, Math.max(0.18, energy.yesShare));
   const seat = (kit: string) => `color-mix(in srgb, ${kit} 38%, var(--st-stand))`;
   const upperBottom = UPPER.top + UPPER.rows * UPPER.rowH;
   const lowerBottom = LOWER.top + LOWER.rows * LOWER.rowH;
@@ -171,6 +181,16 @@ export function Stadium({
           <stop offset="0.42" stopColor="#000" stopOpacity="0.05" />
           <stop offset="0.75" stopColor="#000" stopOpacity="0.5" />
           <stop offset="1" stopColor="#000" stopOpacity="0.72" />
+        </linearGradient>
+        <linearGradient id="st-yes-wash" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#3d6bff" stopOpacity="0.6" />
+          <stop offset="0.7" stopColor="#3d6bff" stopOpacity="0.28" />
+          <stop offset="1" stopColor="#3d6bff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="st-no-wash" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#ef4444" stopOpacity="0" />
+          <stop offset="0.3" stopColor="#ef4444" stopOpacity="0.28" />
+          <stop offset="1" stopColor="#ef4444" stopOpacity="0.6" />
         </linearGradient>
         <clipPath id="st-stands">
           <rect x="0" y={UPPER.top} width={W} height={BOARDS_Y - UPPER.top} />
@@ -249,6 +269,26 @@ export function Stadium({
       {/* Segregation netting between the home stands and the away end */}
       <path d={`M${AWAY_FROM} ${UPPER.top}V${lowerBottom}`} stroke="var(--st-roof)" strokeWidth="3" />
       <path d={`M${AWAY_FROM} ${UPPER.top}V${lowerBottom}`} stroke="#fff" strokeOpacity="0.18" strokeWidth="0.6" strokeDasharray="1.5 1.5" />
+
+      {/* Crowd energy: each end glows in its side's colour; the louder end pushes the light across */}
+      <g clipPath="url(#st-stands)" style={{ opacity: energy.intensity, transition: "opacity 900ms ease" }}>
+        <rect
+          x="0"
+          y={UPPER.top}
+          width={W}
+          height={BOARDS_Y - UPPER.top}
+          fill="url(#st-yes-wash)"
+          style={{ transform: `translateX(${split - W}px)`, transition: "transform 1100ms cubic-bezier(0.23, 1, 0.32, 1)" }}
+        />
+        <rect
+          x="0"
+          y={UPPER.top}
+          width={W}
+          height={BOARDS_Y - UPPER.top}
+          fill="url(#st-no-wash)"
+          style={{ transform: `translateX(${split}px)`, transition: "transform 1100ms cubic-bezier(0.23, 1, 0.32, 1)" }}
+        />
+      </g>
 
       {/* Mexican wave while the match is live */}
       {live && <rect className="crowd-wave" x="-80" y={UPPER.top} width="80" height={BOARDS_Y - UPPER.top} fill="url(#st-wave)" />}

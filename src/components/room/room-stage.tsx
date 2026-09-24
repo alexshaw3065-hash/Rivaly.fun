@@ -10,6 +10,7 @@ import { LiveBadge } from "../live-badge";
 import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
 import { Stadium } from "./stadium";
+import { readEnergy, useRoomEnergy } from "@/lib/room-energy";
 import { RoomShareButton } from "./room-share-button";
 
 export const REACTION_EVENT = "rivaly:reaction";
@@ -76,6 +77,7 @@ export function RoomStage({
   }, []);
 
   const scorer = goal ? (goal.side === "home" ? home : away) : null;
+  const energy = readEnergy(useRoomEnergy());
 
   return (
     <section className="stadium-art relative -mx-4 overflow-hidden rounded-b-3xl bg-[var(--st-pitch-2)] md:mx-0 md:rounded-2xl">
@@ -84,6 +86,7 @@ export function RoomStage({
         awayTeam={match.awayTeam}
         sport={sportOf(match)}
         live={live}
+        energy={energy}
         flare={goal?.side ?? null}
         flareKey={goal?.key ?? 0}
       />
@@ -147,6 +150,8 @@ export function RoomStage({
           )}
         </div>
 
+        <CrowdNoise intensity={energy.intensity} yesShare={energy.yesShare} />
+
         {children}
       </div>
 
@@ -159,6 +164,33 @@ export function RoomStage({
         </div>
       )}
     </section>
+  );
+}
+
+// Which end is louder right now — the meter under the call. Reads the same
+// energy the stadium glows with, so the words and the light always agree.
+function CrowdNoise({ intensity, yesShare }: { intensity: number; yesShare: number }) {
+  const pct = Math.round(yesShare * 100);
+  const verdict =
+    intensity < 0.05
+      ? "Crowd's quiet — chat to make your end louder"
+      : yesShare >= 0.6
+        ? "YES end is louder"
+        : yesShare <= 0.4
+          ? "NO end is louder"
+          : "Neck and neck";
+  return (
+    <div className="mt-5">
+      <div className="flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em]">
+        <span className="text-[#7c9bff]">YES end</span>
+        <div className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-white/15" style={{ opacity: 0.45 + intensity * 0.55 }}>
+          <span className="h-full transition-[width] duration-1000 ease-out" style={{ width: `${pct}%`, background: "#3d6bff" }} />
+          <span className="h-full flex-1" style={{ background: "#ef4444" }} />
+        </div>
+        <span className="text-[#ff8a8a]">NO end</span>
+      </div>
+      <p className="mt-1.5 text-xs font-semibold text-white/80">{verdict}</p>
+    </div>
   );
 }
 
