@@ -76,8 +76,12 @@ export function useRealMatches(): RealMatches {
   // for.
   useEffect(() => {
     const supabase = createClient();
+    // A unique name per hook instance: several surfaces (search, the create
+    // flow) can be mounted at once, and the client hands back the SAME
+    // channel for a repeated name — adding a listener to an already-
+    // subscribed channel throws.
     const channel = supabase
-      .channel("matches-live")
+      .channel(`matches-live:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
         void load();
       })

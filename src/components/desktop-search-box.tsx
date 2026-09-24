@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { matches, profiles } from "@/lib/mock-data";
-import { searchRooms, usePublicRooms } from "@/lib/use-real-rooms";
+import { useSearchResults } from "@/lib/use-search-results";
 import { SearchIcon } from "./icons";
 import { SearchRollup } from "./search-rollup";
 import { SearchResultsList } from "./search-results-list";
@@ -27,29 +26,7 @@ export function DesktopSearchBox() {
 
   const q = query.trim().toLowerCase();
 
-  const { items: publicRooms } = usePublicRooms();
-  const matchedRooms = useMemo(() => searchRooms(publicRooms, q), [publicRooms, q]);
-  const matchedMatches = useMemo(
-    () =>
-      q
-        ? matches.filter(
-            (m) =>
-              m.homeTeam.toLowerCase().includes(q) ||
-              m.awayTeam.toLowerCase().includes(q) ||
-              m.competition.toLowerCase().includes(q),
-          )
-        : [],
-    [q],
-  );
-  const matchedPeople = useMemo(
-    () =>
-      q
-        ? profiles.filter(
-            (p) => p.displayName.toLowerCase().includes(q) || p.username.toLowerCase().includes(q),
-          )
-        : [],
-    [q],
-  );
+  const { rooms: matchedRooms, matches: matchedMatches, people: matchedPeople } = useSearchResults(query);
 
   function close() {
     setOpen(false);

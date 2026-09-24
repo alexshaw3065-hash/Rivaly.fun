@@ -2,8 +2,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { matches, profiles, leagues, type SearchTopic } from "@/lib/mock-data";
-import { searchRooms, usePublicRooms } from "@/lib/use-real-rooms";
+import type { SearchTopic } from "@/lib/mock-data";
+import { useSearchResults } from "@/lib/use-search-results";
+import { useRealMatches } from "@/lib/use-real-matches";
 import { RoomFeed, type FilterTab } from "@/components/room-feed";
 import { SearchRollup } from "@/components/search-rollup";
 import { SearchResultsList } from "@/components/search-results-list";
@@ -64,34 +65,16 @@ export function SearchBody() {
     [selectedLeagues, entryStatusFilter],
   );
 
-  const { items: publicRooms } = usePublicRooms();
+  const search = useSearchResults(query, selectedLeagues);
   const matchedRooms = useMemo(
-    () => searchRooms(publicRooms, q).filter(({ room, match }) => roomMatchesAllFilters(room, match)),
-    [publicRooms, q, roomMatchesAllFilters],
+    () => search.rooms.filter(({ room, match }) => roomMatchesAllFilters(room, match)),
+    [search.rooms, roomMatchesAllFilters],
   );
-  const matchedMatches = useMemo(
-    () =>
-      q
-        ? matches.filter(
-            (m) =>
-              (m.homeTeam.toLowerCase().includes(q) ||
-                m.awayTeam.toLowerCase().includes(q) ||
-                m.competition.toLowerCase().includes(q)) &&
-              (selectedLeagues.length === 0 || selectedLeagues.includes(m.competition)),
-          )
-        : [],
-    [q, selectedLeagues],
-  );
-  const matchedPeople = useMemo(
-    () =>
-      q
-        ? profiles.filter(
-            (p) =>
-              p.displayName.toLowerCase().includes(q) || p.username.toLowerCase().includes(q),
-          )
-        : [],
-    [q],
-  );
+  const matchedMatches = search.matches;
+  const matchedPeople = search.people;
+  // Leagues that actually have fixtures, for the advanced filter.
+  const { matches: allMatches } = useRealMatches();
+  const leagues = useMemo(() => [...new Set(allMatches.map((m) => m.competition))].sort(), [allMatches]);
 
   function resetBrowseFilters() {
     setSelectedLeagues([]);
@@ -136,14 +119,15 @@ export function SearchBody() {
         onClick={() => setShowAdvancedPanel((v) => !v)}
         aria-label="Advanced search"
         aria-pressed={showAdvancedPanel || hasAdvancedFilters}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,transform] duration-150 active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px] hover:bg-surface"
         style={{
           color: iconButtonColor(showAdvancedPanel || hasAdvancedFilters),
-          transition: "color 150ms ease",
+          background: showAdvancedPanel || hasAdvancedFilters ? "var(--rival-blue-dim)" : undefined,
         }}
       >
         <SlidersIcon />
       </button>
-      <Link href="/wishlist" aria-label="Wishlist" className="hover-link text-muted transition-colors">
+      <Link href="/wishlist" aria-label="Wishlist" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,transform] duration-150 active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px] text-muted hover:bg-surface hover:text-foreground">
         <BookmarkIcon />
       </Link>
     </>
@@ -157,10 +141,10 @@ export function SearchBody() {
   // "loads zoomed in, has to be pinched out" bug reported on a real device.
   const searchInput = (
     <div
-      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-surface px-4 py-3 focus-within:border-border-strong"
+      className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-surface px-4 focus-within:border-rival-blue"
       style={{ transition: "border-color 150ms ease" }}
     >
-      <span className="shrink-0 text-muted">
+      <span className="shrink-0 text-muted [&_svg]:h-[19px] [&_svg]:w-[19px]">
         <SearchIcon />
       </span>
       <input
@@ -178,7 +162,7 @@ export function SearchBody() {
 
   return (
     <div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5">
         {mode === "browse" && (
           <button
             onClick={handleBack}
@@ -192,7 +176,7 @@ export function SearchBody() {
         {/* Browse mode moves these two down onto RoomFeed's filter-chip row
             (chipRowEnd below) on desktop instead — mobile has no chip row
             to move them to in any mode, so they always stay here. */}
-        <div className={`flex shrink-0 items-center gap-3 ${mode === "browse" ? "md:hidden" : ""}`}>
+        <div className={`flex shrink-0 items-center ${mode === "browse" ? "md:hidden" : ""}`}>
           {advancedSearchIcons}
         </div>
       </div>
@@ -285,7 +269,7 @@ export function SearchBody() {
             key={browse?.topic?.id ?? browse?.tab}
             extraFilter={roomMatchesAllFilters}
             initialTab={browse?.tab}
-            chipRowEnd={<div className="hidden shrink-0 items-center gap-3 md:flex">{advancedSearchIcons}</div>}
+            chipRowEnd={<div className="hidden shrink-0 items-center md:flex">{advancedSearchIcons}</div>}
           />
         )}
         {mode === "query" && (

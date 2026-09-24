@@ -1,8 +1,11 @@
 "use client";
 
-import { searchTopics, trendingSearchTerms, type SearchTopic } from "@/lib/mock-data";
+import { useMemo } from "react";
+import { trendingSearchTerms, type SearchTopic } from "@/lib/mock-data";
+import { useRealMatches } from "@/lib/use-real-matches";
+import type { Match } from "@/lib/types";
+import { TeamCrest } from "./team-crest";
 import { useRecentSearches, removeRecentSearch, clearRecentSearches } from "@/lib/use-recent-searches";
-import { BookmarkButton } from "./bookmark-button";
 import {
   SearchIcon,
   TrendingIcon,
@@ -12,10 +15,8 @@ import {
   PoolIcon,
   ScalesIcon,
   ForYouIcon,
-  BallIcon,
 } from "./icons";
 import { filters, type FilterTab } from "./room-feed";
-import { ScrollFadeRow } from "./scroll-fade-row";
 
 // One glyph per Browse tab — see icons.tsx for why each shape was chosen.
 // Partial, not a full Record<FilterTab, ...>: this list only ever renders
@@ -30,6 +31,43 @@ const FILTER_ICONS: Partial<Record<FilterTab, typeof TrendingIcon>> = {
   "close-call": ScalesIcon,
   personal: ForYouIcon,
 };
+
+// Each Browse chip's icon carries its own colour (Polymarket-style), so the
+// row reads at a glance instead of as six grey pills.
+const FILTER_COLORS: Partial<Record<FilterTab, string>> = {
+  trending: "var(--rival-blue)",
+  new: "#f5a524",
+  live: "var(--rival-red)",
+  closing: "#a855f7",
+  pools: "var(--rival-green)",
+  "close-call": "#14b8c4",
+  personal: "var(--rival-blue)",
+};
+
+interface TopicTile {
+  topic: SearchTopic;
+  count: number;
+  sample?: Match;
+  live?: boolean;
+}
+
+/** Topics = the leagues that actually have games coming up (plus "Live now"). */
+function useTopicTiles(): TopicTile[] {
+  const { matches, isReal } = useRealMatches();
+  return useMemo(() => {
+    if (!isReal) return [];
+    const upcoming = matches.filter((m) => m.status === "scheduled" || m.status === "live");
+    const byLeague = new Map<string, Match[]>();
+    for (const m of upcoming) byLeague.set(m.competition, [...(byLeague.get(m.competition) ?? []), m]);
+    const tiles: TopicTile[] = [];
+    const live = upcoming.filter((m) => m.status === "live");
+    if (live.length > 0) tiles.push({ topic: { id: "live", label: "Live now" }, count: live.length, live: true });
+    [...byLeague.entries()]
+      .sort((a, b) => b[1].length - a[1].length)
+      .forEach(([league, ms]) => tiles.push({ topic: { id: league, label: league, league }, count: ms.length, sample: ms[0] }));
+    return tiles.slice(0, 10);
+  }, [matches, isReal]);
+}
 
 // The idle state of Search — no query typed yet. Purely presentational —
 // the caller (search/page.tsx, desktop-search-box.tsx, search-bar-link.tsx)
@@ -56,6 +94,7 @@ export function SearchRollup({
   compact?: boolean;
 }) {
   const recents = useRecentSearches();
+  const topics = useTopicTiles();
 
   if (compact) {
     const trending = trendingSearchTerms(6);
@@ -125,7 +164,7 @@ export function SearchRollup({
       {recents.length > 0 && (
         <section>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">Recents</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Recents</p>
             <button
               onClick={() => clearRecentSearches()}
               className="hover-link text-xs text-muted transition-colors"
@@ -162,23 +201,18 @@ export function SearchRollup({
       )}
 
       <section>
-        {/* Six, not the old five — see room-feed.tsx for why each one is
-            there. Still a horizontally-scrolling row: six pills read fine
-            on one line and a scroll here doesn't hide anything important
-            (unlike Discussions below, where every item matters). */}
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">Browse</p>
-        <ScrollFadeRow wrapperClassName="mt-3" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Browse</p>
+        <div className="mt-3 flex flex-wrap gap-2">
           {filters.map((f) => {
             const Icon = FILTER_ICONS[f.id];
             return (
               <button
                 key={f.id}
                 onClick={() => onSelectTab(f.id)}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-sm text-foreground transition-colors duration-150 active:scale-[0.97]"
-                style={{ transition: "transform 150ms ease-out, border-color 150ms ease" }}
+                className="flex h-10 items-center gap-2 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-foreground transition-[transform,border-color,background-color] duration-150 ease-out hover:border-border-strong active:scale-[0.96]"
               >
                 {Icon && (
-                  <span className="text-muted">
+                  <span className="[&_svg]:h-5 [&_svg]:w-5" style={{ color: FILTER_COLORS[f.id] ?? "var(--muted)" }}>
                     <Icon />
                   </span>
                 )}
@@ -186,41 +220,48 @@ export function SearchRollup({
               </button>
             );
           })}
-        </ScrollFadeRow>
-      </section>
-
-      <section>
-        {/* flex-wrap, not overflow-x-auto — the founder's sketch lays these
-            out so nothing needs a horizontal swipe to discover; there are
-            few enough (7) that wrapping to two or three rows still reads
-            as one glanceable group. */}
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">Discussions</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {searchTopics.map((topic) => {
-            // "Live now" spans every league (no topic.league) — the pulse
-            // icon fits it uniquely. Every league-specific topic gets the
-            // ball, not a per-league crest we don't have real assets for.
-            const Icon = topic.league ? BallIcon : LiveIcon;
-            return (
-              <div
-                key={topic.id}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border py-1.5 pl-3 pr-2"
-              >
-                <button
-                  onClick={() => onSelectTopic(topic)}
-                  className="flex items-center gap-1.5 text-sm text-foreground active:scale-[0.97]"
-                >
-                  <span className="text-muted">
-                    <Icon />
-                  </span>
-                  {topic.label}
-                </button>
-                <BookmarkButton type="topic" id={topic.id} label={topic.label} />
-              </div>
-            );
-          })}
         </div>
       </section>
+
+      {topics.length > 0 && (
+        <section>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Topics</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {topics.map(({ topic, count, sample, live }) => (
+              <button
+                key={topic.id}
+                onClick={() => onSelectTopic(topic)}
+                className="flex h-14 min-w-0 items-center gap-2.5 rounded-xl border border-border bg-surface px-2.5 text-left transition-[transform,border-color] duration-150 ease-out hover:border-border-strong active:scale-[0.97]"
+              >
+                {live ? (
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-rival-red-dim text-rival-red [&_svg]:h-5 [&_svg]:w-5">
+                    <LiveIcon />
+                  </span>
+                ) : (
+                  <span className="relative h-9 w-9 shrink-0 rounded-[10px] bg-background">
+                    {sample && (
+                      <>
+                        <span className="absolute left-0.5 top-0.5">
+                          <TeamCrest name={sample.homeTeam} size={18} />
+                        </span>
+                        <span className="absolute bottom-0.5 right-0.5">
+                          <TeamCrest name={sample.awayTeam} size={18} />
+                        </span>
+                      </>
+                    )}
+                  </span>
+                )}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-foreground">{topic.label}</span>
+                  <span className="block truncate text-xs text-muted">
+                    {count} {live ? "live" : count === 1 ? "game" : "games"}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

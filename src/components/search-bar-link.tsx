@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { matches, profiles } from "@/lib/mock-data";
-import { searchRooms, usePublicRooms } from "@/lib/use-real-rooms";
+import { useSearchResults } from "@/lib/use-search-results";
 import { openSearchOverlay } from "@/lib/search-overlay-store";
 import { addRecentSearch } from "@/lib/use-recent-searches";
 import { SearchIcon, SlidersIcon, BookmarkIcon } from "./icons";
@@ -29,25 +28,7 @@ export function SearchBarLink() {
 
   const q = query.trim().toLowerCase();
 
-  const { items: publicRooms } = usePublicRooms();
-  const matchedRooms = useMemo(() => searchRooms(publicRooms, q), [publicRooms, q]);
-  const matchedMatches = useMemo(
-    () =>
-      q
-        ? matches.filter(
-            (m) =>
-              m.homeTeam.toLowerCase().includes(q) ||
-              m.awayTeam.toLowerCase().includes(q) ||
-              m.competition.toLowerCase().includes(q),
-          )
-        : [],
-    [q],
-  );
-  const matchedPeople = useMemo(
-    () =>
-      q ? profiles.filter((p) => p.displayName.toLowerCase().includes(q) || p.username.toLowerCase().includes(q)) : [],
-    [q],
-  );
+  const { rooms: matchedRooms, matches: matchedMatches, people: matchedPeople } = useSearchResults(query);
 
   function close() {
     setOpen(false);
@@ -79,13 +60,13 @@ export function SearchBarLink() {
   }, []);
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1.5">
       <div ref={containerRef} className="relative min-w-0 flex-1">
         <div
-          className="flex min-w-0 items-center gap-2.5 rounded-full border bg-surface px-4 py-3"
-          style={{ borderColor: open ? "var(--border-strong)" : "var(--border)", transition: "border-color 150ms ease" }}
+          className="flex h-11 min-w-0 items-center gap-2.5 rounded-full border bg-surface px-4"
+          style={{ borderColor: open ? "var(--rival-blue)" : "var(--border)", transition: "border-color 150ms ease" }}
         >
-          <span className="shrink-0 text-muted">
+          <span className="shrink-0 text-muted [&_svg]:h-[19px] [&_svg]:w-[19px]">
             <SearchIcon />
           </span>
           <input
@@ -132,14 +113,10 @@ export function SearchBarLink() {
         )}
       </div>
 
-      <button
-        onClick={openSearchOverlay}
-        aria-label="Advanced search"
-        className="hover-link shrink-0 text-muted transition-colors"
-      >
+      <button onClick={openSearchOverlay} aria-label="Advanced search" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,transform] duration-150 active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px] text-muted hover:bg-surface hover:text-foreground">
         <SlidersIcon />
       </button>
-      <Link href="/wishlist" aria-label="Wishlist" className="hover-link shrink-0 text-muted transition-colors">
+      <Link href="/wishlist" aria-label="Wishlist" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,transform] duration-150 active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px] text-muted hover:bg-surface hover:text-foreground">
         <BookmarkIcon />
       </Link>
     </div>
