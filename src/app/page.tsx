@@ -4,35 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { ExplodingCarousel } from "@/components/exploding-carousel";
 import { SearchBarLink } from "@/components/search-bar-link";
-import { RivalCard, GoatedRivalCard, HallOfFameCard } from "@/components/rival-card";
-import { RivalDivider } from "@/components/rival-divider";
-import { AutoScrollRow } from "@/components/auto-scroll-row";
+import { TopRivals } from "@/components/top-rivals";
 import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
-import { followedTopRivals, goatedStreakRivals, goatedRivals } from "@/lib/mock-data";
 import { byHeat, usePublicRooms } from "@/lib/use-real-rooms";
 import { EmptyRooms } from "@/components/empty-rooms";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
-// "Exploding Now" carousel (one card at a time — swipe or auto-advance,
-// see exploding-carousel.tsx), one continuous "Top rivals" scroll row —
-// Top Rivals (people you follow) -> Goated Rivals (global streaks) ->
-// Hall of Fame (global all-time winnings), five each, divided by
-// RivalDivider and auto-scrolling as one unit (see rival-card.tsx /
-// auto-scroll-row.tsx) — then the same [filter icon][Rooms][Matches]
+// "Exploding Now" carousel (Apple-style — see exploding-carousel.tsx), Top
+// rivals (the five biggest real wins and the rooms that paid them — see
+// top-rivals.tsx), then the same [filter icon][Rooms][Matches]
 // browser Search uses (see rooms-matches-browser.tsx) so both pages share
 // one league-filtered, infinite-scrolling browse experience.
 export default function Home() {
   const publicRooms = usePublicRooms();
   const exploding = [...publicRooms.items].sort(byHeat).slice(0, 6);
-  const rivals = followedTopRivals(5);
-  const goated = goatedStreakRivals(5);
-  const hallOfFame = goatedRivals(5);
-  const hasTop = rivals.length > 0;
-  const hasGoated = goated.length > 0;
-  const hasHof = hallOfFame.length > 0;
-  const totalRivalsCount = rivals.length + goated.length + hallOfFame.length;
-  const initialRivalsHeading = hasTop ? "Top rivals" : hasGoated ? "Goated rivals" : "Hall of fame";
-  const [rivalsHeading, setRivalsHeading] = useState(initialRivalsHeading);
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
@@ -46,7 +31,7 @@ export default function Home() {
       <section className="mt-5 min-w-0 md:mt-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold text-foreground">🔥 Exploding now</h2>
-          <Link href="/search" className="hover-link text-sm text-muted transition-colors">
+          <Link href="/rooms" className="hover-link text-sm text-muted transition-colors">
             View all →
           </Link>
         </div>
@@ -61,49 +46,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* One row, three groups, per founder direction — Top Rivals (people
-          you follow: mechanism #5, social identity/rivalry — in-group
-          favoritism beats an anonymous ranking), Goated Rivals (global
-          streaks: mechanism #6, loss aversion & streaks — a real hot
-          streak is what makes someone worth watching right now), Hall of
-          Fame (global all-time winnings — the platform's actual biggest
-          earners ever). See .claude/skills/rivaly-engagement-psychology.
-          Each group only renders, and only gets a divider, if it actually
-          has real data — no fabricated filler between them. The h2 itself
-          tracks scroll position (via AutoScrollRow's onActiveSectionChange)
-          so it always names whichever group currently sits at the row's
-          left edge, instead of staying stuck on "Top rivals" once you've
-          scrolled past it. */}
-      <section className="mt-12 min-w-0">
-        <h2 className="font-display text-xl font-semibold text-foreground">{rivalsHeading}</h2>
-        {totalRivalsCount > 0 ? (
-          <div className="mt-5 min-w-0">
-            <AutoScrollRow
-              itemCount={totalRivalsCount}
-              initialSectionLabel={initialRivalsHeading}
-              onActiveSectionChange={setRivalsHeading}
-            >
-              {rivals.map((profile) => (
-                <RivalCard key={profile.id} profile={profile} />
-              ))}
-              {hasTop && hasGoated && (
-                <RivalDivider emoji="🔥" label="Goated" sectionHeading="Goated rivals" />
-              )}
-              {goated.map((profile) => (
-                <GoatedRivalCard key={profile.id} profile={profile} />
-              ))}
-              {(hasTop || hasGoated) && hasHof && (
-                <RivalDivider emoji="👑" label="Hall of fame" sectionHeading="Hall of fame" />
-              )}
-              {hallOfFame.map((profile) => (
-                <HallOfFameCard key={profile.id} profile={profile} />
-              ))}
-            </AutoScrollRow>
-          </div>
-        ) : (
-          <p className="mt-5 text-sm text-muted">Follow a few rivals to see their winnings here.</p>
-        )}
-      </section>
+      <div className="mt-12">
+        <TopRivals />
+      </div>
 
       <section className="mt-12 min-w-0">
         <RoomsMatchesBrowser selectedLeagues={selectedLeagues} onLeaguesChange={setSelectedLeagues} />

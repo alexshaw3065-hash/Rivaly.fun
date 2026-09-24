@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { EntrySide, Match } from "@/lib/types";
-import { formatMoney, kickoffCountdownCompact } from "@/lib/mock-data";
+import { formatMoney, formatMoneyCompact, kickoffCountdownCompact } from "@/lib/mock-data";
 import { splitPctFromTotals, type RoomWithTotals } from "@/lib/supabase/room-mapper";
 import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
@@ -95,7 +95,7 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
       <PredictPills onPick={(side: EntrySide) => router.push(`/rooms/${room.id}?side=${side}`)} />
 
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
-        <span>{formatMoney(room.poolTotalCents)} pool</span>
+        <span title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
           <RivalsInRoom participantCount={room.participantCount} />
           <ShareButton path={`/rooms/${room.id}`} label="room" />

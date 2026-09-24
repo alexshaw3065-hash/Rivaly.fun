@@ -1,98 +1,164 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Match } from "@/lib/types";
 import type { RoomWithTotals } from "@/lib/supabase/room-mapper";
 import { ExplodingRoomCard } from "./exploding-room-card";
 
-const AUTO_ADVANCE_MS = 8000;
-const SWIPE_THRESHOLD = 50;
+const SLIDE_MS = 7000;
 
-// One card at a time, swipe to move, auto-advances on a timer — pauses
-// while the user is actually touching it and for a beat after, per Emil's
-// "asymmetric enter/exit" idea: the user's own gesture should never fight
-// the auto-advance mid-swipe.
+// Apple-homepage-style carousel for the hottest rooms: big slides with the
+// neighbours peeking in, native swipe (scroll-snap, so it moves exactly like
+// the phone expects), and below it a dot pill whose active dot stretches
+// into a bar that fills while the slide is up — the fill finishing is what
+// advances it, so the timer and the progress can never disagree. A round
+// play/pause sits beside the pill.
+//
+// Engagement mechanism #2 (anticipation — .claude/skills/rivaly-engagement-
+// psychology): the filling bar is a small, honest "next one's coming" beat;
+// the rooms themselves carry real kickoff countdowns.
+//
+// Pauses while a finger is on it and when the tab is hidden; starts paused
+// for reduced-motion users (and slides jump instead of glide).
 export function ExplodingCarousel({ items }: { items: { room: RoomWithTotals; match: Match }[] }) {
+  const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const [dragX, setDragX] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const startX = useRef(0);
-  const pausedUntil = useRef(0);
+  const [playing, setPlaying] = useState(true);
+  const [held, setHeld] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  // Bumped each time a fill completes, so the bar restarts even if the move
+  // didn't happen (e.g. the tab was hidden mid-scroll) — the next cycle retries.
+  const [cycle, setCycle] = useState(0);
+  const reduced = useRef(false);
+  const count = items.length;
 
   useEffect(() => {
-    if (items.length < 2) return;
-    const id = window.setInterval(() => {
-      if (Date.now() < pausedUntil.current) return;
-      setIndex((i) => (i + 1) % items.length);
-    }, AUTO_ADVANCE_MS);
-    return () => window.clearInterval(id);
-  }, [items.length]);
+    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced.current) setPlaying(false);
+    const onVis = () => setHidden(document.visibilityState !== "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
-  function onPointerDown(e: React.PointerEvent) {
-    startX.current = e.clientX;
-    setDragging(true);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }
+  const goTo = useCallback((i: number) => {
+    const el = scroller.current;
+    const slide = el?.children[i] as HTMLElement | undefined;
+    if (!el || !slide) return;
+    el.scrollTo({
+      left: slide.offsetLeft - (el.clientWidth - slide.clientWidth) / 2,
+      behavior: reduced.current ? "auto" : "smooth",
+    });
+  }, []);
 
-  function onPointerMove(e: React.PointerEvent) {
-    if (!dragging) return;
-    setDragX(e.clientX - startX.current);
-  }
-
-  function onPointerUp() {
-    if (Math.abs(dragX) > SWIPE_THRESHOLD) {
-      setIndex((i) => {
-        const next = i + (dragX < 0 ? 1 : -1);
-        return (next + items.length) % items.length;
+  // The active slide is whichever sits nearest the middle — follows swipes,
+  // dot taps and autoplay alike.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const mid = el.scrollLeft + el.clientWidth / 2;
+        let best = 0;
+        let bestDist = Infinity;
+        Array.from(el.children).forEach((child, i) => {
+          const c = child as HTMLElement;
+          const dist = Math.abs(c.offsetLeft + c.clientWidth / 2 - mid);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = i;
+          }
+        });
+        setIndex(best);
       });
-    }
-    pausedUntil.current = Date.now() + AUTO_ADVANCE_MS;
-    setDragging(false);
-    setDragX(0);
-  }
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [count]); // re-attach when the scroller first appears (1 → many rooms)
+
+  const running = playing && !held && !hidden && count > 1;
+
+  // One hot room is just the card — no peeking, no controls.
+  if (count === 1) return <ExplodingRoomCard room={items[0].room} match={items[0].match} />;
 
   return (
-    <div>
+    <div className="min-w-0">
       <div
-        className="touch-pan-y overflow-hidden rounded-xl"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        ref={scroller}
+        className="no-scrollbar relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[7%] md:-mx-6 md:px-[19%]"
+        onPointerDown={() => setHeld(true)}
+        onPointerUp={() => setHeld(false)}
+        onPointerCancel={() => setHeld(false)}
+        onPointerLeave={() => setHeld(false)}
+        aria-roledescription="carousel"
       >
-        <div
-          className="flex"
-          style={{
-            transform: `translateX(calc(${-index * 100}% + ${dragX}px))`,
-            transition: dragging ? "none" : "transform 380ms cubic-bezier(0.77, 0, 0.175, 1)",
-          }}
-        >
-          {items.map(({ room, match }) => (
-            <div key={room.id} className="w-full shrink-0 px-0.5">
-              <ExplodingRoomCard room={room} match={match} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-4 flex items-center justify-center gap-1.5">
-        {items.map((item, i) => (
-          <button
-            key={item.room.id}
-            aria-label={`Go to card ${i + 1}`}
-            onClick={() => {
-              setIndex(i);
-              pausedUntil.current = Date.now() + AUTO_ADVANCE_MS;
-            }}
-            className="h-1.5 rounded-full"
-            style={{
-              width: i === index ? 16 : 6,
-              background: i === index ? "var(--rival-blue)" : "var(--border-strong)",
-              transition: "width 250ms ease-out, background-color 250ms ease",
-            }}
-          />
+        {items.map(({ room, match }, i) => (
+          <div
+            key={room.id}
+            className="w-[86%] shrink-0 snap-center transition-opacity duration-500 ease-out md:w-[62%]"
+            style={{ opacity: count > 1 && i !== index ? 0.45 : 1 }}
+            aria-roledescription="slide"
+            aria-label={`${i + 1} of ${count}`}
+          >
+            <ExplodingRoomCard room={room} match={match} />
+          </div>
         ))}
       </div>
+
+      {count > 1 && (
+        <div className="mt-5 flex items-center justify-center gap-2.5">
+          <div className="flex h-9 items-center gap-2.5 rounded-full bg-surface-elevated px-4">
+            {items.map((item, i) =>
+              i === index ? (
+                <span key={item.room.id} className="relative h-2 w-9 overflow-hidden rounded-full bg-border-strong" aria-current="true">
+                  {/* Keyed per slide so each one's fill starts fresh; its end advances the carousel. */}
+                  <span
+                    key={`fill-${index}-${cycle}`}
+                    className="carousel-fill absolute inset-y-0 left-0 rounded-full bg-foreground"
+                    style={{
+                      animationDuration: `${SLIDE_MS}ms`,
+                      animationPlayState: running ? "running" : "paused",
+                    }}
+                    onAnimationEnd={() => {
+                      setCycle((c) => c + 1);
+                      goTo((index + 1) % count);
+                    }}
+                  />
+                </span>
+              ) : (
+                <button
+                  key={item.room.id}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Show room ${i + 1}`}
+                  className="h-2 w-2 rounded-full bg-muted/60 transition-[background-color,transform] duration-150 hover:bg-muted active:scale-90"
+                />
+              ),
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPlaying((p) => !p)}
+            aria-label={playing ? "Pause" : "Play"}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-elevated text-foreground transition-transform duration-150 ease-out active:scale-90"
+          >
+            {playing ? (
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+                <rect x="2" y="1.5" width="2.6" height="9" rx="0.8" fill="currentColor" />
+                <rect x="7.4" y="1.5" width="2.6" height="9" rx="0.8" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+                <path d="M3 1.8v8.4a.6.6 0 0 0 .9.5l6.7-4.2a.6.6 0 0 0 0-1L3.9 1.3a.6.6 0 0 0-.9.5Z" fill="currentColor" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

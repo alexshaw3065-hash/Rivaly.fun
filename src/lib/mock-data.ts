@@ -159,13 +159,16 @@ export function formatMoney(cents: number): string {
   return `$${dollars.toLocaleString("en-US", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })}`;
 }
 
-// Compact form for tight spaces (the mobile top bar's balance chip) —
-// $450 -> $450, $12,500 -> $12.5K, $1,250,000 -> $1.3M.
+// Compact form for cards and tight spaces — $450 -> $450, $12,500 ->
+// $12.5K, $1,250,000 -> $1.3M, $2,400,000,000 -> $2.4B. Under $1K it's the
+// exact amount (cents kept), so small pools never round away.
 export function formatMoneyCompact(cents: number): string {
   const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (dollars >= 1_000) return `$${(dollars / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-  return formatMoney(Math.round(cents));
+  const short = (n: number, unit: string) => `$${n.toFixed(n >= 100 ? 0 : 1).replace(/\.0$/, "")}${unit}`;
+  if (dollars >= 1_000_000_000) return short(dollars / 1_000_000_000, "B");
+  if (dollars >= 1_000_000) return short(dollars / 1_000_000, "M");
+  if (dollars >= 1_000) return short(dollars / 1_000, "K");
+  return formatMoney(cents);
 }
 
 export function formatSignedMoney(cents: number): string {

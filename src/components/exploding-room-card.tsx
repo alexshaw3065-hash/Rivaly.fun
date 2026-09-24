@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Match } from "@/lib/types";
-import { formatMoney } from "@/lib/mock-data";
+import { formatMoney, formatMoneyCompact } from "@/lib/mock-data";
 import { splitPctFromTotals, type RoomWithTotals } from "@/lib/supabase/room-mapper";
 import { SplitBar } from "./split-bar";
 import { BookmarkButton } from "./bookmark-button";
@@ -26,7 +26,7 @@ export function ExplodingRoomCard({ room, match }: { room: RoomWithTotals; match
         <p className="font-display text-xl font-semibold leading-snug text-foreground">{room.prediction}</p>
         <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3.5 font-mono text-xs text-muted">
-          <span className="shrink-0">{formatMoney(room.poolTotalCents)} pool</span>
+          <span className="shrink-0" title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>
           <div className="flex min-w-0 items-center gap-3">
             <RivalsInRoom participantCount={room.participantCount} />
             <ShareButton path={`/rooms/${room.id}`} label="room" />

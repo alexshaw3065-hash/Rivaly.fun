@@ -424,3 +424,16 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+/* Exploding-now carousel: the active dot's bar fills over the slide's time;
+   its animationend advances the carousel (exploding-carousel.tsx). */
+@keyframes carousel-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.carousel-fill {
+  width: 0%;
+  animation-name: carousel-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
