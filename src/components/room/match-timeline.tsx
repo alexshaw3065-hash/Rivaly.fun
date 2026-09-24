@@ -7,12 +7,11 @@ import { eventFromRow, liveMinute, type TimelineData, type TimelineEvent } from 
 import type { Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 
-// The match on one line, right under the stadium: every goal, card, VAR call
-// and whistle on a track from kick-off to full time, home team's moments
-// above the line and away team's below, with the room's own pulse — how hard
-// the chat went, minute by minute — underneath. Follows the match live;
-// press play to replay it (a full match in ~18s), drag to any minute to see
-// the score then, tap a moment for what happened and how the room reacted.
+// The match on one slim strip attached to the bottom of the stadium: every
+// goal, card, VAR call and whistle on a rail from kick-off to full time, with
+// the room's own pulse — how hard the chat went, minute by minute — faint
+// behind it. Follows the match live; play replays it (a full match in ~18s),
+// drag to any minute, tap a moment for what happened and how the room reacted.
 //
 // Engagement mechanism #9 (a story you can retell — "look how the room went
 // off at 67'") and #2 (anticipation: the live playhead creeping toward 90').
@@ -164,132 +163,38 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
 
   const pct = (m: number) => `${(m / data.domain) * 100}%`;
 
-  // Lay out the moments: home above the rail, away below, whistles and
-  // unknown-team moments on it — and nudge any that would land on top of
-  // each other so every one stays tappable.
+  // Lay out the moments on the one rail, nudging any that would land on top
+  // of each other just above or below it so every one stays tappable.
   const placed = useMemo(() => {
-    const lastX: Record<string, number> = {};
-    const flip: Record<string, number> = {};
-    return events.map((e) => {
-      const lane = e.kind === "kickoff" || e.kind === "halftime" || e.kind === "fulltime" ? "rail" : e.side ?? "rail";
+    const out: { e: TimelineEvent; dy: number }[] = [];
+    let lastX = -100;
+    let flip = 0;
+    for (const e of events) {
       const x = (e.minute / data.domain) * 100;
-      let top = lane === "home" ? 10 : lane === "away" ? 56 : 33;
-      const crowded = lastX[lane] !== undefined && x - lastX[lane] < 6;
-      if (crowded) {
-        flip[lane] = (flip[lane] ?? 0) + 1;
-        const n = flip[lane];
-        top += lane === "rail" ? (n % 2 ? -21 : 21) : lane === "home" ? -12 * n : 12 * n;
-      } else flip[lane] = 0;
-      lastX[lane] = x;
-      return { e, top };
-    });
+      const crowded = x - lastX < 5;
+      flip = crowded ? flip + 1 : 0;
+      out.push({ e, dy: crowded ? (flip % 2 ? -12 : 12) : 0 });
+      lastX = x;
+    }
+    return out;
   }, [events, data.domain]);
   const heatMax = Math.max(1, ...data.heat);
+  const showMinute = started && (!following || playing);
 
   return (
-    <section ref={wrap} className="rounded-2xl border border-border bg-surface px-3 pb-3 pt-3">
-      {/* Readout: the minute under the playhead (the score lives in the stadium above) */}
-      <div className="flex items-center justify-between gap-2 px-1">
-        <p className="font-display text-sm font-bold text-foreground">Match timeline</p>
-        {started ? (
-          <p className="flex items-center gap-1.5 font-mono text-xs tabular-nums text-muted">
-            <span className="font-semibold text-foreground">{Math.floor(head)}&rsquo;</span>
-          </p>
-        ) : (
-          <p className="font-mono text-[11px] text-muted">Fills in from kick-off</p>
-        )}
-      </div>
-
-      {/* The track */}
-      <div
-        ref={track}
-        role="slider"
-        tabIndex={started ? 0 : -1}
-        aria-label="Match timeline"
-        aria-valuemin={0}
-        aria-valuemax={Math.round(data.domain)}
-        aria-valuenow={Math.round(head)}
-        aria-valuetext={`${Math.floor(head)} minutes`}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={() => (dragging.current = false)}
-        onPointerCancel={() => (dragging.current = false)}
-        onKeyDown={onKey}
-        className="relative ml-6 mr-2 mt-2 h-[92px] cursor-pointer touch-pan-y select-none outline-none focus-visible:ring-2 focus-visible:ring-rival-blue"
-      >
-        {/* Team lanes */}
-        <span className="absolute -left-5 top-[13px] flex items-center" aria-hidden>
-          <TeamCrest name={match.homeTeam} size={12} />
-        </span>
-        <span className="absolute -left-5 top-[59px] flex items-center" aria-hidden>
-          <TeamCrest name={match.awayTeam} size={12} />
-        </span>
-
-        {/* The rail: played part lit, the rest waiting */}
-        <div className="absolute inset-x-0 top-[42px] h-1.5 overflow-hidden rounded-full bg-background">
-          <div className="h-full rounded-full bg-rival-green/80" style={{ width: pct(head) }} />
-        </div>
-        {data.sport === "soccer" && (
-          <div className="absolute top-[36px] h-[18px] w-px bg-border-strong" style={{ left: pct(45) }} aria-hidden>
-            <span className="absolute left-1/2 top-[20px] -translate-x-1/2 font-mono text-[9px] text-muted">HT</span>
-          </div>
-        )}
-
-        {/* The room's pulse */}
-        <div className="absolute inset-x-0 bottom-0 flex h-4 items-end gap-px" aria-hidden>
-          {data.heat.map((n, i) => {
-            const past = ((i + 0.5) / data.heat.length) * data.domain <= head;
-            return (
-              <span
-                key={i}
-                className="flex-1 rounded-t-sm transition-colors duration-300"
-                style={{
-                  height: n ? `${Math.max(18, (n / heatMax) * 100)}%` : "2px",
-                  background: n ? (past ? "var(--rival-blue)" : "color-mix(in srgb, var(--rival-blue) 35%, transparent)") : "var(--border)",
-                }}
-              />
-            );
-          })}
-        </div>
-
-        {/* Moments */}
-        {placed.map(({ e, top }) => {
-          const reached = e.minute <= head + 0.01;
-          return (
-            <button
-              key={e.id}
-              type="button"
-              data-moment
-              onClick={() => setSelected(selected === e.id ? null : e.id)}
-              aria-label={`${e.title}, ${Math.floor(e.minute)} minutes`}
-              className="absolute -translate-x-1/2 transition-[opacity,transform] duration-300 ease-out active:scale-90"
-              style={{ left: pct(e.minute), top, opacity: reached ? 1 : 0.28, transform: `translateX(-50%) scale(${reached ? 1 : 0.85})` }}
-            >
-              <MomentMark kind={e.kind} ring={e.side === "home" ? home.primary : e.side === "away" ? away.primary : undefined} />
-            </button>
-          );
-        })}
-
-        {/* Playhead */}
-        {started && (
-          <div className="pointer-events-none absolute inset-y-0 w-0" style={{ left: pct(head) }} aria-hidden>
-            <div className="absolute inset-y-1 -left-px w-0.5 rounded-full bg-foreground/70" />
-            <div className="absolute left-1/2 top-[39px] h-3 w-3 -translate-x-1/2 rounded-full border-2 border-background bg-foreground" />
-          </div>
-        )}
-
-        {/* What happened */}
-        {picked && <MomentCard event={picked} left={(picked.minute / data.domain) * 100} home={match.homeTeam} away={match.awayTeam} />}
-      </div>
-
-      {/* Controls */}
-      <div className="mt-2 flex items-center gap-2 px-1">
+    <section
+      ref={wrap}
+      className="-mx-4 rounded-b-3xl px-4 pb-3 pt-2.5 md:mx-0 md:rounded-b-2xl"
+      style={{ background: "color-mix(in srgb, var(--st-pitch-2) 22%, #050806)" }}
+      aria-label="Match timeline"
+    >
+      <div className="flex items-center gap-2.5">
         <button
           type="button"
           onClick={togglePlay}
           disabled={!started}
           aria-label={playing ? "Pause replay" : "Replay the match"}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-background transition-[transform,opacity] duration-150 active:scale-90 disabled:opacity-30"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#0a0a0a] transition-[transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
         >
           {playing ? (
             <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
@@ -302,8 +207,86 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             </svg>
           )}
         </button>
-        <span className="font-mono text-[10px] text-muted">0&rsquo;</span>
-        <span className="flex-1" />
+        <span className="font-mono text-[10px] text-white/55">0&rsquo;</span>
+
+        {/* The track */}
+        <div
+          ref={track}
+          role="slider"
+          tabIndex={started ? 0 : -1}
+          aria-label="Match timeline"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(data.domain)}
+          aria-valuenow={Math.round(head)}
+          aria-valuetext={`${Math.floor(head)} minutes`}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={() => (dragging.current = false)}
+          onPointerCancel={() => (dragging.current = false)}
+          onKeyDown={onKey}
+          className="relative h-10 min-w-0 flex-1 cursor-pointer touch-pan-y select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-rival-blue"
+        >
+          {/* The room's pulse, faint behind the rail */}
+          <div className="absolute inset-x-0 bottom-0.5 flex h-3 items-end gap-px" aria-hidden>
+            {data.heat.map((n, i) => {
+              const past = ((i + 0.5) / data.heat.length) * data.domain <= head;
+              return (
+                <span
+                  key={i}
+                  className="flex-1 rounded-t-[1px] transition-colors duration-300"
+                  style={{
+                    height: n ? `${Math.max(25, (n / heatMax) * 100)}%` : "1px",
+                    background: n ? (past ? "rgba(124,155,255,0.9)" : "rgba(124,155,255,0.35)") : "rgba(255,255,255,0.12)",
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* The rail: played part lit */}
+          <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
+            <div className="h-full rounded-full bg-rival-green" style={{ width: pct(head) }} />
+          </div>
+          {data.sport === "soccer" && <div className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-white/30" style={{ left: pct(45) }} aria-hidden />}
+
+          {/* Moments */}
+          {placed.map(({ e, dy }) => {
+            const reached = e.minute <= head + 0.01;
+            return (
+              <button
+                key={e.id}
+                type="button"
+                data-moment
+                onClick={() => setSelected(selected === e.id ? null : e.id)}
+                aria-label={`${e.title}, ${Math.floor(e.minute)} minutes`}
+                className="absolute top-1/2 transition-[opacity,transform] duration-300 ease-out"
+                style={{
+                  left: pct(e.minute),
+                  opacity: reached ? 1 : 0.3,
+                  transform: `translate(-50%, calc(-50% + ${dy}px)) scale(${reached ? 0.8 : 0.68})`,
+                }}
+              >
+                <MomentMark kind={e.kind} ring={e.side === "home" ? home.primary : e.side === "away" ? away.primary : undefined} />
+              </button>
+            );
+          })}
+
+          {/* Playhead, with the minute while you drag or replay */}
+          {started && (
+            <div className="pointer-events-none absolute inset-y-0 w-0" style={{ left: pct(head) }} aria-hidden>
+              <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#050806] bg-white" />
+              {showMinute && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded bg-white px-1 font-mono text-[9px] font-bold tabular-nums text-[#0a0a0a]">
+                  {Math.floor(head)}&rsquo;
+                </span>
+              )}
+            </div>
+          )}
+
+          {picked && <MomentCard event={picked} left={(picked.minute / data.domain) * 100} home={match.homeTeam} away={match.awayTeam} />}
+        </div>
+
+        <span className="font-mono text-[10px] text-white/55">{Math.round(data.domain)}&rsquo;</span>
         {live && !following && (
           <button
             type="button"
@@ -311,12 +294,12 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
               setPlaying(false);
               setFollowing(true);
             }}
-            className="flex h-7 items-center gap-1.5 rounded-full border border-border px-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-danger-red transition-transform active:scale-95"
+            aria-label="Back to live"
+            className="flex h-6 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 font-mono text-[9px] font-bold uppercase tracking-wider text-[#ff6b6b] transition-transform active:scale-95"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-danger-red" /> Live
+            <span className="h-1.5 w-1.5 rounded-full bg-[#ff6b6b]" /> Live
           </button>
         )}
-        <span className="font-mono text-[10px] text-muted">{Math.round(data.domain)}&rsquo;</span>
       </div>
     </section>
   );
@@ -364,7 +347,7 @@ function MomentCard({ event, left, home, away }: { event: TimelineEvent; left: n
       data-moment
       role="dialog"
       aria-label={event.title}
-      className="enter-pop absolute top-[calc(100%-18px)] z-20 w-56 rounded-xl border border-border-strong bg-surface-elevated p-3 text-left shadow-xl"
+      className="enter-pop absolute top-[calc(100%+6px)] z-30 w-56 rounded-xl border border-border-strong bg-surface-elevated p-3 text-left shadow-xl"
       style={{
         left: `${left}%`,
         transform: anchor === "center" ? "translateX(-50%)" : anchor === "right" ? "translateX(-92%)" : "translateX(-8%)",

@@ -116,7 +116,7 @@ export function RoomStage({
   }, [race.takeovers]);
 
   return (
-    <section className="stadium-art relative -mx-4 overflow-hidden rounded-b-3xl bg-[var(--st-pitch-2)] md:mx-0 md:rounded-2xl">
+    <section className="stadium-art relative -mx-4 overflow-hidden bg-[var(--st-pitch-2)] md:mx-0 md:rounded-t-2xl">
       <Stadium
         homeTeam={match.homeTeam}
         awayTeam={match.awayTeam}
