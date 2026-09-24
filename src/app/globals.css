@@ -578,3 +578,13 @@ html {
 .crowd-wave {
   animation: crowd-wave 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
+
+/* A loud end of the crowd bouncing (room/stadium.tsx) — only while that
+   end's backers are really going for it. */
+@keyframes crowd-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.4px); }
+}
+.crowd-bounce {
+  animation: crowd-bounce 0.6s ease-in-out infinite;
+}

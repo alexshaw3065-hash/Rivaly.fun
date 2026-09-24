@@ -10,7 +10,7 @@ import { LiveBadge } from "../live-badge";
 import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
 import { Stadium } from "./stadium";
-import { readEnergy, useRoomEnergy } from "@/lib/room-energy";
+import { endLevels, useRoomEnergy } from "@/lib/room-energy";
 import { RoomShareButton } from "./room-share-button";
 
 export const REACTION_EVENT = "rivaly:reaction";
@@ -77,7 +77,7 @@ export function RoomStage({
   }, []);
 
   const scorer = goal ? (goal.side === "home" ? home : away) : null;
-  const energy = readEnergy(useRoomEnergy());
+  const energy = endLevels(useRoomEnergy());
 
   return (
     <section className="stadium-art relative -mx-4 overflow-hidden rounded-b-3xl bg-[var(--st-pitch-2)] md:mx-0 md:rounded-2xl">
@@ -97,7 +97,7 @@ export function RoomStage({
         </span>
       ))}
 
-      <div className="relative z-[1] flex flex-col px-4 pb-6 pt-4 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
+      <div className="relative z-[1] flex flex-col px-4 pb-5 pt-3 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
         {/* Top bar, over the roof */}
         <div className="flex items-center justify-between gap-3">
           <Link href="/" aria-label="Back home" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:text-white">
@@ -111,11 +111,11 @@ export function RoomStage({
 
         {/* Scoreboard — pushed down onto the pitch, so the stands above stay
             clear: the padding is a % of width, matching the stadium's scale
-            (its boards end at 207/400 of the width). */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 pt-[calc(51.75%-36px)]">
+            (its boards end at 158/400 of the width). */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 pt-[calc(39.5%-40px)]">
           <Team name={match.homeTeam} code={home.code} />
           <div className="flex flex-col items-center">
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/55 px-4 py-2 font-display text-4xl font-bold tabular-nums text-white">
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/55 px-3.5 py-1 font-display text-3xl font-bold tabular-nums text-white">
               <span key={`h${match.homeScore ?? "x"}`} className={goal?.side === "home" ? "score-bump" : undefined}>
                 {started ? (match.homeScore ?? 0) : "–"}
               </span>
@@ -124,7 +124,7 @@ export function RoomStage({
                 {started ? (match.awayScore ?? 0) : "–"}
               </span>
             </div>
-            <div className="mt-2 h-4">
+            <div className="mt-1.5 h-4">
               {live ? (
                 <LiveBadge />
               ) : finished ? (
@@ -140,17 +140,15 @@ export function RoomStage({
         </div>
 
         {/* The call */}
-        <div className="mt-7">
-          <h1 className="font-display text-[28px] font-bold leading-[1.1] text-white md:text-4xl">&ldquo;{claim}&rdquo;</h1>
+        <div className="mt-4">
+          <h1 className="font-display text-[22px] font-bold leading-[1.15] text-white md:text-3xl">&ldquo;{claim}&rdquo;</h1>
           {creator && (
-            <Link href={`/profile/${creator.username}`} className="mt-3 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white">
+            <Link href={`/profile/${creator.username}`} className="mt-2 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white">
               <RivalCharacter name={creator.username} imageUrl={creator.avatarUrl} size={22} />
               Called by <span className="font-semibold text-white">{creator.displayName}</span>
             </Link>
           )}
         </div>
-
-        <CrowdNoise intensity={energy.intensity} yesShare={energy.yesShare} />
 
         {children}
       </div>
@@ -167,37 +165,10 @@ export function RoomStage({
   );
 }
 
-// Which end is louder right now — the meter under the call. Reads the same
-// energy the stadium glows with, so the words and the light always agree.
-function CrowdNoise({ intensity, yesShare }: { intensity: number; yesShare: number }) {
-  const pct = Math.round(yesShare * 100);
-  const verdict =
-    intensity < 0.05
-      ? "Crowd's quiet — chat to make your end louder"
-      : yesShare >= 0.6
-        ? "YES end is louder"
-        : yesShare <= 0.4
-          ? "NO end is louder"
-          : "Neck and neck";
-  return (
-    <div className="mt-5">
-      <div className="flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em]">
-        <span className="text-[#7c9bff]">YES end</span>
-        <div className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-white/15" style={{ opacity: 0.45 + intensity * 0.55 }}>
-          <span className="h-full transition-[width] duration-1000 ease-out" style={{ width: `${pct}%`, background: "#3d6bff" }} />
-          <span className="h-full flex-1" style={{ background: "#ef4444" }} />
-        </div>
-        <span className="text-[#ff8a8a]">NO end</span>
-      </div>
-      <p className="mt-1.5 text-xs font-semibold text-white/80">{verdict}</p>
-    </div>
-  );
-}
-
 function Team({ name, code }: { name: string; code: string }) {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
-      <TeamCrest name={name} size={52} />
+    <div className="flex min-w-0 flex-col items-center gap-1 text-center">
+      <TeamCrest name={name} size={40} />
       <span className="max-w-full truncate text-sm font-semibold text-white">
         <span className="md:hidden">{code}</span>
         <span className="hidden md:inline">{name}</span>

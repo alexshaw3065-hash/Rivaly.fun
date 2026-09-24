@@ -92,13 +92,9 @@ export function useRoomEnergy(): RoomEnergy {
 }
 
 /**
- * How loud the room is (0–1) and which end is winning. ~8 recent messages
- * from backers is a full house.
+ * How loud each end is, 0–1 — ~5 recent messages from an end's backers and
+ * that end's fans are fully up. The stadium's crowd reads this directly.
  */
-export function readEnergy(e: RoomEnergy): { intensity: number; yesShare: number } {
-  const total = e.yes + e.no;
-  return {
-    intensity: Math.min(1, total / 8),
-    yesShare: total > 0 ? e.yes / total : 0.5,
-  };
+export function endLevels(e: RoomEnergy): { yes: number; no: number } {
+  return { yes: Math.min(1, e.yes / 5), no: Math.min(1, e.no / 5) };
 }
