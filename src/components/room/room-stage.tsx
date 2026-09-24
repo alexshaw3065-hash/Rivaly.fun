@@ -78,11 +78,12 @@ export function RoomStage({
   const scorer = goal ? (goal.side === "home" ? home : away) : null;
 
   return (
-    <section className="relative -mx-4 overflow-hidden bg-[#05070b] md:mx-0 md:rounded-2xl">
+    <section className="stadium-art relative -mx-4 overflow-hidden rounded-b-3xl bg-[var(--st-pitch-2)] md:mx-0 md:rounded-2xl">
       <Stadium
         homeTeam={match.homeTeam}
         awayTeam={match.awayTeam}
         sport={sportOf(match)}
+        live={live}
         flare={goal?.side ?? null}
         flareKey={goal?.key ?? 0}
       />
@@ -93,8 +94,8 @@ export function RoomStage({
         </span>
       ))}
 
-      <div className="relative z-[1] flex flex-col px-4 pb-6 pt-4 md:px-6">
-        {/* Top bar */}
+      <div className="relative z-[1] flex flex-col px-4 pb-6 pt-4 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
+        {/* Top bar, over the roof */}
         <div className="flex items-center justify-between gap-3">
           <Link href="/" aria-label="Back home" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:text-white">
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
@@ -105,8 +106,10 @@ export function RoomStage({
           <RoomShareButton path={sharePath} claim={claim} />
         </div>
 
-        {/* Scoreboard */}
-        <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        {/* Scoreboard — pushed down onto the pitch, so the stands above stay
+            clear: the padding is a % of width, matching the stadium's scale
+            (its boards end at 207/400 of the width). */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 pt-[calc(51.75%-36px)]">
           <Team name={match.homeTeam} code={home.code} />
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/55 px-4 py-2 font-display text-4xl font-bold tabular-nums text-white">
@@ -134,7 +137,7 @@ export function RoomStage({
         </div>
 
         {/* The call */}
-        <div className="mt-8">
+        <div className="mt-7">
           <h1 className="font-display text-[28px] font-bold leading-[1.1] text-white md:text-4xl">&ldquo;{claim}&rdquo;</h1>
           {creator && (
             <Link href={`/profile/${creator.username}`} className="mt-3 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white">

@@ -505,3 +505,76 @@ html {
 .reaction-float {
   animation: reaction-float 2.1s ease-out forwards;
 }
+
+/* Stadium scene (room/stadium.tsx): a floodlit night game in dark mode, a
+   sunlit afternoon in light mode — driven by variables so a theme switch
+   repaints instantly with no flicker. */
+.stadium-art {
+  --st-sky-1: #03050a;
+  --st-sky-2: #0b1322;
+  --st-roof: #0c1017;
+  --st-stand: #151a22;
+  --st-glass: #ffd98a;
+  --st-light: #fff4d6;
+  --st-lamp: 1;
+  --st-haze: 0.16;
+  --st-shadow: 0;
+  --st-board: #070a10;
+  --st-pitch-1: #0d3a20;
+  --st-pitch-2: #16602f;
+}
+:root.light .stadium-art {
+  --st-sky-1: #5f9fe0;
+  --st-sky-2: #bfdcf5;
+  --st-roof: #2f3743;
+  --st-stand: #4f5968;
+  --st-glass: #a9cbe8;
+  --st-light: #ffffff;
+  --st-lamp: 0.35;
+  --st-haze: 0;
+  --st-shadow: 0.32;
+  --st-board: #0f1520;
+  --st-pitch-1: #2c8a40;
+  --st-pitch-2: #3eaa52;
+}
+
+/* Flags in the stands, waving from the pole. */
+@keyframes flag-wave {
+  0%, 100% { transform: skewY(0deg) scaleX(1); }
+  50% { transform: skewY(-9deg) scaleX(0.92); }
+}
+.flag-wave {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: flag-wave 1.4s ease-in-out infinite;
+}
+
+/* Phone flashes across the stands: mostly dark, a brief pop now and then. */
+@keyframes cam-flash {
+  0%, 90% { opacity: 0; }
+  93% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.cam-flash {
+  opacity: 0;
+  animation: cam-flash 5s linear infinite;
+}
+/* After a goal the scoring end goes off. */
+@keyframes cam-flash-burst {
+  0%, 100% { opacity: 0; }
+  20% { opacity: 1; }
+  40% { opacity: 0.2; }
+  60% { opacity: 1; }
+}
+.cam-flash-burst {
+  animation: cam-flash-burst 0.9s linear 3;
+}
+
+/* A Mexican wave rolling through the stands while the match is live. */
+@keyframes crowd-wave {
+  from { transform: translateX(0); }
+  to { transform: translateX(560px); }
+}
+.crowd-wave {
+  animation: crowd-wave 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}

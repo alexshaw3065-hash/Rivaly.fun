@@ -23,7 +23,8 @@ import type { EntrySide } from "@/lib/types";
 // docs/masterplan/07-product-blueprint.md#45-room and the 2026-09-24 room
 // redesign brief — the stadium is the atmosphere (room-stage.tsx), the UI is
 // the structure, and the crowd (chat + real match moments + reactions)
-// makes the noise. Always lights-down (.stage-dark), whatever the app theme.
+// makes the noise. Follows the app theme: a floodlit night game in dark
+// mode, a sunlit afternoon in light (see .stadium-art in globals.css).
 // Match moments are system rows inline in the feed — one live feed reads
 // more naturally than two. Room Rules covers the "what do I need to know"
 // job pinned messages would otherwise do (cut for V1, see 08-v1-scope.md).
@@ -91,20 +92,19 @@ export default async function RoomPage({
     room.maxStakeCents === null ? "No limit" : `${formatMoney(room.minStakeCents)}–${formatMoney(room.maxStakeCents)}`;
 
   return (
-    <main className="stage-dark min-h-[100dvh]">
+    <main className="min-h-[100dvh]">
       {/* Realtime: re-renders only when the room, its entries or the match change. */}
       {unfinished && <RoomLive roomId={room.id} matchId={room.matchId} kickoffAt={match.kickoffAt} />}
 
       <div className="mx-auto max-w-5xl px-4 pb-10 md:px-6 md:pt-6">
-        <RoomStage
-          match={match}
-          claim={claim}
-          creator={creator ? { displayName: creator.displayName, username: creator.username, avatarUrl: creator.avatarUrl } : null}
-          sharePath={sharePath}
-        />
-
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_340px] md:gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_340px] md:gap-6">
           <div className="flex min-w-0 flex-col gap-4">
+            <RoomStage
+              match={match}
+              claim={claim}
+              creator={creator ? { displayName: creator.displayName, username: creator.username, avatarUrl: creator.avatarUrl } : null}
+              sharePath={sharePath}
+            />
             {outcome && (
               <RoomResult
                 outcome={outcome}

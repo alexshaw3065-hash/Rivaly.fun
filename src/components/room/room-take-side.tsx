@@ -55,7 +55,7 @@ export function RoomTakeSide({
       <Drawer.Root open={sheetSide !== null} onOpenChange={(open) => !open && setSheetSide(null)}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 md:hidden" />
-          <Drawer.Content aria-describedby={undefined} className="stage-dark fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] rounded-t-[20px] border-t border-border bg-background outline-none md:hidden">
+          <Drawer.Content aria-describedby={undefined} className="fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] rounded-t-[20px] border-t border-border bg-background outline-none md:hidden">
             <Drawer.Title className="sr-only">Take a side</Drawer.Title>
             <Drawer.Handle className="!mx-auto !mt-2.5 !mb-2 !h-1.5 !w-10 !rounded-full !bg-border-strong" />
             <div className="max-h-[calc(92dvh-24px)] overflow-y-auto px-4 pb-8">{sheetSide && panel(sheetSide)}</div>
