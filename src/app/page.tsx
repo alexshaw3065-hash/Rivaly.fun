@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExplodingCarousel } from "@/components/exploding-carousel";
+import { ExplodingCarousel, useExplodingSlides } from "@/components/exploding-carousel";
 import { SearchBarLink } from "@/components/search-bar-link";
 import { TopRivals } from "@/components/top-rivals";
 import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
-import { byHeat, usePublicRooms } from "@/lib/use-real-rooms";
 import { EmptyRooms } from "@/components/empty-rooms";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
@@ -16,8 +15,7 @@ import { EmptyRooms } from "@/components/empty-rooms";
 // browser Search uses (see rooms-matches-browser.tsx) so both pages share
 // one league-filtered, infinite-scrolling browse experience.
 export default function Home() {
-  const publicRooms = usePublicRooms();
-  const exploding = [...publicRooms.items].sort(byHeat).slice(0, 6);
+  const { slides: exploding, isLoading: explodingLoading } = useExplodingSlides();
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
@@ -38,7 +36,7 @@ export default function Home() {
         <div className="mt-5">
           {exploding.length > 0 ? (
             <ExplodingCarousel items={exploding} />
-          ) : publicRooms.isLoading ? (
+          ) : explodingLoading ? (
             <div className="h-64 rounded-xl border border-border bg-surface" aria-busy />
           ) : (
             <EmptyRooms />

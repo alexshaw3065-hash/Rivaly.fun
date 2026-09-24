@@ -1,22 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { formatMoney, formatMoneyCompact } from "@/lib/mock-data";
+import { formatMoney, formatMoneyCompact, followedTopRivals, goatedRivals, profiles as demoProfiles } from "@/lib/mock-data";
 import { RivalCharacter } from "./rival-character";
 import { TeamCrest } from "./team-crest";
+import { AutoScrollRow } from "./auto-scroll-row";
+import { RivalDivider } from "./rival-divider";
 
-// Home's Top rivals: the five biggest real wins — one per person — each tied
-// to the room that paid it (top_payouts() in Postgres; public, settled rooms
-// only). FOMO-style cards: the character and name, then the crest of the
-// match that paid and the winnings. Tapping a card opens the story beneath
-// the row: what they called, what they staked, what they took home.
+// Home's rivals row — one continuously auto-scrolling strip of three groups:
+//   Top rivals   — the biggest single wins, each tied to the room that paid
+//                  it (top_payouts)
+//   Goated       — current win streaks of 3+ (top_streaks)
+//   Hall of fame — all-time profit (top_earners)
+// All real data (public, settled rooms only). A group with no real data yet
+// falls back to the demo roster, flagged with a "sample rivals" note, and
+// switches to real people by itself as rooms settle. FOMO-style cards;
+// tapping one pauses the row and opens the story beneath it.
 //
 // Engagement mechanisms (.claude/skills/rivaly-engagement-psychology):
-// #5 social identity/rivalry — named people, not an anonymous ranking; and
-// #9 social proof — real, specific, recent wins by people like you. Before
-// anyone has won, the row shows open slots instead of invented winners.
+// #5 social identity/rivalry — named people, not an anonymous ranking;
+// #6 streaks — Goated makes a hot run visible; #9 social proof — specific,
+// recent wins by people like you.
 interface TopWin {
   userId: string;
   username: string;
@@ -34,38 +40,65 @@ interface TopWin {
   competition: string;
 }
 
-function useTopWins(): { wins: TopWin[]; isLoading: boolean } {
-  const [state, setState] = useState<{ wins: TopWin[]; isLoading: boolean }>({ wins: [], isLoading: true });
+interface Streak {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  streak: number;
+}
+interface Earner {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  profitCents: number;
+  roomsWon: number;
+}
+
+type Row = Record<string, unknown>;
+const person = (r: Row) => ({
+  userId: r.user_id as string,
+  username: r.username as string,
+  displayName: (r.display_name as string) || (r.username as string),
+  avatarUrl: (r.avatar_url as string | null) ?? null,
+});
+
+function toWin(r: Row): TopWin {
+  return {
+    ...person(r),
+    payoutCents: Number(r.payout_cents),
+    stakeCents: Number(r.stake_cents),
+    roomId: r.room_id as string,
+    prediction: r.prediction as string,
+    side: r.side as "yes" | "no",
+    poolTotalCents: Number(r.pool_total_cents),
+    participantCount: Number(r.participant_count),
+    homeTeam: r.home_team as string,
+    awayTeam: r.away_team as string,
+    competition: r.competition as string,
+  };
+}
+
+function useBoards(): { wins: TopWin[]; streaks: Streak[]; earners: Earner[]; isLoading: boolean } {
+  const [state, setState] = useState({ wins: [] as TopWin[], streaks: [] as Streak[], earners: [] as Earner[], isLoading: true });
   useEffect(() => {
     let cancelled = false;
-    createClient()
-      .rpc("top_payouts", { p_limit: 5 })
-      .then(
-        ({ data }) => {
-          if (cancelled) return;
-          const rows = (data ?? []) as Record<string, unknown>[];
-          setState({
-            isLoading: false,
-            wins: rows.map((r) => ({
-              userId: r.user_id as string,
-              username: r.username as string,
-              displayName: (r.display_name as string) || (r.username as string),
-              avatarUrl: (r.avatar_url as string | null) ?? null,
-              payoutCents: Number(r.payout_cents),
-              stakeCents: Number(r.stake_cents),
-              roomId: r.room_id as string,
-              prediction: r.prediction as string,
-              side: r.side as "yes" | "no",
-              poolTotalCents: Number(r.pool_total_cents),
-              participantCount: Number(r.participant_count),
-              homeTeam: r.home_team as string,
-              awayTeam: r.away_team as string,
-              competition: r.competition as string,
-            })),
-          });
-        },
-        () => !cancelled && setState({ wins: [], isLoading: false }),
+    const supabase = createClient();
+    const rows = (fn: string) =>
+      supabase.rpc(fn, { p_limit: 5 }).then(
+        ({ data }) => (data ?? []) as Row[],
+        () => [] as Row[],
       );
+    Promise.all([rows("top_payouts"), rows("top_streaks"), rows("top_earners")]).then(([w, s, e]) => {
+      if (cancelled) return;
+      setState({
+        isLoading: false,
+        wins: w.map(toWin),
+        streaks: s.map((r) => ({ ...person(r), streak: Number(r.streak) })),
+        earners: e.map((r) => ({ ...person(r), profitCents: Number(r.profit_cents), roomsWon: Number(r.rooms_won) })),
+      });
+    });
     return () => {
       cancelled = true;
     };
@@ -75,74 +108,187 @@ function useTopWins(): { wins: TopWin[]; isLoading: boolean } {
 
 const profit = (w: TopWin) => w.payoutCents - w.stakeCents;
 
+type Group = "top" | "goated" | "hof";
+interface RivalItem {
+  key: string;
+  group: Group;
+  name: string;
+  username: string;
+  avatarUrl: string | null;
+  metric: ReactNode;
+  achievement: string;
+  win?: TopWin;
+  demo: boolean;
+}
+
+const HEADINGS: Record<Group, string> = { top: "Top rivals", goated: "Goated rivals", hof: "Hall of fame" };
+
+function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): RivalItem[] {
+  const top: RivalItem[] = wins.length
+    ? wins.map((w) => ({
+        key: `top-${w.userId}`,
+        group: "top",
+        name: w.displayName,
+        username: w.username,
+        avatarUrl: w.avatarUrl,
+        win: w,
+        demo: false,
+        achievement: `Won ${formatMoney(profit(w))} on one call`,
+        metric: (
+          <>
+            <span className="flex shrink-0 -space-x-1">
+              <TeamCrest name={w.homeTeam} size={16} />
+              <TeamCrest name={w.awayTeam} size={16} />
+            </span>
+            <span className="truncate font-mono text-sm font-semibold text-rival-green">+{formatMoneyCompact(profit(w))}</span>
+          </>
+        ),
+      }))
+    : followedTopRivals(5).map((p) => ({
+        key: `top-${p.id}`,
+        group: "top",
+        name: p.displayName,
+        username: p.username,
+        avatarUrl: p.avatarUrl,
+        demo: true,
+        achievement: `${formatMoney(p.totalWinningsCents)} won`,
+        metric: <span className="truncate font-mono text-sm font-semibold text-rival-green">+{formatMoneyCompact(p.totalWinningsCents)}</span>,
+      }));
+
+  const goated: RivalItem[] = streaks.length
+    ? streaks.map((s) => ({
+        key: `goated-${s.userId}`,
+        group: "goated",
+        name: s.displayName,
+        username: s.username,
+        avatarUrl: s.avatarUrl,
+        demo: false,
+        achievement: `${s.streak} rooms won in a row — and counting`,
+        metric: <span className="truncate font-mono text-sm font-semibold text-[#f5a524]">🔥 {s.streak} in a row</span>,
+      }))
+    : [...demoProfiles]
+        .sort((a, b) => b.predictionAccuracy - a.predictionAccuracy)
+        .slice(0, 5)
+        .map((p) => ({
+          key: `goated-${p.id}`,
+          group: "goated",
+          name: p.displayName,
+          username: p.username,
+          avatarUrl: p.avatarUrl,
+          demo: true,
+          achievement: `Calls ${Math.round(p.predictionAccuracy * 100)}% right`,
+          metric: <span className="truncate font-mono text-sm font-semibold text-[#f5a524]">🔥 {Math.round(p.predictionAccuracy * 100)}% hit</span>,
+        }));
+
+  const hof: RivalItem[] = earners.length
+    ? earners.map((e) => ({
+        key: `hof-${e.userId}`,
+        group: "hof",
+        name: e.displayName,
+        username: e.username,
+        avatarUrl: e.avatarUrl,
+        demo: false,
+        achievement: `${formatMoney(e.profitCents)} profit across ${e.roomsWon} winning room${e.roomsWon === 1 ? "" : "s"}`,
+        metric: <span className="truncate font-mono text-sm font-semibold text-rival-green">👑 {formatMoneyCompact(e.profitCents)}</span>,
+      }))
+    : goatedRivals(5).map((p) => ({
+        key: `hof-${p.id}`,
+        group: "hof",
+        name: p.displayName,
+        username: p.username,
+        avatarUrl: p.avatarUrl,
+        demo: true,
+        achievement: `${formatMoney(p.totalWinningsCents)} won all-time`,
+        metric: <span className="truncate font-mono text-sm font-semibold text-rival-green">👑 {formatMoneyCompact(p.totalWinningsCents)}</span>,
+      }));
+
+  return [...top, ...goated, ...hof];
+}
+
 export function TopRivals() {
-  const { wins, isLoading } = useTopWins();
-  const [openId, setOpenId] = useState<string | null>(null);
-  // The panel keeps showing the last story while it collapses, instead of
-  // emptying the instant it starts closing.
-  const [storyId, setStoryId] = useState<string | null>(null);
-  const story = wins.find((w) => w.userId === storyId) ?? null;
+  const { wins, streaks, earners, isLoading } = useBoards();
+  const [heading, setHeading] = useState(HEADINGS.top);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  // Keeps showing the last story while the panel collapses.
+  const [storyKey, setStoryKey] = useState<string | null>(null);
+
+  const items = isLoading ? [] : buildItems(wins, streaks, earners);
+  const story = items.find((i) => i.key === storyKey) ?? null;
+  const anyDemo = items.some((i) => i.demo);
+
+  function toggle(key: string) {
+    const opening = openKey !== key;
+    setOpenKey(opening ? key : null);
+    if (opening) setStoryKey(key);
+  }
+
+  const card = (item: RivalItem) => {
+    const active = item.key === openKey;
+    return (
+      <button
+        key={item.key}
+        type="button"
+        onClick={() => toggle(item.key)}
+        aria-expanded={active}
+        className="flex w-[150px] shrink-0 flex-col gap-2.5 rounded-xl border bg-surface p-3 text-left transition-[transform,border-color,background-color] duration-150 ease-out active:scale-[0.97]"
+        style={{
+          borderColor: active ? "var(--rival-green)" : "var(--border)",
+          background: active ? "var(--rival-green-dim)" : undefined,
+        }}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <RivalCharacter name={item.username} imageUrl={item.avatarUrl} size={28} />
+          <span className="min-w-0 truncate text-sm font-semibold text-foreground">{item.name}</span>
+        </span>
+        <span className="flex min-w-0 items-center gap-2 rounded-lg bg-background px-2.5 py-2">{item.metric}</span>
+      </button>
+    );
+  };
+
+  const groups: Group[] = ["top", "goated", "hof"];
+  const row = groups.flatMap((g, gi) => {
+    const inGroup = items.filter((i) => i.group === g);
+    if (inGroup.length === 0) return [];
+    const divider =
+      gi > 0 ? [<RivalDivider key={`div-${g}`} emoji={g === "goated" ? "🔥" : "👑"} label={g === "goated" ? "Goated" : "Hall of fame"} sectionHeading={HEADINGS[g]} />] : [];
+    return [...divider, ...inGroup.map(card)];
+  });
 
   return (
     <section className="min-w-0">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-xl font-semibold text-foreground">Top rivals</h2>
-        <p className="truncate text-xs text-muted">Biggest wins · the rooms that paid them</p>
+      <h2 className="font-display text-xl font-semibold text-foreground">{heading}</h2>
+
+      <div className="mt-4 min-w-0">
+        {isLoading ? (
+          <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 5 }, (_, i) => (
+              <div key={i} className="h-[92px] w-[150px] shrink-0 rounded-xl border border-border bg-surface" aria-hidden />
+            ))}
+          </div>
+        ) : (
+          <AutoScrollRow itemCount={items.length} initialSectionLabel={HEADINGS.top} onActiveSectionChange={setHeading} paused={openKey !== null}>
+            {row}
+          </AutoScrollRow>
+        )}
       </div>
 
-      <div className="no-scrollbar -mx-4 mt-4 flex snap-x gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-5 md:overflow-visible md:px-0">
-        {isLoading
-          ? Array.from({ length: 5 }, (_, i) => (
-              <div key={i} className="h-[104px] w-[150px] shrink-0 snap-start rounded-xl border border-border bg-surface md:w-auto" aria-hidden />
-            ))
-          : wins.length > 0
-            ? wins.map((w, i) => {
-                const active = w.userId === openId;
-                return (
-                  <button
-                    key={w.userId}
-                    type="button"
-                    onClick={() => {
-                      setOpenId(active ? null : w.userId);
-                      if (!active) setStoryId(w.userId);
-                    }}
-                    aria-expanded={active}
-                    className="stagger-in flex w-[150px] shrink-0 snap-start flex-col gap-2.5 rounded-xl border bg-surface p-3 text-left transition-[transform,border-color,background-color] duration-150 ease-out active:scale-[0.97] md:w-auto"
-                    style={{
-                      animationDelay: `${i * 45}ms`,
-                      borderColor: active ? "var(--rival-green)" : "var(--border)",
-                      background: active ? "var(--rival-green-dim)" : undefined,
-                    }}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <RivalCharacter name={w.username} imageUrl={w.avatarUrl} size={28} />
-                      <span className="min-w-0 truncate text-sm font-semibold text-foreground">{w.displayName}</span>
-                    </span>
-                    <span className="flex items-center gap-2 rounded-lg bg-background px-2.5 py-2">
-                      <span className="flex shrink-0 -space-x-1">
-                        <TeamCrest name={w.homeTeam} size={16} />
-                        <TeamCrest name={w.awayTeam} size={16} />
-                      </span>
-                      <span className="truncate font-mono text-sm font-semibold text-rival-green" title={formatMoney(profit(w))}>
-                        +{formatMoneyCompact(profit(w))}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })
-            : Array.from({ length: 5 }, (_, i) => <OpenSlot key={i} rank={i + 1} />)}
+      {/* The story behind the selected card — slides open beneath the row. */}
+      <div className="accordion-body" data-open={openKey ? "true" : "false"}>
+        <div className="min-h-0 overflow-hidden">
+          {story &&
+            (story.win ? (
+              <WinStory win={story.win} onClose={() => setOpenKey(null)} />
+            ) : (
+              <ProfileStory item={story} onClose={() => setOpenKey(null)} />
+            ))}
+        </div>
       </div>
 
-      {/* The story behind the selected win — slides open beneath the row. */}
-      <div className="accordion-body" data-open={openId ? "true" : "false"}>
-        <div className="min-h-0 overflow-hidden">{story && <WinStory win={story} onClose={() => setOpenId(null)} />}</div>
-      </div>
-
-      {!isLoading && wins.length === 0 && (
-        <p className="mt-3 text-sm text-muted">
-          No room has paid out yet — the first five winners land here.{" "}
+      {anyDemo && (
+        <p className="mt-3 text-xs text-muted">
+          Sample rivals for now — real ones take their place as rooms settle.{" "}
           <Link href="/rooms/create" className="font-medium text-rival-blue">
-            Start a room →
+            Be the first →
           </Link>
         </p>
       )}
@@ -150,16 +296,35 @@ export function TopRivals() {
   );
 }
 
-function OpenSlot({ rank }: { rank: number }) {
+function ProfileStory({ item, onClose }: { item: RivalItem; onClose: () => void }) {
   return (
-    <div className="flex w-[150px] shrink-0 snap-start flex-col gap-2.5 rounded-xl border border-dashed border-border-strong p-3 md:w-auto">
-      <span className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-[10px] border border-dashed border-border-strong font-mono text-xs text-muted">
-          {rank}
-        </span>
-        <span className="text-sm font-medium text-muted">Your name</span>
-      </span>
-      <span className="rounded-lg bg-surface px-2.5 py-2 font-mono text-sm text-muted">+$—</span>
+    <div className="mt-3 rounded-xl border border-border bg-surface p-4">
+      <div className="flex items-start gap-3">
+        <RivalCharacter name={item.username} imageUrl={item.avatarUrl} size={48} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-lg font-bold text-foreground">{item.name}</p>
+          <p className="truncate text-xs text-muted">
+            {HEADINGS[item.group]}
+            {item.demo ? " · sample" : ` · @${item.username}`}
+          </p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close" className="text-muted transition-colors hover:text-foreground">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+            <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+      <div className="mt-3 flex items-center gap-2 rounded-lg bg-background px-3 py-2.5">{item.metric}</div>
+      <p className="mt-2 text-sm text-foreground">{item.achievement}</p>
+      {item.demo ? (
+        <Link href="/rooms/create" className="mt-3 block text-center text-sm font-medium text-rival-blue">
+          Start a room — your name could be here
+        </Link>
+      ) : (
+        <Link href={`/profile/${item.username}`} className="mt-3 block text-center text-sm font-medium text-rival-blue">
+          See {item.name}&rsquo;s profile
+        </Link>
+      )}
     </div>
   );
 }

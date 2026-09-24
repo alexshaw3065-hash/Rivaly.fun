@@ -11,6 +11,7 @@ import { BookmarkButton } from "./bookmark-button";
 import { ShareButton } from "./share-button";
 import { RivalsInRoom } from "./rivals-in-room";
 import { TeamCrest } from "./team-crest";
+import { abbreviateClaim, teamIdentity } from "@/lib/team-identity";
 
 // One-tap into a side, right from the feed — the Fast design principle's
 // "one-tap challenges." Now that entries move real balance, the pill can't
@@ -83,12 +84,14 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
         ) : (
           <span className="font-mono text-[11px] text-muted">
             {countdown && <span className="text-rival-blue">{countdown} · </span>}
-            {match.homeTeam.slice(0, 3).toUpperCase()} v {match.awayTeam.slice(0, 3).toUpperCase()}
+            {teamIdentity(match.homeTeam).code} v {teamIdentity(match.awayTeam).code}
           </span>
         )}
       </div>
 
-      <p className="text-lg font-medium leading-snug text-foreground">{room.prediction}</p>
+      <p className="text-lg font-medium leading-snug text-foreground" title={room.prediction} aria-label={room.prediction}>
+        {abbreviateClaim(room.prediction, match.homeTeam, match.awayTeam)}
+      </p>
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
 

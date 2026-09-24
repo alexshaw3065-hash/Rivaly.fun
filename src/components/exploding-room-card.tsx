@@ -7,6 +7,7 @@ import { BookmarkButton } from "./bookmark-button";
 import { ShareButton } from "./share-button";
 import { RivalsInRoom } from "./rivals-in-room";
 import { MatchBanner } from "./create-room/match-hero";
+import { abbreviateClaim } from "@/lib/team-identity";
 
 // The page's one signature artifact (see anti-slop-design-law.md) — not
 // just a bigger RoomCard: the same team-colour match banner the create flow
@@ -23,7 +24,9 @@ export function ExplodingRoomCard({ room, match }: { room: RoomWithTotals; match
     >
       <MatchBanner match={match} size="sm" />
       <div className="flex flex-1 flex-col gap-4 border-t border-border p-5">
-        <p className="font-display text-xl font-semibold leading-snug text-foreground">{room.prediction}</p>
+        <p className="font-display text-xl font-semibold leading-snug text-foreground" title={room.prediction} aria-label={room.prediction}>
+          {abbreviateClaim(room.prediction, match.homeTeam, match.awayTeam)}
+        </p>
         <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3.5 font-mono text-xs text-muted">
           <span className="shrink-0" title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>

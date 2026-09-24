@@ -204,3 +204,21 @@ export function teamIdentity(name: string): TeamIdentity {
   const primary = hslToHex(hue, 0.55, 0.4);
   return { code: codeFor(name), primary, secondary: hslToHex((hue + 40) % 360, 0.6, 0.72), ink: inkFor(primary) };
 }
+
+/**
+ * A room's call, shortened for cards where the crests above already say
+ * who's playing:
+ * - names both teams → both become codes:
+ *   "Seattle Sounders v Real Salt Lake ends in a draw" → "SEA v RSL ends in a draw"
+ * - names one team → the name stays in full (a lone code is too cryptic)
+ *   and reads as a call: "Kansas City Chiefs win" → "Kansas City Chiefs to win"
+ */
+export function abbreviateClaim(claim: string, homeTeam: string, awayTeam: string): string {
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const teams = [homeTeam, awayTeam].filter(Boolean).sort((a, b) => b.length - a.length); // longest first
+  const named = teams.filter((t) => new RegExp(escape(t), "i").test(claim));
+  if (named.length >= 2) {
+    return teams.reduce((text, team) => text.replace(new RegExp(escape(team), "gi"), teamIdentity(team).code), claim);
+  }
+  return named.reduce((text, team) => text.replace(new RegExp(`(${escape(team)})\\s+wins?\\b`, "i"), "$1 to win"), claim);
+}

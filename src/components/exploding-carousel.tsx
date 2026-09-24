@@ -1,11 +1,52 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Match } from "@/lib/types";
 import type { RoomWithTotals } from "@/lib/supabase/room-mapper";
+import { byHeat, usePublicRooms } from "@/lib/use-real-rooms";
+import { useRealMatches } from "@/lib/use-real-matches";
 import { ExplodingRoomCard } from "./exploding-room-card";
+import { StartRoomSlide } from "./start-room-slide";
 
 const SLIDE_MS = 7000;
+/** Fewer hot rooms than this, and the carousel fills up with upcoming fixtures. */
+const MIN_SLIDES = 4;
+
+export interface ExplodingSlide {
+  key: string;
+  match: Match;
+  /** Absent for a fixture with no room yet — rendered as "start the first room". */
+  room?: RoomWithTotals;
+}
+
+const nowMs = () => Date.now();
+
+/**
+ * The hottest public rooms, topped up with the soonest upcoming fixtures that
+ * don't have a room yet whenever there are fewer than MIN_SLIDES — so the
+ * carousel always has something to rotate, and every empty fixture is an
+ * invitation to open the first room.
+ */
+export function useExplodingSlides(): { slides: ExplodingSlide[]; isLoading: boolean } {
+  const { items, isLoading } = usePublicRooms();
+  const { matches, isReal } = useRealMatches();
+  return useMemo(() => {
+    const hot: ExplodingSlide[] = [...items].sort(byHeat).slice(0, 6).map(({ room, match }) => ({ key: room.id, room, match }));
+    if (hot.length >= MIN_SLIDES || !isReal) return { slides: hot, isLoading };
+    const hasRoom = new Set(items.map((i) => i.match.id));
+    const soon = nowMs() + 60_000;
+    const fixtures: ExplodingSlide[] = matches
+      .filter((m) => m.status === "scheduled" && +new Date(m.kickoffAt) > soon && !hasRoom.has(m.id))
+      .sort((a, b) => +new Date(a.kickoffAt) - +new Date(b.kickoffAt))
+      .slice(0, MIN_SLIDES - hot.length)
+      .map((m) => ({ key: `match-${m.id}`, match: m }));
+    return { slides: [...hot, ...fixtures], isLoading };
+  }, [items, isLoading, matches, isReal]);
+}
+
+function Slide({ slide }: { slide: ExplodingSlide }) {
+  return slide.room ? <ExplodingRoomCard room={slide.room} match={slide.match} /> : <StartRoomSlide match={slide.match} />;
+}
 
 // Apple-homepage-style carousel for the hottest rooms: big slides with the
 // neighbours peeking in, native swipe (scroll-snap, so it moves exactly like
@@ -20,7 +61,7 @@ const SLIDE_MS = 7000;
 //
 // Pauses while a finger is on it and when the tab is hidden; starts paused
 // for reduced-motion users (and slides jump instead of glide).
-export function ExplodingCarousel({ items }: { items: { room: RoomWithTotals; match: Match }[] }) {
+export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -83,7 +124,7 @@ export function ExplodingCarousel({ items }: { items: { room: RoomWithTotals; ma
   const running = playing && !held && !hidden && count > 1;
 
   // One hot room is just the card — no peeking, no controls.
-  if (count === 1) return <ExplodingRoomCard room={items[0].room} match={items[0].match} />;
+  if (count === 1) return <Slide slide={items[0]} />;
 
   return (
     <div className="min-w-0">
@@ -96,15 +137,15 @@ export function ExplodingCarousel({ items }: { items: { room: RoomWithTotals; ma
         onPointerLeave={() => setHeld(false)}
         aria-roledescription="carousel"
       >
-        {items.map(({ room, match }, i) => (
+        {items.map((slide, i) => (
           <div
-            key={room.id}
+            key={slide.key}
             className="w-[86%] shrink-0 snap-center transition-opacity duration-500 ease-out md:w-[62%]"
             style={{ opacity: count > 1 && i !== index ? 0.45 : 1 }}
             aria-roledescription="slide"
             aria-label={`${i + 1} of ${count}`}
           >
-            <ExplodingRoomCard room={room} match={match} />
+            <Slide slide={slide} />
           </div>
         ))}
       </div>
@@ -114,7 +155,7 @@ export function ExplodingCarousel({ items }: { items: { room: RoomWithTotals; ma
           <div className="flex h-9 items-center gap-2.5 rounded-full bg-surface-elevated px-4">
             {items.map((item, i) =>
               i === index ? (
-                <span key={item.room.id} className="relative h-2 w-9 overflow-hidden rounded-full bg-border-strong" aria-current="true">
+                <span key={item.key} className="relative h-2 w-9 overflow-hidden rounded-full bg-border-strong" aria-current="true">
                   {/* Keyed per slide so each one's fill starts fresh; its end advances the carousel. */}
                   <span
                     key={`fill-${index}-${cycle}`}
@@ -131,7 +172,7 @@ export function ExplodingCarousel({ items }: { items: { room: RoomWithTotals; ma
                 </span>
               ) : (
                 <button
-                  key={item.room.id}
+                  key={item.key}
                   type="button"
                   onClick={() => goTo(i)}
                   aria-label={`Show room ${i + 1}`}
