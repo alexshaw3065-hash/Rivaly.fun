@@ -48,8 +48,8 @@ function Slide({ slide }: { slide: ExplodingSlide }) {
   return slide.room ? <ExplodingRoomCard room={slide.room} match={slide.match} /> : <StartRoomSlide match={slide.match} />;
 }
 
-// Apple-homepage-style carousel for the hottest rooms: big slides with the
-// neighbours peeking in, native swipe (scroll-snap, so it moves exactly like
+// Apple-homepage-style carousel for the hottest rooms: one full-width slide
+// at a time (no peek at the next), native swipe (scroll-snap, so it moves exactly like
 // the phone expects), and below it a dot pill whose active dot stretches
 // into a bar that fills while the slide is up — the fill finishing is what
 // advances it, so the timer and the progress can never disagree. A round
@@ -130,7 +130,7 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
     <div className="min-w-0">
       <div
         ref={scroller}
-        className="no-scrollbar relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[7%] md:-mx-6 md:px-[19%]"
+        className="no-scrollbar relative flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-xl"
         onPointerDown={() => setHeld(true)}
         onPointerUp={() => setHeld(false)}
         onPointerCancel={() => setHeld(false)}
@@ -140,8 +140,7 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
         {items.map((slide, i) => (
           <div
             key={slide.key}
-            className="w-[86%] shrink-0 snap-center transition-opacity duration-500 ease-out md:w-[62%]"
-            style={{ opacity: count > 1 && i !== index ? 0.45 : 1 }}
+            className="w-full shrink-0 snap-center"
             aria-roledescription="slide"
             aria-label={`${i + 1} of ${count}`}
           >
