@@ -56,7 +56,7 @@ export function Nav({ children }: { children: ReactNode }) {
       {/* Mobile top bar — md:hidden, unaffected by the search overlay (it's
           a fixed sheet layered on top, not a route change — see
           mobile-search-overlay.tsx). */}
-      <nav className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
+      <nav className="mobile-topbar sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
         <div className="flex items-center gap-3 py-4 pl-6 pr-4">
           <Link href="/" className="shrink-0">
             <RivalyWordmark />

@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import {
   MESSAGE_UUID_RE,
   mapMessageRow,
+  REACTION_EMOJI,
   type DisplayChatMessage,
+  type MessageReaction,
   type MessageRow,
 } from "@/lib/supabase/message-mapper";
 import { encodeMoment, matchMoment, takeoverMoment } from "@/lib/match-event-label";
@@ -14,7 +16,7 @@ import { addRaceMessage, initRace, useRoomRace } from "@/lib/room-energy";
 import type { RaceState } from "@/lib/room-race";
 import type { EntrySide } from "@/lib/types";
 import { useCurrentUser } from "./current-user-provider";
-import { ChatThread } from "./chat-thread";
+import { ChatThread, type ReactionMap } from "./chat-thread";
 import { REACTION_EVENT } from "./room/room-stage";
 import { PressureTicker } from "./room/pressure-ticker";
 import { announceChatActivity } from "./room/room-tabs-event";
@@ -53,6 +55,7 @@ export function ChatComposer({
   roomId,
   matchId,
   initialMessages,
+  initialReactions = [],
   sides = {},
   stakes = {},
   initialRace,
@@ -64,6 +67,8 @@ export function ChatComposer({
   matchId?: string;
   /** Chat and match moments, oldest first. */
   initialMessages: DisplayChatMessage[];
+  /** Every reaction already in the room. */
+  initialReactions?: MessageReaction[];
   /** userId → the side they backed, for colouring names. */
   sides?: Record<string, EntrySide>;
   /** userId → how much they staked, shown under their face. */
@@ -86,6 +91,23 @@ export function ChatComposer({
     setItems((list) => (list.some((x) => x.id === m.id) ? list : [...list, m].slice(-KEEP)));
   }, []);
   const [draft, setDraft] = useState("");
+  const [replyTo, setReplyTo] = useState<DisplayChatMessage | null>(null);
+  const [tray, setTray] = useState<"quick" | "emoji" | null>("quick");
+  const inputRef = useRef<HTMLInputElement>(null);
+  // messageId → emoji → the people who reacted with it.
+  const [reactions, setReactions] = useState<ReactionMap>(() => {
+    const map: ReactionMap = {};
+    for (const r of initialReactions) ((map[r.messageId] ??= {})[r.emoji] ??= []).push(r.userId);
+    return map;
+  });
+  const applyReaction = useCallback((r: MessageReaction, on: boolean) => {
+    setReactions((prev) => {
+      const users = prev[r.messageId]?.[r.emoji] ?? [];
+      if (on === users.includes(r.userId)) return prev;
+      const next = on ? [...users, r.userId] : users.filter((u) => u !== r.userId);
+      return { ...prev, [r.messageId]: { ...prev[r.messageId], [r.emoji]: next } };
+    });
+  }, []);
   const [sending, setSending] = useState(false);
   const [watching, setWatching] = useState(0);
   const lastQuick = useRef(0);
@@ -157,6 +179,11 @@ export function ChatComposer({
         const side = sidesRef.current[row.user_id];
         if (side) addRaceMessage(row.user_id, side, +new Date(row.created_at));
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `room_id=eq.${roomId}` }, (payload) => {
+        const row = (payload.eventType === "DELETE" ? payload.old : payload.new) as { message_id?: string; user_id?: string; emoji?: string };
+        if (!row.message_id || !row.user_id || !row.emoji) return;
+        applyReaction({ messageId: row.message_id, userId: row.user_id, emoji: row.emoji }, payload.eventType !== "DELETE");
+      })
       .on("presence", { event: "sync" }, () => setWatching(Object.keys(channel.presenceState()).length));
 
     if (matchId) {
@@ -194,7 +221,7 @@ export function ChatComposer({
     }
     const { data } = await createClient()
       .from("messages")
-      .select("id, room_id, user_id, body, created_at, author:profiles(display_name, avatar_url)")
+      .select("id, room_id, user_id, body, created_at, reply_to, author:profiles(display_name, avatar_url)")
       .eq("room_id", roomId)
       .lt("created_at", oldest.createdAt)
       .order("created_at", { ascending: false })
@@ -216,7 +243,7 @@ export function ChatComposer({
   }, []);
   const heat = items.filter((m) => m.kind === "message" && now - +new Date(m.createdAt) < HEAT_WINDOW_MS).length;
 
-  function post(body: string, restoreDraft: boolean) {
+  function post(body: string, restoreDraft: boolean, reply: DisplayChatMessage | null = null) {
     if (!currentUser) {
       openAuthModal({ next: `/rooms/${roomId}` });
       return;
@@ -226,18 +253,55 @@ export function ChatComposer({
     // every subscriber, the sender included — one code path for every message.
     createClient()
       .from("messages")
-      .insert({ room_id: roomId, user_id: currentUser.id, body })
+      .insert({ room_id: roomId, user_id: currentUser.id, body, reply_to: reply?.id ?? null })
       .then(({ error }) => {
         setSending(false);
-        if (error && restoreDraft) setDraft(body); // failed — put it back so nothing's lost
+        if (error && restoreDraft) {
+          setDraft(body); // failed — put it back so nothing's lost
+          setReplyTo(reply);
+        }
       });
   }
 
   function send() {
     const body = draft.trim();
     if (!body || !isRealRoom) return;
-    if (currentUser) setDraft("");
-    post(body, true);
+    const reply = replyTo;
+    if (currentUser) {
+      setDraft("");
+      setReplyTo(null);
+    }
+    post(body, true, reply);
+  }
+
+  // Reactions: toggle yours, shown at once, confirmed by the database (and
+  // rolled back if it refuses).
+  function react(messageId: string, emoji: string) {
+    if (!currentUser) {
+      openAuthModal({ next: `/rooms/${roomId}` });
+      return;
+    }
+    if (!isRealRoom) return;
+    const r = { messageId, userId: currentUser.id, emoji };
+    const on = !(reactions[messageId]?.[emoji] ?? []).includes(currentUser.id);
+    applyReaction(r, on);
+    navigator.vibrate?.(6);
+    const table = createClient().from("message_reactions");
+    const done = on
+      ? table.insert({ message_id: messageId, room_id: roomId, user_id: currentUser.id, emoji })
+      : table.delete().eq("message_id", messageId).eq("user_id", currentUser.id).eq("emoji", emoji);
+    void done.then(({ error }) => {
+      if (error) applyReaction(r, !on);
+    });
+  }
+
+  function reply(message: DisplayChatMessage) {
+    if (!currentUser) {
+      openAuthModal({ next: `/rooms/${roomId}` });
+      return;
+    }
+    setReplyTo(message);
+    inputRef.current?.focus();
   }
 
   function quick(body: string) {
@@ -272,50 +336,120 @@ export function ChatComposer({
         selfId={currentUser?.id}
         hasEarlier={hasEarlier && isRealRoom}
         onLoadEarlier={loadEarlier}
+        reactions={reactions}
+        onReact={react}
+        onReply={reply}
         empty={<p className="px-6 text-center text-sm text-muted">Quiet so far. Say something — the room&rsquo;s listening.</p>}
       />
 
-      <div className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-t border-border px-3 pt-2.5">
-        {QUICK.map((q) => (
-          <button
-            key={q}
-            type="button"
-            onClick={() => quick(q)}
-            className="h-8 shrink-0 rounded-full border border-border bg-background px-3 text-[13px] text-foreground transition-[transform,border-color] duration-150 ease-out hover:border-border-strong active:scale-90"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
+      <div className="shrink-0 border-t border-border px-3 pb-3 pt-2">
+        {/* Trays: one-tap shouts (open by default — joining in shouldn't need
+            typing), or emoji for your message. */}
+        {tray === "quick" && (
+          <div className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3">
+            {QUICK.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => quick(q)}
+                className="h-8 shrink-0 rounded-full bg-background px-3 text-[13px] text-foreground ring-1 ring-border transition-[transform,box-shadow] duration-150 ease-out hover:ring-border-strong active:scale-90"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+        {tray === "emoji" && (
+          <div className="mb-2 grid grid-cols-10 gap-1">
+            {REACTION_EMOJI.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => {
+                  setDraft((d) => (d + e).slice(0, 280));
+                  inputRef.current?.focus();
+                }}
+                className="flex h-9 items-center justify-center rounded-lg text-xl transition-transform duration-150 hover:bg-foreground/5 active:scale-90"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-        className="flex shrink-0 items-center gap-2 px-3 pb-3 pt-2.5"
-      >
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={currentUser ? "Message the room" : "Sign in to talk…"}
-          onFocus={() => !currentUser && openAuthModal({ next: `/rooms/${roomId}` })}
-          maxLength={280}
-          enterKeyHint="send"
-          className="h-11 min-w-0 flex-1 rounded-xl border border-transparent bg-background px-4 text-base text-foreground placeholder:text-muted focus:border-rival-blue focus:outline-none"
-          style={{ transition: "border-color 150ms ease" }}
-        />
-        <button
-          type="submit"
-          aria-label="Send"
-          disabled={!draft.trim() || sending}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rival-blue text-white transition-[transform,opacity] duration-150 ease-out active:scale-90 disabled:opacity-35"
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
-            <path d="M3 9h11M9.5 4.5 14 9l-4.5 4.5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </form>
+        <div className="overflow-hidden rounded-xl bg-background ring-1 ring-border transition-shadow duration-150 focus-within:ring-rival-blue">
+          {replyTo && (
+            <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-[13px] [animation:fade-in-up_200ms_ease-out_both]">
+              <span className="text-muted">Replying to</span>
+              <span className="min-w-0 truncate font-semibold" style={{ color: replyTo.userId && sides[replyTo.userId] ? (sides[replyTo.userId] === "yes" ? "var(--rival-blue)" : "var(--rival-red)") : "var(--foreground)" }}>
+                @{replyTo.authorName ?? "Rival"}
+              </span>
+              <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted hover:text-foreground">
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
+                  <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
+            }}
+            className="flex items-center gap-1 px-1.5"
+          >
+            <button
+              type="button"
+              onClick={() => setTray((t) => (t === "quick" ? null : "quick"))}
+              aria-label="Quick shouts"
+              aria-pressed={tray === "quick"}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,color,background-color] duration-150 active:scale-90"
+              style={{ color: tray === "quick" ? "var(--background)" : "var(--muted)", background: tray === "quick" ? "var(--foreground)" : "color-mix(in srgb, var(--foreground) 8%, transparent)" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="transition-transform duration-200" style={{ transform: tray === "quick" ? "rotate(45deg)" : undefined }}>
+                <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={currentUser ? (replyTo ? `Reply to @${replyTo.authorName ?? "Rival"}` : "Message the room") : "Sign in to talk…"}
+              onFocus={() => !currentUser && openAuthModal({ next: `/rooms/${roomId}` })}
+              maxLength={280}
+              enterKeyHint="send"
+              className="h-11 min-w-0 flex-1 bg-transparent px-1.5 text-base text-foreground placeholder:text-muted focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setTray((t) => (t === "emoji" ? null : "emoji"))}
+              aria-label="Emoji"
+              aria-pressed={tray === "emoji"}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150"
+              style={{ color: tray === "emoji" ? "#f5c542" : "var(--muted)" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+                <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
+                <circle cx="7.4" cy="8.4" r="1.05" fill="currentColor" />
+                <circle cx="12.6" cy="8.4" r="1.05" fill="currentColor" />
+                <path d="M6.8 12c.8 1.2 1.9 1.8 3.2 1.8s2.4-.6 3.2-1.8" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+              </svg>
+            </button>
+            {draft.trim().length > 0 && (
+              <button
+                type="submit"
+                aria-label="Send"
+                disabled={sending}
+                className="enter-pop flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rival-blue text-white transition-[transform,opacity] duration-150 ease-out active:scale-90 disabled:opacity-50"
+              >
+                <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden>
+                  <path d="M3 9h11M9.5 4.5 14 9l-4.5 4.5" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+          </form>
+        </div>
+      </div>
     </section>
   );
 }

@@ -161,7 +161,8 @@ export function RoomTabs({
       const el = barRef.current;
       if (!el) return;
       const top = parseFloat(getComputedStyle(el).top) || 0;
-      setStuck(el.getBoundingClientRect().top <= top + 0.5 && window.scrollY > 0);
+      // A little early, so the app bar is already sliding away as the tabs arrive.
+      setStuck(el.getBoundingClientRect().top <= top + 16 && window.scrollY > 0);
     };
     check();
     window.addEventListener("scroll", check, { passive: true });
@@ -171,6 +172,12 @@ export function RoomTabs({
       window.removeEventListener("resize", check);
     };
   }, []);
+  // While the bar is stuck, the app's own top bar slides away (globals.css)
+  // so the room gets the whole screen — like opening a chat in a messaging app.
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-room-stuck", stuck);
+    return () => document.documentElement.removeAttribute("data-room-stuck");
+  }, [stuck]);
   const minute = useMemo(() => {
     const c = feedClock(rows);
     return c > 0 ? Math.floor(c / 60) + 1 : null;
@@ -191,21 +198,17 @@ export function RoomTabs({
       {/* Sticks 44px down; once stuck, the mini scoreboard fills that strip
           above it. The bar's own height never changes, so nothing jumps
           as you scroll past. */}
-      <div
-        ref={barRef}
-        className="sticky top-[44px] z-30 -mx-4 px-4 pb-2 pt-2 transition-[background-color,box-shadow] duration-200 md:top-[calc(var(--header-height)+44px)] md:-mx-2 md:px-2"
-        style={stuck ? STUCK_BG : undefined}
-      >
+      <div ref={barRef} className="sticky top-[44px] z-30 pb-2 pt-2 md:top-[calc(var(--header-height)+44px)]">
         {stuck && (
-          <div className="absolute inset-x-0 bottom-full flex h-11 items-center px-4 md:px-2" style={{ ...STUCK_BG, boxShadow: undefined }}>
+          <div className="absolute inset-x-0 bottom-full flex h-11 items-end justify-center pb-0.5">
             <MiniScoreboard match={match} minute={minute} />
           </div>
         )}
       <div
         role="tablist"
         aria-label="Room"
-        className="no-scrollbar flex gap-1 overflow-x-auto rounded-full bg-surface p-1 ring-1 ring-border transition-shadow duration-200"
-        style={{ boxShadow: stuck ? "0 6px 18px -8px rgba(0,0,0,0.45)" : undefined }}
+        className="no-scrollbar flex gap-1 overflow-x-auto rounded-full p-1 ring-1 ring-border transition-[box-shadow,background-color] duration-200"
+        style={stuck ? FLOAT : { background: "var(--surface)" }}
       >
         {TABS.filter((t) => t.id !== "lineup" || lineups !== undefined).map((t) =>
           t.id === "chat" ? (
@@ -281,11 +284,13 @@ export function RoomTabs({
   );
 }
 
-const STUCK_BG = {
-  background: "color-mix(in srgb, var(--background) 90%, transparent)",
-  backdropFilter: "blur(12px)",
-  WebkitBackdropFilter: "blur(12px)",
-  boxShadow: "0 1px 0 var(--border)",
+// A floating capsule: frosted surface, a tight shadow, the page visible
+// around it.
+const FLOAT = {
+  background: "color-mix(in srgb, var(--surface) 86%, transparent)",
+  backdropFilter: "blur(14px) saturate(1.2)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.2)",
+  boxShadow: "0 8px 24px -10px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.2)",
 } as const;
 
 // The score while you're down in the tabs: both sides, the score (or the
@@ -301,19 +306,23 @@ function MiniScoreboard({ match, minute }: { match: Match; minute: number | null
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Back to the stadium"
-      className="flex w-full items-center gap-2 [animation:fade-in-up_260ms_cubic-bezier(0.23,1,0.32,1)_both]"
+      className="flex h-9 w-fit max-w-full items-center gap-2 rounded-full pl-3 pr-3.5 ring-1 ring-border transition-transform duration-150 [animation:fade-in-up_260ms_cubic-bezier(0.23,1,0.32,1)_both] active:scale-[0.97]"
+      style={FLOAT}
     >
-      <span className="flex min-w-0 flex-1 items-center justify-end gap-2">
-        <span className="truncate text-sm font-bold text-foreground">{home.code}</span>
-        <TeamCrest name={match.homeTeam} size={22} />
+      <span className="flex items-center gap-1.5">
+        <TeamCrest name={match.homeTeam} size={20} />
+        <span className="text-[13px] font-bold text-foreground">{home.code}</span>
       </span>
-      <span className="shrink-0 px-1 font-display text-lg font-extrabold tabular-nums text-foreground">
+      <span className="shrink-0 px-0.5 font-display text-base font-extrabold tabular-nums text-foreground">
         {started ? `${match.homeScore ?? 0} – ${match.awayScore ?? 0}` : "vs"}
       </span>
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        <TeamCrest name={match.awayTeam} size={22} />
-        <span className="truncate text-sm font-bold text-foreground">{away.code}</span>
-        <span className="ml-auto shrink-0 font-mono text-[11px] font-semibold text-muted">
+      <span className="flex items-center gap-1.5">
+        <span className="text-[13px] font-bold text-foreground">{away.code}</span>
+        <TeamCrest name={match.awayTeam} size={20} />
+      </span>
+      <span className="h-4 w-px bg-border" aria-hidden />
+      <span className="flex items-center">
+        <span className="shrink-0 font-mono text-[11px] font-semibold text-muted">
           {live ? (
             <span className="flex items-center gap-1.5">
               <LiveBadge />

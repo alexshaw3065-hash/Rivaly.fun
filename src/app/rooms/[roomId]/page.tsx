@@ -5,7 +5,7 @@ import { getRoomById, getRoomByInviteCode } from "@/lib/supabase/rooms";
 import { getMatchById } from "@/lib/supabase/matches";
 import { getProfileById } from "@/lib/supabase/profiles";
 import { getMyEntryForRoom, getRoomRivals } from "@/lib/supabase/entries";
-import { getRoomMessageLog, getRoomMessages } from "@/lib/supabase/messages";
+import { getRoomMessageLog, getRoomMessages, getRoomReactions } from "@/lib/supabase/messages";
 import { raceFrom } from "@/lib/room-race";
 import { encodeMoment, takeoverMoment } from "@/lib/match-event-label";
 import { getMatchEventRows, momentsFromRows } from "@/lib/supabase/match-events";
@@ -85,11 +85,12 @@ export default async function RoomPage({
   if (unfinished && (match.status !== "scheduled" || outcome)) {
     after(() => settleRoom(room.id).then(() => undefined, () => undefined));
   }
-  const [messages, eventRows, rivals, messageLog] = await Promise.all([
+  const [messages, eventRows, rivals, messageLog, reactions] = await Promise.all([
     getRoomMessages(room.id),
     getMatchEventRows(match.id),
     getRoomRivals(room.id, 200),
     getRoomMessageLog(room.id),
+    getRoomReactions(room.id),
   ]);
   // Player names from the line-ups, so moments can say who scored.
   const names = playerNames(eventRows);
@@ -184,7 +185,7 @@ export default async function RoomPage({
             />
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} />}
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} initialReactions={reactions} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} />}
               match={match}
               sport={sportOf(match)}
               events={eventRows}

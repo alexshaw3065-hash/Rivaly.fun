@@ -646,3 +646,12 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .chat-row-enter { transition: none; }
 }
+
+/* In a room, once the score + tabs bar is stuck, the app's top bar slides
+   away so the room has the whole screen (see room-tabs.tsx). */
+.mobile-topbar {
+  transition: transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+html[data-room-stuck] .mobile-topbar {
+  transform: translateY(-100%);
+}

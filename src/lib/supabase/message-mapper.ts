@@ -11,6 +11,8 @@ export interface MessageRow {
   user_id: string;
   body: string;
   created_at: string;
+  /** The message this one answers, if any (same room — enforced by trigger). */
+  reply_to?: string | null;
 }
 
 /**
@@ -24,7 +26,19 @@ export interface MessageRow {
 export type DisplayChatMessage = ChatMessage & {
   authorName?: string;
   authorAvatarUrl?: string | null;
+  /** Id of the message this one replies to. */
+  replyTo?: string | null;
 };
+
+/** One person's reaction on a message (message_reactions). */
+export interface MessageReaction {
+  messageId: string;
+  userId: string;
+  emoji: string;
+}
+
+/** The reactions the room allows — mirrors the check on message_reactions.emoji. */
+export const REACTION_EMOJI = ["🔥", "😂", "😭", "😤", "👀", "⚽", "🧢", "💯", "👏", "😱"] as const;
 
 export function mapMessageRow(
   row: MessageRow,
@@ -39,6 +53,7 @@ export function mapMessageRow(
     createdAt: row.created_at,
     authorName: author?.display_name,
     authorAvatarUrl: author?.avatar_url,
+    replyTo: row.reply_to ?? null,
   };
 }
 

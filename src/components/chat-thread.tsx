@@ -1,26 +1,33 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import type { DisplayChatMessage } from "@/lib/supabase/message-mapper";
+import { Drawer } from "vaul";
+import { REACTION_EMOJI, type DisplayChatMessage } from "@/lib/supabase/message-mapper";
 import { decodeMoment, type EventTone } from "@/lib/match-event-label";
 import { formatMoneyCompact } from "@/lib/mock-data";
 import type { EntrySide } from "@/lib/types";
 import { RivalCharacter } from "./rival-character";
 
-// The room's chat as a full thread, Discord-style: a person's first message
-// in a run carries their face, name (in the colour of the side they backed)
-// and time, with their stake right under the face — who's talking and how
-// much they've got riding on it, at a glance. Follow-ups within a few
-// minutes stack under it without repeating any of that. Match moments are
-// system lines in their own tone; days get a divider. It sticks to the
-// newest message unless you've scrolled up to read, in which case new ones
-// wait behind a "jump to present" bar instead of yanking you down.
+// The room's chat as a full thread, the way Discord lays one out: a person's
+// first message in a run carries their face, name (in the colour of the side
+// they backed) and time — with their stake tucked under the face, so you
+// see who's talking and what they've got riding on it. Follow-ups within a
+// few minutes stack beneath. Replies hang off a curved line to a one-line
+// quote of what they answer (tap it to jump there). Reactions sit under the
+// message as pills. Hover a message (desktop) for quick reactions and Reply;
+// on a phone, press and hold it. Match moments are system lines; days get a
+// divider. It sticks to the newest message unless you've scrolled up to
+// read — then new ones wait behind the "new messages" bar.
 //
 // Engagement mechanisms #4 (collective effervescence — a live, synchronous
 // crowd) and #5 (social identity — every line wears its side and stake).
 
+export type ReactionMap = Record<string, Record<string, string[]>>;
+
 const GROUP_MS = 5 * 60_000;
 const NEAR_BOTTOM_PX = 80;
+const HOLD_MS = 420;
+const QUICK_REACT = ["🔥", "😂", "😭"] as const;
 const SIDE_COLOR: Record<EntrySide, string> = { yes: "var(--rival-blue)", no: "var(--rival-red)" };
 const SIDE_DIM: Record<EntrySide, string> = { yes: "var(--rival-blue-dim)", no: "var(--rival-red-dim)" };
 
@@ -65,7 +72,8 @@ function buildRows(items: DisplayChatMessage[], now: Date): Row[] {
       prev = null;
       continue;
     }
-    const head = !prev || prev.userId !== m.userId || +d - +new Date(prev.createdAt) > GROUP_MS;
+    // A reply always opens with its own header, like Discord.
+    const head = !prev || prev.userId !== m.userId || !!m.replyTo || +d - +new Date(prev.createdAt) > GROUP_MS;
     rows.push({ kind: "message", id: m.id, message: m, head });
     prev = m;
   }
@@ -80,6 +88,9 @@ export function ChatThread({
   empty,
   onLoadEarlier,
   hasEarlier,
+  reactions = {},
+  onReact,
+  onReply,
 }: {
   items: DisplayChatMessage[];
   sides: Record<string, EntrySide>;
@@ -88,11 +99,16 @@ export function ChatThread({
   empty: ReactNode;
   onLoadEarlier?: () => Promise<void>;
   hasEarlier?: boolean;
+  reactions?: ReactionMap;
+  onReact?: (messageId: string, emoji: string) => void;
+  onReply?: (message: DisplayChatMessage) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
   const [unseen, setUnseen] = useState(0);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [sheetFor, setSheetFor] = useState<DisplayChatMessage | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
   const lastCount = useRef(items.length);
   const lastNewest = useRef(items[items.length - 1]?.id);
   const [now, setNow] = useState<Date | null>(null);
@@ -101,6 +117,7 @@ export function ChatThread({
     return () => clearTimeout(t);
   }, []);
   const rows = buildRows(items, now ?? new Date(items[items.length - 1]?.createdAt ?? 0));
+  const byId = new Map(items.map((m) => [m.id, m]));
 
   // Open at the newest message.
   useLayoutEffect(() => {
@@ -108,7 +125,7 @@ export function ChatThread({
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
-  // New at the bottom: follow if you're there, otherwise count it.
+  // New at the bottom: follow if you're there (or it's yours), otherwise count it.
   useLayoutEffect(() => {
     const el = scroller.current;
     const newest = items[items.length - 1]?.id;
@@ -117,9 +134,10 @@ export function ChatThread({
     lastCount.current = items.length;
     lastNewest.current = newest;
     if (!el || !grew || !appended) return;
-    if (atBottom.current) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    const mine = items[items.length - 1]?.userId === selfId;
+    if (atBottom.current || mine) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     else setUnseen((n) => n + 1);
-  }, [items]);
+  }, [items, selfId]);
 
   const onScroll = () => {
     const el = scroller.current;
@@ -132,6 +150,14 @@ export function ChatThread({
     const el = scroller.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     setUnseen(0);
+  };
+
+  const goTo = (id: string) => {
+    const target = scroller.current?.querySelector(`[data-mid="${id}"]`);
+    if (!target) return;
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    setFlash(id);
+    window.setTimeout(() => setFlash((f) => (f === id ? null : f)), 1400);
   };
 
   const loadEarlier = async () => {
@@ -149,7 +175,26 @@ export function ChatThread({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div ref={scroller} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-3 pb-2 pt-1">
+      {/* New messages while you were reading back — Discord's blurple bar */}
+      {unseen > 0 && (
+        <button
+          type="button"
+          onClick={jump}
+          className="absolute inset-x-2 top-2 z-10 flex h-8 items-center justify-between rounded-lg bg-rival-blue px-3 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.3)] [animation:fade-in-up_280ms_cubic-bezier(0.23,1,0.32,1)_both]"
+        >
+          <span>
+            {unseen} new {unseen === 1 ? "message" : "messages"}
+          </span>
+          <span className="flex items-center gap-1">
+            Jump to present
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+              <path d="M6 2v8M2.5 6.5 6 10l3.5-3.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+      )}
+
+      <div ref={scroller} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-1">
         {hasEarlier && (
           <div className="flex justify-center py-2">
             <button type="button" onClick={loadEarlier} disabled={loadingEarlier} className="rounded-full px-3 py-1 text-xs font-semibold text-muted ring-1 ring-border transition-colors hover:text-foreground disabled:opacity-60">
@@ -173,36 +218,107 @@ export function ChatThread({
                 side={r.message.userId ? sides[r.message.userId] : undefined}
                 stake={r.message.userId ? stakes[r.message.userId] : undefined}
                 self={r.message.userId === selfId}
+                selfId={selfId}
+                quoted={r.message.replyTo ? byId.get(r.message.replyTo) : undefined}
+                quotedSide={r.message.replyTo ? sides[byId.get(r.message.replyTo)?.userId ?? ""] : undefined}
+                reactions={reactions[r.message.id]}
+                flashing={flash === r.message.id}
+                onReact={onReact}
+                onReply={onReply}
+                onOpenSheet={() => setSheetFor(r.message)}
+                onJumpToQuoted={goTo}
               />
             ),
           )
         )}
       </div>
 
-      {unseen > 0 && (
-        <button
-          type="button"
-          onClick={jump}
-          className="absolute inset-x-3 bottom-2 flex h-9 items-center justify-between rounded-lg bg-rival-blue px-3 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.3)] [animation:fade-in-up_280ms_cubic-bezier(0.23,1,0.32,1)_both]"
-        >
-          <span>
-            {unseen} new {unseen === 1 ? "message" : "messages"}
-          </span>
-          <span className="flex items-center gap-1">
-            Jump to present
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-              <path d="M6 2v8M2.5 6.5 6 10l3.5-3.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        </button>
-      )}
+      {/* Press-and-hold on a phone: react, reply, copy */}
+      <Drawer.Root open={sheetFor !== null} onOpenChange={(o) => !o && setSheetFor(null)}>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 z-50 bg-black/60" />
+          <Drawer.Content
+            aria-describedby={undefined}
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-[20px] border-t border-border bg-background px-4 pb-[max(env(safe-area-inset-bottom),16px)] outline-none"
+          >
+            <Drawer.Handle className="!mx-auto !mt-2.5 !mb-3 !h-1.5 !w-10 !rounded-full !bg-border-strong" />
+            <Drawer.Title className="sr-only">Message actions</Drawer.Title>
+            {sheetFor && (
+              <>
+                <p className="mb-3 line-clamp-2 rounded-xl bg-surface px-3 py-2 text-sm text-foreground/80">
+                  <span className="font-semibold text-foreground">{sheetFor.authorName}</span> {sheetFor.body}
+                </p>
+                <div className="grid grid-cols-5 gap-2">
+                  {REACTION_EMOJI.map((e) => {
+                    const mine = !!selfId && (reactions[sheetFor.id]?.[e] ?? []).includes(selfId);
+                    return (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => {
+                          onReact?.(sheetFor.id, e);
+                          setSheetFor(null);
+                        }}
+                        className="flex h-12 items-center justify-center rounded-xl text-2xl transition-transform duration-150 active:scale-90"
+                        style={{ background: mine ? "color-mix(in srgb, var(--rival-blue) 22%, var(--surface))" : "var(--surface)" }}
+                      >
+                        {e}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex flex-col overflow-hidden rounded-xl bg-surface">
+                  <SheetAction
+                    label="Reply"
+                    icon={<ReplyIcon />}
+                    onClick={() => {
+                      onReply?.(sheetFor);
+                      setSheetFor(null);
+                    }}
+                  />
+                  <SheetAction
+                    label="Copy text"
+                    icon={
+                      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+                        <rect x="5" y="5" width="8.5" height="8.5" rx="1.8" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                        <path d="M3 10.5V3.8C3 3.4 3.4 3 3.8 3h6.7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                      </svg>
+                    }
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(sheetFor.body);
+                      setSheetFor(null);
+                    }}
+                  />
+                </div>
+              </>
+            )}
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
     </div>
+  );
+}
+
+function SheetAction({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex h-12 items-center gap-3 border-b border-border px-4 text-left text-[15px] font-semibold text-foreground last:border-0 active:bg-foreground/5">
+      <span className="text-muted">{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function ReplyIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+      <path d="M6.5 3.5 2.5 7.5l4 4M2.8 7.5h6.7c2.3 0 4 1.7 4 4v1" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
 function DayDivider({ label }: { label: string }) {
   return (
-    <div className="my-3 flex items-center gap-2" role="separator">
+    <div className="my-3 flex items-center gap-2 px-1" role="separator">
       <span className="h-px flex-1 bg-border" />
       <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{label}</span>
       <span className="h-px flex-1 bg-border" />
@@ -215,16 +331,16 @@ function SystemLine({ message }: { message: DisplayChatMessage }) {
   const tone = TONE[moment.tone];
   // Most moment labels lead with their own emoji ("⚽ GOAL 63'") — use it
   // as the line's icon rather than showing it twice.
-  const lead = moment.label.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u);
+  const lead = moment.label.match(/^(\p{Extended_Pictographic}️?)\s*/u);
   const icon = lead ? lead[1] : tone.icon;
   const label = lead ? moment.label.slice(lead[0].length) : moment.label;
   const big = moment.tone === "goal" || moment.tone.startsWith("takeover");
   return (
     <div
-      className={`chat-row-enter my-1.5 flex items-center gap-2.5 rounded-lg px-2 ${big ? "py-2" : "py-1"}`}
+      className={`chat-row-enter my-1.5 flex items-center gap-3 rounded-lg px-2 ${big ? "py-2.5" : "py-1"}`}
       style={big ? { background: `color-mix(in srgb, ${tone.color} 10%, transparent)`, boxShadow: `inset 3px 0 0 ${tone.color}` } : undefined}
     >
-      <span className="flex w-9 shrink-0 justify-center text-sm" style={{ color: tone.color }} aria-hidden>
+      <span className="flex w-10 shrink-0 justify-center text-sm" style={{ color: tone.color }} aria-hidden>
         {icon}
       </span>
       <span className={`min-w-0 flex-1 text-[13px] ${big ? "font-bold" : "font-medium"}`} style={{ color: big ? tone.color : "var(--foreground)" }}>
@@ -235,44 +351,174 @@ function SystemLine({ message }: { message: DisplayChatMessage }) {
   );
 }
 
-function MessageRow({ message, head, side, stake, self }: { message: DisplayChatMessage; head: boolean; side?: EntrySide; stake?: number; self: boolean }) {
+function MessageRow({
+  message,
+  head,
+  side,
+  stake,
+  self,
+  selfId,
+  quoted,
+  quotedSide,
+  reactions,
+  flashing,
+  onReact,
+  onReply,
+  onOpenSheet,
+  onJumpToQuoted,
+}: {
+  message: DisplayChatMessage;
+  head: boolean;
+  side?: EntrySide;
+  stake?: number;
+  self: boolean;
+  selfId?: string;
+  quoted?: DisplayChatMessage;
+  quotedSide?: EntrySide;
+  reactions?: Record<string, string[]>;
+  flashing: boolean;
+  onReact?: (messageId: string, emoji: string) => void;
+  onReply?: (message: DisplayChatMessage) => void;
+  onOpenSheet: () => void;
+  onJumpToQuoted: (id: string) => void;
+}) {
   const name = message.authorName ?? "Rival";
   const color = side ? SIDE_COLOR[side] : "var(--foreground)";
-  if (!head)
-    return (
-      <div className="chat-row-enter group flex gap-3 rounded-md px-1 py-0.5 hover:bg-foreground/[0.03]">
-        <span className="w-10 shrink-0 pt-0.5 text-right font-mono text-[9px] text-transparent group-hover:text-muted">{time(message.createdAt)}</span>
-        <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[15px] leading-snug text-foreground/90">{message.body}</p>
-      </div>
-    );
+  const hold = useRef<number | undefined>(undefined);
+  const startHold = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") return;
+    hold.current = window.setTimeout(() => {
+      navigator.vibrate?.(10);
+      onOpenSheet();
+    }, HOLD_MS);
+  };
+  const endHold = () => window.clearTimeout(hold.current);
+
+  const reactionList = Object.entries(reactions ?? {}).filter(([, users]) => users.length > 0);
+
+  const body = (
+    <>
+      <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.4] text-foreground/90">{message.body}</p>
+      {reactionList.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {reactionList.map(([emoji, users]) => {
+            const mine = !!selfId && users.includes(selfId);
+            return (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => onReact?.(message.id, emoji)}
+                className="enter-pop flex h-6 items-center gap-1 rounded-lg px-1.5 text-[13px] transition-transform duration-150 active:scale-90"
+                style={{
+                  background: mine ? "color-mix(in srgb, var(--rival-blue) 18%, transparent)" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                  boxShadow: `inset 0 0 0 1px ${mine ? "var(--rival-blue)" : "transparent"}`,
+                }}
+                aria-label={`${emoji} ${users.length}${mine ? ", you reacted" : ""}`}
+              >
+                <span>{emoji}</span>
+                <span className="font-mono text-[11px] font-semibold tabular-nums" style={{ color: mine ? "var(--rival-blue)" : "var(--muted)" }}>
+                  {users.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
   return (
-    <div className="chat-row-enter mt-2.5 flex gap-3 rounded-md px-1 py-1 hover:bg-foreground/[0.03]">
-      {/* Face, and what they've got riding on it */}
-      <div className="flex w-10 shrink-0 flex-col items-center">
-        <RivalCharacter name={name} imageUrl={message.authorAvatarUrl} size={40} />
-        {/* Tucked up against the face like a badge, so the row stays tight */}
-        {side && typeof stake === "number" && (
-          <span className="relative -mt-2 rounded-full px-1.5 py-px font-mono text-[10px] font-bold tabular-nums leading-tight ring-2 ring-surface" style={{ color, background: SIDE_DIM[side] }} title={`Backed ${side.toUpperCase()}`}>
-            {formatMoneyCompact(stake)}
-          </span>
-        )}
+    <div
+      data-mid={message.id}
+      onPointerDown={startHold}
+      onPointerUp={endHold}
+      onPointerLeave={endHold}
+      onPointerCancel={endHold}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onOpenSheet();
+      }}
+      className={`chat-row-enter group relative rounded-md px-1 transition-colors duration-300 hover:bg-foreground/[0.03] ${head ? "mt-2.5 py-1" : "py-0.5"}`}
+      style={flashing ? { background: "color-mix(in srgb, var(--rival-blue) 14%, transparent)" } : undefined}
+    >
+      {/* Desktop: quick reactions and Reply on hover */}
+      <div className="pointer-events-none absolute -top-3 right-2 z-10 hidden items-center gap-0.5 rounded-lg bg-surface-elevated p-0.5 opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.35)] ring-1 ring-border transition-opacity duration-100 group-hover:pointer-events-auto group-hover:opacity-100 md:flex">
+        {QUICK_REACT.map((e) => (
+          <button key={e} type="button" onClick={() => onReact?.(message.id, e)} className="flex h-7 w-7 items-center justify-center rounded-md text-sm hover:bg-foreground/10" aria-label={`React ${e}`}>
+            {e}
+          </button>
+        ))}
+        <button type="button" onClick={onOpenSheet} className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-foreground/10 hover:text-foreground" aria-label="More reactions">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
+            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" fill="none" />
+            <circle cx="6" cy="6.8" r="0.9" fill="currentColor" />
+            <circle cx="10" cy="6.8" r="0.9" fill="currentColor" />
+            <path d="M5.6 9.8c.6.9 1.4 1.3 2.4 1.3s1.8-.4 2.4-1.3" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+          </svg>
+        </button>
+        <button type="button" onClick={() => onReply?.(message)} className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-foreground/10 hover:text-foreground" aria-label="Reply">
+          <ReplyIcon />
+        </button>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="text-[15px] font-bold" style={{ color }}>
-            {name}
-          </span>
-          {self && <span className="text-[11px] text-muted">(you)</span>}
-          {side && (
-            <span className="rounded px-1 py-px font-mono text-[9px] font-bold" style={{ color, background: SIDE_DIM[side] }}>
-              {side.toUpperCase()}
-            </span>
+
+      {head ? (
+        <>
+          {/* Reply: a curved line from the face up to a one-line quote */}
+          {message.replyTo && (
+            <div className="relative mb-0.5 flex items-center gap-1.5 pl-[52px]">
+              <span aria-hidden className="absolute left-[19px] top-[9px] h-[10px] w-[29px] rounded-tl-md border-l-2 border-t-2 border-border-strong" />
+              {quoted ? (
+                <button type="button" onClick={() => onJumpToQuoted(quoted.id)} className="flex min-w-0 items-center gap-1.5 text-left">
+                  <RivalCharacter name={quoted.authorName ?? "Rival"} imageUrl={quoted.authorAvatarUrl} size={16} />
+                  <span className="shrink-0 text-[13px] font-semibold" style={{ color: quotedSide ? SIDE_COLOR[quotedSide] : "var(--foreground)" }}>
+                    @{quoted.authorName ?? "Rival"}
+                  </span>
+                  <span className="truncate text-[13px] text-muted">{quoted.body}</span>
+                </button>
+              ) : (
+                <span className="text-[13px] italic text-muted">Original message not loaded</span>
+              )}
+            </div>
           )}
-          {!side && <span className="font-mono text-[10px] text-muted">watching</span>}
-          <span className="font-mono text-[10px] text-muted">{time(message.createdAt)}</span>
-        </p>
-        <p className="whitespace-pre-wrap break-words text-[15px] leading-snug text-foreground/90">{message.body}</p>
-      </div>
+          <div className="flex gap-3">
+            {/* Face, and what they've got riding on it */}
+            <div className="flex w-10 shrink-0 flex-col items-center">
+              <RivalCharacter name={name} imageUrl={message.authorAvatarUrl} size={40} />
+              {side && typeof stake === "number" && (
+                <span
+                  className="relative -mt-2 rounded-full px-1.5 py-px font-mono text-[10px] font-bold tabular-nums leading-tight ring-2 ring-surface"
+                  style={{ color, background: SIDE_DIM[side] }}
+                  title={`Backed ${side.toUpperCase()}`}
+                >
+                  {formatMoneyCompact(stake)}
+                </span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-center gap-x-1.5 leading-tight">
+                <span className="text-[15px] font-bold" style={{ color }}>
+                  {name}
+                </span>
+                {side ? (
+                  <span className="rounded px-1 py-px font-mono text-[9px] font-bold text-white" style={{ background: color }}>
+                    {side.toUpperCase()}
+                  </span>
+                ) : (
+                  <span className="rounded px-1 py-px font-mono text-[9px] font-bold text-muted ring-1 ring-border">WATCHING</span>
+                )}
+                {self && <span className="text-[11px] text-muted">(you)</span>}
+                <span className="font-mono text-[10px] text-muted">{time(message.createdAt)}</span>
+              </p>
+              <div className="mt-0.5">{body}</div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex gap-3">
+          <span className="w-10 shrink-0 pt-1 text-right font-mono text-[9px] text-transparent group-hover:text-muted">{time(message.createdAt)}</span>
+          <div className="min-w-0 flex-1">{body}</div>
+        </div>
+      )}
     </div>
   );
 }
