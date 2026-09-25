@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { Drawer } from "vaul";
 import { REACTION_EMOJI, type ChatAttachment, type DisplayChatMessage } from "@/lib/supabase/message-mapper";
 import { chatPhotoUrl } from "@/lib/cloudinary";
+import { KLIPY_MEDIA } from "@/lib/klipy";
 import { decodeMoment, type EventTone } from "@/lib/match-event-label";
 import { formatMoneyCompact } from "@/lib/mock-data";
 import type { EntrySide } from "@/lib/types";
@@ -536,11 +537,46 @@ function MessageRow({
 const PHOTO_BOX = { w: 260, h: 320 };
 
 function Photo({ attachment: a }: { attachment: ChatAttachment }) {
+  if (a.type === "gif") return <Gif attachment={a} />;
+  return <Still attachment={a} />;
+}
+
+// Only inline previews render — never a link that calls out to another server.
+const safeLqip = (lqip: string | undefined) => (lqip && /^data:image\/(jpeg|webp|png);base64,/.test(lqip) ? lqip : undefined);
+
+function boxFor(a: ChatAttachment) {
+  const scale = Math.min(PHOTO_BOX.w / a.w, PHOTO_BOX.h / a.h, 1);
+  return { w: Math.max(120, Math.round(a.w * scale)), h: Math.max(80, Math.round(a.h * scale)) };
+}
+
+// A GIF is a small looping video straight from Klipy — a fraction of a real
+// GIF's size — and only plays while it's on screen.
+function Gif({ attachment: a }: { attachment: ChatAttachment }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const { w, h } = boxFor(a);
+  const src = a.url && KLIPY_MEDIA.test(a.url) ? a.url : null;
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const io = new IntersectionObserver(([e]) => (e?.isIntersecting ? void v.play().catch(() => {}) : v.pause()), { threshold: 0.2 });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [src]);
+  return (
+    <span className="relative mb-1 mt-0.5 block overflow-hidden rounded-xl bg-foreground/5" style={{ width: w, height: h, maxWidth: "100%" }}>
+      {safeLqip(a.lqip) && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={safeLqip(a.lqip)} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+      )}
+      {src && <video ref={ref} src={src} muted loop playsInline preload="metadata" aria-label="GIF" className="absolute inset-0 h-full w-full object-cover" />}
+    </span>
+  );
+}
+
+function Still({ attachment: a }: { attachment: ChatAttachment }) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const scale = Math.min(PHOTO_BOX.w / a.w, PHOTO_BOX.h / a.h, 1);
-  const w = Math.max(120, Math.round(a.w * scale));
-  const h = Math.max(80, Math.round(a.h * scale));
+  const { w, h } = boxFor(a);
   const src = a.expired ? null : (a.local ?? (a.ref ? chatPhotoUrl(a.ref, w * 2) : null));
   const uploading = a.local !== undefined && (a.progress ?? 0) < 1;
 
@@ -553,9 +589,9 @@ function Photo({ attachment: a }: { attachment: ChatAttachment }) {
         style={{ width: w, height: h, maxWidth: "100%" }}
         aria-label={a.expired ? "Photo expired" : "Open photo"}
       >
-        {a.lqip && (
+        {safeLqip(a.lqip) && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.lqip} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-md" />
+          <img src={safeLqip(a.lqip)} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-md" />
         )}
         {src && (
           // eslint-disable-next-line @next/next/no-img-element

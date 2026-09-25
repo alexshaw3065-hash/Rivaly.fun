@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { GifPicker } from "@/components/gif-picker";
+import { klipyCustomerId, klipyShared, type KlipyGif } from "@/lib/klipy";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -130,7 +132,7 @@ export function ChatComposer({
   }, [items]);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<DisplayChatMessage | null>(null);
-  const [tray, setTray] = useState<"quick" | "emoji" | null>("quick");
+  const [tray, setTray] = useState<"quick" | "emoji" | "gif" | null>("quick");
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Grow the box to fit what's typed (and shrink back after sending).
@@ -410,7 +412,7 @@ export function ChatComposer({
   // and is saved behind. If the save is refused it quietly leaves the chat
   // (and the text goes back in the box) — for you, and for everyone after
   // the confirm window.
-  function post(body: string, restoreDraft: boolean, reply: DisplayChatMessage | null = null) {
+  function post(body: string, restoreDraft: boolean, reply: DisplayChatMessage | null = null, attachment: ChatAttachment | null = null) {
     if (!currentUser) {
       openAuthModal({ next: `/rooms/${roomId}` });
       return;
@@ -425,6 +427,7 @@ export function ChatComposer({
       authorName: currentUser.displayName,
       authorAvatarUrl: currentUser.avatarUrl ?? null,
       replyTo: reply?.id ?? null,
+      attachment,
     };
     liveIds.current.add(message.id);
     push(message);
@@ -432,7 +435,7 @@ export function ChatComposer({
     void channelRef.current?.send({ type: "broadcast", event: "msg", payload: message });
     lastTypingSent.current = 0;
     const uid = currentUser.id;
-    void saveWithRetry(() => createClient().from("messages").insert({ id: message.id, room_id: roomId, user_id: uid, body, reply_to: reply?.id ?? null })).then((error) => {
+    void saveWithRetry(() => createClient().from("messages").insert({ id: message.id, room_id: roomId, user_id: uid, body, reply_to: reply?.id ?? null, attachment })).then((error) => {
       if (!error) return;
       setItems((list) => list.filter((m) => m.id !== message.id));
       if (restoreDraft) {
@@ -440,6 +443,18 @@ export function ChatComposer({
         setReplyTo(reply);
       }
     });
+  }
+
+  // GIFs: nothing to upload (Klipy hosts them), so they go exactly like text.
+  function sendGif(gif: KlipyGif, q: string) {
+    if (!isRealRoom) return;
+    const reply = replyTo;
+    if (currentUser) {
+      setReplyTo(null);
+      setTray(null);
+      void klipyCustomerId(currentUser.id).then((id) => klipyShared(gif.slug, id, q));
+    }
+    post("", false, reply, { type: "gif", ref: gif.slug, url: gif.video.url, w: gif.video.w, h: gif.video.h, lqip: gif.lqip });
   }
 
   // Photos: shrunk on the phone, shown to you at once (sharp, with an upload
@@ -630,6 +645,28 @@ export function ChatComposer({
             ))}
           </div>
         )}
+        {(tray === "emoji" || tray === "gif") && (
+          <div className="mb-2 flex gap-1" role="tablist">
+            {(["emoji", "gif"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tray === t}
+                onClick={() => setTray(t)}
+                className="h-7 rounded-full px-3 text-[12px] font-bold tracking-wide transition-colors duration-150"
+                style={{ background: tray === t ? "color-mix(in srgb, var(--foreground) 12%, transparent)" : "transparent", color: tray === t ? "var(--foreground)" : "var(--muted)" }}
+              >
+                {t === "emoji" ? "Emoji" : "GIFs"}
+              </button>
+            ))}
+          </div>
+        )}
+        {tray === "gif" && (
+          <div className="mb-2">
+            <GifPicker userId={currentUser?.id} onPick={sendGif} />
+          </div>
+        )}
         {tray === "emoji" && (
           <div className="mb-2 grid grid-cols-10 gap-1">
             {REACTION_EMOJI.map((e) => (
@@ -753,11 +790,11 @@ export function ChatComposer({
             />
             <button
               type="button"
-              onClick={() => setTray((t) => (t === "emoji" ? null : "emoji"))}
-              aria-label="Emoji"
-              aria-pressed={tray === "emoji"}
+              onClick={() => setTray((t) => (t === "emoji" || t === "gif" ? null : "emoji"))}
+              aria-label="Emoji and GIFs"
+              aria-pressed={tray === "emoji" || tray === "gif"}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150"
-              style={{ color: tray === "emoji" ? "#f5c542" : "var(--muted)" }}
+              style={{ color: tray === "emoji" || tray === "gif" ? "#f5c542" : "var(--muted)" }}
             >
               <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
                 <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" fill="none" />

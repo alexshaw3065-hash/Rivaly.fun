@@ -24,6 +24,8 @@ export interface ChatAttachment {
   ref: string;
   w: number;
   h: number;
+  /** GIFs only: the Klipy video URL, used exactly as Klipy returned it. */
+  url?: string;
   /** Tiny blurred preview shown until the real image loads. */
   lqip?: string;
   /** Sender-only while uploading: the local preview and progress (0–1). Never stored. */
