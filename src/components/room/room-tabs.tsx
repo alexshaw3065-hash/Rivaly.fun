@@ -13,7 +13,8 @@ import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
 import { LineupPanel, kitsFrom } from "./room-lineup";
 import { teamFills } from "@/lib/team-fills";
-import { matchStory } from "@/lib/match-pressure";
+import { feedClock, matchStory } from "@/lib/match-pressure";
+import { LiveBadge } from "../live-badge";
 import { MatchAnalysis } from "./match-analysis";
 import { CHAT_ACTIVITY_EVENT, ROOM_TAB_EVENT, type ChatActivity } from "./room-tabs-event";
 
@@ -147,6 +148,34 @@ export function RoomTabs({
     window.setTimeout(() => chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
   };
 
+  // The floating bar: once the tabs reach the top of the screen they stick
+  // there as a capsule, with a mini scoreboard above them, so switching tabs
+  // and knowing the score never takes a scroll. "Stuck" is read from where
+  // the bar sits against its own sticky offset.
+  const barRef = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    // One rect read per scroll event; React skips the re-render when the
+    // value hasn't changed.
+    const check = () => {
+      const el = barRef.current;
+      if (!el) return;
+      const top = parseFloat(getComputedStyle(el).top) || 0;
+      setStuck(el.getBoundingClientRect().top <= top + 0.5 && window.scrollY > 0);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, []);
+  const minute = useMemo(() => {
+    const c = feedClock(rows);
+    return c > 0 ? Math.floor(c / 60) + 1 : null;
+  }, [rows]);
+
   // The pressure ticker (inside the chat) can ask for the momentum chart.
   useEffect(() => {
     const go = (e: Event) => {
@@ -159,7 +188,25 @@ export function RoomTabs({
 
   return (
     <section className="flex flex-col">
-      <div role="tablist" aria-label="Room" className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl bg-surface p-1">
+      {/* Sticks 44px down; once stuck, the mini scoreboard fills that strip
+          above it. The bar's own height never changes, so nothing jumps
+          as you scroll past. */}
+      <div
+        ref={barRef}
+        className="sticky top-[44px] z-30 -mx-4 px-4 pb-2 pt-2 transition-[background-color,box-shadow] duration-200 md:top-[calc(var(--header-height)+44px)] md:-mx-2 md:px-2"
+        style={stuck ? STUCK_BG : undefined}
+      >
+        {stuck && (
+          <div className="absolute inset-x-0 bottom-full flex h-11 items-center px-4 md:px-2" style={{ ...STUCK_BG, boxShadow: undefined }}>
+            <MiniScoreboard match={match} minute={minute} />
+          </div>
+        )}
+      <div
+        role="tablist"
+        aria-label="Room"
+        className="no-scrollbar flex gap-1 overflow-x-auto rounded-full bg-surface p-1 ring-1 ring-border transition-shadow duration-200"
+        style={{ boxShadow: stuck ? "0 6px 18px -8px rgba(0,0,0,0.45)" : undefined }}
+      >
         {TABS.filter((t) => t.id !== "lineup" || lineups !== undefined).map((t) =>
           t.id === "chat" ? (
             // The room's heart gets the contrast: always bold with a live
@@ -170,7 +217,7 @@ export function RoomTabs({
               type="button"
               aria-selected={tab === "chat"}
               onClick={() => choose("chat")}
-              className="relative flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-[13px] font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] md:text-sm"
+              className="relative flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] md:text-sm"
               style={{
                 background: tab === "chat" ? "var(--foreground)" : "color-mix(in srgb, var(--rival-green) 12%, transparent)",
                 color: tab === "chat" ? "var(--background)" : "var(--foreground)",
@@ -192,7 +239,7 @@ export function RoomTabs({
               type="button"
               aria-selected={tab === t.id}
               onClick={() => choose(t.id)}
-              className="h-9 flex-1 shrink-0 rounded-lg px-2.5 text-[13px] font-semibold transition-[background-color,color] duration-150 md:px-3 md:text-sm"
+              className="h-9 flex-1 shrink-0 rounded-full px-2.5 text-[13px] font-semibold transition-[background-color,color] duration-150 md:px-3 md:text-sm"
               style={{
                 background: tab === t.id ? "var(--background)" : "transparent",
                 color: tab === t.id ? "var(--foreground)" : "var(--muted)",
@@ -204,10 +251,18 @@ export function RoomTabs({
           ),
         )}
       </div>
+      </div>
 
-      <div className="mt-3">
-        {/* Chat stays mounted so the room keeps listening while you look elsewhere. */}
-        <div ref={chatRef} hidden={tab !== "chat"} className="scroll-mt-[calc(var(--header-height,56px)+12px)]">
+      <div className="mt-1">
+        {/* Chat stays mounted so the room keeps listening while you look
+            elsewhere. It fills the screen under the floating bar (and above
+            the phone's tab bar), like a messaging app: the thread scrolls
+            inside it, the message box stays put. */}
+        <div
+          ref={chatRef}
+          hidden={tab !== "chat"}
+          className="h-[calc(100dvh-156px-env(safe-area-inset-bottom))] min-h-[420px] scroll-mt-[108px] md:h-[calc(100dvh-var(--header-height)-132px)] md:scroll-mt-[calc(var(--header-height)+108px)]"
+        >
           {chat}
         </div>
         {tab === "lineup" && lineups !== undefined && <LineupPanel match={match} lineups={lineups} kits={kits} />}
@@ -223,6 +278,55 @@ export function RoomTabs({
 
       {unread > 0 && !(tab === "chat" && chatInView) && <JumpPill count={unread} alert={alert} up={tab === "chat" && !chatBelow} onJump={jumpToChat} />}
     </section>
+  );
+}
+
+const STUCK_BG = {
+  background: "color-mix(in srgb, var(--background) 90%, transparent)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  boxShadow: "0 1px 0 var(--border)",
+} as const;
+
+// The score while you're down in the tabs: both sides, the score (or the
+// kick-off time), and the live minute. Tap it to go back up to the stadium.
+function MiniScoreboard({ match, minute }: { match: Match; minute: number | null }) {
+  const home = teamIdentity(match.homeTeam);
+  const away = teamIdentity(match.awayTeam);
+  const live = match.status === "live";
+  const finished = match.status === "finished";
+  const started = live || finished;
+  return (
+    <button
+      type="button"
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Back to the stadium"
+      className="flex w-full items-center gap-2 [animation:fade-in-up_260ms_cubic-bezier(0.23,1,0.32,1)_both]"
+    >
+      <span className="flex min-w-0 flex-1 items-center justify-end gap-2">
+        <span className="truncate text-sm font-bold text-foreground">{home.code}</span>
+        <TeamCrest name={match.homeTeam} size={22} />
+      </span>
+      <span className="shrink-0 px-1 font-display text-lg font-extrabold tabular-nums text-foreground">
+        {started ? `${match.homeScore ?? 0} – ${match.awayScore ?? 0}` : "vs"}
+      </span>
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <TeamCrest name={match.awayTeam} size={22} />
+        <span className="truncate text-sm font-bold text-foreground">{away.code}</span>
+        <span className="ml-auto shrink-0 font-mono text-[11px] font-semibold text-muted">
+          {live ? (
+            <span className="flex items-center gap-1.5">
+              <LiveBadge />
+              {minute !== null && <span className="text-foreground">{minute}&rsquo;</span>}
+            </span>
+          ) : finished ? (
+            "FT"
+          ) : (
+            new Date(match.kickoffAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+          )}
+        </span>
+      </span>
+    </button>
   );
 }
 

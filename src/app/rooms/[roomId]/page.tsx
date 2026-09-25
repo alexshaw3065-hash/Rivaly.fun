@@ -104,6 +104,7 @@ export default async function RoomPage({
     players: names,
   });
   const sides = Object.fromEntries(rivals.map((r) => [r.userId, r.side])) as Record<string, EntrySide>;
+  const stakes = Object.fromEntries(rivals.map((r) => [r.userId, r.amountCents])) as Record<string, number>;
   // The stadium race, folded from the room's whole log — backers only.
   const race = raceFrom(messageLog.flatMap((m) => (sides[m.userId] ? [{ userId: m.userId, side: sides[m.userId], at: m.at }] : [])));
   const takeoverLines = race.takeovers.map((t, i) => ({
@@ -183,7 +184,7 @@ export default async function RoomPage({
             />
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} />}
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} />}
               match={match}
               sport={sportOf(match)}
               events={eventRows}

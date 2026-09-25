@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRetiringList } from "@/lib/use-retiring-list";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   MESSAGE_UUID_RE,
@@ -15,26 +14,23 @@ import { addRaceMessage, initRace, useRoomRace } from "@/lib/room-energy";
 import type { RaceState } from "@/lib/room-race";
 import type { EntrySide } from "@/lib/types";
 import { useCurrentUser } from "./current-user-provider";
-import { ChatFeedRows } from "./chat-feed-rows";
-import { ChatMessageRow } from "./chat-message";
+import { ChatThread } from "./chat-thread";
 import { REACTION_EVENT } from "./room/room-stage";
 import { PressureTicker } from "./room/pressure-ticker";
 import { announceChatActivity } from "./room/room-tabs-event";
 
-// The crowd. A live Twitch-style feed — fast, low-permanence, reading as
-// people here right now rather than an archive — with the match's own
-// moments (kick-off, goals, cards, VAR, whistles) streaming in between the
-// messages, names coloured by the side each person backed so rivals
-// recognise each other, and one-tap reactions so a stranger can join in
-// without composing anything.
+// The crowd. A full chat thread (Discord-style, see chat-thread.tsx) with
+// the match's own moments (kick-off, goals, cards, VAR, whistles) landing
+// between the messages, every person wearing the side they backed and their
+// stake, and one-tap reactions so a stranger can join in without composing
+// anything. It fills the screen under the room's floating bar (room-tabs).
 //
 // Engagement mechanism #4 (collective effervescence / social facilitation —
 // .claude/skills/rivaly-engagement-psychology): the live "watching" count
 // is real presence, the heat count is real messages, and reactions float
 // over the stadium only when someone actually sends one. No simulated chatter.
-const MAX_VISIBLE = 9;
-const ROW_HEIGHT = 40;
-const EXIT_MS = 300;
+const HISTORY_PAGE = 50;
+const KEEP = 500;
 const HEAT_WINDOW_MS = 120_000;
 const QUICK_COOLDOWN_MS = 1200;
 
@@ -58,6 +54,7 @@ export function ChatComposer({
   matchId,
   initialMessages,
   sides = {},
+  stakes = {},
   initialRace,
   players,
   teams,
@@ -69,6 +66,8 @@ export function ChatComposer({
   initialMessages: DisplayChatMessage[];
   /** userId → the side they backed, for colouring names. */
   sides?: Record<string, EntrySide>;
+  /** userId → how much they staked, shown under their face. */
+  stakes?: Record<string, number>;
   /** The stadium race folded from the room's whole log on the server. */
   initialRace?: RaceState;
   /** Player id → name from the line-ups, so a goal line can say who scored. */
@@ -80,7 +79,12 @@ export function ChatComposer({
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
-  const { items, retiringId, push } = useRetiringList<DisplayChatMessage>(MAX_VISIBLE, initialMessages.slice(-MAX_VISIBLE));
+  const [items, setItems] = useState<DisplayChatMessage[]>(initialMessages);
+  // The server sends the latest page; there may be more before it.
+  const [hasEarlier, setHasEarlier] = useState(initialMessages.filter((m) => m.kind === "message").length >= HISTORY_PAGE);
+  const push = useCallback((m: DisplayChatMessage) => {
+    setItems((list) => (list.some((x) => x.id === m.id) ? list : [...list, m].slice(-KEEP)));
+  }, []);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [watching, setWatching] = useState(0);
@@ -115,7 +119,7 @@ export function ChatComposer({
     const fresh = takeovers.slice(seenTakeovers.current);
     seenTakeovers.current = takeovers.length;
     for (const t of fresh) {
-      push({ id: `takeover-${t.at}`, roomId, userId: null, kind: "system", body: encodeMoment(takeoverMoment(t.side)), createdAt: new Date(t.at).toISOString() }, EXIT_MS);
+      push({ id: `takeover-${t.at}`, roomId, userId: null, kind: "system", body: encodeMoment(takeoverMoment(t.side)), createdAt: new Date(t.at).toISOString() });
       announceChatActivity({ kind: "moment", text: takeoverMoment(t.side).label });
     }
   }, [takeovers, push, roomId]);
@@ -147,7 +151,7 @@ export function ChatComposer({
             authorCache.current.set(row.user_id, data);
           }
         }
-        push(mapMessageRow(row, author), EXIT_MS);
+        push(mapMessageRow(row, author));
         announceChatActivity({ kind: "message" });
         floatReaction(row.body);
         const side = sidesRef.current[row.user_id];
@@ -166,7 +170,7 @@ export function ChatComposer({
         }
         const moment = matchMoment(e.action, e.minute, e.payload, momentCtx.current);
         if (!moment) return;
-        push({ id: `event-${e.id}`, roomId, userId: null, kind: "system", body: encodeMoment(moment), createdAt: e.occurred_at }, EXIT_MS);
+        push({ id: `event-${e.id}`, roomId, userId: null, kind: "system", body: encodeMoment(moment), createdAt: e.occurred_at });
         announceChatActivity({ kind: "moment", text: moment.label });
       });
     }
@@ -181,6 +185,28 @@ export function ChatComposer({
     // push/authorCache are stable; the subscription only depends on the room.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, matchId, isRealRoom, currentUser?.id]);
+
+  const loadEarlier = useCallback(async () => {
+    const oldest = items.find((m) => m.kind === "message");
+    if (!oldest) {
+      setHasEarlier(false);
+      return;
+    }
+    const { data } = await createClient()
+      .from("messages")
+      .select("id, room_id, user_id, body, created_at, author:profiles(display_name, avatar_url)")
+      .eq("room_id", roomId)
+      .lt("created_at", oldest.createdAt)
+      .order("created_at", { ascending: false })
+      .limit(HISTORY_PAGE);
+    const rows = (data ?? []) as unknown as (MessageRow & { author: { display_name: string; avatar_url: string | null } | null })[];
+    const older = rows.map((r) => mapMessageRow(r, r.author ?? undefined)).reverse();
+    if (older.length < HISTORY_PAGE) setHasEarlier(false);
+    setItems((list) => {
+      const known = new Set(list.map((m) => m.id));
+      return [...older.filter((m) => !known.has(m.id)), ...list].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+    });
+  }, [items, roomId]);
 
   // Heat: real messages in the last two minutes, re-counted as time passes.
   const [now, setNow] = useState(() => Date.now());
@@ -224,8 +250,8 @@ export function ChatComposer({
   }
 
   return (
-    <section className="flex flex-col rounded-2xl border border-border bg-surface">
-      <div className="relative flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
         {matchId && matchTeams && <PressureTicker matchId={matchId} homeTeam={matchTeams.home} awayTeam={matchTeams.away} />}
         <p className="font-display text-base font-bold text-foreground">The crowd</p>
         <div className="flex items-center gap-3 font-mono text-[11px] text-muted">
@@ -239,26 +265,23 @@ export function ChatComposer({
         </div>
       </div>
 
-      <div className="relative px-3 py-3">
-        {items.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">Quiet so far. Say something — the room&rsquo;s listening.</p>
-        ) : (
-          <ChatFeedRows
-            items={items}
-            retiringId={retiringId}
-            rowHeight={ROW_HEIGHT}
-            renderRow={(m) => <ChatMessageRow message={m} side={m.userId ? sides[m.userId] : undefined} isSelf={m.userId === currentUser?.id} />}
-          />
-        )}
-      </div>
+      <ChatThread
+        items={items}
+        sides={sides}
+        stakes={stakes}
+        selfId={currentUser?.id}
+        hasEarlier={hasEarlier && isRealRoom}
+        onLoadEarlier={loadEarlier}
+        empty={<p className="px-6 text-center text-sm text-muted">Quiet so far. Say something — the room&rsquo;s listening.</p>}
+      />
 
-      <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-t border-border px-3 pt-3">
+      <div className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-t border-border px-3 pt-2.5">
         {QUICK.map((q) => (
           <button
             key={q}
             type="button"
             onClick={() => quick(q)}
-            className="h-9 shrink-0 rounded-full border border-border bg-background px-3 text-sm text-foreground transition-[transform,border-color] duration-150 ease-out hover:border-border-strong active:scale-90"
+            className="h-8 shrink-0 rounded-full border border-border bg-background px-3 text-[13px] text-foreground transition-[transform,border-color] duration-150 ease-out hover:border-border-strong active:scale-90"
           >
             {q}
           </button>
@@ -270,16 +293,16 @@ export function ChatComposer({
           e.preventDefault();
           send();
         }}
-        className="flex items-center gap-2 p-3"
+        className="flex shrink-0 items-center gap-2 px-3 pb-3 pt-2.5"
       >
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={currentUser ? "Talk to the room…" : "Sign in to talk…"}
+          placeholder={currentUser ? "Message the room" : "Sign in to talk…"}
           onFocus={() => !currentUser && openAuthModal({ next: `/rooms/${roomId}` })}
           maxLength={280}
           enterKeyHint="send"
-          className="h-11 min-w-0 flex-1 rounded-full border border-border bg-background px-4 text-base text-foreground placeholder:text-muted focus:border-rival-blue focus:outline-none"
+          className="h-11 min-w-0 flex-1 rounded-xl border border-transparent bg-background px-4 text-base text-foreground placeholder:text-muted focus:border-rival-blue focus:outline-none"
           style={{ transition: "border-color 150ms ease" }}
         />
         <button
