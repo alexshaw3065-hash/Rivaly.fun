@@ -203,7 +203,7 @@ export function RoomStage({
 
         {/* The call */}
         <div className="mt-2.5">
-          <h1 className="font-display text-[21px] font-extrabold leading-[1.15] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] md:text-3xl">&ldquo;{claim}&rdquo;</h1>
+          <h1 className="font-display text-[21px] font-extrabold leading-[1.15] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] md:text-3xl">{claim}</h1>
           {creator && (
             <Link href={`/profile/${creator.username}`} className="mt-1.5 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white">
               <RivalCharacter name={creator.username} imageUrl={creator.avatarUrl} size={22} />

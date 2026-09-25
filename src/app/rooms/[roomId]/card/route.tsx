@@ -75,7 +75,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ roomId:
 
         {/* The call */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 64 }}>
-          <div style={{ display: "flex", fontSize: 46, fontWeight: 700, textAlign: "center" }}>&ldquo;{claim}&rdquo;</div>
+          <div style={{ display: "flex", fontSize: 46, fontWeight: 700, textAlign: "center" }}>{claim}</div>
           {outcome && outcome !== "void" && (
             <div
               style={{

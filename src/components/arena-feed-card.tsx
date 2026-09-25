@@ -68,7 +68,7 @@ function RivalActivityCard({
           href={`/rooms/${real.roomId}`}
           className="hover-link text-base font-medium leading-snug text-foreground transition-colors"
         >
-          &ldquo;{real.roomPrediction}&rdquo;
+          {real.roomPrediction}
         </Link>
         <span className="font-mono text-xs text-muted">{real.participantCount} rivals</span>
       </CardShell>
@@ -88,7 +88,7 @@ function HotRoomCard({ roomId, real }: { roomId: string; real?: DisplayHotRoom }
           <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-rival-blue">
             Hot room
           </span>
-          <p className="text-base font-medium leading-snug text-foreground">&ldquo;{real.prediction}&rdquo;</p>
+          <p className="text-base font-medium leading-snug text-foreground">{real.prediction}</p>
           <p className="text-sm text-muted">{real.participantCount} rivals inside now</p>
           <p className="font-mono text-xs text-muted">{formatMoney(real.poolTotalCents)} pool</p>
         </CardShell>
