@@ -13,8 +13,8 @@ import { buildTimeline } from "@/lib/match-timeline";
 import { sportOf } from "@/lib/markets";
 import { MatchTimeline } from "@/components/room/match-timeline";
 import { RoomTabs, type ActivityItem } from "@/components/room/room-tabs";
-import { matchStats } from "@/lib/match-stats";
-import { buildLineups, playerNames } from "@/lib/match-lineups";
+import { playerNames } from "@/lib/match-lineups";
+import { matchConditions } from "@/lib/match-conditions";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
 import { RoomResult } from "@/components/room-result";
@@ -24,7 +24,7 @@ import { SideStands } from "@/components/room/side-stands";
 import { RoomTakeSide } from "@/components/room/room-take-side";
 import { settleRoom } from "@/lib/settlement/settle";
 import { explorerTxUrl } from "@/lib/wallet/constants";
-import { abbreviateClaim } from "@/lib/team-identity";
+import { abbreviateClaim, teamIdentity } from "@/lib/team-identity";
 import type { EntrySide } from "@/lib/types";
 
 // The heart of the product: a digital viewing centre, not a form. Per
@@ -93,7 +93,8 @@ export default async function RoomPage({
   ]);
   // Player names from the line-ups, so moments can say who scored.
   const names = playerNames(eventRows);
-  const moments = momentsFromRows(eventRows, room.id, names);
+  const teams = { home: teamIdentity(match.homeTeam).code, away: teamIdentity(match.awayTeam).code };
+  const moments = momentsFromRows(eventRows, room.id, { names, teams });
   // The match on one line under the stadium, with the room's pulse beneath it.
   const timeline = buildTimeline({
     sport: sportOf(match),
@@ -116,12 +117,10 @@ export default async function RoomPage({
   // Chat, match moments and takeovers in one feed, by time.
   const feed = [...messages, ...moments, ...takeoverLines].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   const claim = abbreviateClaim(room.prediction, match.homeTeam, match.awayTeam);
-  // The tabs under the pool: stats from the match feed, the room's activity,
-  // and the overview facts.
-  const stats = matchStats(match, eventRows);
-  // Football only: NFL sends "lineups" too, but a pitch of 53-man rosters isn't one.
-  const soccer = sportOf(match) === "soccer";
-  const lineups = soccer ? buildLineups(eventRows, match.homeTeam, match.awayTeam) : null;
+  // The tabs under the pool derive stats, momentum and line-ups from the
+  // match's events themselves (and keep them live); the room's activity and
+  // the overview facts come from here.
+  const conditions = matchConditions(eventRows);
   const activity: ActivityItem[] = [
     ...rivals.map((r) => ({
       id: `entry-${r.userId}`,
@@ -184,13 +183,14 @@ export default async function RoomPage({
             />
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} players={names} />}
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} players={names} teams={teams} />}
               match={match}
-              lineups={soccer ? lineups : undefined}
-              stats={stats}
+              sport={sportOf(match)}
+              events={eventRows}
               activity={activity}
               overview={[
                 { label: "Competition", value: match.competition },
+                ...conditions,
                 { label: "Stakes", value: stakeLimitLabel },
                 { label: "Resolves via", value: room.settlementMode === "auto" ? room.resolutionSource : "Creator confirms after the match" },
                 { label: "Settles", value: "Once the result is certain, after a 10-minute VAR window" },

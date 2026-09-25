@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { formatMoney } from "@/lib/mock-data";
 import { teamIdentity } from "@/lib/team-identity";
 import { useRoomRace } from "@/lib/room-energy";
-import type { StatRow } from "@/lib/match-stats";
-import type { MatchLineups } from "@/lib/match-lineups";
+import { matchStats, momentum, type StatRow } from "@/lib/match-stats";
+import { buildLineups } from "@/lib/match-lineups";
+import { useMatchFeed } from "@/lib/use-match-feed";
+import type { EventRow } from "@/lib/match-timeline";
 import type { Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
-import { LineupPanel } from "./room-lineup";
+import { LineupPanel, kitsFrom, teamFills } from "./room-lineup";
+import { MomentumChart } from "./momentum-chart";
 
 // Everything under the pool, in tabs: the line-ups, the crowd (chat), the
 // match stats, the room's activity and an overview. Chat stays mounted when you switch away,
@@ -46,20 +49,27 @@ export interface OverviewFact {
 export function RoomTabs({
   chat,
   match,
-  lineups,
-  stats,
+  sport,
+  events,
   activity,
   overview,
 }: {
   chat: ReactNode;
   match: Match;
-  /** null before they're out; undefined where there's no line-up to show (NFL). */
-  lineups: MatchLineups | null | undefined;
-  stats: StatRow[];
+  sport: "soccer" | "nfl";
+  /** The match's events so far (collapsed); the tab keeps them live from here. */
+  events: EventRow[];
   activity: ActivityItem[];
   overview: OverviewFact[];
 }) {
   const [tab, setTab] = useState<Tab>("chat");
+  // Live while the match can still change; a finished match is what it is.
+  const rows = useMatchFeed(match.id, events, match.status !== "finished");
+  const stats = useMemo(() => matchStats(match, rows, sport), [match, rows, sport]);
+  const flow = useMemo(() => (sport === "soccer" ? momentum(rows) : null), [rows, sport]);
+  // Football only: NFL sends "lineups" too, but a pitch of 53-man rosters isn't one.
+  const lineups = useMemo(() => (sport === "soccer" ? buildLineups(rows, match.homeTeam, match.awayTeam) : undefined), [rows, sport, match.homeTeam, match.awayTeam]);
+  const kits = useMemo(() => kitsFrom(rows), [rows]);
 
   return (
     <section className="flex flex-col">
@@ -86,8 +96,13 @@ export function RoomTabs({
       <div className="mt-3">
         {/* Chat stays mounted so the room keeps listening while you look elsewhere. */}
         <div hidden={tab !== "chat"}>{chat}</div>
-        {tab === "lineup" && lineups !== undefined && <LineupPanel match={match} lineups={lineups} />}
-        {tab === "stats" && <StatsPanel match={match} rows={stats} />}
+        {tab === "lineup" && lineups !== undefined && <LineupPanel match={match} lineups={lineups} kits={kits} />}
+        {tab === "stats" && (
+          <div className="flex flex-col gap-3">
+            {flow && <MomentumChart match={match} data={flow} />}
+            <StatsPanel match={match} rows={stats} />
+          </div>
+        )}
         {tab === "activity" && <ActivityPanel items={activity} />}
         {tab === "overview" && <OverviewPanel facts={overview} />}
       </div>
@@ -100,7 +115,7 @@ export function RoomTabs({
 function StatsPanel({ match, rows }: { match: Match; rows: StatRow[] }) {
   const home = teamIdentity(match.homeTeam);
   const away = teamIdentity(match.awayTeam);
-  if (rows.length === 0) return <Empty text="Stats start at kick-off." />;
+  const fills = teamFills(match);
   return (
     <div className="rounded-2xl border border-border bg-surface px-4 py-3">
       <div className="flex items-center justify-between pb-2">
@@ -119,13 +134,13 @@ function StatsPanel({ match, rows }: { match: Match; rows: StatRow[] }) {
           return (
             <li key={r.key} className="py-2.5">
               <div className="grid grid-cols-[48px_1fr_48px] items-center">
-                <Value value={r.home} lead={r.home > r.away} color={home.primary} ink={home.ink} align="left" />
+                <Value value={r.home} pct={r.pct} lead={r.home > r.away} color={fills.home.fill} ink={fills.home.ink} align="left" />
                 <span className="text-center text-sm text-foreground">{r.label}</span>
-                <Value value={r.away} lead={r.away > r.home} color={away.primary} ink={away.ink} align="right" />
+                <Value value={r.away} pct={r.pct} lead={r.away > r.home} color={fills.away.fill} ink={fills.away.ink} align="right" />
               </div>
               <div className="mt-1.5 flex h-1 gap-0.5 overflow-hidden rounded-full">
-                <span className="h-full rounded-full" style={{ width: `${homePct}%`, background: total ? home.primary : "var(--border)" }} />
-                <span className="h-full flex-1 rounded-full" style={{ background: total ? away.primary : "var(--border)" }} />
+                <span className="h-full rounded-full" style={{ width: `${homePct}%`, background: total ? fills.home.fill : "var(--border)", boxShadow: EDGE }} />
+                <span className="h-full flex-1 rounded-full" style={{ background: total ? fills.away.fill : "var(--border)", boxShadow: EDGE }} />
               </div>
             </li>
           );
@@ -136,14 +151,18 @@ function StatsPanel({ match, rows }: { match: Match; rows: StatRow[] }) {
   );
 }
 
-function Value({ value, lead, color, ink, align }: { value: number; lead: boolean; color: string; ink: string; align: "left" | "right" }) {
+// A hairline so a white kit still reads on a light surface.
+const EDGE = "inset 0 0 0 1px color-mix(in srgb, var(--foreground) 14%, transparent)";
+
+function Value({ value, pct, lead, color, ink, align }: { value: number; pct?: boolean; lead: boolean; color: string; ink: string; align: "left" | "right" }) {
   return (
     <span className={`flex ${align === "left" ? "justify-start" : "justify-end"}`}>
       <span
         className="min-w-7 rounded-full px-2 py-0.5 text-center font-mono text-sm font-bold tabular-nums"
-        style={lead ? { background: color, color: ink } : { color: "var(--foreground)" }}
+        style={lead ? { background: color, color: ink, boxShadow: EDGE } : { color: "var(--foreground)" }}
       >
         {value}
+        {pct && "%"}
       </span>
     </span>
   );

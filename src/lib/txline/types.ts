@@ -67,6 +67,8 @@ export interface TxLineScores {
   Confirmed?: boolean;
   /** The team, on shots, goals and cards (substitutions carry it in Data instead). */
   Participant?: number;
+  /** Which participant has the ball right now — on most in-play records. */
+  Possession?: number;
   /** The match clock, in seconds since kick-off, counting on through both halves. */
   Clock?: { Running?: boolean; Seconds?: number };
   /** Only on the pregame "lineups" action: each team's squad for the match. */

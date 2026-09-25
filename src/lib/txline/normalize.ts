@@ -34,7 +34,31 @@ const NOTABLE_ACTIONS = new Set([
   // already reads both as "the feed changed its mind" (resolve.ts).
   "action_amend",
   "action_discarded",
+  // Who has the ball and how dangerous it is — possession % and the
+  // momentum chart. ~800 records a match, each tiny.
+  "safe_possession",
+  "attack_possession",
+  "danger_possession",
+  "high_danger_possession",
+  "possession",
+  // Live-only tension: a big chance, a possible penalty / VAR / red card —
+  // the beat before the outcome (engagement mechanism #2).
+  "possible",
+  "additional_time",
+  // Match-day facts for the room's Overview and kits.
+  "status",
+  "weather",
+  "pitch",
+  "venue",
+  "jersey",
 ]);
+
+// Soccer's StatusId, from the TxLINE scores spec: 1 not started; 2 H1, 3 HT,
+// 4 H2, 6-9 extra time and its breaks, 11-12 penalties, 14 interrupted — all
+// "live"; 5, 10, 13 finished (after 90, extra time, penalties). 15
+// (abandoned) is left to the void/refund path, not guessed at here.
+const SOCCER_LIVE = new Set([2, 3, 4, 6, 7, 8, 9, 11, 12, 14]);
+const SOCCER_FINISHED = new Set([5, 10, 13]);
 
 const POSITIONS: Record<number, LineupPosition> = { 34: "GK", 35: "DEF", 36: "MID", 37: "FWD" };
 
@@ -126,7 +150,8 @@ function nflStat(
 }
 
 export interface NormalizedMatch {
-  status: MatchStatus;
+  /** Null when these records don't say — a lone streamed record rarely does. */
+  status: MatchStatus | null;
   homeScore: number | null;
   awayScore: number | null;
   homeScoreHt: number | null;
@@ -162,10 +187,13 @@ export interface NormalizedEvent {
 /**
  * Collapse a fixture's score records into current match state.
  *
- * Status comes from actions, not GameState or StatusId: GameState reads
- * "scheduled" for matches finished days earlier, and StatusId is a numeric
- * code whose meaning isn't recoverable from the published spec. The actions
- * kickoff / game_finalised are unambiguous and were confirmed in real data.
+ * Status comes from actions (kickoff / game_finalised, both sports) and, for
+ * soccer, the StatusId the scores spec documents — never GameState, which
+ * reads "scheduled" for matches finished days earlier.
+ *
+ * Works on any slice of a fixture's records, down to the single record the
+ * live stream delivers: every field it can't establish from what it was
+ * given comes back null, meaning "unchanged", not "blank".
  */
 export function normalizeMatch(records: TxLineScores[], sportId: number): NormalizedMatch | null {
   if (records.length === 0) return null;
@@ -174,9 +202,12 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
   const sorted = [...records].sort((a, b) => a.Seq - b.Seq);
 
   const actions = new Set(sorted.map((r) => r.Action));
-  let status: MatchStatus = "scheduled";
+  let status: MatchStatus | null = null;
+  const lastStatusId = [...sorted].reverse().find((r) => typeof r.StatusId === "number")?.StatusId;
   if (actions.has("game_finalised")) status = "finished";
+  else if (sportId === SPORT_SOCCER && lastStatusId !== undefined && SOCCER_FINISHED.has(lastStatusId)) status = "finished";
   else if (actions.has("kickoff")) status = "live";
+  else if (sportId === SPORT_SOCCER && lastStatusId !== undefined && SOCCER_LIVE.has(lastStatusId)) status = "live";
 
   // The highest-Seq record may be a comment or similar with no Score, so take
   // the most recent one that actually carries scores.
@@ -311,6 +342,8 @@ export function normalizeEvents(records: TxLineScores[], sportId: number): Norma
     // carry it in Data.
     const participant = r.Data?.Participant ?? r.Participant;
     if (participant === 1 || participant === 2) snapshot._side = (participant === 1) === p1Home ? "home" : "away";
+    // Who had the ball at this moment — possession % is built from these.
+    if (r.Possession === 1 || r.Possession === 2) snapshot._poss = (r.Possession === 1) === p1Home ? "home" : "away";
     // The event's id and clock: a first report, its confirmation and later
     // detail (the scorer's name) arrive as separate records sharing one id,
     // and an amend finds its event by clock — see collapseEvents().
@@ -321,7 +354,8 @@ export function normalizeEvents(records: TxLineScores[], sportId: number): Norma
     events.push({
       providerSeq: r.Seq,
       action: r.Action,
-      minute: r.Data?.Minutes ?? (r.Clock?.Running ? clockMinute(r.Clock.Seconds) : null),
+      // additional_time's Minutes is the time added, not when it happened.
+      minute: (r.Action !== "additional_time" ? r.Data?.Minutes : undefined) ?? (r.Clock?.Running ? clockMinute(r.Clock.Seconds) : null),
       participant: participant ?? null,
       playerId: r.Data?.PlayerId ?? r.Data?.New?.PlayerId ?? null,
       payload: { ...((r.Data as Record<string, unknown>) ?? {}), ...snapshot },

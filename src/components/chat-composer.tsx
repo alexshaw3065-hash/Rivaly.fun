@@ -58,6 +58,7 @@ export function ChatComposer({
   sides = {},
   initialRace,
   players,
+  teams,
 }: {
   roomId: string;
   matchId?: string;
@@ -69,6 +70,8 @@ export function ChatComposer({
   initialRace?: RaceState;
   /** Player id → name from the line-ups, so a goal line can say who scored. */
   players?: Record<number, string>;
+  /** Team codes, so "Big chance · FUL" can say whose. */
+  teams?: { home: string; away: string };
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
@@ -82,10 +85,10 @@ export function ChatComposer({
   useEffect(() => {
     sidesRef.current = sides;
   }, [sides]);
-  const playersRef = useRef(players);
+  const momentCtx = useRef({ names: players, teams });
   useEffect(() => {
-    playersRef.current = players;
-  }, [players]);
+    momentCtx.current = { names: players, teams };
+  }, [players, teams]);
   // The feed sends each event more than once (first report, confirmation,
   // the scorer's name) under one event id; the room hears it once — the
   // first, fastest report.
@@ -154,7 +157,7 @@ export function ChatComposer({
           if (seenEvents.current.has(key)) return;
           seenEvents.current.add(key);
         }
-        const moment = matchMoment(e.action, e.minute, e.payload, playersRef.current);
+        const moment = matchMoment(e.action, e.minute, e.payload, momentCtx.current);
         if (!moment) return;
         push({ id: `event-${e.id}`, roomId, userId: null, kind: "system", body: encodeMoment(moment), createdAt: e.occurred_at }, EXIT_MS);
       });

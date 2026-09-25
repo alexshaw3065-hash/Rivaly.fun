@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { matchStats } from "./match-stats.ts";
+import { matchStats, momentum, possession } from "./match-stats.ts";
 import type { EventRow } from "./match-timeline.ts";
 import type { Match } from "./types.ts";
 
@@ -22,24 +22,24 @@ const ev = (action: string, payload: Record<string, unknown>): EventRow => ({
 });
 
 describe("matchStats", () => {
-  it("shows nothing before kick-off", () => {
-    assert.deepEqual(matchStats({ ...base, status: "scheduled" }, []), []);
+  it("shows every row at zero before kick-off", () => {
+    const rows = matchStats({ ...base, status: "scheduled" }, []);
+    assert.deepEqual(
+      rows.map((r) => r.key),
+      ["possession", "shots", "on-target", "chances", "corners", "fouls", "offsides", "yellow", "red"],
+    );
+    assert.ok(rows.every((r) => r.home === 0 && r.away === 0));
   });
 
-  it("uses the match row for goals, corners and cards", () => {
-    const rows = matchStats(
-      { ...base, status: "finished", homeScore: 1, awayScore: 0, homeCorners: 8, awayCorners: 0, homeYellowCards: 0, awayYellowCards: 1, homeRedCards: 0, awayRedCards: 0 },
-      [],
+  it("uses the feed's running totals for corners and cards", () => {
+    const rows = Object.fromEntries(
+      matchStats(
+        { ...base, status: "finished", homeScore: 1, awayScore: 0, homeCorners: 8, awayCorners: 0, homeYellowCards: 0, awayYellowCards: 1, homeRedCards: 0, awayRedCards: 0 },
+        [ev("corner", { _side: "away" })],
+      ).map((r) => [r.key, [r.home, r.away]]),
     );
-    assert.deepEqual(
-      rows.map((r) => [r.key, r.home, r.away]),
-      [
-        ["goals", 1, 0],
-        ["corners", 8, 0],
-        ["yellow", 0, 1],
-        ["red", 0, 0],
-      ],
-    );
+    assert.deepEqual(rows.corners, [8, 0]);
+    assert.deepEqual(rows.yellow, [0, 1]);
   });
 
   it("counts shots, on target, fouls and offsides from the events", () => {
@@ -58,8 +58,45 @@ describe("matchStats", () => {
     assert.deepEqual(rows.offsides, [1, 0]);
   });
 
-  it("leaves out stats the feed didn't give", () => {
-    const keys = matchStats({ ...base, status: "live", homeScore: 0, awayScore: 0 }, []).map((r) => r.key);
-    assert.deepEqual(keys, ["goals"]);
+  it("counts big chances from the feed's possible-goal flag", () => {
+    const rows = Object.fromEntries(
+      matchStats({ ...base, status: "live" }, [ev("possible", { _side: "away", Goal: true }), ev("possible", { _side: "away", Goal: false })]).map((r) => [r.key, [r.home, r.away]]),
+    );
+    assert.deepEqual(rows.chances, [0, 1]);
+  });
+});
+
+describe("possession", () => {
+  it("weights each stretch by the clock, and caps breaks", () => {
+    const p = possession([
+      ev("safe_possession", { _poss: "home", _clock: 0 }),
+      ev("attack_possession", { _poss: "away", _clock: 60 }),
+      ev("safe_possession", { _poss: "home", _clock: 80 }),
+      // a 20-minute gap (half-time) counts as two minutes, not twenty
+      ev("safe_possession", { _poss: "away", _clock: 1280 }),
+      ev("safe_possession", { _poss: "away", _clock: 1300 }),
+    ]);
+    // home 60 + 120, away 20 + 20
+    assert.deepEqual(p, { home: 82, away: 18 });
+  });
+
+  it("is 0 / 0 before anyone has the ball", () => {
+    assert.deepEqual(possession([]), { home: 0, away: 0 });
+  });
+});
+
+describe("momentum", () => {
+  it("leans toward the side attacking, minute by minute, with goals marked", () => {
+    const m = momentum([
+      ev("danger_possession", { _side: "home", _clock: 30 }),
+      ev("attack_possession", { _side: "away", _clock: 70 }),
+      ev("high_danger_possession", { _side: "away", _clock: 100 }),
+      ev("goal", { _side: "away", _clock: 110 }),
+    ]);
+    assert.deepEqual(m.bars, [
+      { minute: 1, value: 2.5 },
+      { minute: 2, value: -5 },
+    ]);
+    assert.deepEqual(m.marks, [{ minute: 2, side: "away", kind: "goal" }]);
   });
 });

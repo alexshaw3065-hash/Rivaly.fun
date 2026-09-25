@@ -22,13 +22,21 @@ function who(p: Record<string, unknown>, names: Record<number, string> | undefin
   return name ? ` · ${name}${suffix}` : "";
 }
 
+/** What the labels can name: players from the line-ups, teams by code. */
+export interface MomentContext {
+  names?: Record<number, string>;
+  teams?: { home: string; away: string };
+}
+
 export function matchMoment(
   action: string,
   minute: number | null | undefined,
   payload: Record<string, unknown> | null,
-  names?: Record<number, string>,
+  ctx: MomentContext = {},
 ): MatchMoment | null {
   const p = payload ?? {};
+  const names = ctx.names;
+  const team = p._side === "home" ? ctx.teams?.home : p._side === "away" ? ctx.teams?.away : undefined;
   switch (action) {
     case "kickoff": {
       const k = kickoffKind(p);
@@ -55,6 +63,18 @@ export function matchMoment(
       return { label: `🟥 Red card${at(minute)}${who(p, names)}`, tone: "card" };
     case "var":
       return { label: `VAR check${typeof p.Type === "string" ? ` · ${p.Type.toLowerCase()}` : ""}`, tone: "var" };
+    // The feed's "possible" flags: the beat before an outcome — a shot that
+    // could go in, a penalty shout, a VAR look. Only raised flags get a line;
+    // the record that clears them says nothing.
+    case "possible": {
+      if (p.Penalty === true) return { label: `👀 Penalty shout${team ? ` · ${team}` : ""}`, tone: "var" };
+      if (p.VAR === true) return { label: "👀 Possible VAR check", tone: "var" };
+      if (p.RedCard === true) return { label: "👀 Possible red card", tone: "card" };
+      if (p.Goal === true) return { label: `👀 Big chance${team ? ` · ${team}` : ""}`, tone: "whistle" };
+      return null;
+    }
+    case "additional_time":
+      return typeof p.Minutes === "number" && p.Minutes > 0 ? { label: `⏱ +${p.Minutes} minutes added`, tone: "whistle" } : null;
     case "var_end":
       return { label: `VAR: ${p.Outcome === "Overturned" ? "overturned" : "decision stands"}`, tone: "var" };
     default:

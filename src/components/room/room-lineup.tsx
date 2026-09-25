@@ -1,6 +1,7 @@
 import { teamIdentity } from "@/lib/team-identity";
 import type { LineupPlayer, MatchLineups, TeamLineup } from "@/lib/match-lineups";
 import type { Match } from "@/lib/types";
+import type { EventRow } from "@/lib/match-timeline";
 import { TeamCrest } from "../team-crest";
 
 // Both teams on one pitch, the way a matchday graphic shows them: home in the
@@ -11,14 +12,62 @@ import { TeamCrest } from "../team-crest";
 
 type Kit = { fill: string; ink: string };
 
-export function LineupPanel({ match, lineups }: { match: Match; lineups: MatchLineups | null }) {
+// TxLINE's "jersey" action names the colour each side actually wears that
+// day ("white", "blue") — an away kit included. Named colours only; anything
+// unrecognised falls back to the club's own colours.
+const KIT_COLOURS: Record<string, string> = {
+  white: "#F5F5F5",
+  black: "#141414",
+  red: "#D7262E",
+  blue: "#1F4FB8",
+  "light blue": "#7CB8E6",
+  "sky blue": "#7CB8E6",
+  navy: "#14213D",
+  "dark blue": "#14213D",
+  yellow: "#F5D130",
+  orange: "#F07F1E",
+  green: "#1E8F4E",
+  "dark green": "#10502C",
+  purple: "#5B2A86",
+  claret: "#7A1F3D",
+  maroon: "#7A1F3D",
+  pink: "#EE8FB8",
+  grey: "#8A8F98",
+  gray: "#8A8F98",
+  gold: "#C9A13B",
+};
+
+/**
+ * Each side's colour for charts and the pitch: the kits worn on the day when
+ * the feed says, otherwise club colours — with the away side in its second
+ * colour if the two would blur together (red v red).
+ */
+export function teamFills(match: Match, kits: { home?: string; away?: string } = {}): { home: Kit; away: Kit; codes: { home: string; away: string } } {
+  const home = teamIdentity(match.homeTeam);
+  const away = teamIdentity(match.awayTeam);
+  const homeFill = kits.home ?? home.primary;
+  const awayFill = kits.away ?? (clash(homeFill, away.primary) ? away.secondary : away.primary);
+  return { home: { fill: homeFill, ink: inkOn(homeFill) }, away: { fill: awayFill, ink: inkOn(awayFill) }, codes: { home: home.code, away: away.code } };
+}
+
+/** The kits worn this match, from the feed's jersey records. */
+export function kitsFrom(rows: EventRow[]): { home?: string; away?: string } {
+  const out: { home?: string; away?: string } = {};
+  for (const r of rows) {
+    if (r.action !== "jersey") continue;
+    const colour = typeof r.payload?.Color === "string" ? KIT_COLOURS[r.payload.Color.trim().toLowerCase()] : undefined;
+    if (colour && (r.payload?._side === "home" || r.payload?._side === "away")) out[r.payload._side] = colour;
+  }
+  return out;
+}
+
+export function LineupPanel({ match, lineups, kits = {} }: { match: Match; lineups: MatchLineups | null; kits?: { home?: string; away?: string } }) {
   if (!lineups)
     return <p className="rounded-2xl border border-border bg-surface px-4 py-8 text-center text-sm text-muted">Line-ups land shortly before kick-off.</p>;
 
   const home = teamIdentity(match.homeTeam);
   const away = teamIdentity(match.awayTeam);
-  const homeKit: Kit = { fill: home.primary, ink: home.ink };
-  const awayKit: Kit = clash(home.primary, away.primary) ? { fill: away.secondary, ink: inkOn(away.secondary) } : { fill: away.primary, ink: away.ink };
+  const { home: homeKit, away: awayKit } = teamFills(match, kits);
 
   return (
     <div className="flex flex-col gap-3">

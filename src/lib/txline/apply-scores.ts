@@ -14,10 +14,14 @@ import type { TxLineScores } from "./types";
 // used here sidesteps that entirely.
 type DbError = { message: string } | null;
 
+interface Filtered extends PromiseLike<{ error: DbError }> {
+  neq(column: string, value: string): Filtered;
+}
+
 export interface ScoresDb {
   from(table: string): {
     update(values: Record<string, unknown>): {
-      eq(column: string, value: string): PromiseLike<{ error: DbError }>;
+      eq(column: string, value: string): Filtered;
     };
     upsert(
       values: Record<string, unknown>[],
@@ -56,32 +60,52 @@ export async function applyScores(
   const state = normalizeMatch(records, match.sport_id);
   if (!state) return { updated: false, eventsInserted: 0 };
 
-  const { error: updateError } = await supabase
-    .from("matches")
-    .update({
-      status: state.status,
-      home_score: state.homeScore,
-      away_score: state.awayScore,
-      home_score_ht: state.homeScoreHt,
-      away_score_ht: state.awayScoreHt,
-      home_corners: state.homeCorners,
-      away_corners: state.awayCorners,
-      home_yellow_cards: state.homeYellowCards,
-      away_yellow_cards: state.awayYellowCards,
-      home_red_cards: state.homeRedCards,
-      away_red_cards: state.awayRedCards,
-      home_touchdowns: state.homeTouchdowns,
-      away_touchdowns: state.awayTouchdowns,
-      home_field_goals: state.homeFieldGoals,
-      away_field_goals: state.awayFieldGoals,
-      went_to_overtime: state.wentToOvertime,
-      last_seq: state.lastSeq,
-      provider_status_id: state.providerStatusId,
-      stats: state.stats,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", match.id);
-  if (updateError) throw new Error(`match update failed: ${updateError.message}`);
+  // Only what these records actually establish. The live stream hands us one
+  // record at a time, and most (a throw-in, a possession change) say nothing
+  // about the score — writing their nulls blanked the scoreboard and sent
+  // live matches back to "scheduled".
+  const fields: Record<string, unknown> = {
+    home_score: state.homeScore,
+    away_score: state.awayScore,
+    home_score_ht: state.homeScoreHt,
+    away_score_ht: state.awayScoreHt,
+    home_corners: state.homeCorners,
+    away_corners: state.awayCorners,
+    home_yellow_cards: state.homeYellowCards,
+    away_yellow_cards: state.awayYellowCards,
+    home_red_cards: state.homeRedCards,
+    away_red_cards: state.awayRedCards,
+    home_touchdowns: state.homeTouchdowns,
+    away_touchdowns: state.awayTouchdowns,
+    home_field_goals: state.homeFieldGoals,
+    away_field_goals: state.awayFieldGoals,
+    went_to_overtime: state.wentToOvertime,
+  };
+  const patch = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== null && v !== undefined));
+  // The match row only changes when something on it did. Every write wakes
+  // every open room (RoomLive re-renders on it), so a possession change
+  // mustn't cost a page refresh for everyone watching.
+  if (Object.keys(patch).length > 0) {
+    const { error } = await supabase
+      .from("matches")
+      .update({
+        ...patch,
+        last_seq: state.lastSeq,
+        provider_status_id: state.providerStatusId,
+        ...(state.stats && Object.keys(state.stats).length > 0 ? { stats: state.stats } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", match.id);
+    if (error) throw new Error(`match update failed: ${error.message}`);
+  }
+  // Status only moves forward: scheduled -> live -> finished. A late record
+  // (an amend after the whistle) can't reopen a finished match, and writing
+  // the status it already has is skipped so it doesn't wake every room.
+  if (state.status === "finished" || state.status === "live") {
+    const q = supabase.from("matches").update({ status: state.status, updated_at: new Date().toISOString() }).eq("id", match.id);
+    const { error } = await (state.status === "live" ? q.neq("status", "finished").neq("status", "live") : q.neq("status", "finished"));
+    if (error) throw new Error(`match status update failed: ${error.message}`);
+  }
 
   const events = normalizeEvents(records, match.sport_id);
   if (events.length === 0) return { updated: true, eventsInserted: 0 };

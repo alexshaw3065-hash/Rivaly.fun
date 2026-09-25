@@ -32,6 +32,8 @@ interface RoomRow {
   pending_since: string | null;
 }
 
+const SETTLEMENT_ACTIONS = ["halftime_finalised", "penalty", "var", "var_end", "instant_replay", "instant_replay_end", "action_discarded", "action_amend"];
+
 async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchFacts; kickoffAt: string; events: MatchEventFact[] } | null> {
   const { data: m } = await admin
     .from("matches")
@@ -41,7 +43,15 @@ async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchF
     .eq("id", matchId)
     .maybeSingle();
   if (!m) return null;
-  const { data: ev } = await admin.from("match_events").select("action, occurred_at, payload").eq("match_id", matchId);
+  // Only the actions the rules read (resolve.ts). A match is ~1000 stored
+  // records now that possession states are kept, and one request returns at
+  // most 1000 — reading everything could silently drop a late penalty or
+  // the half-time whistle.
+  const { data: ev } = await admin
+    .from("match_events")
+    .select("action, occurred_at, payload")
+    .eq("match_id", matchId)
+    .in("action", SETTLEMENT_ACTIONS);
   // An event the feed later discarded (reported in error) never happened —
   // e.g. a penalty first reported then withdrawn mustn't lock a "penalty"
   // room. The discard itself stays, so correctedSince() still sees it.
