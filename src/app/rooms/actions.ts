@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMatchById } from "@/lib/supabase/matches";
+import { matchIsScored } from "@/lib/supabase/scored-competitions";
 import { composeMarket, invalidMarketReason, marketFitsSport, MIN_STAKE_FLOOR_CENTS, sportOf, type CreateRoomMarket } from "@/lib/markets";
 import { walletUsdcCents } from "@/lib/wallet/stakeable";
 import {
@@ -56,6 +57,10 @@ type Fail = { ok: false; error: string; code?: MoneyErrorCode };
 
 export type PrepareResult = { ok: true; intentId: string; transactionBase64: string } | Fail;
 export type SubmitResult = { ok: true; roomId: string; inviteCode: string | null; signature: string } | Fail;
+
+// Matches from competitions we don't get live scores for (see
+// scored-competitions.ts) can't settle, so no money goes into them.
+const NOT_COVERED = "We can't follow this match live, so rooms aren't open for it.";
 
 // Leave time to read the wallet's confirm screen before kickoff locks stakes.
 const KICKOFF_BUFFER_MS = 60_000;
@@ -129,6 +134,8 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
       return { ok: false, error: DB_ERRORS.stakes_closed };
     }
     if (!marketFitsSport(input.market, sportOf(match))) return { ok: false, error: "That market doesn't exist for this match." };
+    // A room settles from the live score feed; no feed, no room.
+    if (!(await matchIsScored(admin, input.matchId))) return { ok: false, error: NOT_COVERED };
 
     const composed = composeMarket(input.market, match);
     result = {
@@ -169,6 +176,7 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     if (!m || m.status !== "scheduled" || +new Date(m.kickoff_at) - Date.now() < KICKOFF_BUFFER_MS) {
       return { ok: false, error: DB_ERRORS.stakes_closed };
     }
+    if (!(await matchIsScored(admin, room.match_id as string))) return { ok: false, error: NOT_COVERED };
     const { data: existing } = await admin.from("entries").select("id").eq("room_id", roomId).eq("user_id", user.id).maybeSingle();
     if (existing) return { ok: false, error: DB_ERRORS.already_joined };
     result = { amountCents, side, roomId, payload: { p_room: roomId } };

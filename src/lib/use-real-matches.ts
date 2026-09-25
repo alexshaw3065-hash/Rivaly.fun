@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { scoredCompetitionIds } from "@/lib/supabase/scored-competitions";
 import { matches as mockMatches } from "@/lib/mock-data";
 import { mapMatchRow, MATCH_COLUMNS, type MatchRow } from "@/lib/supabase/match-mapper";
 import type { Match } from "@/lib/types";
@@ -43,9 +44,15 @@ let pending: Promise<Match[]> | null = null;
 
 async function fetchMatches(): Promise<Match[]> {
   const now = Date.now();
-  const { data } = await createClient()
+  const supabase = createClient();
+  // Only competitions we get live scores for — a room on anything else could
+  // never settle (see scored-competitions.ts).
+  const scored = await scoredCompetitionIds(supabase);
+  if (scored.length === 0) return [];
+  const { data } = await supabase
     .from("matches")
     .select(MATCH_COLUMNS)
+    .in("competition_id", scored)
     .gte("kickoff_at", new Date(now - PAST_HOURS * 3600_000).toISOString())
     .lte("kickoff_at", new Date(now + FUTURE_DAYS * 86_400_000).toISOString())
     .order("kickoff_at", { ascending: true })
