@@ -19,6 +19,7 @@ import { ChatFeedRows } from "./chat-feed-rows";
 import { ChatMessageRow } from "./chat-message";
 import { REACTION_EVENT } from "./room/room-stage";
 import { PressureTicker } from "./room/pressure-ticker";
+import { announceChatActivity } from "./room/room-tabs-event";
 
 // The crowd. A live Twitch-style feed — fast, low-permanence, reading as
 // people here right now rather than an archive — with the match's own
@@ -115,6 +116,7 @@ export function ChatComposer({
     seenTakeovers.current = takeovers.length;
     for (const t of fresh) {
       push({ id: `takeover-${t.at}`, roomId, userId: null, kind: "system", body: encodeMoment(takeoverMoment(t.side)), createdAt: new Date(t.at).toISOString() }, EXIT_MS);
+      announceChatActivity({ kind: "moment", text: takeoverMoment(t.side).label });
     }
   }, [takeovers, push, roomId]);
 
@@ -146,6 +148,7 @@ export function ChatComposer({
           }
         }
         push(mapMessageRow(row, author), EXIT_MS);
+        announceChatActivity({ kind: "message" });
         floatReaction(row.body);
         const side = sidesRef.current[row.user_id];
         if (side) addRaceMessage(row.user_id, side, +new Date(row.created_at));
@@ -164,6 +167,7 @@ export function ChatComposer({
         const moment = matchMoment(e.action, e.minute, e.payload, momentCtx.current);
         if (!moment) return;
         push({ id: `event-${e.id}`, roomId, userId: null, kind: "system", body: encodeMoment(moment), createdAt: e.occurred_at }, EXIT_MS);
+        announceChatActivity({ kind: "moment", text: moment.label });
       });
     }
 

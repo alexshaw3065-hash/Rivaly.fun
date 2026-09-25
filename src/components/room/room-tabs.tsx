@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { formatMoney } from "@/lib/mock-data";
 import { teamIdentity } from "@/lib/team-identity";
 import { useRoomRace } from "@/lib/room-energy";
@@ -15,7 +15,7 @@ import { LineupPanel, kitsFrom } from "./room-lineup";
 import { teamFills } from "@/lib/team-fills";
 import { matchStory } from "@/lib/match-pressure";
 import { MatchAnalysis } from "./match-analysis";
-import { ROOM_TAB_EVENT } from "./room-tabs-event";
+import { CHAT_ACTIVITY_EVENT, ROOM_TAB_EVENT, type ChatActivity } from "./room-tabs-event";
 
 // Everything under the pool, in tabs: the line-ups, the crowd (chat), the
 // match stats, the room's activity and an overview. Chat stays mounted when you switch away,
@@ -86,41 +86,130 @@ export function RoomTabs({
     [rows, sport, match.homeTeam, match.awayTeam, match.homeScore, match.awayScore, match.status],
   );
 
+  // Where it's happening: the chat. Whenever it's out of sight (another tab,
+  // or scrolled up to the stadium) new messages, match moments and pressure
+  // alerts count up on the Chat tab and in a pill above the nav that takes
+  // you straight there. Engagement mechanisms #4 (collective effervescence:
+  // the room going off is the pull) and #9 (FOMO, from real activity only).
+  const chatRef = useRef<HTMLDivElement>(null);
+  const [chatInView, setChatInView] = useState(false);
+  const [chatBelow, setChatBelow] = useState(true);
+  const [unread, setUnread] = useState(0);
+  const [alert, setAlert] = useState<{ text: string; colour?: string } | null>(null);
+  const seeing = useRef(false);
+  useEffect(() => {
+    seeing.current = tab === "chat" && chatInView;
+  }, [tab, chatInView]);
+
+  const clearUnread = useCallback(() => {
+    setUnread(0);
+    setAlert(null);
+  }, []);
+
+  useEffect(() => {
+    const el = chatRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        setChatInView(entry.isIntersecting);
+        setChatBelow(entry.boundingClientRect.top > 0);
+        if (entry.isIntersecting && !el.hidden) clearUnread();
+      },
+      // Seen means it has come up into the screen, not a sliver peeking
+      // over the nav at the very bottom.
+      { threshold: 0, rootMargin: "0px 0px -40% 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [clearUnread]);
+
+  useEffect(() => {
+    const on = (e: Event) => {
+      if (seeing.current) return;
+      const a = (e as CustomEvent<ChatActivity>).detail;
+      setUnread((n) => n + 1);
+      if (a.kind === "alert" && a.text) setAlert({ text: a.text, colour: a.colour });
+    };
+    window.addEventListener(CHAT_ACTIVITY_EVENT, on);
+    return () => window.removeEventListener(CHAT_ACTIVITY_EVENT, on);
+  }, []);
+
+  const choose = useCallback(
+    (t: Tab) => {
+      setTab(t);
+      if (t === "chat") clearUnread();
+    },
+    [clearUnread],
+  );
+  const jumpToChat = () => {
+    choose("chat");
+    // After the tab switch renders (the chat panel is hidden until then).
+    window.setTimeout(() => chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+  };
+
   // The pressure ticker (inside the chat) can ask for the momentum chart.
   useEffect(() => {
     const go = (e: Event) => {
       const t = (e as CustomEvent<Tab>).detail;
-      if (TABS.some((x) => x.id === t)) setTab(t);
+      if (TABS.some((x) => x.id === t)) choose(t);
     };
     window.addEventListener(ROOM_TAB_EVENT, go);
     return () => window.removeEventListener(ROOM_TAB_EVENT, go);
-  }, []);
+  }, [choose]);
 
   return (
     <section className="flex flex-col">
       <div role="tablist" aria-label="Room" className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl bg-surface p-1">
-        {TABS.filter((t) => t.id !== "lineup" || lineups !== undefined).map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            type="button"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className="h-9 flex-1 shrink-0 rounded-lg px-2.5 text-[13px] font-semibold transition-[background-color,color] duration-150 md:px-3 md:text-sm"
-            style={{
-              background: tab === t.id ? "var(--background)" : "transparent",
-              color: tab === t.id ? "var(--foreground)" : "var(--muted)",
-              boxShadow: tab === t.id ? "0 1px 2px rgba(0,0,0,0.12)" : undefined,
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.filter((t) => t.id !== "lineup" || lineups !== undefined).map((t) =>
+          t.id === "chat" ? (
+            // The room's heart gets the contrast: always bold with a live
+            // dot, inverted when open, and a count of what you're missing.
+            <button
+              key={t.id}
+              role="tab"
+              type="button"
+              aria-selected={tab === "chat"}
+              onClick={() => choose("chat")}
+              className="relative flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-[13px] font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] md:text-sm"
+              style={{
+                background: tab === "chat" ? "var(--foreground)" : "color-mix(in srgb, var(--rival-green) 12%, transparent)",
+                color: tab === "chat" ? "var(--background)" : "var(--foreground)",
+                boxShadow: tab === "chat" ? "0 1px 3px rgba(0,0,0,0.25)" : "inset 0 0 0 1px color-mix(in srgb, var(--rival-green) 35%, transparent)",
+              }}
+            >
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-rival-green" />
+              Chat
+              {unread > 0 && tab !== "chat" && (
+                <span key={unread} className="enter-pop flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rival-green px-1 font-mono text-[10px] font-bold tabular-nums text-black">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+            </button>
+          ) : (
+            <button
+              key={t.id}
+              role="tab"
+              type="button"
+              aria-selected={tab === t.id}
+              onClick={() => choose(t.id)}
+              className="h-9 flex-1 shrink-0 rounded-lg px-2.5 text-[13px] font-semibold transition-[background-color,color] duration-150 md:px-3 md:text-sm"
+              style={{
+                background: tab === t.id ? "var(--background)" : "transparent",
+                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+                boxShadow: tab === t.id ? "0 1px 2px rgba(0,0,0,0.12)" : undefined,
+              }}
+            >
+              {t.label}
+            </button>
+          ),
+        )}
       </div>
 
       <div className="mt-3">
         {/* Chat stays mounted so the room keeps listening while you look elsewhere. */}
-        <div hidden={tab !== "chat"}>{chat}</div>
+        <div ref={chatRef} hidden={tab !== "chat"} className="scroll-mt-[calc(var(--header-height,56px)+12px)]">
+          {chat}
+        </div>
         {tab === "lineup" && lineups !== undefined && <LineupPanel match={match} lineups={lineups} kits={kits} />}
         {tab === "stats" && (
           <div className="flex flex-col gap-3">
@@ -131,7 +220,37 @@ export function RoomTabs({
         {tab === "activity" && <ActivityPanel items={activity} />}
         {tab === "overview" && <OverviewPanel facts={overview} />}
       </div>
+
+      {unread > 0 && !(tab === "chat" && chatInView) && <JumpPill count={unread} alert={alert} up={tab === "chat" && !chatBelow} onJump={jumpToChat} />}
     </section>
+  );
+}
+
+// Floats above the nav while the chat is out of sight and something new has
+// dropped in it: the live alert when there is one, else the count.
+function JumpPill({ count, alert, up, onJump }: { count: number; alert: { text: string; colour?: string } | null; up: boolean; onJump: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onJump}
+      className="fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 mx-auto flex h-10 w-fit max-w-[min(92vw,360px)] items-center gap-2 rounded-full bg-foreground pl-3 pr-2 text-[13px] font-semibold text-background shadow-[0_4px_14px_rgba(0,0,0,0.3)] transition-transform duration-150 [animation:fade-in-up_360ms_cubic-bezier(0.23,1,0.32,1)_both] active:scale-95 md:bottom-6"
+      aria-label={`${count} new in the chat, jump to it`}
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className={up ? "rotate-180" : ""}>
+        <path d="M7 2.5v9M3.5 8 7 11.5 10.5 8" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {alert ? (
+        <>
+          <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-background/40" style={{ background: alert.colour ?? "var(--rival-green)" }} />
+          <span className="min-w-0 truncate">{alert.text}</span>
+        </>
+      ) : (
+        <span>New in the chat</span>
+      )}
+      <span key={count} className="enter-pop flex h-6 min-w-6 items-center justify-center rounded-full bg-rival-green px-1.5 font-mono text-[11px] font-bold tabular-nums text-black">
+        {count > 99 ? "99+" : count}
+      </span>
+    </button>
   );
 }
 

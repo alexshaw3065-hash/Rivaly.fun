@@ -5,7 +5,7 @@ import { feedClock, pressureAlerts, type PressureAlert } from "@/lib/match-press
 import { useMatchFeed } from "@/lib/use-match-feed";
 import { teamIdentity } from "@/lib/team-identity";
 import { TeamCrest } from "../team-crest";
-import { ROOM_TAB_EVENT } from "./room-tabs-event";
+import { ROOM_TAB_EVENT, announceChatActivity } from "./room-tabs-event";
 
 // "MUN are turning the screw — 7 dangerous attacks in 3 min." When one side
 // piles on sustained pressure (match-pressure.ts), this drops over the chat
@@ -41,13 +41,15 @@ export function PressureTicker({ matchId, homeTeam, awayTeam }: { matchId: strin
     const next = alerts.find((a) => !seen.current!.has(key(a)));
     if (!next) return;
     seen.current.add(key(next));
+    const t = teamIdentity(next.side === "home" ? homeTeam : awayTeam);
+    announceChatActivity({ kind: "alert", text: `${t.code} ${LINES[Math.floor(next.clock / 7) % LINES.length]}`, colour: t.primary });
     // Deferred a tick (state isn't set during the effect itself); not
     // cancelled if rows change meanwhile — the alert is already claimed.
     window.setTimeout(() => {
       setLeaving(false);
       setShown(next);
     }, 0);
-  }, [alerts, rows]);
+  }, [alerts, rows, homeTeam, awayTeam]);
 
   // Its own clock, so a stream of new rows can't keep it up forever.
   useEffect(() => {
