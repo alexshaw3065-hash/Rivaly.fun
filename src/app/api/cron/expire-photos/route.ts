@@ -20,9 +20,12 @@ export async function GET(request: Request) {
   if (request.headers.get("authorization") !== `Bearer ${secret}`) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const key = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  // Either the separate key/secret, or Cloudinary's own one-line
+  // CLOUDINARY_URL (cloudinary://KEY:SECRET@CLOUD) as the console shows it.
+  const fromUrl = process.env.CLOUDINARY_URL?.trim().match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
+  const cloud = fromUrl?.[3] ?? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const key = fromUrl?.[1] ?? process.env.CLOUDINARY_API_KEY;
+  const apiSecret = fromUrl?.[2] ?? process.env.CLOUDINARY_API_SECRET;
   if (!cloud || !key || !apiSecret) {
     return Response.json({ error: "Cloudinary API key/secret are not configured" }, { status: 500 });
   }
