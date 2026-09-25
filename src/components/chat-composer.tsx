@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import {
   MESSAGE_UUID_RE,
@@ -33,6 +34,14 @@ import { announceChatActivity } from "./room/room-tabs-event";
 // over the stadium only when someone actually sends one. No simulated chatter.
 const HISTORY_PAGE = 50;
 const KEEP = 500;
+// A live broadcast is the fast lane; the saved row is the record. One whose
+// row never shows up (a failed save, or a spoof) is dropped after this long.
+const CONFIRM_MS = 15_000;
+const TYPING_SEND_MS = 2_500;
+const TYPING_SHOW_MS = 4_000;
+const SELECT_MESSAGE = "id, room_id, user_id, body, created_at, reply_to, author:profiles(display_name, avatar_url)";
+type LiveReaction = MessageReaction & { on: boolean };
+type Typing = { userId: string; name: string };
 const HEAT_WINDOW_MS = 120_000;
 const QUICK_COOLDOWN_MS = 1200;
 
@@ -90,6 +99,10 @@ export function ChatComposer({
   const push = useCallback((m: DisplayChatMessage) => {
     setItems((list) => (list.some((x) => x.id === m.id) ? list : [...list, m].slice(-KEEP)));
   }, []);
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<DisplayChatMessage | null>(null);
   const [tray, setTray] = useState<"quick" | "emoji" | null>("quick");
@@ -108,8 +121,14 @@ export function ChatComposer({
       return { ...prev, [r.messageId]: { ...prev[r.messageId], [r.emoji]: next } };
     });
   }, []);
-  const [sending, setSending] = useState(false);
   const [watching, setWatching] = useState(0);
+  // The room's live channel (for sending), what arrived live but isn't saved
+  // yet, and who's typing.
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const liveIds = useRef(new Set<string>());
+  const unconfirmed = useRef(new Map<string, number>());
+  const [typers, setTypers] = useState<Record<string, { name: string; until: number }>>({});
+  const lastTypingSent = useRef(0);
   const lastQuick = useRef(0);
   // Latest sides map for the realtime handler (entries arrive while we listen).
   const sidesRef = useRef(sides);
@@ -156,15 +175,78 @@ export function ChatComposer({
     ),
   );
 
+  // Anything that arrived live: shown at once. Its saved row confirms it later.
+  const receiveLive = useCallback(
+    (m: DisplayChatMessage) => {
+      if (liveIds.current.has(m.id)) return;
+      liveIds.current.add(m.id);
+      unconfirmed.current.set(m.id, Date.now());
+      if (m.userId && m.authorName) authorCache.current.set(m.userId, { display_name: m.authorName, avatar_url: m.authorAvatarUrl ?? null });
+      push(m);
+      announceChatActivity({ kind: "message" });
+      floatReaction(m.body);
+      // Their message landed: they're no longer "typing".
+      const uid = m.userId;
+      if (uid)
+        setTypers((prev) => {
+          if (!(uid in prev)) return prev;
+          const next = { ...prev };
+          delete next[uid];
+          return next;
+        });
+    },
+    [push],
+  );
+
+  // After a dropped connection (or coming back to the tab), fetch whatever
+  // was said meanwhile, and the reactions as they stand.
+  const catchUp = useCallback(async () => {
+    const supabase = createClient();
+    const latest = [...itemsRef.current].reverse().find((m) => m.kind === "message");
+    let q = supabase.from("messages").select(SELECT_MESSAGE).eq("room_id", roomId).order("created_at", { ascending: true }).limit(100);
+    if (latest) q = q.gt("created_at", latest.createdAt);
+    const [{ data: msgs }, { data: reacts }] = await Promise.all([q, supabase.from("message_reactions").select("message_id, user_id, emoji").eq("room_id", roomId).limit(5000)]);
+    for (const r of (msgs ?? []) as unknown as (MessageRow & { author: { display_name: string; avatar_url: string | null } | null })[]) {
+      liveIds.current.add(r.id);
+      unconfirmed.current.delete(r.id);
+      push(mapMessageRow(r, r.author ?? undefined));
+    }
+    if (reacts) {
+      const map: ReactionMap = {};
+      for (const r of reacts) ((map[r.message_id as string] ??= {})[r.emoji as string] ??= []).push(r.user_id as string);
+      setReactions(map);
+    }
+  }, [push, roomId]);
+
   useEffect(() => {
     if (!isRealRoom) return;
     const supabase = createClient();
     const presenceKey = currentUser?.id ?? `guest-${Math.random().toString(36).slice(2)}`;
 
+    // The room's private live channel (policies: 20260925170000_room_realtime_
+    // channels.sql). Messages, reactions and typing go phone → Supabase →
+    // every phone in the room, ~50–150 ms; the database save runs behind.
     const channel = supabase
-      .channel(`room-messages-${roomId}`, { config: { presence: { key: presenceKey } } })
+      .channel(`room:${roomId}`, { config: { private: true, broadcast: { self: false }, presence: { key: presenceKey } } })
+      .on("broadcast", { event: "msg" }, ({ payload }) => receiveLive(payload as DisplayChatMessage))
+      .on("broadcast", { event: "react" }, ({ payload }) => {
+        const r = payload as LiveReaction;
+        applyReaction(r, r.on);
+      })
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const t = payload as Typing;
+        if (t.userId === currentUser?.id) return;
+        setTypers((prev) => ({ ...prev, [t.userId]: { name: t.name, until: Date.now() + TYPING_SHOW_MS } }));
+      })
+      // The saved record. Confirms what came live; delivers anything the live
+      // lane missed; and feeds the stadium race at the server's own time.
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` }, async (payload) => {
         const row = payload.new as MessageRow;
+        unconfirmed.current.delete(row.id);
+        const side = sidesRef.current[row.user_id];
+        if (side) addRaceMessage(row.user_id, side, +new Date(row.created_at));
+        if (liveIds.current.has(row.id)) return;
+        liveIds.current.add(row.id);
         let author = authorCache.current.get(row.user_id);
         if (!author) {
           const { data } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", row.user_id).maybeSingle();
@@ -176,8 +258,6 @@ export function ChatComposer({
         push(mapMessageRow(row, author));
         announceChatActivity({ kind: "message" });
         floatReaction(row.body);
-        const side = sidesRef.current[row.user_id];
-        if (side) addRaceMessage(row.user_id, side, +new Date(row.created_at));
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `room_id=eq.${roomId}` }, (payload) => {
         const row = (payload.eventType === "DELETE" ? payload.old : payload.new) as { message_id?: string; user_id?: string; emoji?: string };
@@ -202,16 +282,52 @@ export function ChatComposer({
       });
     }
 
+    let joinedOnce = false;
     channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") void channel.track({ at: Date.now() });
+      if (status !== "SUBSCRIBED") return;
+      void channel.track({ at: Date.now() });
+      // A re-join means we were away: catch up on what was said.
+      if (joinedOnce) void catchUp();
+      joinedOnce = true;
     });
+    channelRef.current = channel;
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void catchUp();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    // Drop live messages whose saved row never arrived.
+    const sweep = window.setInterval(() => {
+      const cutoff = Date.now() - CONFIRM_MS;
+      const stale = [...unconfirmed.current].filter(([, at]) => at < cutoff).map(([id]) => id);
+      if (stale.length === 0) return;
+      for (const id of stale) unconfirmed.current.delete(id);
+      setItems((list) => list.filter((m) => !stale.includes(m.id)));
+    }, 4_000);
 
     return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(sweep);
+      channelRef.current = null;
       void supabase.removeChannel(channel);
     };
     // push/authorCache are stable; the subscription only depends on the room.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, matchId, isRealRoom, currentUser?.id]);
+
+  // Typing indicators fade on their own.
+  useEffect(() => {
+    if (Object.keys(typers).length === 0) return;
+    const t = window.setInterval(() => {
+      const now = Date.now();
+      setTypers((prev) => {
+        const next = Object.fromEntries(Object.entries(prev).filter(([, v]) => v.until > now));
+        return Object.keys(next).length === Object.keys(prev).length ? prev : next;
+      });
+    }, 1_000);
+    return () => window.clearInterval(t);
+  }, [typers]);
 
   const loadEarlier = useCallback(async () => {
     const oldest = items.find((m) => m.kind === "message");
@@ -221,7 +337,7 @@ export function ChatComposer({
     }
     const { data } = await createClient()
       .from("messages")
-      .select("id, room_id, user_id, body, created_at, reply_to, author:profiles(display_name, avatar_url)")
+      .select(SELECT_MESSAGE)
       .eq("room_id", roomId)
       .lt("created_at", oldest.createdAt)
       .order("created_at", { ascending: false })
@@ -243,24 +359,52 @@ export function ChatComposer({
   }, []);
   const heat = items.filter((m) => m.kind === "message" && now - +new Date(m.createdAt) < HEAT_WINDOW_MS).length;
 
+  // Instant send, the way WhatsApp and Discord do it: the message gets its id
+  // here, appears for you at once, goes live to the room over the channel,
+  // and is saved behind. If the save is refused it quietly leaves the chat
+  // (and the text goes back in the box) — for you, and for everyone after
+  // the confirm window.
   function post(body: string, restoreDraft: boolean, reply: DisplayChatMessage | null = null) {
     if (!currentUser) {
       openAuthModal({ next: `/rooms/${roomId}` });
       return;
     }
-    setSending(true);
-    // No optimistic push: the realtime subscription echoes this insert back to
-    // every subscriber, the sender included — one code path for every message.
+    const message: DisplayChatMessage = {
+      id: crypto.randomUUID(),
+      roomId,
+      userId: currentUser.id,
+      kind: "message",
+      body,
+      createdAt: new Date().toISOString(),
+      authorName: currentUser.displayName,
+      authorAvatarUrl: currentUser.avatarUrl ?? null,
+      replyTo: reply?.id ?? null,
+    };
+    liveIds.current.add(message.id);
+    push(message);
+    floatReaction(body);
+    void channelRef.current?.send({ type: "broadcast", event: "msg", payload: message });
+    lastTypingSent.current = 0;
     createClient()
       .from("messages")
-      .insert({ room_id: roomId, user_id: currentUser.id, body, reply_to: reply?.id ?? null })
+      .insert({ id: message.id, room_id: roomId, user_id: currentUser.id, body, reply_to: reply?.id ?? null })
       .then(({ error }) => {
-        setSending(false);
-        if (error && restoreDraft) {
+        if (!error) return;
+        setItems((list) => list.filter((m) => m.id !== message.id));
+        if (restoreDraft) {
           setDraft(body); // failed — put it back so nothing's lost
           setReplyTo(reply);
         }
       });
+  }
+
+  // "Tunde is typing…" — at most one ping every couple of seconds.
+  function typing() {
+    if (!currentUser || !isRealRoom) return;
+    const t = clock();
+    if (t - lastTypingSent.current < TYPING_SEND_MS) return;
+    lastTypingSent.current = t;
+    void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId: currentUser.id, name: currentUser.displayName } satisfies Typing });
   }
 
   function send() {
@@ -286,6 +430,7 @@ export function ChatComposer({
     const on = !(reactions[messageId]?.[emoji] ?? []).includes(currentUser.id);
     applyReaction(r, on);
     navigator.vibrate?.(6);
+    void channelRef.current?.send({ type: "broadcast", event: "react", payload: { ...r, on } satisfies LiveReaction });
     const table = createClient().from("message_reactions");
     const done = on
       ? table.insert({ message_id: messageId, room_id: roomId, user_id: currentUser.id, emoji })
@@ -377,6 +522,18 @@ export function ChatComposer({
           </div>
         )}
 
+        {Object.keys(typers).length > 0 && (
+          <p className="mb-1.5 flex items-center gap-1.5 px-1 text-xs text-muted [animation:fade-in-up_180ms_ease-out_both]" aria-live="polite">
+            <span className="flex gap-0.5" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: `${i * 150}ms` }} />
+              ))}
+            </span>
+            <span className="truncate">
+              <span className="font-semibold text-foreground/80">{typingLabel(Object.values(typers).map((t) => t.name))}</span>
+            </span>
+          </p>
+        )}
         <div className="overflow-hidden rounded-xl bg-background ring-1 ring-border transition-shadow duration-150 focus-within:ring-rival-blue">
           {replyTo && (
             <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-[13px] [animation:fade-in-up_200ms_ease-out_both]">
@@ -413,7 +570,10 @@ export function ChatComposer({
             <input
               ref={inputRef}
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                if (e.target.value.trim()) typing();
+              }}
               placeholder={currentUser ? (replyTo ? `Reply to @${replyTo.authorName ?? "Rival"}` : "Message the room") : "Sign in to talk…"}
               onFocus={() => !currentUser && openAuthModal({ next: `/rooms/${roomId}` })}
               maxLength={280}
@@ -439,7 +599,6 @@ export function ChatComposer({
               <button
                 type="submit"
                 aria-label="Send"
-                disabled={sending}
                 className="enter-pop flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rival-blue text-white transition-[transform,opacity] duration-150 ease-out active:scale-90 disabled:opacity-50"
               >
                 <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden>
@@ -452,4 +611,10 @@ export function ChatComposer({
       </div>
     </section>
   );
+}
+
+function typingLabel(names: string[]): string {
+  if (names.length === 1) return `${names[0]} is typing…`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
+  return "Several people are typing…";
 }

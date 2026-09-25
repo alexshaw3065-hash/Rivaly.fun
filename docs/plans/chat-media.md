@@ -13,7 +13,7 @@ Messages store only a small `attachment` reference (~150 bytes): `{ type: "image
 - Client generates the message id → shows it to the sender immediately (0 ms).
 - Supabase Realtime **broadcast** to the room channel (~50–150 ms to everyone).
 - Insert to `messages` in the background (history/late joiners); receivers dedupe by id.
-- Failed insert → the sender's bubble shows "Tap to retry".
+- Failed insert → the message quietly leaves the chat and the text goes back in the box (no delivery-state labels — founder decision 2026-09-25). Receivers drop any live message whose saved row never arrives within 15 s.
 - Private rooms: broadcast must use Supabase private channels with Realtime Authorization so only members receive it.
 
 ## 3. Photos
@@ -47,7 +47,6 @@ A webhook is a one-way server-to-server call — it can't reach a phone. Phones 
 - **One always-open connection per device.** WhatsApp: a persistent connection to Erlang servers (an XMPP-derived protocol). Discord: a WebSocket "gateway" written in Elixir (Erlang VM). X: a persistent connection for DMs (its 2025 XChat rebuild is less documented). **Ours:** Supabase Realtime — itself an Elixir/Phoenix server, the same family of technology as Discord's gateway and WhatsApp's backend.
 - **The phone names the message first.** Discord sends a client `nonce`; WhatsApp gives each message an id on the phone. The sender sees it instantly and the server's echo is matched to it. **Copy:** client-generated UUID, optimistic bubble, dedupe on the echo.
 - **Fan out from memory, save alongside.** The server pushes to everyone connected straight away; storage (Discord: ScyllaDB) doesn't sit in the delivery path. **Copy:** broadcast first, DB insert behind.
-- **Delivery states.** WhatsApp's ✓ sent / ✓✓ delivered / blue read. **Copy (light):** sending… / sent / failed-tap-to-retry on your own messages.
 - **Catch-up on reconnect.** After a dropped connection or a backgrounded app, the client fetches everything since the last message it has. **Copy:** on reconnect/visibility, load messages newer than the latest one on screen.
 - **Typing and presence** ride the same connection ("Tunde is typing…", "N watching").
 - **Push notifications for people not in the app** (APNs/FCM). **Later:** web push for replies and room results.
@@ -60,6 +59,9 @@ A webhook is a one-way server-to-server call — it can't reach a phone. Phones 
 - Realtime: broadcast-first send for all messages, DB persist behind.
 
 Build order: instant send → photos → GIFs.
+
+## Status
+- **Instant send: built (2026-09-25).** Private room channel `room:<id>` (migration 20260925170000). Measured from the dev machine to Supabase (eu-west-1, Ireland), 30 samples each: live broadcast median **253 ms** (p90 300, max 424) vs database→realtime median **577 ms** (p90 933, max 1470). Sender sees their own message at 0 ms. Anonymous broadcast into a room channel: delivered to 0 viewers (policy holds). The ~250 ms floor is the network round trip to Ireland.
 
 ## Open decisions (founder)
 1. ~~GIF provider~~ → decided: Klipy (key wired later).

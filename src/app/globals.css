@@ -655,3 +655,13 @@ html {
 html[data-room-stuck] .mobile-topbar {
   transform: translateY(-100%);
 }
+
+/* "… is typing" dots. */
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+.typing-dot { animation: typing-dot 1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot { animation: none; }
+}
