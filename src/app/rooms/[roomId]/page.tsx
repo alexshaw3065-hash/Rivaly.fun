@@ -183,10 +183,11 @@ export default async function RoomPage({
             />
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} players={names} teams={teams} />}
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} sides={sides} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} />}
               match={match}
               sport={sportOf(match)}
               events={eventRows}
+              roomId={room.id}
               activity={activity}
               overview={[
                 { label: "Competition", value: match.competition },

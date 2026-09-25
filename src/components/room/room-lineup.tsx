@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { teamIdentity } from "@/lib/team-identity";
+import { teamFills } from "@/lib/team-fills";
 import type { LineupPlayer, MatchLineups, TeamLineup } from "@/lib/match-lineups";
 import type { Match } from "@/lib/types";
 import type { EventRow } from "@/lib/match-timeline";
@@ -42,19 +42,6 @@ const KIT_COLOURS: Record<string, string> = {
   gray: "#8A8F98",
   gold: "#C9A13B",
 };
-
-/**
- * Each side's colour for charts and the pitch: the kits worn on the day when
- * the feed says, otherwise club colours — with the away side in its second
- * colour if the two would blur together (red v red).
- */
-export function teamFills(match: Match, kits: { home?: string; away?: string } = {}): { home: Kit; away: Kit; codes: { home: string; away: string } } {
-  const home = teamIdentity(match.homeTeam);
-  const away = teamIdentity(match.awayTeam);
-  const homeFill = kits.home ?? home.primary;
-  const awayFill = kits.away ?? (clash(homeFill, away.primary) ? away.secondary : away.primary);
-  return { home: { fill: homeFill, ink: inkOn(homeFill) }, away: { fill: awayFill, ink: inkOn(awayFill) }, codes: { home: home.code, away: away.code } };
-}
 
 /** The kits worn this match, from the feed's jersey records. */
 export function kitsFrom(rows: EventRow[]): { home?: string; away?: string } {
@@ -263,24 +250,4 @@ function Arrow({ dir }: { dir: "on" | "off" }) {
       />
     </svg>
   );
-}
-
-// Two teams in near-identical kits (red v red) would blur together on one
-// pitch; the away side switches to its second colour, as it would on the day.
-function clash(a: string, b: string): boolean {
-  const [r1, g1, b1] = rgb(a);
-  const [r2, g2, b2] = rgb(b);
-  return Math.hypot(r1 - r2, g1 - g2, b1 - b2) < 90;
-}
-
-function inkOn(hex: string): string {
-  const [r, g, b] = rgb(hex);
-  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#0b0d10" : "#ffffff";
-}
-
-function rgb(hex: string): [number, number, number] {
-  const h = hex.replace("#", "");
-  const full = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, "0");
-  const v = Number.parseInt(full.slice(0, 6), 16) || 0;
-  return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
 }

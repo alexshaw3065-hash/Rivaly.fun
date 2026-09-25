@@ -11,8 +11,11 @@ import type { EventRow } from "@/lib/match-timeline";
 import type { Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 import { RivalCharacter } from "../rival-character";
-import { LineupPanel, kitsFrom, teamFills } from "./room-lineup";
-import { MomentumChart } from "./momentum-chart";
+import { LineupPanel, kitsFrom } from "./room-lineup";
+import { teamFills } from "@/lib/team-fills";
+import { matchStory } from "@/lib/match-pressure";
+import { MatchAnalysis } from "./match-analysis";
+import { ROOM_TAB_EVENT } from "./room-tabs-event";
 
 // Everything under the pool, in tabs: the line-ups, the crowd (chat), the
 // match stats, the room's activity and an overview. Chat stays mounted when you switch away,
@@ -22,10 +25,12 @@ import { MomentumChart } from "./momentum-chart";
 // the crowd is the point (engagement mechanism #4).
 
 type Tab = "lineup" | "chat" | "stats" | "activity" | "overview";
+// Chat in the middle — the crowd is the heart of the room — with the match on
+// its left and the room's own record on its right.
 const TABS: { id: Tab; label: string }[] = [
   { id: "lineup", label: "Lineup" },
-  { id: "chat", label: "Chat" },
   { id: "stats", label: "Stats" },
+  { id: "chat", label: "Chat" },
   { id: "activity", label: "Activity" },
   { id: "overview", label: "Overview" },
 ];
@@ -53,9 +58,12 @@ export function RoomTabs({
   events,
   activity,
   overview,
+  roomId,
 }: {
   chat: ReactNode;
   match: Match;
+  /** For the match-story share card. */
+  roomId?: string;
   sport: "soccer" | "nfl";
   /** The match's events so far (collapsed); the tab keeps them live from here. */
   events: EventRow[];
@@ -70,6 +78,23 @@ export function RoomTabs({
   // Football only: NFL sends "lineups" too, but a pitch of 53-man rosters isn't one.
   const lineups = useMemo(() => (sport === "soccer" ? buildLineups(rows, match.homeTeam, match.awayTeam) : undefined), [rows, sport, match.homeTeam, match.awayTeam]);
   const kits = useMemo(() => kitsFrom(rows), [rows]);
+  const story = useMemo(
+    () =>
+      sport === "soccer"
+        ? matchStory(rows, { home: match.homeTeam, away: match.awayTeam, homeScore: match.homeScore ?? null, awayScore: match.awayScore ?? null, finished: match.status === "finished" })
+        : null,
+    [rows, sport, match.homeTeam, match.awayTeam, match.homeScore, match.awayScore, match.status],
+  );
+
+  // The pressure ticker (inside the chat) can ask for the momentum chart.
+  useEffect(() => {
+    const go = (e: Event) => {
+      const t = (e as CustomEvent<Tab>).detail;
+      if (TABS.some((x) => x.id === t)) setTab(t);
+    };
+    window.addEventListener(ROOM_TAB_EVENT, go);
+    return () => window.removeEventListener(ROOM_TAB_EVENT, go);
+  }, []);
 
   return (
     <section className="flex flex-col">
@@ -99,7 +124,7 @@ export function RoomTabs({
         {tab === "lineup" && lineups !== undefined && <LineupPanel match={match} lineups={lineups} kits={kits} />}
         {tab === "stats" && (
           <div className="flex flex-col gap-3">
-            {flow && <MomentumChart match={match} data={flow} />}
+            {flow && <MatchAnalysis match={match} data={flow} story={story} roomId={roomId} />}
             <StatsPanel match={match} rows={stats} />
           </div>
         )}

@@ -18,6 +18,7 @@ import { useCurrentUser } from "./current-user-provider";
 import { ChatFeedRows } from "./chat-feed-rows";
 import { ChatMessageRow } from "./chat-message";
 import { REACTION_EVENT } from "./room/room-stage";
+import { PressureTicker } from "./room/pressure-ticker";
 
 // The crowd. A live Twitch-style feed — fast, low-permanence, reading as
 // people here right now rather than an archive — with the match's own
@@ -59,6 +60,7 @@ export function ChatComposer({
   initialRace,
   players,
   teams,
+  matchTeams,
 }: {
   roomId: string;
   matchId?: string;
@@ -72,6 +74,8 @@ export function ChatComposer({
   players?: Record<number, string>;
   /** Team codes, so "Big chance · FUL" can say whose. */
   teams?: { home: string; away: string };
+  /** The two teams' names, for the live pressure ticker over the header. */
+  matchTeams?: { home: string; away: string };
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
@@ -217,7 +221,8 @@ export function ChatComposer({
 
   return (
     <section className="flex flex-col rounded-2xl border border-border bg-surface">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+      <div className="relative flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        {matchId && matchTeams && <PressureTicker matchId={matchId} homeTeam={matchTeams.home} awayTeam={matchTeams.away} />}
         <p className="font-display text-base font-bold text-foreground">The crowd</p>
         <div className="flex items-center gap-3 font-mono text-[11px] text-muted">
           {watching > 0 && (
