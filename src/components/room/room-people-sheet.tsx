@@ -60,10 +60,23 @@ export function RoomPeopleSheet({
           className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-[20px] border-t border-border bg-background outline-none"
         >
           <Drawer.Handle className="!mx-auto !mt-2.5 !mb-1 !h-1.5 !w-10 shrink-0 !rounded-full !bg-border-strong" />
-          <div className="flex items-baseline justify-between px-4 pb-3 pt-2">
+          <div className="flex items-center justify-between px-4 pb-3 pt-2">
             <Drawer.Title className="font-display text-lg font-bold text-foreground">In the room</Drawer.Title>
-            <span className="font-mono text-xs text-muted">
-              {rivals.length} {rivals.length === 1 ? "rival" : "rivals"}
+            <span className="flex items-center gap-2">
+              {/* A few faces from the room, biggest stakes first */}
+              <span aria-hidden className="flex -space-x-1.5">
+                {[...rivals]
+                  .sort((x, y) => y.amountCents - x.amountCents)
+                  .slice(0, 3)
+                  .map((r) => (
+                    <span key={r.userId} className="rounded-full ring-2 ring-background">
+                      <RivalCharacter name={r.displayName} imageUrl={r.avatarUrl} size={20} />
+                    </span>
+                  ))}
+              </span>
+              <span className="font-mono text-xs text-muted">
+                {rivals.length} {rivals.length === 1 ? "rival" : "rivals"}
+              </span>
             </span>
           </div>
 

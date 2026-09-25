@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sportOf } from "@/lib/markets";
@@ -14,6 +14,7 @@ import { RivalCharacter } from "../rival-character";
 import { Stadium } from "./stadium";
 import { useRoomRace } from "@/lib/room-energy";
 import { RoomShareButton } from "./room-share-button";
+import { hasInAppHistory } from "../app-preloader";
 
 export const REACTION_EVENT = "rivaly:reaction";
 
@@ -50,11 +51,17 @@ export function RoomStage({
   children?: React.ReactNode;
 }) {
   const router = useRouter();
-  // Back goes where you came from (inside Rivaly); straight into a room from
-  // a shared link, it goes home.
-  function goBack() {
-    const fromHere = typeof document !== "undefined" && document.referrer.startsWith(window.location.origin);
-    if (fromHere && window.history.length > 1) router.back();
+  // Back goes where you came from inside Rivaly; straight into a room from a
+  // shared link, it goes home. A real link to "/" underneath, so a tap before
+  // the page has finished loading still works; home is prefetched so it's
+  // instant either way.
+  useEffect(() => {
+    router.prefetch("/");
+  }, [router]);
+  function goBack(e: MouseEvent<HTMLAnchorElement>) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    if (hasInAppHistory() && window.history.length > 1) router.back();
     else router.push("/");
   }
   const home = teamIdentity(match.homeTeam);
@@ -149,11 +156,11 @@ export function RoomStage({
       <div className="relative z-[1] flex flex-col px-4 pb-4 pt-3 [text-shadow:0_1px_3px_rgba(0,0,0,0.65)] md:px-6">
         {/* Top bar, over the roof: back + league, then kick-off status, watchlist, share */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Link
+            href="/"
             onClick={goBack}
             aria-label="Back"
-            className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm pl-2 pr-3 text-white transition-transform duration-150 active:scale-95"
+            className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm pl-2 pr-3 text-white transition-transform duration-100 active:scale-90"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
               <path d="M10 3 5 8l5 5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -161,16 +168,14 @@ export function RoomStage({
             <span className="font-mono text-xs font-bold uppercase tracking-[0.1em]" title={match.competition}>
               {competitionShort(match.competition)}
             </span>
-          </button>
+          </Link>
           <span className="ml-auto min-w-0 truncate rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.1em]">
             {live ? (
               <LiveBadge />
             ) : finished ? (
               <span className="text-white">Full time</span>
             ) : (
-              <span className="text-[#f5c542]">
-                <StartsIn kickoffAt={match.kickoffAt} />
-              </span>
+              <StartsIn kickoffAt={match.kickoffAt} />
             )}
           </span>
           <BookmarkButton id={roomId} type="room" label="room" variant="stage" />
@@ -235,13 +240,23 @@ export function RoomStage({
 }
 
 /** "Starts in 2h 53m" — counts down, re-rendering every 30s. */
+// Before kick-off, the countdown (gold: the anticipation). Past kick-off with
+// no live feed yet, say so honestly rather than "Starting now" forever: a
+// few minutes' grace, then "Awaiting feed", then — hours on — "Result
+// pending" (some fixtures TxLINE lists never get live coverage).
+const GRACE_MIN = 20;
+const PENDING_MIN = 150;
+
 function StartsIn({ kickoffAt }: { kickoffAt: string }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(t);
   }, []);
-  return <>{kickoffLabel(kickoffAt, now).replace("Kicks off in", "Starts in").replace("Kicking off", "Starting now")}</>;
+  const since = (now - +new Date(kickoffAt)) / 60_000;
+  if (since > PENDING_MIN) return <span className="text-white/75">Result pending</span>;
+  if (since > GRACE_MIN) return <span className="text-white/75">Awaiting feed</span>;
+  return <span className="text-[#f5c542]">{kickoffLabel(kickoffAt, now).replace("Kicks off in", "Starts in").replace("Kicking off", "Starting now")}</span>;
 }
 
 function Team({ name, code }: { name: string; code: string }) {
