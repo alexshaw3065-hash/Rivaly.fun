@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -36,6 +36,11 @@ import { announceChatActivity } from "./room/room-tabs-event";
 // is real presence, the heat count is real messages, and reactions float
 // over the stadium only when someone actually sends one. No simulated chatter.
 const HISTORY_PAGE = 50;
+// Room for a proper rant, short of a wall that buries the live chat. Matches the database check.
+const MAX_MESSAGE = 1000;
+// The box grows with the text up to about five lines, then scrolls inside.
+const BOX_MAX_PX = 144;
+const tidy = (text: string) => text.replace(/\n{3,}/g, "\n\n").trim();
 const KEEP = 500;
 // A live broadcast is the fast lane; the saved row is the record. One whose
 // row never shows up (a failed save, or a spoof) is dropped after this long.
@@ -126,7 +131,15 @@ export function ChatComposer({
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<DisplayChatMessage | null>(null);
   const [tray, setTray] = useState<"quick" | "emoji" | null>("quick");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Grow the box to fit what's typed (and shrink back after sending).
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, BOX_MAX_PX)}px`;
+  }, [draft]);
   // messageId → emoji → the people who reacted with it.
   const [reactions, setReactions] = useState<ReactionMap>(() => {
     const map: ReactionMap = {};
@@ -445,7 +458,7 @@ export function ChatComposer({
       flash(e instanceof Error ? e.message : "Couldn't read that image.");
       return;
     }
-    const caption = draft.trim().slice(0, 500);
+    const caption = tidy(draft).slice(0, MAX_MESSAGE);
     const reply = replyTo;
     setDraft("");
     setReplyTo(null);
@@ -510,7 +523,7 @@ export function ChatComposer({
   }
 
   function send() {
-    const body = draft.trim();
+    const body = tidy(draft);
     if (!body || !isRealRoom) return;
     const reply = replyTo;
     if (currentUser) {
@@ -624,7 +637,7 @@ export function ChatComposer({
                 key={e}
                 type="button"
                 onClick={() => {
-                  setDraft((d) => (d + e).slice(0, 280));
+                  setDraft((d) => (d + e).slice(0, MAX_MESSAGE));
                   inputRef.current?.focus();
                 }}
                 className="flex h-9 items-center justify-center rounded-lg text-xl transition-transform duration-150 hover:bg-foreground/5 active:scale-90"
@@ -674,7 +687,7 @@ export function ChatComposer({
               e.preventDefault();
               send();
             }}
-            className="flex items-center gap-1 px-1.5"
+            className="flex items-end gap-1 px-1.5 [&>button]:mb-1"
           >
             <button
               type="button"
@@ -711,7 +724,16 @@ export function ChatComposer({
                 if (file) void sendPhoto(file);
               }}
             />
-            <input
+            <textarea
+              rows={1}
+              onKeyDown={(e) => {
+                // Desktop: Enter sends, Shift+Enter is a new line. Phones: Enter is a
+                // new line and the send button sends (as in WhatsApp).
+                if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+                if (window.matchMedia("(pointer: coarse)").matches) return;
+                e.preventDefault();
+                send();
+              }}
               onPaste={(e) => {
                 const file = [...e.clipboardData.files].find((f) => f.type.startsWith("image/"));
                 if (!file) return;
@@ -726,9 +748,8 @@ export function ChatComposer({
               }}
               placeholder={currentUser ? (replyTo ? `Reply to @${replyTo.authorName ?? "Rival"}` : "Message the room") : "Sign in to talk…"}
               onFocus={() => !currentUser && openAuthModal({ next: `/rooms/${roomId}` })}
-              maxLength={280}
-              enterKeyHint="send"
-              className="h-11 min-w-0 flex-1 bg-transparent px-1.5 text-base text-foreground placeholder:text-muted focus:outline-none"
+              maxLength={MAX_MESSAGE}
+              className="block min-h-11 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1.5 py-2.5 text-base leading-6 text-foreground placeholder:text-muted focus:outline-none"
             />
             <button
               type="button"
@@ -757,6 +778,11 @@ export function ChatComposer({
               </button>
             )}
           </form>
+          {draft.length > MAX_MESSAGE - 100 && (
+            <p className="px-4 pb-1 text-right text-[11px] font-semibold tabular-nums" style={{ color: draft.length >= MAX_MESSAGE ? "var(--rival-red, #e5484d)" : "var(--muted)" }}>
+              {MAX_MESSAGE - draft.length} left
+            </p>
+          )}
         </div>
       </div>
     </section>

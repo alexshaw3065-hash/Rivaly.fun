@@ -18,6 +18,9 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 //      after the server has verified its USDC transfer into escrow
 //      on-chain, so clients can't write entries at all; the verified user
 //      id comes from their session, never from the request body.
+//   4. The chat photo clean-up (src/app/api/cron/expire-photos) marks
+//      60-day-old photo messages expired after deleting their files from
+//      Cloudinary. Messages have no update policy for clients.
 //
 // Never import this from anywhere else, and never let it anywhere near a
 // client component — it bypasses every RLS policy in the database.

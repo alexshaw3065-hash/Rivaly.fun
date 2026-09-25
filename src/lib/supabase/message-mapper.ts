@@ -29,6 +29,8 @@ export interface ChatAttachment {
   /** Sender-only while uploading: the local preview and progress (0–1). Never stored. */
   local?: string;
   progress?: number;
+  /** Set once the photo is past 60 days and removed from Cloudinary; the blurred preview stays. */
+  expired?: boolean;
 }
 
 /**

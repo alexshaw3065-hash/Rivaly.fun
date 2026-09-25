@@ -68,5 +68,5 @@ Build order: instant send → photos → GIFs.
 ## Open decisions (founder)
 1. ~~GIF provider~~ → decided: Klipy (key wired later).
 2. ~~Explicit-image moderation~~ → decided: no paid add-on; report-and-remove. Rate limit ~5 images/min stays.
-3. Old images: auto-delete after 60 days, or keep.
+3. ~~Old images~~ → decided: delete after 60 days. Built: `/api/cron/expire-photos`, pinged daily by the Render worker; the message keeps its blurred preview with "Photo expired". Needs `CLOUDINARY_API_KEY` + `CLOUDINARY_API_SECRET` (server-only) in Vercel.
 4. Keys/config: `KLIPY_API_KEY` in Vercel + .env.local; Cloudinary upload preset rule for the chat folder.

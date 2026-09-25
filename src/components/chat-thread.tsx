@@ -541,17 +541,17 @@ function Photo({ attachment: a }: { attachment: ChatAttachment }) {
   const scale = Math.min(PHOTO_BOX.w / a.w, PHOTO_BOX.h / a.h, 1);
   const w = Math.max(120, Math.round(a.w * scale));
   const h = Math.max(80, Math.round(a.h * scale));
-  const src = a.local ?? (a.ref ? chatPhotoUrl(a.ref, w * 2) : null);
+  const src = a.expired ? null : (a.local ?? (a.ref ? chatPhotoUrl(a.ref, w * 2) : null));
   const uploading = a.local !== undefined && (a.progress ?? 0) < 1;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => a.ref && setOpen(true)}
+        onClick={() => a.ref && !a.expired && setOpen(true)}
         className="relative mb-1 mt-0.5 block overflow-hidden rounded-xl bg-foreground/5 ring-1 ring-border"
         style={{ width: w, height: h, maxWidth: "100%" }}
-        aria-label="Open photo"
+        aria-label={a.expired ? "Photo expired" : "Open photo"}
       >
         {a.lqip && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -568,6 +568,9 @@ function Photo({ attachment: a }: { attachment: ChatAttachment }) {
             className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
             style={{ opacity: loaded ? 1 : 0 }}
           />
+        )}
+        {a.expired && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-[13px] font-semibold text-white">Photo expired</span>
         )}
         {uploading && (
           <span className="absolute inset-0 flex items-center justify-center bg-black/25">

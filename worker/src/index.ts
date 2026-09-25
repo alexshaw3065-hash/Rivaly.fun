@@ -238,6 +238,19 @@ if (SETTLE_URL && CRON_SECRET) {
   };
   setInterval(settleTick, 60_000);
   console.log("[settle] heartbeat on — every 60s");
+
+  // Chat photos older than 60 days: removed once a day, same app, same secret.
+  const EXPIRE_URL = new URL("/api/cron/expire-photos", SETTLE_URL).toString();
+  const expireTick = async () => {
+    try {
+      const res = await fetch(EXPIRE_URL, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+      if (!res.ok) console.error(`[expire-photos] ${res.status}`);
+    } catch (e) {
+      console.error("[expire-photos] ping failed:", (e as Error).message);
+    }
+  };
+  setTimeout(expireTick, 5 * 60_000);
+  setInterval(expireTick, 24 * 60 * 60_000);
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
