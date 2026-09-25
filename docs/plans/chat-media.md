@@ -29,14 +29,10 @@ Messages store only a small `attachment` reference (~150 bytes): `{ type: "image
 - Play as muted looping MP4/WebP renditions (5–10× smaller than .gif).
 - Search via our own route (hides the key, caches popular queries ~1h). PG-13 rating filter.
 
-## 5. Custom images
-- V1: own photos.
-- V1.5: meme maker — top/bottom captions as Cloudinary text overlays in the URL (no extra storage).
-
 ## 6. Safety & limits
 - Cloudinary upload preset: images only, ≤8MB, chat folder, room tag.
-- No per-user image rate limit (founder decision, 2026-09-25). A message needs text, an image or a GIF.
-- **Explicit-image moderation: yes** — Cloudinary's moderation add-on screens every upload before it's shown; a flagged image never reaches the room (the sender sees "This image can't be posted"). Paid per image.
+- ~5 images a minute per person. A message needs text, an image or a GIF.
+- No paid moderation add-on (founder decision, 2026-09-25 — cost). Report-and-remove is the safety net.
 - Private-room images: unguessable public URLs now; signed delivery later if needed.
 
 ## 7. Free tiers
@@ -47,6 +43,15 @@ Messages store only a small `attachment` reference (~150 bytes): `{ type: "image
 ## 7b. Why not webhooks from Render (asked 2026-09-25)
 A webhook is a one-way server-to-server call — it can't reach a phone. Phones need an open WebSocket, which Supabase Realtime already gives every open room. Routing sends through Render would add a hop and need a WebSocket server of our own on a free instance that sleeps. Fastest path: phone → Supabase broadcast → every phone (~50–150 ms), DB save behind. The same broadcast carries messages, reactions, replies, typing ("Tunde is typing…") and presence. Render stays on its one job: the TxLINE stream.
 
+## 7c. How WhatsApp, Discord and X make it instant — and what we copy
+- **One always-open connection per device.** WhatsApp: a persistent connection to Erlang servers (an XMPP-derived protocol). Discord: a WebSocket "gateway" written in Elixir (Erlang VM). X: a persistent connection for DMs (its 2025 XChat rebuild is less documented). **Ours:** Supabase Realtime — itself an Elixir/Phoenix server, the same family of technology as Discord's gateway and WhatsApp's backend.
+- **The phone names the message first.** Discord sends a client `nonce`; WhatsApp gives each message an id on the phone. The sender sees it instantly and the server's echo is matched to it. **Copy:** client-generated UUID, optimistic bubble, dedupe on the echo.
+- **Fan out from memory, save alongside.** The server pushes to everyone connected straight away; storage (Discord: ScyllaDB) doesn't sit in the delivery path. **Copy:** broadcast first, DB insert behind.
+- **Delivery states.** WhatsApp's ✓ sent / ✓✓ delivered / blue read. **Copy (light):** sending… / sent / failed-tap-to-retry on your own messages.
+- **Catch-up on reconnect.** After a dropped connection or a backgrounded app, the client fetches everything since the last message it has. **Copy:** on reconnect/visibility, load messages newer than the latest one on screen.
+- **Typing and presence** ride the same connection ("Tunde is typing…", "N watching").
+- **Push notifications for people not in the app** (APNs/FCM). **Later:** web push for replies and room results.
+
 ## 8. Changes
 - DB: `messages.attachment jsonb null`; relax the body check when an attachment exists.
 - New route: GIF search (Klipy) with caching.
@@ -54,10 +59,10 @@ A webhook is a one-way server-to-server call — it can't reach a phone. Phones 
 - Thread: photo/GIF bubbles with blurred previews; full-screen viewer (pinch-zoom, save); replies quote "📷 Photo"/"GIF"; reactions on media.
 - Realtime: broadcast-first send for all messages, DB persist behind.
 
-Build order: instant send → photos → GIFs → meme maker.
+Build order: instant send → photos → GIFs.
 
 ## Open decisions (founder)
-1. GIF provider: Klipy (recommended) or GIPHY.
-2. ~~Explicit-image moderation~~ → decided: add Cloudinary moderation. ~~Rate limit~~ → decided: none.
+1. ~~GIF provider~~ → decided: Klipy (key wired later).
+2. ~~Explicit-image moderation~~ → decided: no paid add-on; report-and-remove. Rate limit ~5 images/min stays.
 3. Old images: auto-delete after 60 days, or keep.
 4. Keys/config: `KLIPY_API_KEY` in Vercel + .env.local; Cloudinary upload preset rule for the chat folder.
