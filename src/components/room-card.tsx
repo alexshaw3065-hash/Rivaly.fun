@@ -100,7 +100,7 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
         <span title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
-          <RivalsInRoom participantCount={room.participantCount} />
+          <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
           <ShareButton path={`/rooms/${room.id}`} label="room" />
           <BookmarkButton id={room.id} label="room" />
         </div>

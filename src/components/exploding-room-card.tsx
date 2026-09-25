@@ -31,7 +31,7 @@ export function ExplodingRoomCard({ room, match }: { room: RoomWithTotals; match
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3.5 font-mono text-xs text-muted">
           <span className="shrink-0" title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>
           <div className="flex min-w-0 items-center gap-3">
-            <RivalsInRoom participantCount={room.participantCount} />
+            <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
             <ShareButton path={`/rooms/${room.id}`} label="room" />
             <BookmarkButton id={room.id} label="room" />
           </div>
