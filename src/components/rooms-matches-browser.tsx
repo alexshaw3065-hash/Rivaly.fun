@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { leagues as mockLeagues } from "@/lib/mock-data";
 import { useRealMatches } from "@/lib/use-real-matches";
+import { sportOf } from "@/lib/markets";
 import { RoomFeed, type FilterTab } from "./room-feed";
 import { MatchChip } from "./match-chip";
 import { BottomSheet } from "./bottom-sheet";
@@ -19,7 +20,7 @@ import type { Room, Match } from "@/lib/types";
 // Multi-select: "All leagues" is exclusive (picking it clears everything
 // else); specific leagues toggle independently and combine with each
 // other — an empty array means "All leagues."
-type Tab = "rooms" | "matches";
+type Tab = "rooms" | "matches" | "packs";
 
 // Home's own filter-chip set — per founder direction, Home shows a
 // shorter, differently-ordered row than Search's full 7-tab default
@@ -55,6 +56,54 @@ function Checkbox({ checked }: { checked: boolean }) {
         </svg>
       )}
     </span>
+  );
+}
+
+// Packs: 2–4 calls bundled into one — hit them all, take the pot. Not built
+// yet (no packs table, no multi-match settlement), so the tab shows what one
+// will look like, built from real upcoming fixtures and clearly marked as a
+// preview. No sign-up or "notify me" button: nothing behind it would work.
+function PacksComingSoon({ matches }: { matches: Match[] }) {
+  // Football first when there is any (packs are a football idea), in the
+  // sport's own language — no "goals" on an NFL game.
+  const scheduled = matches.filter((m) => m.status === "scheduled");
+  const soccer = scheduled.filter((m) => sportOf(m) === "soccer");
+  const upcoming = (soccer.length >= 2 ? soccer : scheduled).slice(0, 3);
+  const call = (m: Match, i: number) => {
+    const nfl = sportOf(m) === "nfl";
+    if (i === 0) return `${m.homeTeam} to win`;
+    if (i === 1) return `${nfl ? "Over 44.5 points" : "Over 2.5 goals"} · ${m.homeTeam} v ${m.awayTeam}`;
+    return `${nfl ? `${m.awayTeam} to win` : `Both teams score · ${m.homeTeam} v ${m.awayTeam}`}`;
+  };
+  const calls = upcoming.length ? upcoming.map(call) : ["Home side to win", "Over 2.5 goals", "Both teams score"];
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center text-center">
+      <div aria-hidden className="relative w-full select-none">
+        {/* Two cards peeking behind: a pack is a stack of calls */}
+        <div className="absolute inset-x-6 -top-3 h-full rounded-2xl border border-border bg-surface opacity-40" />
+        <div className="absolute inset-x-3 -top-1.5 h-full rounded-2xl border border-border bg-surface opacity-70" />
+        <div className="relative rounded-2xl border border-border bg-surface p-4 text-left">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">{calls.length}-call pack</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-rival-blue">Preview</span>
+          </div>
+          <ul className="mt-3 flex flex-col gap-2">
+            {calls.map((c, i) => (
+              <li key={i} className="flex items-center gap-2.5 rounded-xl bg-background px-3 py-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-bold text-muted ring-1 ring-border-strong">{i + 1}</span>
+                <span className="min-w-0 truncate text-sm font-semibold text-foreground/80">{c}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
+            <span>Hit all {calls.length}</span>
+            <span>Take the pot</span>
+          </div>
+        </div>
+      </div>
+      <p className="mt-6 font-display text-lg font-bold text-foreground">Packs are coming soon</p>
+      <p className="mt-1 text-sm text-muted">Bundle 2–4 calls into one. Get them all right and the pot is yours.</p>
+    </div>
   );
 }
 
@@ -129,17 +178,22 @@ export function RoomsMatchesBrowser({
         >
           <FilterIcon />
         </button>
-        {(["rooms", "matches"] as const).map((t) => (
+        {(["rooms", "matches", "packs"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="-mb-px border-b-2 pb-2.5 text-sm capitalize transition-colors duration-150"
+            className="-mb-px flex items-center gap-1.5 border-b-2 pb-2.5 text-sm capitalize transition-colors duration-150"
             style={{
               borderColor: tab === t ? "var(--foreground)" : "transparent",
               color: tab === t ? "var(--foreground)" : "var(--muted)",
             }}
           >
             {t}
+            {t === "packs" && (
+              <span className="rounded-full px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wider text-rival-blue ring-1 ring-rival-blue/40">
+                Soon
+              </span>
+            )}
           </button>
         ))}
         {summary && (
@@ -178,7 +232,11 @@ export function RoomsMatchesBrowser({
         </button>
       </BottomSheet>
 
-      {tab === "rooms" ? (
+      {tab === "packs" ? (
+        <div className="mt-10">
+          <PacksComingSoon matches={liveMatches} />
+        </div>
+      ) : tab === "rooms" ? (
         <div className="mt-10">
           <RoomFeed
             extraFilter={roomMatchesLeagues}
