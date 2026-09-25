@@ -13,6 +13,22 @@ export interface MessageRow {
   created_at: string;
   /** The message this one answers, if any (same room — enforced by trigger). */
   reply_to?: string | null;
+  /** A photo/GIF reference — never the file itself. */
+  attachment?: ChatAttachment | null;
+}
+
+/** What a message stores about its photo or GIF (the file lives on Cloudinary / the GIF CDN). */
+export interface ChatAttachment {
+  type: "image" | "gif";
+  /** Cloudinary public_id for photos (empty while still uploading). */
+  ref: string;
+  w: number;
+  h: number;
+  /** Tiny blurred preview shown until the real image loads. */
+  lqip?: string;
+  /** Sender-only while uploading: the local preview and progress (0–1). Never stored. */
+  local?: string;
+  progress?: number;
 }
 
 /**
@@ -28,6 +44,7 @@ export type DisplayChatMessage = ChatMessage & {
   authorAvatarUrl?: string | null;
   /** Id of the message this one replies to. */
   replyTo?: string | null;
+  attachment?: ChatAttachment | null;
 };
 
 /** One person's reaction on a message (message_reactions). */
@@ -54,6 +71,7 @@ export function mapMessageRow(
     authorName: author?.display_name,
     authorAvatarUrl: author?.avatar_url,
     replyTo: row.reply_to ?? null,
+    attachment: row.attachment ?? null,
   };
 }
 

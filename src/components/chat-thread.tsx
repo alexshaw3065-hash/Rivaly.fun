@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Drawer } from "vaul";
-import { REACTION_EMOJI, type DisplayChatMessage } from "@/lib/supabase/message-mapper";
+import { REACTION_EMOJI, type ChatAttachment, type DisplayChatMessage } from "@/lib/supabase/message-mapper";
+import { chatPhotoUrl } from "@/lib/cloudinary";
 import { decodeMoment, type EventTone } from "@/lib/match-event-label";
 import { formatMoneyCompact } from "@/lib/mock-data";
 import type { EntrySide } from "@/lib/types";
@@ -53,6 +54,9 @@ function dayLabel(d: Date, now: Date): string {
   if (same(d, y)) return "Yesterday";
   return d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" });
 }
+
+/** One line for quotes and the action sheet: the text, or what it carries. */
+const summary = (m: DisplayChatMessage) => m.body || (m.attachment?.type === "gif" ? "GIF" : m.attachment ? "📷 Photo" : "");
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
@@ -246,7 +250,7 @@ export function ChatThread({
             {sheetFor && (
               <>
                 <p className="mb-3 line-clamp-2 rounded-xl bg-surface px-3 py-2 text-sm text-foreground/80">
-                  <span className="font-semibold text-foreground">{sheetFor.authorName}</span> {sheetFor.body}
+                  <span className="font-semibold text-foreground">{sheetFor.authorName}</span> {summary(sheetFor)}
                 </p>
                 <div className="grid grid-cols-5 gap-2">
                   {REACTION_EMOJI.map((e) => {
@@ -276,6 +280,7 @@ export function ChatThread({
                       setSheetFor(null);
                     }}
                   />
+                  {sheetFor.body && (
                   <SheetAction
                     label="Copy text"
                     icon={
@@ -289,6 +294,7 @@ export function ChatThread({
                       setSheetFor(null);
                     }}
                   />
+                  )}
                 </div>
               </>
             )}
@@ -398,7 +404,8 @@ function MessageRow({
 
   const body = (
     <>
-      <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.4] text-foreground/90">{message.body}</p>
+      {message.attachment && <Photo attachment={message.attachment} />}
+      {message.body && <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.4] text-foreground/90">{message.body}</p>}
       {reactionList.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
           {reactionList.map(([emoji, users]) => {
@@ -473,7 +480,7 @@ function MessageRow({
                   <span className="shrink-0 text-[13px] font-semibold" style={{ color: quotedSide ? SIDE_COLOR[quotedSide] : "var(--foreground)" }}>
                     @{quoted.authorName ?? "Rival"}
                   </span>
-                  <span className="truncate text-[13px] text-muted">{quoted.body}</span>
+                  <span className="truncate text-[13px] text-muted">{summary(quoted)}</span>
                 </button>
               ) : (
                 <span className="text-[13px] italic text-muted">Original message not loaded</span>
@@ -519,6 +526,108 @@ function MessageRow({
           <div className="min-w-0 flex-1">{body}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+// A photo in the thread: its exact shape reserved up front (no jump), the
+// blurred preview underneath until the real image lands, the sender's upload
+// ring while it's on its way, and full screen on tap.
+const PHOTO_BOX = { w: 260, h: 320 };
+
+function Photo({ attachment: a }: { attachment: ChatAttachment }) {
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const scale = Math.min(PHOTO_BOX.w / a.w, PHOTO_BOX.h / a.h, 1);
+  const w = Math.max(120, Math.round(a.w * scale));
+  const h = Math.max(80, Math.round(a.h * scale));
+  const src = a.local ?? (a.ref ? chatPhotoUrl(a.ref, w * 2) : null);
+  const uploading = a.local !== undefined && (a.progress ?? 0) < 1;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => a.ref && setOpen(true)}
+        className="relative mb-1 mt-0.5 block overflow-hidden rounded-xl bg-foreground/5 ring-1 ring-border"
+        style={{ width: w, height: h, maxWidth: "100%" }}
+        aria-label="Open photo"
+      >
+        {a.lqip && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={a.lqip} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-md" />
+        )}
+        {src && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt="Photo"
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
+            style={{ opacity: loaded ? 1 : 0 }}
+          />
+        )}
+        {uploading && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+            <ProgressRing value={a.progress ?? 0} />
+          </span>
+        )}
+      </button>
+      {open && a.ref && <PhotoViewer src={chatPhotoUrl(a.ref, 1600)} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function ProgressRing({ value }: { value: number }) {
+  const r = 15;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-label={`Uploading ${Math.round(value * 100)}%`}>
+      <circle cx="20" cy="20" r={r} stroke="rgba(255,255,255,0.3)" strokeWidth="3" fill="rgba(0,0,0,0.35)" />
+      <circle
+        cx="20"
+        cy="20"
+        r={r}
+        stroke="#fff"
+        strokeWidth="3"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={`${c * Math.max(0.04, value)} ${c}`}
+        transform="rotate(-90 20 20)"
+        style={{ transition: "stroke-dasharray 200ms ease-out" }}
+      />
+    </svg>
+  );
+}
+
+// Full screen: the photo at full size, tap anywhere (or Escape) to close,
+// pinch to zoom (the browser's own), and Save.
+function PhotoViewer({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div role="dialog" aria-label="Photo" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/92 [animation:fade-in-up_200ms_ease-out_both]" onClick={onClose}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="Photo" className="max-h-[88dvh] max-w-[96vw] touch-pinch-zoom object-contain" />
+      <div className="absolute inset-x-0 top-0 flex justify-between p-4 pt-[max(env(safe-area-inset-top),16px)]">
+        <a
+          href={src.replace("/upload/", "/upload/fl_attachment/")}
+          onClick={(e) => e.stopPropagation()}
+          className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
+        >
+          Save
+        </a>
+        <button type="button" onClick={onClose} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+            <path d="M2 2l8 8M10 2 2 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

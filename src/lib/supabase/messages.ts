@@ -15,7 +15,7 @@ export async function getRoomMessages(roomId: string): Promise<DisplayChatMessag
   const supabase = await createClient();
   const { data } = await supabase
     .from("messages")
-    .select("id, room_id, user_id, body, created_at, reply_to, author:profiles(display_name, avatar_url)")
+    .select("id, room_id, user_id, body, created_at, reply_to, attachment, author:profiles(display_name, avatar_url)")
     .eq("room_id", roomId)
     // Newest first then reversed: a busy room opens on its latest chat, not
     // its first 50 messages.

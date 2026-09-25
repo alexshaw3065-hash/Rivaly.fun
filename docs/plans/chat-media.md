@@ -62,6 +62,8 @@ Build order: instant send → photos → GIFs.
 
 ## Status
 - **Instant send: built (2026-09-25).** Private room channel `room:<id>` (migration 20260925170000). Measured from the dev machine to Supabase (eu-west-1, Ireland), 30 samples each: live broadcast median **253 ms** (p90 300, max 424) vs database→realtime median **577 ms** (p90 933, max 1470). Sender sees their own message at 0 ms. Anonymous broadcast into a room channel: delivered to 0 viewers (policy holds). The ~250 ms floor is the network round trip to Ireland.
+- **Photos: built (2026-09-25).** Migration 20260925190000 (`messages.attachment`, shape check, 5 images/min trigger). Pick, paste or drag a photo: the sender sees it instantly with an upload ring, everyone else sees the blurred preview at the right size straight away, and the real image fades in when the upload lands. Tested with a 4000×3000 camera-size photo (5.5 MB): shrunk on the phone to 1600×1200 WebP, **231 KB** in **~1.1 s**; blurred preview is 783 bytes; upload took ~3.7 s from the dev machine; the chat-size copy Cloudinary serves is **4 KB**. The DB row holds only the ~1 KB reference. Saves retry silently up to 3 times on a network drop.
+- **GIFs: waiting on `KLIPY_API_KEY`.**
 
 ## Open decisions (founder)
 1. ~~GIF provider~~ → decided: Klipy (key wired later).

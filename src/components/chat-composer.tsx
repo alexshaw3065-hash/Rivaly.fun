@@ -7,6 +7,7 @@ import {
   MESSAGE_UUID_RE,
   mapMessageRow,
   REACTION_EMOJI,
+  type ChatAttachment,
   type DisplayChatMessage,
   type MessageReaction,
   type MessageRow,
@@ -18,6 +19,8 @@ import type { RaceState } from "@/lib/room-race";
 import type { EntrySide } from "@/lib/types";
 import { useCurrentUser } from "./current-user-provider";
 import { ChatThread, type ReactionMap } from "./chat-thread";
+import { RivalCharacter } from "./rival-character";
+import { prepareChatPhoto, uploadChatPhoto } from "@/lib/cloudinary";
 import { REACTION_EVENT } from "./room/room-stage";
 import { PressureTicker } from "./room/pressure-ticker";
 import { announceChatActivity } from "./room/room-tabs-event";
@@ -37,11 +40,28 @@ const KEEP = 500;
 // A live broadcast is the fast lane; the saved row is the record. One whose
 // row never shows up (a failed save, or a spoof) is dropped after this long.
 const CONFIRM_MS = 15_000;
+// A photo still uploading gets longer before it must be saved.
+const PHOTO_CONFIRM_MS = 90_000;
 const TYPING_SEND_MS = 2_500;
 const TYPING_SHOW_MS = 4_000;
-const SELECT_MESSAGE = "id, room_id, user_id, body, created_at, reply_to, author:profiles(display_name, avatar_url)";
+const SELECT_MESSAGE = "id, room_id, user_id, body, created_at, reply_to, attachment, author:profiles(display_name, avatar_url)";
 type LiveReaction = MessageReaction & { on: boolean };
-type Typing = { userId: string; name: string };
+type Typing = { userId: string; name: string; avatarUrl: string | null };
+
+/** A dropped connection, as opposed to the database saying no. */
+const isNetworkError = (e: { code?: string; message?: string }) => !e.code || /fetch|network|timeout/i.test(e.message ?? "");
+
+/** Saves a row, retrying quietly (three tries over ~6 s) if the connection drops. */
+async function saveWithRetry(insert: () => PromiseLike<{ error: { code?: string; message?: string } | null }>): Promise<{ code?: string; message?: string } | null> {
+  for (let attempt = 0; ; attempt++) {
+    const { error } = await insert();
+    if (!error || !isNetworkError(error) || attempt >= 2) return error;
+    await new Promise((r) => setTimeout(r, 1000 * (attempt + 1) * 1.5));
+  }
+}
+
+/** The stored part of an attachment (no local preview or progress). */
+const storedAttachment = (a: ChatAttachment): ChatAttachment => ({ type: a.type, ref: a.ref, w: a.w, h: a.h, ...(a.lqip ? { lqip: a.lqip } : {}) });
 const HEAT_WINDOW_MS = 120_000;
 const QUICK_COOLDOWN_MS = 1200;
 
@@ -126,8 +146,11 @@ export function ChatComposer({
   // yet, and who's typing.
   const channelRef = useRef<RealtimeChannel | null>(null);
   const liveIds = useRef(new Set<string>());
+  // id → deadline by which its saved row must have arrived.
   const unconfirmed = useRef(new Map<string, number>());
-  const [typers, setTypers] = useState<Record<string, { name: string; until: number }>>({});
+  const [typers, setTypers] = useState<Record<string, { name: string; avatarUrl: string | null; until: number }>>({});
+  const [notice, setNotice] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const lastTypingSent = useRef(0);
   const lastQuick = useRef(0);
   // Latest sides map for the realtime handler (entries arrive while we listen).
@@ -180,7 +203,7 @@ export function ChatComposer({
     (m: DisplayChatMessage) => {
       if (liveIds.current.has(m.id)) return;
       liveIds.current.add(m.id);
-      unconfirmed.current.set(m.id, Date.now());
+      unconfirmed.current.set(m.id, Date.now() + (m.attachment && !m.attachment.ref ? PHOTO_CONFIRM_MS : CONFIRM_MS));
       if (m.userId && m.authorName) authorCache.current.set(m.userId, { display_name: m.authorName, avatar_url: m.authorAvatarUrl ?? null });
       push(m);
       announceChatActivity({ kind: "message" });
@@ -236,7 +259,13 @@ export function ChatComposer({
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         const t = payload as Typing;
         if (t.userId === currentUser?.id) return;
-        setTypers((prev) => ({ ...prev, [t.userId]: { name: t.name, until: Date.now() + TYPING_SHOW_MS } }));
+        setTypers((prev) => ({ ...prev, [t.userId]: { name: t.name, avatarUrl: t.avatarUrl ?? null, until: Date.now() + TYPING_SHOW_MS } }));
+      })
+      // A photo finished uploading: swap the blurred preview for the real one.
+      .on("broadcast", { event: "msg-update" }, ({ payload }) => {
+        const u = payload as { id: string; attachment: ChatAttachment };
+        setItems((list) => list.map((m) => (m.id === u.id ? { ...m, attachment: u.attachment } : m)));
+        if (unconfirmed.current.has(u.id)) unconfirmed.current.set(u.id, Date.now() + CONFIRM_MS);
       })
       // The saved record. Confirms what came live; delivers anything the live
       // lane missed; and feeds the stadium race at the server's own time.
@@ -245,7 +274,11 @@ export function ChatComposer({
         unconfirmed.current.delete(row.id);
         const side = sidesRef.current[row.user_id];
         if (side) addRaceMessage(row.user_id, side, +new Date(row.created_at));
-        if (liveIds.current.has(row.id)) return;
+        if (liveIds.current.has(row.id)) {
+          // Already showing from the live lane — make sure it has the final photo.
+          if (row.attachment) setItems((list) => list.map((m) => (m.id === row.id && !m.attachment?.local ? { ...m, attachment: row.attachment } : m)));
+          return;
+        }
         liveIds.current.add(row.id);
         let author = authorCache.current.get(row.user_id);
         if (!author) {
@@ -299,8 +332,8 @@ export function ChatComposer({
 
     // Drop live messages whose saved row never arrived.
     const sweep = window.setInterval(() => {
-      const cutoff = Date.now() - CONFIRM_MS;
-      const stale = [...unconfirmed.current].filter(([, at]) => at < cutoff).map(([id]) => id);
+      const t = Date.now();
+      const stale = [...unconfirmed.current].filter(([, deadline]) => deadline < t).map(([id]) => id);
       if (stale.length === 0) return;
       for (const id of stale) unconfirmed.current.delete(id);
       setItems((list) => list.filter((m) => !stale.includes(m.id)));
@@ -385,17 +418,82 @@ export function ChatComposer({
     floatReaction(body);
     void channelRef.current?.send({ type: "broadcast", event: "msg", payload: message });
     lastTypingSent.current = 0;
-    createClient()
-      .from("messages")
-      .insert({ id: message.id, room_id: roomId, user_id: currentUser.id, body, reply_to: reply?.id ?? null })
-      .then(({ error }) => {
-        if (!error) return;
-        setItems((list) => list.filter((m) => m.id !== message.id));
-        if (restoreDraft) {
-          setDraft(body); // failed — put it back so nothing's lost
-          setReplyTo(reply);
-        }
-      });
+    const uid = currentUser.id;
+    void saveWithRetry(() => createClient().from("messages").insert({ id: message.id, room_id: roomId, user_id: uid, body, reply_to: reply?.id ?? null })).then((error) => {
+      if (!error) return;
+      setItems((list) => list.filter((m) => m.id !== message.id));
+      if (restoreDraft) {
+        setDraft(body); // refused — put it back so nothing's lost
+        setReplyTo(reply);
+      }
+    });
+  }
+
+  // Photos: shrunk on the phone, shown to you at once (sharp, with an upload
+  // ring) and to the room as a blurred preview the same instant; the real
+  // image swaps in for everyone when the upload lands, then it's saved.
+  async function sendPhoto(file: File) {
+    if (!currentUser) {
+      openAuthModal({ next: `/rooms/${roomId}` });
+      return;
+    }
+    if (!isRealRoom) return;
+    let photo;
+    try {
+      photo = await prepareChatPhoto(file);
+    } catch (e) {
+      flash(e instanceof Error ? e.message : "Couldn't read that image.");
+      return;
+    }
+    const caption = draft.trim().slice(0, 500);
+    const reply = replyTo;
+    setDraft("");
+    setReplyTo(null);
+    const id = crypto.randomUUID();
+    const base: ChatAttachment = { type: "image", ref: "", w: photo.w, h: photo.h, lqip: photo.lqip };
+    const message: DisplayChatMessage = {
+      id,
+      roomId,
+      userId: currentUser.id,
+      kind: "message",
+      body: caption,
+      createdAt: new Date().toISOString(),
+      authorName: currentUser.displayName,
+      authorAvatarUrl: currentUser.avatarUrl ?? null,
+      replyTo: reply?.id ?? null,
+      attachment: { ...base, local: photo.previewUrl, progress: 0 },
+    };
+    liveIds.current.add(id);
+    push(message);
+    void channelRef.current?.send({ type: "broadcast", event: "msg", payload: { ...message, attachment: base } });
+    const setAttachment = (a: ChatAttachment) => setItems((list) => list.map((m) => (m.id === id ? { ...m, attachment: a } : m)));
+    const fail = (why: string) => {
+      setItems((list) => list.filter((m) => m.id !== id));
+      if (caption) setDraft(caption);
+      setReplyTo(reply);
+      flash(why);
+      URL.revokeObjectURL(photo.previewUrl);
+    };
+    let ref: string;
+    try {
+      ref = await uploadChatPhoto(photo.blob, `chat/${roomId}/${id}`, (progress) => setAttachment({ ...base, local: photo.previewUrl, progress }));
+    } catch (e) {
+      fail(e instanceof Error ? e.message : "Upload failed — try again.");
+      return;
+    }
+    const done: ChatAttachment = { ...base, ref };
+    setAttachment({ ...done, local: photo.previewUrl, progress: 1 });
+    void channelRef.current?.send({ type: "broadcast", event: "msg-update", payload: { id, attachment: done } });
+    const uid = currentUser.id;
+    const error = await saveWithRetry(() =>
+      createClient().from("messages").insert({ id, room_id: roomId, user_id: uid, body: caption, reply_to: reply?.id ?? null, attachment: storedAttachment(done) }),
+    );
+    if (error) fail(error.message?.includes("photo_rate_limit") ? "Easy — that's 5 photos in a minute. Try again shortly." : "Couldn't send that photo.");
+  }
+
+  function flash(text: string) {
+    setNotice(text);
+    window.setTimeout(() => setNotice((n) => (n === text ? null : n)), 3500);
   }
 
   // "Tunde is typing…" — at most one ping every couple of seconds.
@@ -404,7 +502,11 @@ export function ChatComposer({
     const t = clock();
     if (t - lastTypingSent.current < TYPING_SEND_MS) return;
     lastTypingSent.current = t;
-    void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId: currentUser.id, name: currentUser.displayName } satisfies Typing });
+    void channelRef.current?.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: currentUser.id, name: currentUser.displayName, avatarUrl: currentUser.avatarUrl ?? null } satisfies Typing,
+    });
   }
 
   function send() {
@@ -459,7 +561,18 @@ export function ChatComposer({
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface">
+    <section
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface"
+      onDragOver={(e) => {
+        if ([...e.dataTransfer.items].some((i) => i.type.startsWith("image/"))) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        const file = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/"));
+        if (!file) return;
+        e.preventDefault();
+        void sendPhoto(file);
+      }}
+    >
       <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
         {matchId && matchTeams && <PressureTicker matchId={matchId} homeTeam={matchTeams.home} awayTeam={matchTeams.away} />}
         <p className="font-display text-base font-bold text-foreground">The crowd</p>
@@ -522,15 +635,23 @@ export function ChatComposer({
           </div>
         )}
 
+        {notice && <p className="mb-1.5 px-1 text-xs font-semibold text-rival-red [animation:fade-in-up_180ms_ease-out_both]">{notice}</p>}
         {Object.keys(typers).length > 0 && (
-          <p className="mb-1.5 flex items-center gap-1.5 px-1 text-xs text-muted [animation:fade-in-up_180ms_ease-out_both]" aria-live="polite">
-            <span className="flex gap-0.5" aria-hidden>
+          <p className="mb-1.5 flex items-center gap-2 px-1 text-xs text-muted [animation:fade-in-up_180ms_ease-out_both]" aria-live="polite">
+            <span className="flex -space-x-1.5" aria-hidden>
+              {Object.values(typers)
+                .slice(0, 3)
+                .map((t, i) => (
+                  <span key={i} className="rounded-full ring-2 ring-surface">
+                    <RivalCharacter name={t.name} imageUrl={t.avatarUrl} size={16} />
+                  </span>
+                ))}
+            </span>
+            <span className="min-w-0 truncate font-semibold text-foreground/80">{typingLabel(Object.values(typers).map((t) => t.name))}</span>
+            <span className="flex shrink-0 gap-0.5" aria-hidden>
               {[0, 1, 2].map((i) => (
                 <span key={i} className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: `${i * 150}ms` }} />
               ))}
-            </span>
-            <span className="truncate">
-              <span className="font-semibold text-foreground/80">{typingLabel(Object.values(typers).map((t) => t.name))}</span>
             </span>
           </p>
         )}
@@ -567,7 +688,36 @@ export function ChatComposer({
                 <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
+            <button
+              type="button"
+              onClick={() => (currentUser ? fileRef.current?.click() : openAuthModal({ next: `/rooms/${roomId}` }))}
+              aria-label="Send a photo"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:text-foreground active:scale-90"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+                <rect x="2.5" y="4" width="15" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
+                <circle cx="7.3" cy="8.3" r="1.4" fill="currentColor" />
+                <path d="m3.5 14.5 4-4 3 3 2.2-2.2 3.8 3.7" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+              </svg>
+            </button>
             <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void sendPhoto(file);
+              }}
+            />
+            <input
+              onPaste={(e) => {
+                const file = [...e.clipboardData.files].find((f) => f.type.startsWith("image/"));
+                if (!file) return;
+                e.preventDefault();
+                void sendPhoto(file);
+              }}
               ref={inputRef}
               value={draft}
               onChange={(e) => {
@@ -614,7 +764,8 @@ export function ChatComposer({
 }
 
 function typingLabel(names: string[]): string {
-  if (names.length === 1) return `${names[0]} is typing…`;
-  if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
-  return "Several people are typing…";
+  if (names.length === 1) return `${names[0]} is typing`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} are typing`;
+  const others = names.length - 2;
+  return `${names[0]}, ${names[1]} and ${others} ${others === 1 ? "other" : "others"} are typing`;
 }

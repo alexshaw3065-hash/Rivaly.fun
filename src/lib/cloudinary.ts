@@ -50,3 +50,73 @@ export function cloudinaryAvatarUrl(url: string, size: number): string {
 export function isCloudinaryUrl(url: string): boolean {
   return CLOUD_NAME !== undefined && url.startsWith(`https://res.cloudinary.com/${CLOUD_NAME}/`);
 }
+
+// ── Chat photos ───────────────────────────────────────────────────────────
+// Shrunk on the phone before upload (longest side 1600px, WebP ~0.8 — a
+// 3–5 MB camera photo becomes ~150–300 KB), with a tiny blurred preview the
+// room sees instantly while the real one uploads. The database keeps only
+// the Cloudinary public_id; delivery URLs are built here from our own cloud
+// name, sized per use. See docs/plans/chat-media.md.
+
+const PHOTO_MAX = 1600;
+
+export interface PreparedPhoto {
+  blob: Blob;
+  w: number;
+  h: number;
+  /** ~20px-wide blurred preview as a data URL (a few hundred bytes). */
+  lqip: string;
+  /** Local preview for the sender while it uploads. */
+  previewUrl: string;
+}
+
+export async function prepareChatPhoto(file: File): Promise<PreparedPhoto> {
+  if (!file.type.startsWith("image/")) throw new Error("That isn't an image.");
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, PHOTO_MAX / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+  const blob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read that image."))), "image/webp", 0.8),
+  );
+  const tiny = document.createElement("canvas");
+  tiny.width = 20;
+  tiny.height = Math.max(1, Math.round((20 * h) / w));
+  tiny.getContext("2d")!.drawImage(bitmap, 0, 0, tiny.width, tiny.height);
+  bitmap.close();
+  return { blob, w, h, lqip: tiny.toDataURL("image/webp", 0.5), previewUrl: URL.createObjectURL(blob) };
+}
+
+/** Straight to Cloudinary (no server hop), with upload progress. Resolves to the public_id. */
+export function uploadChatPhoto(blob: Blob, publicId: string, onProgress?: (p: number) => void): Promise<string> {
+  if (!CLOUD_NAME || !UPLOAD_PRESET) return Promise.reject(new Error("Photo uploads aren't configured yet."));
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", blob);
+    form.append("upload_preset", UPLOAD_PRESET);
+    form.append("public_id", publicId);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
+    xhr.onerror = () => reject(new Error("Upload failed — check your connection."));
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText) as { public_id?: string };
+        if (xhr.status < 300 && data.public_id) resolve(data.public_id);
+        else reject(new Error("Upload failed — try again."));
+      } catch {
+        reject(new Error("Upload failed — try again."));
+      }
+    };
+    xhr.send(form);
+  });
+}
+
+/** A chat photo sized for where it's shown (2× for sharp screens), best format for the device. */
+export function chatPhotoUrl(ref: string, width: number): string {
+  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/c_limit,w_${Math.round(width)},f_auto,q_auto/${ref}`;
+}
