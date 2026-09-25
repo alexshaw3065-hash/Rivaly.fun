@@ -52,6 +52,8 @@ export interface RoomRival {
   userId: string;
   side: EntrySide;
   displayName: string;
+  /** For linking to their profile; null if the profile is missing. */
+  username: string | null;
   avatarUrl: string | null;
   amountCents: number;
   createdAt: string;
@@ -77,6 +79,7 @@ export async function getRoomRivals(roomId: string, limit = 12): Promise<RoomRiv
     userId: r.user_id,
     side: r.side,
     displayName: readableName(r.profile),
+    username: r.profile?.username || null,
     avatarUrl: r.profile?.avatar_url ?? null,
     amountCents: r.amount_cents,
     createdAt: r.created_at,
