@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArenaFeed } from "@/components/arena-feed";
 import { ArenaLeagues } from "@/components/arena-leagues";
 import { ArenaLeaderboard } from "@/components/arena-leaderboard";
@@ -22,6 +22,15 @@ const tabs: { id: ArenaTab; label: string }[] = [
 // badge lives inside arena-feed.tsx now, not here — see that file for why.
 export default function ArenaPage() {
   const [tab, setTab] = useState<ArenaTab>("feed");
+
+  // The floating "post a take" button (nav.tsx) belongs to the Feed only —
+  // Leagues and Leaderboard have their own one primary action.
+  useEffect(() => {
+    document.documentElement.dataset.arenaTab = tab;
+    return () => {
+      delete document.documentElement.dataset.arenaTab;
+    };
+  }, [tab]);
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">

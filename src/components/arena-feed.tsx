@@ -1,219 +1,234 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { buildArenaFeed, arenaItemSubjectId, followedProfileIds } from "@/lib/mock-data";
-import {
-  getRealPosts,
-  getRealRivalActivity,
-  getRealHotRooms,
-  getFollowedUserIds,
-  type DisplayRivalActivity,
-  type DisplayHotRoom,
-} from "@/lib/supabase/arena";
-import type { DisplayPost } from "@/lib/supabase/post-mapper";
-import { createPost } from "@/app/arena/actions";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { useCurrentUser } from "./current-user-provider";
-import { ArenaFeedCard } from "./arena-feed-card";
-import { OnlineRivalsBadge } from "./online-rivals-badge";
-import type { ArenaFeedItem } from "@/lib/types";
+import { RivalCharacter } from "./rival-character";
+import { TeamCrest } from "./team-crest";
+import { openAuthModal } from "@/lib/auth-modal-store";
+import { useRealMatches } from "@/lib/use-real-matches";
+import { ARENA_COMPOSE_EVENT } from "@/lib/arena/events";
+import { ArenaCard, type CardActions } from "./arena/arena-cards";
+import { ArenaComposer } from "./arena/arena-composer";
+import { deletePost, fetchFeed, fetchPlayerNames, savePost, setReaction, type FeedScope, type NewPost } from "@/lib/arena/data";
+import {
+  appendPage,
+  cursorOf,
+  newerThan,
+  newItemsLabel,
+  reactionTarget,
+  toggleReaction,
+  type ArenaEmoji,
+  type ArenaItem,
+  type MomentItem,
+  type PostItem,
+} from "@/lib/arena/model";
 
-type FeedScope = "global" | "following";
-const PAGE_SIZE = 6;
+const PAGE = 20;
+const HEAD_CHECK_MS = 45_000;
+const PRESENCE_MIN = 3; // "N here now" only when it's a real crowd
 
-// Same [4,5,6,7]-cycling hot-room interleave as buildArenaFeed() in
-// mock-data.ts — duplicated in miniature here rather than shared, since
-// mock's version is intentionally self-contained (no Supabase awareness)
-// and this one only ever runs over the small real-items list before it
-// gets prepended to mock's already-fully-built feed. See the merge
-// comment below for why prepending (not re-interleaving everything
-// together) is the right shape here.
-function interleaveHot(organic: ArenaFeedItem[], hot: ArenaFeedItem[]): ArenaFeedItem[] {
-  const cadence = [4, 5, 6, 7];
-  const feed: ArenaFeedItem[] = [];
-  let hotIndex = 0;
-  let sinceLastHot = 0;
-  let cadenceIndex = 0;
-  for (const item of organic) {
-    feed.push(item);
-    sinceLastHot++;
-    if (sinceLastHot >= cadence[cadenceIndex % cadence.length] && hotIndex < hot.length) {
-      feed.push(hot[hotIndex]);
-      hotIndex++;
-      cadenceIndex++;
-      sinceLastHot = 0;
-    }
-  }
-  feed.push(...hot.slice(hotIndex));
-  return feed;
+interface Face {
+  name: string;
+  avatar: string | null;
 }
 
-// Same infinite-scroll shape as room-feed.tsx (IntersectionObserver +
-// PAGE_SIZE + a real closing moment) — deliberately reused rather than
-// reinvented, since that pattern already gets the ethical stopping-point
-// behavior right: the feed ends, it doesn't loop forever pretending there's
-// always more. "You're caught up" is a softer landing than RoomFeed's "go
-// start one" — Arena's job here is to bring people back tomorrow, not to
-// pressure an action right now.
+// The Arena's feed: everything real, newest first — big match moments,
+// takes, calls, receipts, rooms heating up. New things don't shove the
+// list around; they wait behind a "3 new · 1 goal" pill. It ends ("caught
+// up") rather than looping. See docs/plans/arena-redesign.md.
 export function ArenaFeed() {
-  const router = useRouter();
-  const currentUser = useCurrentUser();
+  const me = useCurrentUser();
+  const viewerId = me?.id ?? null;
+  const { matches } = useRealMatches();
   const [scope, setScope] = useState<FeedScope>("global");
-  const [prevScope, setPrevScope] = useState(scope);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const loadingRef = useRef(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  const [draft, setDraft] = useState("");
-  const [posting, setPosting] = useState(false);
-  const [postError, setPostError] = useState<string | null>(null);
-
-  const [realPosts, setRealPosts] = useState<DisplayPost[]>([]);
-  const [realActivity, setRealActivity] = useState<DisplayRivalActivity[]>([]);
-  const [realHotRooms, setRealHotRooms] = useState<DisplayHotRoom[]>([]);
-  const [realFollowedIds, setRealFollowedIds] = useState<Set<string>>(new Set());
-
-  if (scope !== prevScope) {
-    setPrevScope(scope);
-    setVisibleCount(PAGE_SIZE);
-  }
-
-  const viewerId = currentUser?.id ?? null;
+  const [matchId, setMatchId] = useState<string | null>(null);
+  const [items, setItems] = useState<ArenaItem[]>([]);
+  const [fresh, setFresh] = useState<ArenaItem[]>([]);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [done, setDone] = useState(false);
+  const [names, setNames] = useState<Record<string, Record<number, string>>>({});
+  const [composer, setComposer] = useState<{ open: boolean; moment: MomentItem | null; key: number }>({ open: false, moment: null, key: 0 });
+  const [notice, setNotice] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
+  const [here, setHere] = useState<{ count: number; faces: Face[] }>({ count: 0, faces: [] });
+  const itemsRef = useRef(items);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const loadingMore = useRef(false);
+  const request = useRef(0);
 
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const [posts, activity, hotRooms, followed] = await Promise.all([
-        getRealPosts(viewerId),
-        getRealRivalActivity(viewerId),
-        getRealHotRooms(),
-        viewerId ? getFollowedUserIds(viewerId) : Promise.resolve([]),
-      ]);
-      if (cancelled) return;
-      setRealPosts(posts);
-      setRealActivity(activity);
-      setRealHotRooms(hotRooms);
-      setRealFollowedIds(new Set(followed));
-    }
-    load();
-    return () => {
-      cancelled = true;
+    itemsRef.current = items;
+  }, [items]);
+
+  // First page for this scope / match.
+  useEffect(() => {
+    const n = ++request.current;
+    void fetchFeed({ scope, matchId, limit: PAGE })
+      .then((page) => {
+        if (n !== request.current) return;
+        setItems(page);
+        setFresh([]);
+        setDone(page.length < PAGE);
+        setState("ready");
+      })
+      .catch(() => n === request.current && setState("error"));
+  }, [scope, matchId, viewerId]);
+
+  // Scorer names for whatever moments are on screen.
+  useEffect(() => {
+    const ids = [...new Set(items.filter((i): i is MomentItem => i.kind === "moment").map((i) => i.match.id))].filter((id) => !(id in names));
+    if (ids.length === 0) return;
+    void fetchPlayerNames(ids).then((n) => setNames((prev) => ({ ...prev, ...n })));
+  }, [items, names]);
+
+  // Anything new at the top? (Realtime nudges this; a slow timer backs it up
+  // for things realtime can't see, like other people's stakes.)
+  const checkHead = useCallback(async () => {
+    try {
+      const head = await fetchFeed({ scope, matchId, limit: PAGE });
+      const news = newerThan(itemsRef.current, head).filter((i) => +new Date(i.at) >= +new Date(itemsRef.current[0]?.at ?? 0));
+      if (news.length > 0) setFresh(news);
+    } catch {}
+  }, [scope, matchId]);
+
+  useEffect(() => {
+    const t = setInterval(() => document.visibilityState === "visible" && void checkHead(), HEAD_CHECK_MS);
+    return () => clearInterval(t);
+  }, [checkHead]);
+
+  // One channel: real presence ("N here now") + a nudge when something lands.
+  useEffect(() => {
+    const supabase = createClient();
+    const key = viewerId ?? `guest-${Math.random().toString(36).slice(2)}`;
+    let nudge: ReturnType<typeof setTimeout> | null = null;
+    const soon = () => {
+      if (nudge) clearTimeout(nudge);
+      nudge = setTimeout(() => void checkHead(), 1200);
     };
-  }, [viewerId]);
-
-  const mockFeed = useMemo(() => buildArenaFeed(), []);
-  const realPostsById = useMemo(() => new Map(realPosts.map((p) => [p.id, p])), [realPosts]);
-  const realActivityById = useMemo(() => new Map(realActivity.map((a) => [a.id, a])), [realActivity]);
-  const realHotRoomsById = useMemo(() => new Map(realHotRooms.map((r) => [r.id, r])), [realHotRooms]);
-
-  // Real content merges in as new items on top of mock's, not a
-  // mock/real fallback per id like every other migrated surface — Feed
-  // isn't keyed by one id, it's a timeline. Mock's feed stays exactly
-  // what buildArenaFeed() already produces (own hot-room cadence
-  // untouched); real items get the same cadence treatment among
-  // themselves, then sit in front — real timestamps are always newer
-  // than mock's seeded mid-August dates, so "freshest first" falls out
-  // naturally rather than needing an explicit rule.
-  const { allItems, subjectByItemId, realItemIds } = useMemo(() => {
-    const subjectByItemId = new Map<string, string | null>();
-    const realItemIds = new Set<string>();
-
-    const realPostItems: ArenaFeedItem[] = realPosts.map((p) => {
-      const id = `rpost-${p.id}`;
-      subjectByItemId.set(id, p.authorId);
-      realItemIds.add(id);
-      return { id, kind: p.roomId ? "thesis" : "banter", postId: p.id, createdAt: p.createdAt };
+    const channel = supabase
+      .channel("arena", { config: { private: true, presence: { key } } })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, soon)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "match_events", filter: "action=in.(goal,penalty,red_card,var_end,game_finalised,touchdown,field_goal)" }, soon)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: "status=eq.settled" }, soon)
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState<{ name?: string; avatar?: string | null }>();
+        const faces: Face[] = [];
+        for (const metas of Object.values(state)) {
+          const m = metas[0];
+          if (m?.name) faces.push({ name: m.name, avatar: m.avatar ?? null });
+        }
+        setHere({ count: Object.keys(state).length, faces });
+      });
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") void channel.track(me ? { name: me.displayName, avatar: me.avatarUrl } : {});
     });
-    const realActivityItems: ArenaFeedItem[] = realActivity.map((a) => {
-      const id = `rra-${a.id}`;
-      subjectByItemId.set(id, a.userId);
-      realItemIds.add(id);
-      return { id, kind: "rival_activity", entryId: a.id, createdAt: a.createdAt };
-    });
-    const realHotItems: ArenaFeedItem[] = realHotRooms.map((r) => {
-      const id = `rhr-${r.id}`;
-      subjectByItemId.set(id, r.creatorId);
-      realItemIds.add(id);
-      return { id, kind: "hot_room", roomId: r.id, createdAt: r.createdAt };
-    });
+    return () => {
+      if (nudge) clearTimeout(nudge);
+      void supabase.removeChannel(channel);
+    };
+  }, [viewerId, me, checkHead]);
 
-    const realOrganic = [...realPostItems, ...realActivityItems].sort(
-      (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt),
-    );
-    const realFeed = interleaveHot(realOrganic, realHotItems);
-
-    for (const item of mockFeed) subjectByItemId.set(item.id, arenaItemSubjectId(item));
-
-    return { allItems: [...realFeed, ...mockFeed], subjectByItemId, realItemIds };
-  }, [mockFeed, realPosts, realActivity, realHotRooms]);
-
-  const filtered = useMemo(() => {
-    if (scope === "global") return allItems;
-    const mockFollowed = followedProfileIds();
-    return allItems.filter((item) => {
-      const subjectId = subjectByItemId.get(item.id);
-      if (!subjectId) return false;
-      return realItemIds.has(item.id) ? realFollowedIds.has(subjectId) : mockFollowed.includes(subjectId);
-    });
-  }, [allItems, scope, subjectByItemId, realItemIds, realFollowedIds]);
-
-  const visible = filtered.slice(0, visibleCount);
-  const done = visibleCount >= filtered.length;
-
+  // Infinite scroll, to a real end.
   useEffect(() => {
-    if (done) return;
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (obs) => {
-        if (obs[0].isIntersecting && !loadingRef.current) {
-          loadingRef.current = true;
-          window.setTimeout(() => {
-            setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
-            loadingRef.current = false;
-          }, 450);
+    const el = sentinel.current;
+    if (!el || done || state !== "ready") return;
+    const io = new IntersectionObserver(
+      async ([e]) => {
+        if (!e?.isIntersecting || loadingMore.current) return;
+        const before = cursorOf(itemsRef.current);
+        if (!before) return;
+        loadingMore.current = true;
+        const n = request.current;
+        try {
+          const page = await fetchFeed({ scope, matchId, before, limit: PAGE });
+          if (n !== request.current) return;
+          setItems((cur) => appendPage(cur, page));
+          if (page.length < PAGE) setDone(true);
+        } finally {
+          loadingMore.current = false;
         }
       },
-      { rootMargin: "200px" },
+      { rootMargin: "600px" },
     );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [done, filtered.length]);
+    io.observe(el);
+    return () => io.disconnect();
+  }, [done, state, scope, matchId, items.length]);
 
-  async function submitPost() {
-    const body = draft.trim();
-    if (!body) return;
-    if (!currentUser) {
-      router.push(`/login?next=${encodeURIComponent("/arena")}`);
-      return;
-    }
+  // The floating button (nav.tsx) opens the composer here.
+  const openComposer = useCallback(
+    (moment: MomentItem | null = null) => {
+      if (!me) {
+        openAuthModal({ next: "/arena" });
+        return;
+      }
+      setComposer((c) => ({ open: true, moment, key: c.key + 1 }));
+    },
+    [me],
+  );
+  useEffect(() => {
+    const on = () => openComposer(null);
+    window.addEventListener(ARENA_COMPOSE_EVENT, on);
+    return () => window.removeEventListener(ARENA_COMPOSE_EVENT, on);
+  }, [openComposer]);
 
-    setPosting(true);
-    setPostError(null);
-    const res = await createPost(body);
-    setPosting(false);
-
-    if (!res.ok) {
-      setPostError(res.error);
-      return;
-    }
-
-    setDraft("");
-    setRealPosts((prev) => [
-      {
-        id: res.postId,
-        authorId: currentUser.id,
-        authorName: currentUser.displayName,
-        authorUsername: currentUser.username,
-        body,
-        roomId: null,
-        createdAt: new Date().toISOString(),
-        roastCount: 0,
-        roastedByViewer: false,
-      },
-      ...prev,
-    ]);
+  function showFresh() {
+    setItems((cur) => [...fresh, ...cur]);
+    setFresh([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  const flash = (text: string) => {
+    setNotice(text);
+    setTimeout(() => setNotice(null), 4000);
+  };
+
+  async function post(p: NewPost, optimistic: PostItem) {
+    if (!me) return;
+    setItems((cur) => [optimistic, ...cur]);
+    const refused = await savePost(me.id, p);
+    if (refused) {
+      setItems((cur) => cur.filter((i) => !(i.kind === "post" && i.id === p.id)));
+      flash(refused);
+    }
+  }
+
+  const actions: CardActions = useMemo(
+    () => ({
+      viewerId,
+      names,
+      onMatch: (id) => {
+        setMatchId(id);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+      onTake: (m) => openComposer(m),
+      onReact: (item: ArenaItem, emoji: ArenaEmoji) => {
+        if (!me) {
+          openAuthModal({ next: "/arena" });
+          return;
+        }
+        const target = reactionTarget(item);
+        if (!target) return;
+        const on = !item.mine.includes(emoji);
+        const flip = (list: ArenaItem[]) => list.map((i) => (i.kind === item.kind && i.id === item.id ? toggleReaction(i, emoji) : i));
+        setItems(flip);
+        void setReaction(target, emoji, on).then((ok) => !ok && setItems(flip));
+      },
+      onDelete: async (item: PostItem) => {
+        setItems((cur) => cur.filter((i) => !(i.kind === "post" && i.id === item.id)));
+        if (!(await deletePost(item.id))) {
+          setItems((cur) => [item, ...cur].sort((a, b) => +new Date(b.at) - +new Date(a.at)));
+          flash("Couldn't delete — try again.");
+        }
+      },
+    }),
+    [viewerId, names, me, openComposer],
+  );
+
+  const live = matches.filter((m) => m.status === "live");
+  const upcoming = matches.filter((m) => m.status === "scheduled" && +new Date(m.kickoffAt) - now < 12 * 3600_000).slice(0, 6);
+  const chips = [...live, ...upcoming];
+  const filtered = matchId ? matches.find((m) => m.id === matchId) : null;
 
   return (
     <div>
@@ -222,98 +237,162 @@ export function ArenaFeed() {
           {(["global", "following"] as const).map((s) => (
             <button
               key={s}
-              onClick={() => setScope(s)}
-              className="-mb-px border-b-2 pb-2.5 text-sm font-medium capitalize transition-colors duration-150"
-              style={{
-                borderColor: scope === s ? "var(--foreground)" : "transparent",
-                color: scope === s ? "var(--foreground)" : "var(--muted)",
-              }}
+              onClick={() => (s === "following" && !me ? openAuthModal({ next: "/arena" }) : setScope(s))}
+              className="-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors duration-150"
+              style={{ borderColor: scope === s ? "var(--foreground)" : "transparent", color: scope === s ? "var(--foreground)" : "var(--muted)" }}
             >
               {s === "global" ? "Global" : "Following"}
             </button>
           ))}
         </div>
-        <div className="pb-2.5">
-          <OnlineRivalsBadge />
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="What do you think will happen?"
-          rows={2}
-          maxLength={280}
-          className="w-full resize-none rounded-md border border-transparent bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
-        />
-        <div className="flex items-center justify-between">
-          {postError ? (
-            <p className="text-xs text-danger-red">{postError}</p>
-          ) : (
-            <span className="font-mono text-xs text-muted">{draft.length}/280</span>
-          )}
-          <button
-            onClick={submitPost}
-            disabled={!draft.trim() || posting}
-            className="shrink-0 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-[transform,opacity] duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
-          >
-            {posting ? "Posting…" : "Post"}
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-6 flex flex-col gap-4">
-        {visible.map((item, i) => (
-          <div
-            key={item.id}
-            className={i >= visibleCount - PAGE_SIZE ? "stagger-in" : undefined}
-            style={
-              i >= visibleCount - PAGE_SIZE
-                ? { animationDelay: `${(i - (visibleCount - PAGE_SIZE)) * 40}ms` }
-                : undefined
-            }
-          >
-            <ArenaFeedCard
-              item={item}
-              realPosts={realPostsById}
-              realActivity={realActivityById}
-              realHotRooms={realHotRoomsById}
-            />
+        {here.count >= PRESENCE_MIN && (
+          <div className="flex items-center gap-2 pb-2.5 text-[13px] text-muted" aria-live="polite">
+            <span className="flex -space-x-1.5">
+              {here.faces.slice(0, 3).map((f, i) => (
+                <span key={i} className="rounded-full ring-2 ring-background">
+                  <RivalCharacter name={f.name} imageUrl={f.avatar} size={20} />
+                </span>
+              ))}
+            </span>
+            <span>
+              <span className="font-semibold text-foreground">{here.count}</span> here now
+            </span>
           </div>
-        ))}
+        )}
       </div>
 
-      {!done && (
-        <div ref={sentinelRef} className="flex justify-center py-8">
-          <span
-            className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "var(--border-strong)", borderTopColor: "transparent" }}
-            aria-label="Loading more"
-          />
+      {chips.length > 0 && (
+        <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <MatchChipButton active={!matchId} onClick={() => setMatchId(null)}>
+            Everything
+          </MatchChipButton>
+          {chips.map((m) => (
+            <MatchChipButton key={m.id} active={matchId === m.id} onClick={() => setMatchId(matchId === m.id ? null : m.id)}>
+              <TeamCrest name={m.homeTeam} size={16} />
+              <span className="max-w-[9rem] truncate">
+                {m.homeTeam} v {m.awayTeam}
+              </span>
+              {m.status === "live" ? (
+                <span className="font-mono text-[11px] font-bold tabular-nums text-rival-green">
+                  {m.homeScore ?? 0}–{m.awayScore ?? 0}
+                </span>
+              ) : (
+                <span className="font-mono text-[11px] text-muted">{new Date(m.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+              )}
+            </MatchChipButton>
+          ))}
+        </div>
+      )}
+      {filtered === undefined && matchId && (
+        <button type="button" onClick={() => setMatchId(null)} className="mt-3 text-[13px] text-muted underline">
+          Showing one match · show everything
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={() => openComposer(null)}
+        className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-left ring-1 ring-border transition-colors hover:ring-border-strong"
+      >
+        {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={32} /> : <span className="h-8 w-8 rounded-full bg-foreground/10" />}
+        <span className="flex-1 text-[15px] text-muted">{me ? "What's your call?" : "Sign in to post your call"}</span>
+        <span className="rounded-full px-3.5 py-1.5 text-[13px] font-bold text-white" style={{ background: "var(--rival-blue)" }}>
+          Post
+        </span>
+      </button>
+
+      {notice && <p className="mt-3 text-center text-[13px] font-semibold text-rival-red">{notice}</p>}
+
+      {fresh.length > 0 && (
+        <div className="sticky top-[72px] z-10 mt-3 flex justify-center md:top-[88px]">
+          <button
+            type="button"
+            onClick={showFresh}
+            className="rounded-full px-4 py-2 text-[13px] font-bold text-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.6)] [animation:fade-in-up_200ms_ease-out_both]"
+            style={{ background: "var(--rival-blue)" }}
+          >
+            ↑ {newItemsLabel(fresh)}
+          </button>
         </div>
       )}
 
-      {done && filtered.length > 0 && (
-        <div className="flex flex-col items-center gap-3 py-14 text-center">
-          <p className="font-display text-lg font-bold text-foreground">Rivaly</p>
-          <p className="text-sm text-muted">You&rsquo;re caught up. Check back later.</p>
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="mt-1 rounded-full border border-border-strong px-4 py-2 text-sm text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
-          >
+      <div className="mt-4 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+        {state === "loading" && <Skeleton />}
+        {state === "error" && <p className="px-4 py-14 text-center text-sm text-muted">Couldn&apos;t load the Arena. Pull to refresh or try again in a moment.</p>}
+        {state === "ready" && items.length === 0 && (
+          <div className="px-6 py-14 text-center">
+            <p className="font-display text-lg font-bold text-foreground">{scope === "following" ? "Your circle is quiet" : "Quiet for now"}</p>
+            <p className="mt-1 text-sm text-muted">
+              {scope === "following"
+                ? "Follow a few rivals and their calls, stakes and wins land here."
+                : "When matches kick off, every goal lands here. Be the first to make a call."}
+            </p>
+          </div>
+        )}
+        <div className="divide-y divide-border">
+          {items.map((item) => (
+            <div key={`${item.kind}:${item.id}`} className="chat-row-enter">
+              <ArenaCard item={item} actions={actions} />
+            </div>
+          ))}
+        </div>
+        {!done && state === "ready" && items.length > 0 && (
+          <div ref={sentinel} className="flex justify-center py-6">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--border-strong)", borderTopColor: "transparent" }} aria-label="Loading more" />
+          </div>
+        )}
+      </div>
+
+      {done && items.length > 0 && (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="text-sm text-muted">You&rsquo;re caught up.</p>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="rounded-full px-4 py-2 text-sm text-foreground ring-1 ring-border-strong">
             Back to top ↑
           </button>
         </div>
       )}
 
-      {filtered.length === 0 && (
-        <p className="py-14 text-center text-sm text-muted">
-          {scope === "following"
-            ? "Follow a few rivals to see their activity here."
-            : "Nothing here yet."}
-        </p>
-      )}
+      <ArenaComposer
+        key={composer.key}
+        open={composer.open}
+        moment={composer.moment}
+        onOpenChange={(open) => setComposer((c) => ({ ...c, open }))}
+        onPost={post}
+      />
+    </div>
+  );
+}
+
+function MatchChipButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] transition-colors duration-150"
+      style={{
+        background: active ? "var(--foreground)" : "var(--surface)",
+        color: active ? "var(--background)" : "var(--foreground)",
+        boxShadow: active ? "none" : "inset 0 0 0 1px var(--border)",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Skeleton() {
+  return (
+    <div className="divide-y divide-border">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex gap-3 px-4 py-4">
+          <span className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-foreground/5" />
+          <div className="flex-1 space-y-2">
+            <span className="block h-3 w-1/3 animate-pulse rounded bg-foreground/5" />
+            <span className="block h-3 w-4/5 animate-pulse rounded bg-foreground/5" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

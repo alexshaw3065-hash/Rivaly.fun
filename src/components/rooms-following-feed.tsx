@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { getFollowedUserIds } from "@/lib/supabase/arena";
+import { getFollowedUserIds } from "@/lib/arena/data";
 import { fetchPublicRooms, fetchRoomsForProfile, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { useCurrentUser } from "./current-user-provider";
 import { RoomCard } from "./room-card";

@@ -14,6 +14,7 @@ import { QuickDepositSheet } from "./quick-deposit-sheet";
 import { StreakTracker } from "./streak-tracker";
 import { useCurrentUser } from "./current-user-provider";
 import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-store";
+import { ARENA_COMPOSE_EVENT } from "@/lib/arena/events";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
@@ -91,7 +92,22 @@ export function Nav({ children }: { children: ReactNode }) {
           room and on the create page, where the page's own primary action
           (join / throw down) is the one thing to press and the "+" would
           only sit on top of it. */}
-      {!pathname.startsWith("/rooms/") && (
+      {/* On the Arena the same button posts a take — one primary action per
+          screen (arena-feed.tsx listens for the event). */}
+      {pathname === "/arena" && (
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(ARENA_COMPOSE_EVENT))}
+          aria-label="Post a take"
+          className="arena-fab fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
+          style={{ background: "var(--rival-blue)", boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)" }}
+        >
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
+            <path d="M4 18l1-4L14.5 4.5a2.1 2.1 0 0 1 3 3L8 17l-4 1Z" stroke="currentColor" strokeWidth="1.9" fill="none" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
+      {!pathname.startsWith("/rooms/") && pathname !== "/arena" && (
         <Link
           href="/rooms/create"
           prefetch

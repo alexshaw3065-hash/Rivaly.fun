@@ -1,6 +1,25 @@
-# Arena redesign — plan (not built)
+# Arena redesign
 
-Status: **proposed, 2026-09-25.** Nothing here is built yet.
+Status: **built, 2026-09-26 — all three phases.** Founder decisions: keep
+Leagues and Leaderboard as separate tabs (the Table merge in §2.6 was declined);
+Moment cards cover NFL too (touchdowns, field goals).
+
+What shipped: migration `20260926090000_arena_v2.sql` (posts with photo/GIF,
+match tag, moment, calls backed by a real stake, one-level replies;
+`arena_reactions`; real leagues with codes; `arena_feed`, `arena_moments`,
+`arena_leaderboard`, `league_table`; the `arena` realtime channel) ·
+`src/lib/arena/` (typed model + tests, data layer) · `src/components/arena/`
+(cards, composer, replies, post page) · rewritten `arena-feed.tsx`,
+`arena-leagues.tsx`, `arena-leaderboard.tsx` · real profile Activity/Replies ·
+`/arena/p/[postId]` share page. Every sample-data import is gone from the Arena.
+Moments de-duplicate the feed's repeat records, fold NFL's separate scoring and
+player records into one, and drop anything the feed later discarded (e.g. a
+goal VAR took away). Rules checked in a rolled-back transaction: fake calls,
+impersonation, outside image URLs and deep replies are all refused.
+
+Not done yet: a "rooms flipped by this goal" line on moments (shows the room
+count instead); an OG image for shared receipts (the share page has title and
+description only); Arena photos don't expire (chat photos do, after 60 days).
 
 North star: open Rivaly and see straight away what everyone is talking about.
 It should feel like a viewing centre just after a big moment, not a comments

@@ -665,3 +665,8 @@ html[data-room-stuck] .mobile-topbar {
 @media (prefers-reduced-motion: reduce) {
   .typing-dot { animation: none; }
 }
+
+/* The Arena's floating "post a take" button only belongs on its Feed tab. */
+html[data-arena-tab]:not([data-arena-tab="feed"]) .arena-fab {
+  display: none;
+}

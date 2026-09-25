@@ -536,7 +536,7 @@ function MessageRow({
 // ring while it's on its way, and full screen on tap.
 const PHOTO_BOX = { w: 260, h: 320 };
 
-function Photo({ attachment: a }: { attachment: ChatAttachment }) {
+export function Photo({ attachment: a }: { attachment: ChatAttachment }) {
   if (a.type === "gif") return <Gif attachment={a} />;
   return <Still attachment={a} />;
 }
