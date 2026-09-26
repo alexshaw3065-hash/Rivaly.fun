@@ -172,5 +172,5 @@ losing always shows the close call and a rematch.
   opens already about the match you're filtered to, the moment you tapped, or
   the room you came from; suggests the rest as one-tap chips (your stakes as
   calls, the busiest open room as a quote, the match). Tag a match and Room
-  still sit behind "More…". A refused save reopens the composer with your
+  stay on the toolbar as before (a "More…" fold was tried and removed). A refused save reopens the composer with your
   text, media and context and the reason.

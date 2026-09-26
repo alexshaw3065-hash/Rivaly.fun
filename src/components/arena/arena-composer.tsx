@@ -31,7 +31,7 @@ const loadRoomsFromDb: RoomsLoader = async (userId, matchId) => {
  * Posting a take: text, a photo or GIF, and what it's about — a match, a
  * call on a room you've backed, a quote of any open room, or the moment it
  * answers. It opens already filled in with what the page is about, and
- * suggests the rest as one-tap chips; the full lists sit behind "More".
+ * suggests the rest as one-tap chips; the full lists are one tap away on the toolbar.
  */
 export function ArenaComposer({
   open,
@@ -55,7 +55,6 @@ export function ArenaComposer({
   const [progress, setProgress] = useState<number | null>(null);
   const [matchId, setMatchId] = useState<string | null>(preset.room ? null : (preset.matchId ?? null));
   const [call, setCall] = useState<AttachedRoom | null>(preset.room ?? null);
-  const [more, setMore] = useState(false);
   const [panel, setPanel] = useState<"gif" | "match" | "call" | null>(null);
   const [rooms, setRooms] = useState<{ mine: AttachedRoom[]; others: AttachedRoom[] } | null>(null);
   const [error, setError] = useState<string | null>(preset.error ?? null);
@@ -341,12 +340,7 @@ export function ArenaComposer({
             <Tool label="GIF" active={panel === "gif"} onClick={() => setPanel((p) => (p === "gif" ? null : "gif"))}>
               <span className="rounded border-[1.6px] border-current px-1 text-[10px] font-black leading-[14px]">GIF</span>
             </Tool>
-            {!moment && !more && (
-              <button type="button" onClick={() => setMore(true)} className="ml-auto h-10 rounded-full px-3 text-[13px] font-semibold text-muted hover:text-foreground">
-                More…
-              </button>
-            )}
-            {!moment && more && (
+            {!moment && (
               <Tool label="Tag a match" active={panel === "match"} onClick={() => setPanel((p) => (p === "match" ? null : "match"))}>
                 <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
                   <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
@@ -354,7 +348,7 @@ export function ArenaComposer({
                 </svg>
               </Tool>
             )}
-            {!moment && more && (
+            {!moment && (
               <Tool label="Attach a room" active={panel === "call"} onClick={() => setPanel((p) => (p === "call" ? null : "call"))}>
                 <span className="text-[13px] font-bold">Room</span>
               </Tool>
