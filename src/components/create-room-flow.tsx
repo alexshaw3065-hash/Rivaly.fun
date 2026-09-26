@@ -94,7 +94,7 @@ const STEPS: { id: Step; label: string; title: string }[] = [
 // chrome). Four short steps: match → call → room rules → side & stake. Every
 // single-tap choice both selects and advances; every step keeps its state
 // when you jump back through the progress bar, so nothing is picked twice.
-export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatchId?: string; resume?: boolean }) {
+export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initialMatchId?: string; resume?: boolean; vs?: string }) {
   const router = useRouter();
   const currentUser = useCurrentUser();
   const stakeable = useStakeable();
@@ -184,7 +184,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
     if (!currentUser) {
       if (!match || !pick || stakeProblem || limits.error) return;
       saveDraft({ matchId: match.id, pick, fullTime, halfTime, settings, side, stakeDollars });
-      openAuthModal({ next: "/rooms/create?resume=1" });
+      openAuthModal({ next: `/rooms/create?resume=1${vs ? `&vs=${vs}` : ""}` });
       return;
     }
     if (blocker) {
@@ -192,7 +192,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
       // come straight back to this stake, draft intact.
       if (blocker.busy || !match || !pick) return;
       saveDraft({ matchId: match.id, pick, fullTime, halfTime, settings, side, stakeDollars });
-      void reconnect("/rooms/create?resume=1");
+      void reconnect(`/rooms/create?resume=1${vs ? `&vs=${vs}` : ""}`);
       return;
     }
     if (!ready || !match || !pick || pending) return;
@@ -261,6 +261,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
         roomId={result.roomId}
         inviteCode={result.inviteCode}
         signature={result.signature}
+        vs={vs}
       />
     );
   }
@@ -310,6 +311,11 @@ export function CreateRoomFlow({ initialMatchId, resume = false }: { initialMatc
         </button>
       </div>
 
+      {vs && (
+        <p className="mt-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold text-rival-blue ring-1 ring-rival-blue/40">
+          Challenging @{vs}
+        </p>
+      )}
       <h1 className="mt-6 font-display text-3xl font-bold text-foreground md:text-4xl">{STEPS[currentIndex].title}</h1>
 
       {/* The stake step's preview card already carries the match. */}
@@ -632,6 +638,7 @@ function CreatedView({
   roomId,
   inviteCode,
   signature,
+  vs,
 }: {
   match: Match;
   claim: string;
@@ -641,6 +648,8 @@ function CreatedView({
   roomId: string;
   inviteCode: string;
   signature: string;
+  /** Made as a challenge to this person — the share is addressed to them. */
+  vs?: string;
 }) {
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const copiedTimer = useRef<number | undefined>(undefined);
@@ -655,7 +664,10 @@ function CreatedView({
 
   async function share() {
     const url = `${window.location.origin}/rooms/${roomId}`;
-    const text = `${claim}. I'm on ${side === "yes" ? "YES" : "NO"} — prove me wrong. Code ${inviteCode}`;
+    const call = side === "yes" ? "YES" : "NO";
+    const text = vs
+      ? `@${vs} — ${claim}. I'm on ${call}. You take the other side. Code ${inviteCode}`
+      : `${claim}. I'm on ${call} — prove me wrong. Code ${inviteCode}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "Rivaly", text, url });
@@ -673,7 +685,7 @@ function CreatedView({
       <p className="enter-row font-mono text-[11px] font-semibold uppercase tracking-wider" style={{ color: sideColor }}>
         You created the room
       </p>
-      <h1 className="enter-row mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">Now find your rival.</h1>
+      <h1 className="enter-row mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">{vs ? `Now send it to @${vs}.` : "Now find your rival."}</h1>
 
       <div className="mt-6">
         <RoomPreviewCard match={match} claim={claim} side={side} meta={meta} confirmed />
@@ -714,7 +726,7 @@ function CreatedView({
           className="min-h-12 rounded-md border px-4 text-sm font-semibold transition-transform duration-150 ease-out active:scale-[0.98]"
           style={{ borderColor: sideColor, color: sideColor }}
         >
-          {copied === "link" ? "Link copied" : "Challenge a rival"}
+          {copied === "link" ? "Link copied" : vs ? `Send to @${vs}` : "Challenge a rival"}
         </button>
         <Link
           href={`/rooms/${roomId}`}

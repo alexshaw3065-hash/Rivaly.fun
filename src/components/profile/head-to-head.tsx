@@ -15,7 +15,7 @@ const ago = (iso: string | null) => {
 // You vs them: every settled room you were both in on opposite sides, who
 // won each, the last meeting, and a rematch. Only on someone else's profile,
 // signed in.
-export function HeadToHead({ other, initial }: { other: { id: string; name: string; avatarUrl: string | null }; /** Skip the fetch (tests). */ initial?: H2H }) {
+export function HeadToHead({ other, initial }: { other: { id: string; name: string; username: string; avatarUrl: string | null }; /** Skip the fetch (tests). */ initial?: H2H }) {
   const me = useCurrentUser();
   const [h, setH] = useState<H2H | null>(initial ?? null);
 
@@ -74,7 +74,7 @@ export function HeadToHead({ other, initial }: { other: { id: string; name: stri
           </span>
         )}
         <Link
-          href={h.rematchMatchId ? `/rooms/create?matchId=${h.rematchMatchId}` : "/rooms/create"}
+          href={`/rooms/create?${h.rematchMatchId ? `matchId=${h.rematchMatchId}&` : ""}vs=${encodeURIComponent(other.username)}`}
           className="ml-auto rounded-full px-4 py-2 text-sm font-bold text-white"
           style={{ background: "var(--rival-blue)" }}
         >

@@ -20,5 +20,8 @@ function CreateRoomPageContent() {
   const matchId = searchParams.get("matchId") ?? undefined;
   // ?resume=1: coming back from the sign-in that "Throw down" triggered.
   const resume = searchParams.get("resume") === "1";
-  return <CreateRoomFlow initialMatchId={matchId} resume={resume} />;
+  // ?vs=username: a challenge from someone's profile — the room is made for them.
+  const vsRaw = searchParams.get("vs");
+  const vs = vsRaw && /^[a-z0-9_]{3,20}$/i.test(vsRaw) ? vsRaw : undefined;
+  return <CreateRoomFlow initialMatchId={matchId} resume={resume} vs={vs} />;
 }

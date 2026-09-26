@@ -33,8 +33,22 @@ where they are, only their wrong parts fixed:
   played match showed "39d 5h") — they use the real clock; Yes/No only show
   on rooms still taking stakes.
 
-Still proposed: the rest of the layout (Calls tab, compact Rooms tab,
-followers lists, targeted Challenge, share image for the profile).
+**Social pieces: built, 2026-09-26.**
+- Followers / following: tap either count for a sheet with both lists and a
+  Follow button on each person (the count now reads "followers", not
+  "rivals").
+- Targeted Challenge: the profile's Challenge opens a sheet of upcoming
+  matches; picking one opens Create Room with `?vs=username` — a
+  "Challenging @name" tag, "Now send it to @name.", and a share message
+  addressed to them ("@name — …. You take the other side."). You-vs-them's
+  Rematch/Challenge carry the same `vs`. (No DMs yet — sending means the
+  share sheet.)
+- Share image: profile links unfurl with the person's Rivaly card beside
+  their name, record and form (`/profile/[username]/opengraph-image`), with
+  a proper title/description; the profile's share icon opens the phone's
+  share sheet.
+
+Still proposed: Calls tab, compact Rooms tab.
 
 What a Rivaly profile is for: **who is this person as a predictor, and how
 do I stack up against them?** Identity, a record you can trust, and a reason

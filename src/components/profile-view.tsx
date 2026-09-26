@@ -6,6 +6,8 @@ import type { Profile, SocialLink } from "@/lib/types";
 import { formatMoney, formatMoneyCompact, formatSignedMoney } from "@/lib/mock-data";
 import { fetchCardNumbers, type CardNumbers } from "@/lib/player-card-client";
 import { HeadToHead } from "./profile/head-to-head";
+import { FollowListSheet } from "./profile/follow-list-sheet";
+import { ChallengeSheet } from "./profile/challenge-sheet";
 import { socialPlatformInfo } from "@/lib/social-platforms";
 import { updateProfile } from "@/app/profile/actions";
 import { Avatar, RING_COLORS, hashToIndex } from "./avatar";
@@ -46,18 +48,24 @@ function IconButton({
   );
 }
 
-function ShareButton() {
+function ShareButton({ name }: { name: string }) {
   const [copied, setCopied] = useState(false);
+  async function share() {
+    const url = window.location.href.split("?")[0];
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${name} on Rivaly`, text: `${name}'s Rivaly card — think you can beat them?`, url });
+        return;
+      }
+    } catch {
+      return; // dismissed
+    }
+    await navigator.clipboard?.writeText(url).catch(() => undefined);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
   return (
-    <IconButton
-      onClick={() => {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1500);
-        });
-      }}
-      title={copied ? "Copied" : "Copy profile link"}
-    >
+    <IconButton onClick={() => void share()} title={copied ? "Link copied" : "Share profile"}>
       <ShareIcon />
     </IconButton>
   );
@@ -90,6 +98,8 @@ function ProfileHeader({
   const [ringColor, setRingColor] = useState(profile.ringColor ?? RING_COLORS[hashToIndex(profile.id, RING_COLORS.length)]);
   const [bannerColor, setBannerColor] = useState(profile.bannerColor ?? BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)]);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [listTab, setListTab] = useState<"followers" | "following" | null>(null);
+  const [challengeOpen, setChallengeOpen] = useState(false);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(profile.socialLinks);
   const [, startSaveTransition] = useTransition();
 
@@ -109,7 +119,7 @@ function ProfileHeader({
     <div>
       <div className="relative h-24 rounded-t-lg md:h-32" style={{ background: bannerColor }}>
         <div className="absolute right-3 top-3 flex items-center gap-2">
-          <ShareButton />
+          <ShareButton name={displayName} />
           {isSelf ? (
             <>
               <IconButton onClick={() => setSettingsOpen(true)} title="Settings">
@@ -128,13 +138,14 @@ function ProfileHeader({
           ) : (
             <>
               <FollowButton profileId={profile.id} initialFollowing={initialFollowing} />
-              <Link
-                href="/rooms/create"
+              <button
+                type="button"
+                onClick={() => setChallengeOpen(true)}
                 className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground backdrop-blur-sm transition-transform duration-150 ease-out active:scale-[0.97]"
                 style={{ background: "rgba(10,10,10,0.35)" }}
               >
                 Challenge
-              </Link>
+              </button>
             </>
           )}
         </div>
@@ -173,12 +184,12 @@ function ProfileHeader({
         </div>
 
         <div className="mt-2 flex gap-4 text-sm text-muted">
-          <span>
-            <span className="font-medium text-foreground">{profile.followerCount.toLocaleString()}</span> rivals
-          </span>
-          <span>
-            <span className="font-medium text-foreground">{profile.followingCount}</span> following
-          </span>
+          <button type="button" onClick={() => setListTab("followers")} className="hover:underline">
+            <span className="font-medium text-foreground">{profile.followerCount.toLocaleString()}</span> followers
+          </button>
+          <button type="button" onClick={() => setListTab("following")} className="hover:underline">
+            <span className="font-medium text-foreground">{profile.followingCount.toLocaleString()}</span> following
+          </button>
           <span>
             <span className="font-medium text-foreground">{profile.roomsCreated}</span> rooms
           </span>
@@ -240,6 +251,15 @@ function ProfileHeader({
           <ProfileAchievements profile={profile} isSelf={isSelf} stats={stats} />
         </div>
       </div>
+
+      <FollowListSheet
+        profileId={profile.id}
+        name={displayName}
+        tab={listTab}
+        counts={{ followers: profile.followerCount, following: profile.followingCount }}
+        onClose={() => setListTab(null)}
+      />
+      {!isSelf && <ChallengeSheet open={challengeOpen} onClose={() => setChallengeOpen(false)} username={profile.username} name={displayName} />}
 
       {isSelf && (
         <>
@@ -318,7 +338,7 @@ export function ProfileView({
         }}
       />
 
-      {!isSelf && <HeadToHead other={{ id: profile.id, name: profile.displayName, avatarUrl: profile.avatarUrl }} />}
+      {!isSelf && <HeadToHead other={{ id: profile.id, name: profile.displayName, username: profile.username, avatarUrl: profile.avatarUrl }} />}
 
       <div className="mt-6 grid grid-cols-3 gap-3 border-t border-border pt-6">
         <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
