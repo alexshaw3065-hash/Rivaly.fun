@@ -290,7 +290,8 @@ export async function fetchPlayerNames(matchIds: string[]): Promise<Record<strin
 
 // ── Leaderboard + leagues ──────────────────────────────────────────────
 
-export type LeaderMetric = "profit" | "gameweek" | "accuracy" | "streak";
+export type LeaderMetric = "profit" | "points" | "accuracy" | "streak";
+export type LeaderPeriod = "today" | "week" | "month" | "all";
 
 export interface LeaderRow {
   userId: string;
@@ -299,13 +300,27 @@ export interface LeaderRow {
   avatar: string | null;
   value: number;
   played: number;
+  rank: number;
+  isMe: boolean;
+  following: boolean;
 }
 
-export async function fetchLeaderboard(metric: LeaderMetric, scope: FeedScope): Promise<LeaderRow[]> {
-  const { data, error } = await createClient().rpc("arena_leaderboard", { p_metric: metric, p_scope: scope });
+/** Top 50 for a metric and period — plus your own row wherever you are, so it can be pinned. */
+export async function fetchLeaderboard(metric: LeaderMetric, period: LeaderPeriod): Promise<LeaderRow[]> {
+  const { data, error } = await createClient().rpc("arena_leaderboard", { p_metric: metric, p_period: period });
   if (error) throw new Error(error.message);
-  type Row = { user_id: string; username: string | null; display_name: string; avatar_url: string | null; value: number | string; played: number };
-  return ((data ?? []) as Row[]).map((r) => ({ userId: r.user_id, username: r.username, name: displayName(r.display_name, r.username), avatar: r.avatar_url, value: Number(r.value), played: r.played }));
+  type Row = { user_id: string; username: string | null; display_name: string; avatar_url: string | null; value: number | string; played: number; rank: number; is_me: boolean; following: boolean };
+  return ((data ?? []) as Row[]).map((r) => ({
+    userId: r.user_id,
+    username: r.username,
+    name: displayName(r.display_name, r.username),
+    avatar: r.avatar_url,
+    value: Number(r.value),
+    played: r.played,
+    rank: r.rank,
+    isMe: r.is_me,
+    following: r.following,
+  }));
 }
 
 export interface League {

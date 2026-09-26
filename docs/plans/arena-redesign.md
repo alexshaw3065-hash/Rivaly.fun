@@ -189,3 +189,11 @@ losing always shows the close call and a rematch.
   views, "Post your reply", then every reply as a full post with its own
   reactions and views. Replying to a reply tags that person (@name) under the
   same post — threads stay one level deep.
+
+## Leaderboard, one row (built 2026-09-26, migration `20260926200000_leaderboard_periods.sql`)
+
+Winnings · Points · Accuracy · Streaks, with a period pill (Today · This week ·
+This month · All time; hidden on Streaks, which are always the current run).
+The Everyone/People-you-follow switch is gone: people you follow carry a
+"Following" tag in the list, and your own rank is pinned at the bottom even
+from outside the top 50.
