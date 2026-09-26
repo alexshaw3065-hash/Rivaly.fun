@@ -1,15 +1,12 @@
 import Image from "next/image";
 import { cloudinaryAvatarUrl } from "@/lib/cloudinary";
+import { hashToIndex } from "@/lib/hash";
 
 export const RING_COLORS = ["var(--rival-blue)", "var(--rival-green)", "var(--border-strong)"];
 
-// Exported so other profile-header pieces (the banner color) can derive a
-// deterministic value from the same name without duplicating the hash.
-export function hashToIndex(input: string, mod: number): number {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
-  return hash % mod;
-}
+// Re-exported so profile-header pieces (the banner colour) derive from the
+// same hash as everything else.
+export { hashToIndex } from "@/lib/hash";
 
 export function Avatar({
   name,

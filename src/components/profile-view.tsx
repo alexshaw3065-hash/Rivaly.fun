@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import type { Profile, SocialLink } from "@/lib/types";
-import { formatMoney, formatMoneyCompact, repliesByAuthor, activityForProfile } from "@/lib/mock-data";
+import { formatMoney, formatMoneyCompact, formatSignedMoney } from "@/lib/mock-data";
+import { fetchCardNumbers, type CardNumbers } from "@/lib/player-card-client";
+import { HeadToHead } from "./profile/head-to-head";
 import { socialPlatformInfo } from "@/lib/social-platforms";
 import { updateProfile } from "@/app/profile/actions";
 import { Avatar, RING_COLORS, hashToIndex } from "./avatar";
@@ -278,35 +280,47 @@ export function ProfileView({
   const [tab, setTab] = useState<ProfileTab>("position");
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("open");
   const positions = useProfilePositions(profile.id);
+  // The real record, from settled public rooms (the same numbers as the card).
+  const [card, setCard] = useState<CardNumbers | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchCardNumbers(profile.id).then((c) => live && setCard(c));
+    return () => {
+      live = false;
+    };
+  }, [profile.id]);
 
-  const tabs: { id: ProfileTab; label: string; count: number }[] = [
+  const tabs: { id: ProfileTab; label: string; count: number | null }[] = [
     { id: "position", label: "Position", count: positions.items.length },
-    { id: "replies", label: "Replies", count: repliesByAuthor(profile.id).length },
-    { id: "activity", label: "Activity", count: activityForProfile(profile.id).length },
+    { id: "replies", label: "Replies", count: null },
+    { id: "activity", label: "Activity", count: null },
   ];
 
   return (
     <>
       <ProfileHeader profile={profile} isSelf={isSelf} initialFollowing={initialFollowing} />
 
+      {!isSelf && <HeadToHead other={{ id: profile.id, name: profile.displayName, avatarUrl: profile.avatarUrl }} />}
+
       <div className="mt-6 grid grid-cols-3 gap-3 border-t border-border pt-6">
         <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
+          <p className="truncate font-mono text-lg font-medium text-foreground md:text-2xl">{card ? `${card.wins}–${card.losses}` : "–"}</p>
+          <p className="mt-0.5 text-xs text-muted">Record</p>
+        </div>
+        <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
           <p className="truncate font-mono text-lg font-medium text-foreground md:text-2xl">
-            {Math.round(profile.predictionAccuracy * 100)}%
+            {card && card.played > 0 ? `${Math.round((card.wins / card.played) * 100)}%` : "–"}
           </p>
           <p className="mt-0.5 text-xs text-muted">Accuracy</p>
         </div>
-        <div className="min-w-0 rounded-lg border border-border bg-surface p-4" title={formatMoney(profile.totalWinningsCents)}>
-          <p className="truncate font-mono text-lg font-medium text-rival-green md:text-2xl">
-            {formatMoneyCompact(profile.totalWinningsCents)}
+        <div className="min-w-0 rounded-lg border border-border bg-surface p-4" title={card ? formatMoney(Math.abs(card.profit)) : undefined}>
+          <p
+            className="truncate font-mono text-lg font-medium md:text-2xl"
+            style={{ color: !card || card.profit === 0 ? "var(--foreground)" : card.profit > 0 ? "var(--rival-green)" : "var(--rival-red)" }}
+          >
+            {card ? (card.profit === 0 ? "$0" : Math.abs(card.profit) >= 100_000 ? `${card.profit > 0 ? "+" : "−"}${formatMoneyCompact(Math.abs(card.profit))}` : formatSignedMoney(card.profit)) : "–"}
           </p>
-          <p className="mt-0.5 text-xs text-muted">Total winnings</p>
-        </div>
-        <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
-          <p className="truncate font-mono text-lg font-medium text-foreground md:text-2xl">
-            {profile.roomsCreated}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">Rooms created</p>
+          <p className="mt-0.5 text-xs text-muted">Winnings</p>
         </div>
       </div>
 
@@ -332,7 +346,8 @@ export function ProfileView({
                 color: tab === t.id ? "var(--foreground)" : "var(--muted)",
               }}
             >
-              {t.label} ({t.count})
+              {t.label}
+              {t.count !== null && ` (${t.count})`}
             </button>
           ))}
         </div>

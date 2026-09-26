@@ -1,6 +1,19 @@
 # Profile — audit and redesign plan (not built)
 
-Status: **proposed, 2026-09-26.** Nothing here is built yet.
+Status: **partly built, 2026-09-26.** Built first (founder's call): **You vs
+them** and the **Rivaly card** rebuilt on real data (migration
+`20260926220000_player_card_and_head_to_head.sql`):
+- `player_card(user)`: six attributes (ACC accuracy, FRM last-5 form, STR
+  streak, EXP rooms played, WIN profit percentile, FAN followers), an overall
+  rating from 3 settled public rooms ("NR" before), fixed tiers (gold 75+,
+  silver 60+, bronze below). The card is one server-made PNG
+  (`/profile/[username]/card`, gold/silver/bronze art in `public/card-*.png`)
+  so it never loads text-then-image; Share sends that file.
+- `head_to_head(other)`: settled rooms you both entered on opposite sides,
+  the last meeting, rooms live between you, a rematch fixture.
+- The profile's stat tiles now read the real record (Record · Accuracy ·
+  Winnings); the sample-data Rivaly Score and the wrong tab counts are gone.
+The rest of this plan is still proposed.
 
 What a Rivaly profile is for: **who is this person as a predictor, and how
 do I stack up against them?** Identity, a record you can trust, and a reason
