@@ -9,6 +9,7 @@ import { SplitBar } from "./split-bar";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
 import { ShareButton } from "./share-button";
+import { ArenaQuoteButton } from "./arena/arena-room-buttons";
 import { RivalsInRoom } from "./rivals-in-room";
 import { TeamCrest } from "./team-crest";
 import { abbreviateClaim, teamIdentity } from "@/lib/team-identity";
@@ -101,6 +102,9 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
         <span title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>
         <div className="flex items-center gap-3">
           <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
+          {room.visibility === "public" && room.status === "open" && (
+            <ArenaQuoteButton room={{ id: room.id, prediction: room.prediction, matchId: room.matchId }} />
+          )}
           <ShareButton path={`/rooms/${room.id}`} label="room" />
           <BookmarkButton id={room.id} label="room" />
         </div>

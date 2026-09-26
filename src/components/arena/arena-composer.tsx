@@ -10,58 +10,64 @@ import { klipyCustomerId, klipyShared, type KlipyGif } from "@/lib/klipy";
 import { useRealMatches } from "@/lib/use-real-matches";
 import type { ChatAttachment } from "@/lib/supabase/message-mapper";
 import { fetchCallableRooms, fetchQuotableRooms } from "@/lib/arena/data";
-import { momentHeadline, type MomentItem, type PostItem, type Side } from "@/lib/arena/model";
+import { momentHeadline, type PostItem } from "@/lib/arena/model";
+import type { ComposerPreset, ComposerRoom } from "@/lib/arena/composer-store";
 import type { NewPost } from "@/lib/arena/data";
 
 const MAX = 500;
 const tidy = (t: string) => t.replace(/\n{3,}/g, "\n\n").trim();
 
-interface AttachedRoom {
-  id: string;
-  prediction: string;
-  /** The side you staked — a call. Null for a quote (any public room). */
-  side: Side | null;
-  matchId: string | null;
-}
+type AttachedRoom = ComposerRoom;
+export type RoomsLoader = (userId: string | null, matchId: string | null) => Promise<{ mine: AttachedRoom[]; others: AttachedRoom[] }>;
+
+// Your stakes (possible calls) and open public rooms (possible quotes).
+const loadRoomsFromDb: RoomsLoader = async (userId, matchId) => {
+  const [mine, open] = await Promise.all([userId ? fetchCallableRooms(userId) : Promise.resolve([]), fetchQuotableRooms(matchId)]);
+  const backed = new Set(mine.map((r) => r.id));
+  return { mine, others: open.filter((r) => !backed.has(r.id)).map((r) => ({ id: r.id, prediction: r.prediction, side: null, matchId: r.matchId })) };
+};
 
 /**
- * Posting a take: text, a photo or GIF, a match tag, or a call on a room
- * you've backed. Opens from the one-line prompt, the floating button, or
- * "Add a take" on a moment (which answers that moment).
+ * Posting a take: text, a photo or GIF, and what it's about — a match, a
+ * call on a room you've backed, a quote of any open room, or the moment it
+ * answers. It opens already filled in with what the page is about, and
+ * suggests the rest as one-tap chips; the full lists sit behind "More".
  */
 export function ArenaComposer({
   open,
   onOpenChange,
-  moment,
+  preset,
   onPost,
+  loadRooms = loadRoomsFromDb,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  moment: MomentItem | null;
+  preset: ComposerPreset;
   onPost: (post: NewPost, optimistic: PostItem) => void;
+  loadRooms?: RoomsLoader;
 }) {
+  const moment = preset.moment ?? null;
   const me = useCurrentUser();
   const { matches } = useRealMatches();
-  const [body, setBody] = useState("");
-  const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
+  const [body, setBody] = useState(preset.body ?? "");
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(preset.attachment ?? null);
   const [gifQuery, setGifQuery] = useState<{ slug: string; q: string } | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
-  const [matchId, setMatchId] = useState<string | null>(null);
-  const [call, setCall] = useState<AttachedRoom | null>(null);
+  const [matchId, setMatchId] = useState<string | null>(preset.room ? null : (preset.matchId ?? null));
+  const [call, setCall] = useState<AttachedRoom | null>(preset.room ?? null);
+  const [more, setMore] = useState(false);
   const [panel, setPanel] = useState<"gif" | "match" | "call" | null>(null);
   const [rooms, setRooms] = useState<{ mine: AttachedRoom[]; others: AttachedRoom[] } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(preset.error ?? null);
   const [now] = useState(() => Date.now());
   const fileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (panel !== "call" || rooms) return;
-    void Promise.all([me ? fetchCallableRooms(me.id) : Promise.resolve([]), fetchQuotableRooms(moment?.match.id ?? matchId)]).then(([mine, open]) => {
-      const backed = new Set(mine.map((r) => r.id));
-      setRooms({ mine, others: open.filter((r) => !backed.has(r.id)).map((r) => ({ id: r.id, prediction: r.prediction, side: null, matchId: r.matchId })) });
-    });
-  }, [panel, me, rooms, moment, matchId]);
+    // Loaded on open: they feed both the suggestion chips and the Room list.
+    if (!open || rooms) return;
+    void loadRooms(me?.id ?? null, moment?.match.id ?? preset.matchId ?? null).then(setRooms);
+  }, [open, me, rooms, moment, preset.matchId, loadRooms]);
 
   useLayoutEffect(() => {
     const el = boxRef.current;
@@ -71,6 +77,19 @@ export function ArenaComposer({
   }, [body, open]);
 
   const tagged = matches.find((m) => m.id === matchId) ?? null;
+  // One-tap suggestions: the match this is about (or the live one), your
+  // stakes on it (calls), and its busiest open room (a quote).
+  const focusMatch = preset.matchId ?? matches.find((m) => m.status === "live")?.id ?? null;
+  const focusMatchRow = matches.find((m) => m.id === focusMatch) ?? null;
+  const byFocus = (list: AttachedRoom[]) => [...list.filter((r) => r.matchId === focusMatch), ...list.filter((r) => r.matchId !== focusMatch)];
+  const suggestions = !moment && !call
+    ? {
+        match: focusMatchRow && matchId !== focusMatchRow.id ? focusMatchRow : null,
+        calls: byFocus(rooms?.mine ?? []).slice(0, 2),
+        quote: byFocus(rooms?.others ?? [])[0] ?? null,
+      }
+    : null;
+  const hasSuggestions = !!suggestions && (!!suggestions.match || suggestions.calls.length > 0 || !!suggestions.quote);
   const pickable = matches.filter((m) => m.status === "live" || (m.status === "scheduled" && +new Date(m.kickoffAt) - now < 3 * 86_400_000)).slice(0, 30);
   const uploading = progress !== null && progress < 1;
   const canPost = !!me && !uploading && (tidy(body).length > 0 || !!attachment);
@@ -225,6 +244,33 @@ export function ArenaComposer({
               </div>
             )}
             {error && <p className="mt-2 text-[13px] font-semibold text-rival-red">{error}</p>}
+            {hasSuggestions && suggestions && (
+              <div className="mt-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted">About</p>
+                <div className="no-scrollbar -mx-4 mt-1.5 flex gap-2 overflow-x-auto px-4 pb-1">
+                  {suggestions.match && (
+                    <Suggestion onClick={() => setMatchId(suggestions.match!.id)}>
+                      <TeamCrest name={suggestions.match.homeTeam} size={14} />
+                      {suggestions.match.homeTeam} v {suggestions.match.awayTeam}
+                    </Suggestion>
+                  )}
+                  {suggestions.calls.map((r) => (
+                    <Suggestion key={r.id} onClick={() => setCall(r)}>
+                      <span className="font-bold uppercase" style={{ color: r.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}>
+                        Call {r.side}
+                      </span>
+                      <span className="max-w-[12rem] truncate">{r.prediction}</span>
+                    </Suggestion>
+                  ))}
+                  {suggestions.quote && (
+                    <Suggestion onClick={() => setCall(suggestions.quote)}>
+                      <span className="font-bold uppercase text-muted">Quote</span>
+                      <span className="max-w-[12rem] truncate">{suggestions.quote.prediction}</span>
+                    </Suggestion>
+                  )}
+                </div>
+              </div>
+            )}
 
             {panel === "gif" && (
               <div className="mt-3">
@@ -295,7 +341,12 @@ export function ArenaComposer({
             <Tool label="GIF" active={panel === "gif"} onClick={() => setPanel((p) => (p === "gif" ? null : "gif"))}>
               <span className="rounded border-[1.6px] border-current px-1 text-[10px] font-black leading-[14px]">GIF</span>
             </Tool>
-            {!moment && (
+            {!moment && !more && (
+              <button type="button" onClick={() => setMore(true)} className="ml-auto h-10 rounded-full px-3 text-[13px] font-semibold text-muted hover:text-foreground">
+                More…
+              </button>
+            )}
+            {!moment && more && (
               <Tool label="Tag a match" active={panel === "match"} onClick={() => setPanel((p) => (p === "match" ? null : "match"))}>
                 <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
                   <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
@@ -303,7 +354,7 @@ export function ArenaComposer({
                 </svg>
               </Tool>
             )}
-            {!moment && (
+            {!moment && more && (
               <Tool label="Attach a room" active={panel === "call"} onClick={() => setPanel((p) => (p === "call" ? null : "call"))}>
                 <span className="text-[13px] font-bold">Room</span>
               </Tool>
@@ -373,5 +424,17 @@ function RoomGroup({ title, hint, rooms, onPick }: { title: string; hint: string
         </button>
       ))}
     </div>
+  );
+}
+
+function Suggestion({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] text-foreground ring-1 ring-border transition-colors hover:ring-border-strong active:scale-95"
+    >
+      {children}
+    </button>
   );
 }

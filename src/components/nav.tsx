@@ -14,7 +14,9 @@ import { QuickDepositSheet } from "./quick-deposit-sheet";
 import { StreakTracker } from "./streak-tracker";
 import { useCurrentUser } from "./current-user-provider";
 import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-store";
-import { ARENA_COMPOSE_EVENT } from "@/lib/arena/events";
+import { openArenaComposer } from "@/lib/arena/composer-store";
+import { openAuthModal } from "@/lib/auth-modal-store";
+import { ArenaComposerHost } from "./arena/arena-composer-host";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
@@ -80,6 +82,7 @@ export function Nav({ children }: { children: ReactNode }) {
       <QuickDepositSheet />
       <StreakTracker />
       <AppPreloader />
+      <ArenaComposerHost />
 
       {/* Fixed positioning throughout (sidebar, header, mobile bars) means
           this wrapper only ever needs padding, never flex, to make room for
@@ -97,7 +100,7 @@ export function Nav({ children }: { children: ReactNode }) {
       {pathname === "/arena" && (
         <button
           type="button"
-          onClick={() => window.dispatchEvent(new Event(ARENA_COMPOSE_EVENT))}
+          onClick={() => (currentUser ? openArenaComposer() : openAuthModal({ next: "/arena" }))}
           aria-label="Post a take"
           className="arena-fab fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
           style={{ background: "var(--rival-blue)", boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)" }}

@@ -16,12 +16,14 @@ export function RoomTakeSide({
   maxStakeCents,
   returnPath,
   preselect,
+  canCall = false,
 }: {
   roomId: string;
   minStakeCents: number;
   maxStakeCents: number | null;
   returnPath: string;
   preselect: EntrySide | null;
+  canCall?: boolean;
 }) {
   const sheetSide = useStakeSheet();
   const setSheetSide = openStakeSheet;
@@ -39,6 +41,7 @@ export function RoomTakeSide({
       maxStakeCents={maxStakeCents}
       initialSide={side}
       returnPath={returnPath}
+      canCall={canCall}
     />
   );
 

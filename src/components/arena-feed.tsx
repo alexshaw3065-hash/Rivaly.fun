@@ -7,11 +7,10 @@ import { RivalCharacter } from "./rival-character";
 import { TeamCrest } from "./team-crest";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { useRealMatches } from "@/lib/use-real-matches";
-import { ARENA_COMPOSE_EVENT } from "@/lib/arena/events";
+import { ARENA_POST_FAILED, ARENA_POSTED, openArenaComposer, setComposerContext, type FailedDetail, type PostedDetail } from "@/lib/arena/composer-store";
 import { ArenaCard, type CardActions } from "./arena/arena-cards";
-import { ArenaComposer } from "./arena/arena-composer";
 import { ArenaMatchRooms } from "./arena/arena-match-rooms";
-import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, savePost, setReaction, type FeedScope, type NewPost } from "@/lib/arena/data";
+import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, setReaction, type FeedScope } from "@/lib/arena/data";
 import {
   appendPage,
   cursorOf,
@@ -52,7 +51,6 @@ export function ArenaFeed() {
   const [names, setNames] = useState<Record<string, Record<number, string>>>({});
   const [matchRooms, setMatchRooms] = useState<Record<string, MatchRoom[]>>({});
   const [roomsFor, setRoomsFor] = useState<MomentItem | null>(null);
-  const [composer, setComposer] = useState<{ open: boolean; moment: MomentItem | null; key: number }>({ open: false, moment: null, key: 0 });
   const [notice, setNotice] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
   const [here, setHere] = useState<{ count: number; faces: Face[] }>({ count: 0, faces: [] });
@@ -166,22 +164,37 @@ export function ArenaFeed() {
     return () => io.disconnect();
   }, [done, state, scope, matchId, items.length]);
 
-  // The floating button (nav.tsx) opens the composer here.
+  // The composer is app-wide (arena-composer-host.tsx). From here it opens
+  // already about the match you're filtered to, or the moment you tapped.
   const openComposer = useCallback(
     (moment: MomentItem | null = null) => {
       if (!me) {
         openAuthModal({ next: "/arena" });
         return;
       }
-      setComposer((c) => ({ open: true, moment, key: c.key + 1 }));
+      openArenaComposer(moment ? { moment } : {});
     },
     [me],
   );
   useEffect(() => {
-    const on = () => openComposer(null);
-    window.addEventListener(ARENA_COMPOSE_EVENT, on);
-    return () => window.removeEventListener(ARENA_COMPOSE_EVENT, on);
-  }, [openComposer]);
+    setComposerContext({ matchId });
+    return () => setComposerContext({ matchId: null });
+  }, [matchId]);
+  // What gets posted — from here or anywhere — shows at the top at once, and
+  // comes off again if the save is refused (the host puts the text back).
+  useEffect(() => {
+    const posted = (e: Event) => setItems((cur) => [(e as CustomEvent<PostedDetail>).detail.item, ...cur]);
+    const failed = (e: Event) => {
+      const id = (e as CustomEvent<FailedDetail>).detail.id;
+      setItems((cur) => cur.filter((i) => !(i.kind === "post" && i.id === id)));
+    };
+    window.addEventListener(ARENA_POSTED, posted);
+    window.addEventListener(ARENA_POST_FAILED, failed);
+    return () => {
+      window.removeEventListener(ARENA_POSTED, posted);
+      window.removeEventListener(ARENA_POST_FAILED, failed);
+    };
+  }, []);
 
   function showFresh() {
     setItems((cur) => [...fresh, ...cur]);
@@ -193,16 +206,6 @@ export function ArenaFeed() {
     setNotice(text);
     setTimeout(() => setNotice(null), 4000);
   };
-
-  async function post(p: NewPost, optimistic: PostItem) {
-    if (!me) return;
-    setItems((cur) => [optimistic, ...cur]);
-    const refused = await savePost(me.id, p);
-    if (refused) {
-      setItems((cur) => cur.filter((i) => !(i.kind === "post" && i.id === p.id)));
-      flash(refused);
-    }
-  }
 
   const actions: CardActions = useMemo(
     () => ({
@@ -366,13 +369,6 @@ export function ArenaFeed() {
       )}
 
       <ArenaMatchRooms moment={roomsFor} rooms={roomsFor ? (matchRooms[roomsFor.match.id] ?? []) : []} onClose={() => setRoomsFor(null)} />
-      <ArenaComposer
-        key={composer.key}
-        open={composer.open}
-        moment={composer.moment}
-        onOpenChange={(open) => setComposer((c) => ({ ...c, open }))}
-        onPost={post}
-      />
     </div>
   );
 }

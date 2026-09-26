@@ -160,3 +160,17 @@ losing always shows the close call and a rematch.
 1. Fold Leagues and Leaderboard into one **Table** tab? (Recommended.)
 2. Moment cards for NFL too (touchdowns, field goals), or football only for now?
 3. Start with Phase 1 now? It's small and fixes the made-up data problem.
+
+## Faster posting (built 2026-09-26)
+
+- **Call it right after staking:** the stake success card asks "Tell them why?"
+  with a Post call button and Skip (public rooms only).
+- **Inside a room:** "Call it · YES" (you've staked) or "Share to Arena" (open
+  room, not staked) posts from right there.
+- **Room cards:** a Share-to-Arena icon quotes the room in one tap.
+- **One app-wide composer** (`arena-composer-host.tsx`, mounted in `nav.tsx`):
+  opens already about the match you're filtered to, the moment you tapped, or
+  the room you came from; suggests the rest as one-tap chips (your stakes as
+  calls, the busiest open room as a quote, the match). Tag a match and Room
+  still sit behind "More…". A refused save reopens the composer with your
+  text, media and context and the reason.

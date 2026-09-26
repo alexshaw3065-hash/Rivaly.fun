@@ -12,6 +12,7 @@ import { WalletLine } from "./wallet/wallet-line";
 import { StakeButton } from "./stake-button";
 import { useStake } from "@/lib/escrow/use-stake";
 import { explorerTxUrl } from "@/lib/wallet/constants";
+import { CallItPrompt } from "./arena/call-it-prompt";
 
 const SIDE = {
   yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
@@ -32,6 +33,7 @@ export function JoinPanel({
   initialEntry = null,
   initialSide = null,
   returnPath,
+  canCall = false,
 }: {
   roomId: string;
   minStakeCents: number;
@@ -39,6 +41,8 @@ export function JoinPanel({
   initialEntry?: EntrySide | null;
   initialSide?: EntrySide | null;
   returnPath: string;
+  /** Public room: right after staking, offer to post it to the Arena as a call. */
+  canCall?: boolean;
 }) {
   const router = useRouter();
   const currentUser = useCurrentUser();
@@ -76,6 +80,7 @@ export function JoinPanel({
             Verify your stake on Solana ↗
           </a>
         )}
+        {canCall && entered.cents !== null && <CallItPrompt roomId={roomId} side={entered.side} />}
       </div>
     );
   }

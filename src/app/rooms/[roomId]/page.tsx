@@ -22,6 +22,7 @@ import { RoomLive } from "@/components/room-live";
 import { RoomStage } from "@/components/room/room-stage";
 import { SideStands } from "@/components/room/side-stands";
 import { RoomTakeSide } from "@/components/room/room-take-side";
+import { RoomArenaCta } from "@/components/arena/arena-room-buttons";
 import { settleRoom } from "@/lib/settlement/settle";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import { abbreviateClaim, teamIdentity } from "@/lib/team-identity";
@@ -184,6 +185,14 @@ export default async function RoomPage({
               claim={claim}
             />
 
+            {room.visibility === "public" && (room.status === "open" || room.status === "live") && (
+              <RoomArenaCta
+                room={{ id: room.id, prediction: room.prediction, matchId: room.matchId }}
+                mySide={myEntry?.side ?? null}
+                canQuote={room.status === "open"}
+              />
+            )}
+
             <RoomTabs
               chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} initialReactions={reactions} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} />}
               match={match}
@@ -249,6 +258,7 @@ export default async function RoomPage({
                   maxStakeCents={room.maxStakeCents}
                   returnPath={sharePath}
                   preselect={preselect}
+                  canCall={room.visibility === "public"}
                 />
               ))}
 
