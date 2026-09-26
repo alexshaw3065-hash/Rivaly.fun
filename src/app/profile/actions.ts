@@ -4,17 +4,19 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isCloudinaryUrl } from "@/lib/cloudinary";
 import type { SocialLink } from "@/lib/types";
+import { BANNER_COLORS, RING_COLORS } from "@/lib/profile-palette";
 
 export type UpdateProfileResult = { ok: true } | { ok: false; error: string };
 
-// displayName/bio/socialLinks/avatarUrl. ringColor/bannerColor stay a
-// local, session-only preview for now (no ring_color/banner_color columns
-// exist yet — a deliberate smaller-scope cut, not an oversight).
+// displayName/bio/socialLinks/avatarUrl, plus the banner and ring colours
+// (only the app's own palette values are accepted).
 export async function updateProfile(input: {
   displayName: string;
   bio: string;
   socialLinks: SocialLink[];
   avatarUrl?: string | null;
+  bannerColor?: string;
+  ringColor?: string;
 }): Promise<UpdateProfileResult> {
   const supabase = await createClient();
   const {
@@ -29,6 +31,9 @@ export async function updateProfile(input: {
     return { ok: false, error: "Couldn't save that photo — try again." };
   }
 
+  if (input.bannerColor !== undefined && !BANNER_COLORS.includes(input.bannerColor)) return { ok: false, error: "Couldn't save that colour." };
+  if (input.ringColor !== undefined && !RING_COLORS.includes(input.ringColor)) return { ok: false, error: "Couldn't save that colour." };
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -36,6 +41,8 @@ export async function updateProfile(input: {
       bio: input.bio.trim() || null,
       social_links: input.socialLinks,
       ...(input.avatarUrl !== undefined ? { avatar_url: input.avatarUrl } : {}),
+      ...(input.bannerColor !== undefined ? { banner_color: input.bannerColor } : {}),
+      ...(input.ringColor !== undefined ? { ring_color: input.ringColor } : {}),
     })
     .eq("id", user.id);
 

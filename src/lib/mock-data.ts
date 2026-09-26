@@ -64,18 +64,11 @@ export function matchById(id: string): Match | undefined {
   return matches.find((m) => m.id === id);
 }
 
-// Engagement-psychology mechanism #2 (anticipation — see
-// .claude/skills/rivaly-engagement-psychology): a scheduled match with no
-// visible countdown wastes a real, free anticipation beat that's already
-// sitting in kickoffAt. Anchored to the story's own internal clock rather
-// than the real system clock — kickoffAt values cluster around mid-August, before
-// whatever "today" the system reports, so comparing against real Date.now()
-// would make every scheduled match read as already overdue. The latest
-// kickoff among currently-live matches is a real, derived stand-in for
-// "right now" within the data — not a guess.
+// Real time. (This used to read "now" from the old sample matches' kickoff
+// times, which put every real countdown weeks off — a match that had already
+// kicked off showed "39d 5h".)
 function matchesNowMs(): number {
-  const liveKickoffs = matches.filter((m) => m.status === "live").map((m) => +new Date(m.kickoffAt));
-  return liveKickoffs.length > 0 ? Math.max(...liveKickoffs) : Date.now();
+  return Date.now();
 }
 
 // Shared by both label variants below so the date math (and the "what

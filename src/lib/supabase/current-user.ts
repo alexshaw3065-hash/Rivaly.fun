@@ -19,6 +19,8 @@ export interface ProfileRow {
   total_winnings_cents: number;
   created_at: string;
   dynamic_wallet_address: string | null;
+  banner_color?: string | null;
+  ring_color?: string | null;
 }
 
 export function mapProfileRow(row: ProfileRow): Profile {
@@ -36,11 +38,13 @@ export function mapProfileRow(row: ProfileRow): Profile {
     totalWinningsCents: row.total_winnings_cents,
     createdAt: row.created_at,
     dynamicWalletAddress: row.dynamic_wallet_address,
+    bannerColor: row.banner_color ?? null,
+    ringColor: row.ring_color ?? null,
   };
 }
 
 const PROFILE_COLUMNS =
-  "id, username, display_name, avatar_url, bio, social_links, follower_count, following_count, rooms_created_count, prediction_accuracy, total_winnings_cents, created_at, dynamic_wallet_address";
+  "id, username, display_name, avatar_url, bio, social_links, follower_count, following_count, rooms_created_count, prediction_accuracy, total_winnings_cents, created_at, dynamic_wallet_address, banner_color, ring_color";
 
 /** Server-only. The signed-in user's own real profile, or null if signed out. */
 export async function getCurrentProfile(): Promise<Profile | null> {

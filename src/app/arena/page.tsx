@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { ArenaFeed } from "@/components/arena-feed";
 import { ArenaLeagues } from "@/components/arena-leagues";
 import { ArenaLeaderboard } from "@/components/arena-leaderboard";
@@ -20,8 +20,10 @@ const tabs: { id: ArenaTab; label: string }[] = [
 // ranked list. No page title, no per-tab hint copy, matching the same call
 // already made on Rooms — the tabs speak for themselves. The online-rivals
 // badge lives inside arena-feed.tsx now, not here — see that file for why.
-export default function ArenaPage() {
-  const [tab, setTab] = useState<ArenaTab>("feed");
+export default function ArenaPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  // ?tab=leaderboard / ?tab=leagues opens straight on that tab (e.g. from a profile's rank).
+  const { tab: requested } = use(searchParams);
+  const [tab, setTab] = useState<ArenaTab>(requested === "leaderboard" || requested === "leagues" ? requested : "feed");
 
   // The floating "post a take" button (nav.tsx) belongs to the Feed only —
   // Leagues and Leaderboard have their own one primary action.

@@ -15,7 +15,7 @@ const EMPTY_WAVE = "M0,50 C 30,10 60,10 90,50 C 120,90 150,90 180,50 C 210,10 24
 // Self-only balance block: the live on-chain USDC balance ("—" until it's
 // read, or while the account has no wallet yet — never a stand-in figure).
 // A balance-over-time chart waits for real settled history to draw from.
-export function ProfilePnl() {
+export function ProfilePnl({ hasPositions = false }: { hasPositions?: boolean }) {
   const live = useLiveWalletBalance();
 
   return (
@@ -39,7 +39,7 @@ export function ProfilePnl() {
         />
       </svg>
 
-      <p className="-mt-1 text-center text-sm text-muted">No positions yet</p>
+      <p className="-mt-1 text-center text-sm text-muted">{hasPositions ? "Your balance history draws in as rooms settle" : "No positions yet"}</p>
 
       <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
         <div className="flex items-center gap-2.5">

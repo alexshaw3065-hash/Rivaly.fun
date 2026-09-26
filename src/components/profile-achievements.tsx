@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { achievements, achievementsByCategory } from "@/lib/achievements";
+import { achievements, achievementsByCategory, type AchievementStats } from "@/lib/achievements";
 import { useHasSeenAchievementsIntro, markAchievementsIntroSeen } from "@/lib/use-achievements-intro";
 import { useDailyStreak } from "@/lib/use-daily-streak";
 import { AchievementsIntroSheet } from "./achievements-intro-sheet";
@@ -28,14 +28,14 @@ function ProgressBar({ current, target }: { current: number; target: number }) {
 // per-profile — it's explaining the concept, not this person's stats),
 // then always opens the full categorized sheet with progress bars and,
 // self-only, the real daily check-in streak.
-export function ProfileAchievements({ profile, isSelf }: { profile: Profile; isSelf: boolean }) {
+export function ProfileAchievements({ profile, isSelf, stats }: { profile: Profile; isSelf: boolean; stats: AchievementStats }) {
   const [fullOpen, setFullOpen] = useState(false);
   const hasSeenIntro = useHasSeenAchievementsIntro();
   const streak = useDailyStreak();
 
-  const preview = achievements.slice(0, PREVIEW_COUNT).map((a) => ({ achievement: a, unlocked: a.isUnlocked(profile) }));
-  const unlockedCount = achievements.filter((a) => a.isUnlocked(profile)).length;
-  const categories = achievementsByCategory(profile);
+  const preview = achievements.slice(0, PREVIEW_COUNT).map((a) => ({ achievement: a, unlocked: a.isUnlocked(profile, stats) }));
+  const unlockedCount = achievements.filter((a) => a.isUnlocked(profile, stats)).length;
+  const categories = achievementsByCategory(profile, stats);
 
   return (
     <>
@@ -91,7 +91,7 @@ export function ProfileAchievements({ profile, isSelf }: { profile: Profile; isS
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   {items.map(({ achievement, unlocked }) => {
-                    const prog = !unlocked ? achievement.progress?.(profile) : undefined;
+                    const prog = !unlocked ? achievement.progress?.(profile, stats) : undefined;
                     return (
                       <div
                         key={achievement.id}

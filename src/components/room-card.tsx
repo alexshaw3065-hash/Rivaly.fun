@@ -96,7 +96,8 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
 
       <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
 
-      <PredictPills onPick={(side: EntrySide) => router.push(`/rooms/${room.id}?side=${side}`)} />
+      {/* Only while it's still taking stakes — a live or settled room can't be joined. */}
+      {room.status === "open" && <PredictPills onPick={(side: EntrySide) => router.push(`/rooms/${room.id}?side=${side}`)} />}
 
       <div className="mt-1 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
         <span title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>

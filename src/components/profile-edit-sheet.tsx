@@ -11,7 +11,8 @@ import { ProfileSocialsSheet } from "./profile-socials-sheet";
 
 // The on-brand banner palette, shared with profile-view.tsx's default
 // hash-derived choice — this sheet just lets you override that default.
-export const BANNER_COLORS = ["var(--surface-elevated)", "var(--rival-blue-dim)", "var(--rival-green-dim)"];
+import { BANNER_COLORS } from "@/lib/profile-palette";
+export { BANNER_COLORS };
 
 function Swatch({ color, active, onClick }: { color: string; active: boolean; onClick: () => void }) {
   return (

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { toggleFollow } from "@/app/profile/actions";
 import { useCurrentUser } from "./current-user-provider";
+import { openAuthModal } from "@/lib/auth-modal-store";
 
 // Real ids are UUIDs; mock profile ids are short "u1"-style strings —
 // following a mock profile can't be persisted (the follows table's FK
@@ -21,7 +21,6 @@ export function FollowButton({
   profileId: string;
   initialFollowing?: boolean;
 }) {
-  const router = useRouter();
   const currentUser = useCurrentUser();
   const isRealTarget = UUID_RE.test(profileId);
   const [following, setFollowing] = useState(initialFollowing);
@@ -33,7 +32,7 @@ export function FollowButton({
       return;
     }
     if (!currentUser) {
-      router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      openAuthModal({ next: window.location.pathname });
       return;
     }
     const next = !following;

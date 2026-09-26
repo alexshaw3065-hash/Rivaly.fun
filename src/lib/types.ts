@@ -42,6 +42,9 @@ export interface Profile {
   // the signal the wallet UI uses to read a real on-chain balance instead
   // of the mock one (see src/lib/wallet/use-live-balance.ts).
   dynamicWalletAddress: string | null;
+  /** Saved profile colours (null = the default picked from the id). */
+  bannerColor?: string | null;
+  ringColor?: string | null;
 }
 
 export type MatchStatus = "scheduled" | "live" | "finished" | "postponed" | "cancelled";

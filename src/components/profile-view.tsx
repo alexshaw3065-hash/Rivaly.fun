@@ -12,6 +12,7 @@ import { Avatar, RING_COLORS, hashToIndex } from "./avatar";
 import { FollowButton } from "./follow-button";
 import { ShareIcon, PencilIcon, SettingsIcon, GiftIcon, PlusIcon } from "./icons";
 import { ProfileAchievements } from "./profile-achievements";
+import type { AchievementStats } from "@/lib/achievements";
 import { ProfilePnl } from "./profile-pnl";
 import { ProfilePositions, useProfilePositions, type PositionFilter } from "./profile-positions";
 import { ProfileReplies } from "./profile-replies";
@@ -73,10 +74,12 @@ function ProfileHeader({
   profile,
   isSelf,
   initialFollowing,
+  stats,
 }: {
   profile: Profile;
   isSelf: boolean;
   initialFollowing: boolean;
+  stats: AchievementStats;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -84,24 +87,21 @@ function ProfileHeader({
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
-  const [ringColor, setRingColor] = useState(RING_COLORS[hashToIndex(profile.id, RING_COLORS.length)]);
-  const [bannerColor, setBannerColor] = useState(BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)]);
+  const [ringColor, setRingColor] = useState(profile.ringColor ?? RING_COLORS[hashToIndex(profile.id, RING_COLORS.length)]);
+  const [bannerColor, setBannerColor] = useState(profile.bannerColor ?? BANNER_COLORS[hashToIndex(profile.id, BANNER_COLORS.length)]);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(profile.socialLinks);
   const [, startSaveTransition] = useTransition();
 
-  // The sheet edits displayName/bio/socialLinks live in local state as you
-  // type (no separate draft vs. committed state) — closing it, by any
-  // route (Save button, backdrop, swipe), is the one moment to actually
-  // persist. ringColor/bannerColor stay local-only for now (see
-  // src/app/profile/actions.ts on why). Fire-and-forget: the sheet is
-  // already closed and the local state already reflects the change, so
-  // there's nothing more for the UI to wait on — a failure here is rare
-  // (only real-account validation, e.g. an empty display name) and not
-  // worth blocking the close on.
+  // The sheet edits live in local state as you type; closing it (Save,
+  // backdrop, swipe) saves everything — colours included. If the save is
+  // refused, say so right under your name instead of pretending it worked.
   function closeEditSheet() {
     setEditOpen(false);
+    setSaveError(null);
     startSaveTransition(async () => {
-      await updateProfile({ displayName, bio, socialLinks, avatarUrl });
+      const res = await updateProfile({ displayName, bio, socialLinks, avatarUrl, bannerColor, ringColor });
+      if (!res.ok) setSaveError(res.error);
     });
   }
 
@@ -117,8 +117,8 @@ function ProfileHeader({
               </IconButton>
               <Link
                 href="/invite"
-                title="Invite rivals, earn a referral bonus"
-                aria-label="Invite rivals, earn a referral bonus"
+                title="Invite rivals"
+                aria-label="Invite rivals"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground backdrop-blur-sm transition-transform duration-150 ease-out active:scale-[0.94]"
                 style={{ background: "rgba(10,10,10,0.35)" }}
               >
@@ -159,6 +159,14 @@ function ProfileHeader({
             </button>
           )}
         </div>
+        {saveError && (
+          <p role="alert" className="text-xs font-semibold text-rival-red">
+            {saveError}{" "}
+            <button onClick={() => setEditOpen(true)} className="underline">
+              Try again
+            </button>
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <p className="font-mono text-sm text-muted">@{profile.username}</p>
           <RivalyScoreBadge profile={{ ...profile, displayName }} />
@@ -229,7 +237,7 @@ function ProfileHeader({
         )}
 
         <div className="mt-3">
-          <ProfileAchievements profile={profile} isSelf={isSelf} />
+          <ProfileAchievements profile={profile} isSelf={isSelf} stats={stats} />
         </div>
       </div>
 
@@ -298,7 +306,17 @@ export function ProfileView({
 
   return (
     <>
-      <ProfileHeader profile={profile} isSelf={isSelf} initialFollowing={initialFollowing} />
+      <ProfileHeader
+        profile={profile}
+        isSelf={isSelf}
+        initialFollowing={initialFollowing}
+        stats={{
+          played: card?.played ?? 0,
+          wins: card?.wins ?? 0,
+          profit: card?.profit ?? 0,
+          joined: positions.items.length,
+        }}
+      />
 
       {!isSelf && <HeadToHead other={{ id: profile.id, name: profile.displayName, avatarUrl: profile.avatarUrl }} />}
 
@@ -324,9 +342,40 @@ export function ProfileView({
         </div>
       </div>
 
+      {card && (
+        <div className="mt-3 flex items-center gap-3 text-[13px] text-muted">
+          <span className="font-mono text-[11px] font-bold uppercase tracking-widest">Form</span>
+          <span className="flex gap-1.5">
+            {Array.from({ length: 5 }, (_, i) => card.form[i] ?? null).map((r, i) => (
+              <span
+                key={i}
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+                style={
+                  r
+                    ? { background: r === "W" ? "var(--rival-green)" : "var(--rival-red)", color: "#fff" }
+                    : { boxShadow: "inset 0 0 0 1.5px var(--border)", color: "transparent" }
+                }
+                aria-label={r === "W" ? "Win" : r === "L" ? "Loss" : "No result"}
+              >
+                {r ?? ""}
+              </span>
+            ))}
+          </span>
+          {card.played === 0 ? (
+            <span>No settled rooms yet</span>
+          ) : (
+            card.rank !== null && (
+              <Link href="/arena?tab=leaderboard" className="ml-auto font-semibold text-foreground hover:underline">
+                #{card.rank} on the Leaderboard
+              </Link>
+            )
+          )}
+        </div>
+      )}
+
       {isSelf && (
         <div className="mt-6">
-          <ProfilePnl />
+          <ProfilePnl hasPositions={positions.items.length > 0} />
         </div>
       )}
 

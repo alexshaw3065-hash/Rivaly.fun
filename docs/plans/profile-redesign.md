@@ -13,7 +13,28 @@ them** and the **Rivaly card** rebuilt on real data (migration
   the last meeting, rooms live between you, a rematch fixture.
 - The profile's stat tiles now read the real record (Record · Accuracy ·
   Winnings); the sample-data Rivaly Score and the wrong tab counts are gone.
-The rest of this plan is still proposed.
+**Trust fix phase: built, 2026-09-26** (migration
+`20260926240000_profile_trust_fix.sql`). Wallet block and achievements kept
+where they are, only their wrong parts fixed:
+- Profiles are real accounts only (no sample-user fallback: `@victorj` now
+  says "Rival not found").
+- Form guide (last 5) and Leaderboard rank under the record tiles; the rank
+  opens `/arena?tab=leaderboard`.
+- Achievements read the real record (wins, accuracy from 3+ settled rooms,
+  net winnings, rooms entered) — and the winnings goals no longer compare
+  cents to dollars.
+- Wallet block: "No positions yet" only when that's true.
+- Banner and ring colours are saved to the account; a refused profile save
+  shows an error with Try again instead of failing silently.
+- `/invite`: the invented code and "7 joined" are gone — it shares your real
+  profile link.
+- Follow while signed out opens the sign-in sheet, like the rest of the app.
+- App-wide: room-card countdowns used the old sample matches as "now" (a
+  played match showed "39d 5h") — they use the real clock; Yes/No only show
+  on rooms still taking stakes.
+
+Still proposed: the rest of the layout (Calls tab, compact Rooms tab,
+followers lists, targeted Challenge, share image for the profile).
 
 What a Rivaly profile is for: **who is this person as a predictor, and how
 do I stack up against them?** Identity, a record you can trust, and a reason

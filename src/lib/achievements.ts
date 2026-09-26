@@ -16,23 +16,29 @@ export const CATEGORIES = [
 
 export type AchievementCategory = (typeof CATEGORIES)[number];
 
+/** The real record, from settled public rooms (player_card) and rooms entered. */
+export interface AchievementStats {
+  played: number;
+  wins: number;
+  /** Net profit in cents. */
+  profit: number;
+  /** Rooms entered (created or joined). */
+  joined: number;
+}
+
 export interface Achievement {
   id: string;
   category: AchievementCategory;
   label: string;
   description: string;
   icon: string;
-  isUnlocked: (profile: Profile) => boolean;
-  progress?: (profile: Profile) => { current: number; target: number };
+  isUnlocked: (profile: Profile, stats: AchievementStats) => boolean;
+  progress?: (profile: Profile, stats: AchievementStats) => { current: number; target: number };
 }
 
-// Wins and joins came from mock rooms' entries, which were removed; these
-// read zero until real settled entries are wired in, so no badge unlocks on
-// a history nobody earned.
-function winCount(profile: Profile): number {
-  void profile;
-  return 0;
-}
+// Accuracy only counts from 3 settled rooms — one lucky call isn't 100%.
+const ACCURACY_FROM = 3;
+const accuracy = (st: AchievementStats) => (st.played >= ACCURACY_FROM ? st.wins / st.played : 0);
 
 export const achievements: Achievement[] = [
   // Getting Started
@@ -74,7 +80,7 @@ export const achievements: Achievement[] = [
     label: "In the Arena",
     description: "Joined your first room.",
     icon: "🎟️",
-    isUnlocked: () => false,
+    isUnlocked: (_p, st) => st.joined > 0,
   },
   {
     id: "five-followed",
@@ -91,37 +97,37 @@ export const achievements: Achievement[] = [
     id: "accuracy-50",
     category: "Prediction Mastery",
     label: "Coin Flip Beater",
-    description: "50%+ prediction accuracy.",
+    description: "50%+ accuracy over 3+ settled rooms.",
     icon: "🪙",
-    isUnlocked: (p) => p.predictionAccuracy >= 0.5,
-    progress: (p) => ({ current: Math.round(p.predictionAccuracy * 100), target: 50 }),
+    isUnlocked: (_p, st) => accuracy(st) >= 0.5,
+    progress: (_p, st) => ({ current: Math.round(accuracy(st) * 100), target: 50 }),
   },
   {
     id: "accuracy-60",
     category: "Prediction Mastery",
     label: "Sharp Eye",
-    description: "60%+ prediction accuracy.",
+    description: "60%+ accuracy over 3+ settled rooms.",
     icon: "👁️",
-    isUnlocked: (p) => p.predictionAccuracy >= 0.6,
-    progress: (p) => ({ current: Math.round(p.predictionAccuracy * 100), target: 60 }),
+    isUnlocked: (_p, st) => accuracy(st) >= 0.6,
+    progress: (_p, st) => ({ current: Math.round(accuracy(st) * 100), target: 60 }),
   },
   {
     id: "sharp-shooter",
     category: "Prediction Mastery",
     label: "Sharp Shooter",
-    description: "70%+ prediction accuracy.",
+    description: "70%+ accuracy over 3+ settled rooms.",
     icon: "🎯",
-    isUnlocked: (p) => p.predictionAccuracy >= 0.7,
-    progress: (p) => ({ current: Math.round(p.predictionAccuracy * 100), target: 70 }),
+    isUnlocked: (_p, st) => accuracy(st) >= 0.7,
+    progress: (_p, st) => ({ current: Math.round(accuracy(st) * 100), target: 70 }),
   },
   {
     id: "accuracy-80",
     category: "Prediction Mastery",
     label: "Oracle",
-    description: "80%+ prediction accuracy.",
+    description: "80%+ accuracy over 3+ settled rooms.",
     icon: "🔮",
-    isUnlocked: (p) => p.predictionAccuracy >= 0.8,
-    progress: (p) => ({ current: Math.round(p.predictionAccuracy * 100), target: 80 }),
+    isUnlocked: (_p, st) => accuracy(st) >= 0.8,
+    progress: (_p, st) => ({ current: Math.round(accuracy(st) * 100), target: 80 }),
   },
   {
     id: "first-blood",
@@ -129,7 +135,7 @@ export const achievements: Achievement[] = [
     label: "First Blood",
     description: "Won your first room.",
     icon: "🩸",
-    isUnlocked: (p) => winCount(p) >= 1,
+    isUnlocked: (_p, st) => st.wins >= 1,
   },
   {
     id: "ten-wins",
@@ -137,8 +143,8 @@ export const achievements: Achievement[] = [
     label: "Certified Rival",
     description: "Won 10 or more rooms.",
     icon: "🏅",
-    isUnlocked: (p) => winCount(p) >= 10,
-    progress: (p) => ({ current: winCount(p), target: 10 }),
+    isUnlocked: (_p, st) => st.wins >= 10,
+    progress: (_p, st) => ({ current: st.wins, target: 10 }),
   },
 
   // Room Building
@@ -222,49 +228,49 @@ export const achievements: Achievement[] = [
     id: "winnings-10k",
     category: "High Roller",
     label: "First Payout",
-    description: "$100+ in career winnings.",
+    description: "$100+ net winnings.",
     icon: "💵",
-    isUnlocked: (p) => p.totalWinningsCents >= 10_000,
-    progress: (p) => ({ current: Math.round(p.totalWinningsCents / 100), target: 10_000 }),
+    isUnlocked: (_p, st) => st.profit >= 10_000,
+    progress: (_p, st) => ({ current: Math.max(0, Math.round(st.profit / 100)), target: 100 }),
   },
   {
     id: "winnings-50k",
     category: "High Roller",
     label: "Stacking Up",
-    description: "$500+ in career winnings.",
+    description: "$500+ net winnings.",
     icon: "💸",
-    isUnlocked: (p) => p.totalWinningsCents >= 50_000,
-    progress: (p) => ({ current: Math.round(p.totalWinningsCents / 100), target: 50_000 }),
+    isUnlocked: (_p, st) => st.profit >= 50_000,
+    progress: (_p, st) => ({ current: Math.max(0, Math.round(st.profit / 100)), target: 500 }),
   },
   {
     id: "high-roller",
     category: "High Roller",
     label: "High Roller",
-    description: "$1,000+ in career winnings.",
+    description: "$1,000+ net winnings.",
     icon: "💰",
-    isUnlocked: (p) => p.totalWinningsCents >= 100_000,
-    progress: (p) => ({ current: Math.round(p.totalWinningsCents / 100), target: 100_000 }),
+    isUnlocked: (_p, st) => st.profit >= 100_000,
+    progress: (_p, st) => ({ current: Math.max(0, Math.round(st.profit / 100)), target: 1000 }),
   },
   {
     id: "winnings-500k",
     category: "High Roller",
     label: "Whale",
-    description: "$5,000+ in career winnings.",
+    description: "$5,000+ net winnings.",
     icon: "🐋",
-    isUnlocked: (p) => p.totalWinningsCents >= 500_000,
-    progress: (p) => ({ current: Math.round(p.totalWinningsCents / 100), target: 500_000 }),
+    isUnlocked: (_p, st) => st.profit >= 500_000,
+    progress: (_p, st) => ({ current: Math.max(0, Math.round(st.profit / 100)), target: 5000 }),
   },
 ];
 
-export function computeAchievements(profile: Profile): { achievement: Achievement; unlocked: boolean }[] {
-  return achievements.map((achievement) => ({ achievement, unlocked: achievement.isUnlocked(profile) }));
+export function computeAchievements(profile: Profile, stats: AchievementStats): { achievement: Achievement; unlocked: boolean }[] {
+  return achievements.map((achievement) => ({ achievement, unlocked: achievement.isUnlocked(profile, stats) }));
 }
 
-export function achievementsByCategory(profile: Profile) {
+export function achievementsByCategory(profile: Profile, stats: AchievementStats) {
   return CATEGORIES.map((category) => ({
     category,
     items: achievements
       .filter((a) => a.category === category)
-      .map((achievement) => ({ achievement, unlocked: achievement.isUnlocked(profile) })),
+      .map((achievement) => ({ achievement, unlocked: achievement.isUnlocked(profile, stats) })),
   }));
 }

@@ -2,7 +2,8 @@ import Image from "next/image";
 import { cloudinaryAvatarUrl } from "@/lib/cloudinary";
 import { hashToIndex } from "@/lib/hash";
 
-export const RING_COLORS = ["var(--rival-blue)", "var(--rival-green)", "var(--border-strong)"];
+import { RING_COLORS } from "@/lib/profile-palette";
+export { RING_COLORS };
 
 // Re-exported so profile-header pieces (the banner colour) derive from the
 // same hash as everything else.

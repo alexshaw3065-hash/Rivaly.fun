@@ -13,6 +13,8 @@ export interface CardNumbers {
   profit: number;
   streak: number;
   form: ("W" | "L")[];
+  /** All-time winnings rank on the Leaderboard (null until a settled room). */
+  rank: number | null;
 }
 
 export async function fetchCardNumbers(userId: string): Promise<CardNumbers | null> {
@@ -28,6 +30,7 @@ export async function fetchCardNumbers(userId: string): Promise<CardNumbers | nu
     profit: Number(d.profit ?? 0),
     streak: d.streak ?? 0,
     form: d.form ?? [],
+    rank: d.rank ?? null,
   };
 }
 
