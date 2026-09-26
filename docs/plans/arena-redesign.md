@@ -1,6 +1,6 @@
 # Arena redesign
 
-Status: **built, 2026-09-26 — all three phases.** Founder decisions: keep
+Status: **built, 2026-09-26 — all three phases.** Founder decisions: football moments are goals and full time only (2026-09-26); keep
 Leagues and Leaderboard as separate tabs (the Table merge in §2.6 was declined);
 Moment cards cover NFL too (touchdowns, field goals).
 

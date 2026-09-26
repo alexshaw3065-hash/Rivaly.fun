@@ -120,7 +120,7 @@ export function ArenaFeed() {
     const channel = supabase
       .channel("arena", { config: { private: true, presence: { key } } })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, soon)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "match_events", filter: "action=in.(goal,penalty,red_card,var_end,game_finalised,touchdown,field_goal)" }, soon)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "match_events", filter: "action=in.(goal,game_finalised,touchdown,field_goal)" }, soon)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: "status=eq.settled" }, soon)
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState<{ name?: string; avatar?: string | null }>();
