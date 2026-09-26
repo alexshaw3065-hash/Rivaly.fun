@@ -10,7 +10,7 @@ import { useRealMatches } from "@/lib/use-real-matches";
 import { ARENA_POST_FAILED, ARENA_POSTED, openArenaComposer, setComposerContext, type FailedDetail, type PostedDetail } from "@/lib/arena/composer-store";
 import { ArenaCard, type CardActions } from "./arena/arena-cards";
 import { ArenaMatchRooms } from "./arena/arena-match-rooms";
-import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, setReaction, type FeedScope } from "@/lib/arena/data";
+import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, fetchRanked, newRankedSession, setReaction, type FeedScope, type RankedSession } from "@/lib/arena/data";
 import {
   appendPage,
   cursorOf,
@@ -34,10 +34,17 @@ interface Face {
   avatar: string | null;
 }
 
-// The Arena's feed: everything real, newest first — big match moments,
-// takes, calls, receipts, rooms heating up. New things don't shove the
+// The Arena's feed: everything real — big match moments, takes, calls,
+// receipts, rooms heating up. Global is ranked for you (arena_ranked: your
+// rivals, your rooms, what's catching fire, live matches first); Following
+// and a single match's thread stay newest-first. New things don't shove the
 // list around; they wait behind a "3 new · 1 goal" pill. It ends ("caught
 // up") rather than looping. See docs/plans/arena-redesign.md.
+//
+// Engagement mechanisms (rivaly-engagement-psychology): #1 variable reward —
+// the ranked mix never lands in a predictable order, and each session
+// reshuffles; #5 rivalry — head-to-head rivals rank highest; #9 social
+// proof — what's drawing reactions right now rises.
 export function ArenaFeed() {
   const me = useCurrentUser();
   const viewerId = me?.id ?? null;
@@ -58,6 +65,12 @@ export function ArenaFeed() {
   const sentinel = useRef<HTMLDivElement>(null);
   const loadingMore = useRef(false);
   const request = useRef(0);
+  // Ranked mode: the session the Global order is pinned to, and how many
+  // ranked items the server has handed us (the next page's offset —
+  // your own fresh posts on top don't shift it).
+  const ranked = scope === "global" && !matchId;
+  const session = useRef<RankedSession | null>(null);
+  const served = useRef(0);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -66,16 +79,19 @@ export function ArenaFeed() {
   // First page for this scope / match.
   useEffect(() => {
     const n = ++request.current;
-    void fetchFeed({ scope, matchId, limit: PAGE })
+    const s = newRankedSession();
+    void (ranked ? fetchRanked(s, 0, PAGE) : fetchFeed({ scope, matchId, limit: PAGE }))
       .then((page) => {
         if (n !== request.current) return;
+        session.current = ranked ? s : null;
+        served.current = page.length;
         setItems(page);
         setFresh([]);
         setDone(page.length < PAGE);
         setState("ready");
       })
       .catch(() => n === request.current && setState("error"));
-  }, [scope, matchId, viewerId]);
+  }, [scope, matchId, viewerId, ranked]);
 
   // Scorer names for whatever moments are on screen.
   useEffect(() => {
@@ -96,7 +112,9 @@ export function ArenaFeed() {
   const checkHead = useCallback(async () => {
     try {
       const head = await fetchFeed({ scope, matchId, limit: PAGE });
-      const news = newerThan(itemsRef.current, head).filter((i) => +new Date(i.at) >= +new Date(itemsRef.current[0]?.at ?? 0));
+      // Ranked: anything since the session began. Timeline: anything above the top.
+      const since = session.current ? +new Date(session.current.asOf) : +new Date(itemsRef.current[0]?.at ?? 0);
+      const news = newerThan(itemsRef.current, head).filter((i) => +new Date(i.at) >= since);
       if (news.length > 0) setFresh(news);
     } catch {}
   }, [scope, matchId]);
@@ -150,8 +168,10 @@ export function ArenaFeed() {
         loadingMore.current = true;
         const n = request.current;
         try {
-          const page = await fetchFeed({ scope, matchId, before, limit: PAGE });
+          const s = session.current;
+          const page = s ? await fetchRanked(s, served.current, PAGE) : await fetchFeed({ scope, matchId, before, limit: PAGE });
           if (n !== request.current) return;
+          served.current += page.length;
           setItems((cur) => appendPage(cur, page));
           if (page.length < PAGE) setDone(true);
         } finally {

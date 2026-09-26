@@ -27,6 +27,31 @@ export async function fetchFeed(opts: {
   return toItems((data ?? []) as FeedRow[]);
 }
 
+/**
+ * The ranked Global feed (arena_ranked). A session — an as-of time and a
+ * seed, fixed on first load — keeps the order still while you page through
+ * it by offset; a new session is a fresh mix.
+ */
+export interface RankedSession {
+  asOf: string;
+  seed: number;
+}
+
+export function newRankedSession(): RankedSession {
+  return { asOf: new Date().toISOString(), seed: Math.floor(Math.random() * 1_000_000) };
+}
+
+export async function fetchRanked(session: RankedSession, offset: number, limit = 20): Promise<ArenaItem[]> {
+  const { data, error } = await createClient().rpc("arena_ranked", {
+    p_as_of: session.asOf,
+    p_seed: session.seed,
+    p_offset: offset,
+    p_limit: limit,
+  });
+  if (error) throw new Error(error.message);
+  return toItems((data ?? []) as FeedRow[]);
+}
+
 export async function setReaction(target: { kind: "post" | "moment" | "entry"; id: string }, emoji: ArenaEmoji, on: boolean): Promise<boolean> {
   const table = createClient().from("arena_reactions");
   const { error } = on
