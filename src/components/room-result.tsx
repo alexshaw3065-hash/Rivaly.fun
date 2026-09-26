@@ -12,7 +12,7 @@ import type { MyEntry } from "@/lib/supabase/entries";
 // one-tap rematch); a refund is calm and neutral. Every money line links to
 // its on-chain receipt — trust you can see.
 
-function useCountUp(target: number, ms = 900): number {
+export function useCountUp(target: number, ms = 900): number {
   const [value, setValue] = useState(0);
   useEffect(() => {
     // Reduced motion: land on the final number in one frame, no count.

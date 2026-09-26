@@ -18,6 +18,7 @@ import { matchConditions } from "@/lib/match-conditions";
 import { JoinPanel } from "@/components/join-panel";
 import { ChatComposer } from "@/components/chat-composer";
 import { RoomResult } from "@/components/room-result";
+import { RoomResultReveal } from "@/components/room/room-result-reveal";
 import { RoomLive } from "@/components/room-live";
 import { RoomStage } from "@/components/room/room-stage";
 import { SideStands } from "@/components/room/side-stands";
@@ -40,6 +41,11 @@ import type { EntrySide } from "@/lib/types";
 // Stakes close at kickoff — mirrors the lock in join_room_with_stake().
 function stakesAreClosed(match: { status: string; kickoffAt: string }): boolean {
   return match.status !== "scheduled" || +new Date(match.kickoffAt) <= Date.now();
+}
+
+/** Decided within the last week — a spectator's "you missed this" is only worth showing while it's fresh. */
+function decidedRecently(at: string): boolean {
+  return Date.now() - +new Date(at) < 7 * 24 * 60 * 60_000;
 }
 
 export default async function RoomPage({
@@ -162,6 +168,21 @@ export default async function RoomPage({
 
               <MatchTimeline match={match} initial={timeline} />
             </div>
+            {outcome && (
+              <RoomResultReveal
+                roomId={room.id}
+                outcome={outcome}
+                settled={settled}
+                refunded={room.status === "refunded" || outcome === "void"}
+                entry={myEntry}
+                claim={claim}
+                score={match.homeScore != null && match.awayScore != null ? `${match.status === "live" ? "Live" : "Full time"} · ${match.homeTeam} ${match.homeScore}–${match.awayScore} ${match.awayTeam}` : null}
+                yesCents={room.yesTotalCents ?? 0}
+                noCents={room.noTotalCents ?? 0}
+                recent={decidedRecently(room.settledAt ?? match.kickoffAt)}
+                sharePath={sharePath}
+              />
+            )}
             {outcome && (
               <RoomResult
                 outcome={outcome}
