@@ -12,10 +12,10 @@ import type { Match } from "@/lib/types";
 // visitors), so no server round-trip or prop-drilling is needed. Writes are
 // service-role only, so nothing here can be spoofed by a client.
 
-// How much of the schedule to show. A fortnight ahead is plenty for browsing,
+// How much of the schedule to show: three weeks ahead (see FUTURE_DAYS),
 // and yesterday's results still matter on the day after.
 const PAST_HOURS = 36;
-const FUTURE_DAYS = 14;
+const FUTURE_DAYS = 21; // three weeks — covers an international break (Create Room lists the same span)
 const LIMIT = 200;
 
 // Live first, then whatever kicks off soonest — the order someone browsing

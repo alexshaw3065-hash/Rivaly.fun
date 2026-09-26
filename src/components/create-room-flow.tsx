@@ -22,12 +22,11 @@ import { useStake } from "@/lib/escrow/use-stake";
 import { StakeButton } from "./stake-button";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 
-// Matches further out than this aren't real decisions yet — showing them
-// just crowds the list. A week matches how people actually think about a
-// footballing week (this weekend's round, this week's midweek fixtures) and
-// keeps the list to a size that's actually scannable on a phone rather than
-// a multi-day scroll.
-const MATCH_WINDOW_DAYS = 7;
+// How far ahead Create Room lists matches. Three weeks, so an international
+// break never leaves the Premier League off the list (a week wasn't enough:
+// the next round can be 14 days away). Search and the league filter keep it
+// scannable.
+const MATCH_WINDOW_DAYS = 21;
 
 // Long enough to see the tapped cell fill (the confirmation that the tap
 // landed), short enough that the move to the next step still feels like the

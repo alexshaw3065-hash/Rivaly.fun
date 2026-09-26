@@ -13,15 +13,18 @@ export async function getRoomMessages(roomId: string): Promise<DisplayChatMessag
   if (!MESSAGE_UUID_RE.test(roomId)) return [];
 
   const supabase = await createClient();
-  const { data } = await supabase
+  // The author is named by its exact link: message_reactions also joins
+  // messages to profiles, and an unqualified embed fails as ambiguous.
+  const { data, error } = await supabase
     .from("messages")
-    .select("id, room_id, user_id, body, created_at, reply_to, attachment, author:profiles(display_name, avatar_url)")
+    .select("id, room_id, user_id, body, created_at, reply_to, attachment, author:profiles!messages_user_id_fkey(display_name, avatar_url)")
     .eq("room_id", roomId)
     // Newest first then reversed: a busy room opens on its latest chat, not
     // its first 50 messages.
     .order("created_at", { ascending: false })
     .limit(HISTORY_LIMIT);
 
+  if (error) console.error(`[chat] couldn't load room ${roomId}:`, error.message);
   if (!data) return [];
   const rows = data as unknown as (MessageRow & { author: { display_name: string; avatar_url: string | null } | null })[];
   return rows.map((row) => mapMessageRow(row, row.author ?? undefined)).reverse();

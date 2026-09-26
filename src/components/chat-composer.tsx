@@ -51,7 +51,7 @@ const CONFIRM_MS = 15_000;
 const PHOTO_CONFIRM_MS = 90_000;
 const TYPING_SEND_MS = 2_500;
 const TYPING_SHOW_MS = 4_000;
-const SELECT_MESSAGE = "id, room_id, user_id, body, created_at, reply_to, attachment, author:profiles(display_name, avatar_url)";
+const SELECT_MESSAGE = "id, room_id, user_id, body, created_at, reply_to, attachment, author:profiles!messages_user_id_fkey(display_name, avatar_url)";
 type LiveReaction = MessageReaction & { on: boolean };
 type Typing = { userId: string; name: string; avatarUrl: string | null };
 
