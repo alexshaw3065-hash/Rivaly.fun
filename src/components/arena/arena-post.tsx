@@ -10,6 +10,7 @@ import { deletePost, fetchPost, fetchThread, setReaction } from "@/lib/arena/dat
 import { ARENA_POST_FAILED, ARENA_POSTED, openArenaComposer, type FailedDetail, type PostedDetail } from "@/lib/arena/composer-store";
 import { toggleReaction, type ArenaEmoji, type ArenaItem, type PostItem, type ReceiptItem } from "@/lib/arena/model";
 import { PostCard, type CardActions } from "./arena-cards";
+import { reportContent, type ReportReason } from "@/lib/report";
 
 const handle = (p: PostItem) => (p.author.username ? `@${p.author.username}` : p.author.name);
 
@@ -80,6 +81,15 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
           setPost(flipPost);
           setReplies(flipReplies);
         });
+      },
+      onSignIn: () => openAuthModal({ next: `/arena/p/${postId}` }),
+      onReport: (item: PostItem, reason: ReportReason) => {
+        void reportContent("post", item.id, reason);
+        if (item.id === post?.id) {
+          router.push("/arena");
+          return;
+        }
+        setReplies((list) => list?.filter((r) => r.id !== item.id) ?? null);
       },
       onDelete: async (item: PostItem) => {
         if (item.id === post?.id) {

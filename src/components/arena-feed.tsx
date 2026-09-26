@@ -7,6 +7,7 @@ import { RivalCharacter } from "./rival-character";
 import { TeamCrest } from "./team-crest";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { useRealMatches } from "@/lib/use-real-matches";
+import { reportContent, type ReportReason } from "@/lib/report";
 import { ARENA_POST_FAILED, ARENA_POSTED, openArenaComposer, setComposerContext, type FailedDetail, type PostedDetail } from "@/lib/arena/composer-store";
 import { ArenaCard, type CardActions } from "./arena/arena-cards";
 import { ArenaMatchRooms } from "./arena/arena-match-rooms";
@@ -58,7 +59,7 @@ export function ArenaFeed() {
   const [names, setNames] = useState<Record<string, Record<number, string>>>({});
   const [matchRooms, setMatchRooms] = useState<Record<string, MatchRoom[]>>({});
   const [roomsFor, setRoomsFor] = useState<MomentItem | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; tone: "error" | "info" } | null>(null);
   const [now] = useState(() => Date.now());
   const [here, setHere] = useState<{ count: number; faces: Face[] }>({ count: 0, faces: [] });
   const itemsRef = useRef(items);
@@ -227,8 +228,8 @@ export function ArenaFeed() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const flash = (text: string) => {
-    setNotice(text);
+  const flash = (text: string, tone: "error" | "info" = "error") => {
+    setNotice({ text, tone });
     setTimeout(() => setNotice(null), 4000);
   };
 
@@ -261,6 +262,13 @@ export function ArenaFeed() {
         const flip = (list: ArenaItem[]) => list.map((i) => (i.kind === item.kind && i.id === item.id ? toggleReaction(i, emoji) : i));
         setItems(flip);
         void setReaction(target, emoji, on).then((ok) => !ok && setItems(flip));
+      },
+      onSignIn: () => openAuthModal({ next: "/arena" }),
+      onReport: (item: PostItem, reason: ReportReason) => {
+        // Gone for you now (and a receipt of the same post with it).
+        setItems((cur) => cur.filter((i) => !((i.kind === "post" || i.kind === "receipt") && i.id === item.id)));
+        flash("Reported. You won't see that post again.", "info");
+        void reportContent("post", item.id, reason).then((err) => err && flash(err));
       },
       onDelete: async (item: PostItem) => {
         setItems((cur) => cur.filter((i) => !(i.kind === "post" && i.id === item.id)));
@@ -349,7 +357,7 @@ export function ArenaFeed() {
         </span>
       </button>
 
-      {notice && <p className="mt-3 text-center text-[13px] font-semibold text-rival-red">{notice}</p>}
+      {notice && <p className={`mt-3 text-center text-[13px] font-semibold ${notice.tone === "error" ? "text-rival-red" : "text-muted"}`}>{notice.text}</p>}
 
       {fresh.length > 0 && (
         <div className="sticky top-[72px] z-10 mt-3 flex justify-center md:top-[88px]">

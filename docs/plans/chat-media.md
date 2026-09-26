@@ -32,7 +32,7 @@ Messages store only a small `attachment` reference (~150 bytes): `{ type: "image
 ## 6. Safety & limits
 - Cloudinary upload preset: images only, ≤8MB, chat folder, room tag.
 - ~5 images a minute per person. A message needs text, an image or a GIF.
-- No paid moderation add-on (founder decision, 2026-09-25 — cost). Report-and-remove is the safety net.
+- No paid moderation add-on (founder decision, 2026-09-25 — cost). Report-and-remove is the safety net. Built 2026-09-26: Report on any chat message or Arena post (not your own) — gone for the reporter at once, hidden for everyone after 3 reports, every report kept in `content_reports` so hidden content can be reviewed and restored (clear `hidden_at`).
 - Private-room images: unguessable public URLs now; signed delivery later if needed.
 
 ## 7. Free tiers

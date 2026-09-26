@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { ReportReasons } from "./report-reasons";
+import type { ReportReason } from "@/lib/report";
 import { Drawer } from "vaul";
 import { REACTION_EMOJI, type ChatAttachment, type DisplayChatMessage } from "@/lib/supabase/message-mapper";
 import { chatPhotoUrl } from "@/lib/cloudinary";
@@ -96,6 +98,7 @@ export function ChatThread({
   reactions = {},
   onReact,
   onReply,
+  onReport,
 }: {
   items: DisplayChatMessage[];
   sides: Record<string, EntrySide>;
@@ -107,12 +110,19 @@ export function ChatThread({
   reactions?: ReactionMap;
   onReact?: (messageId: string, emoji: string) => void;
   onReply?: (message: DisplayChatMessage) => void;
+  /** Report someone else's message; it's gone for you at once. */
+  onReport?: (message: DisplayChatMessage, reason: ReportReason) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
   const [unseen, setUnseen] = useState(0);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
-  const [sheetFor, setSheetFor] = useState<DisplayChatMessage | null>(null);
+  const [sheetFor, setSheetForRaw] = useState<DisplayChatMessage | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const setSheetFor = (m: DisplayChatMessage | null) => {
+    setSheetForRaw(m);
+    setReporting(false);
+  };
   const [flash, setFlash] = useState<string | null>(null);
   const lastCount = useRef(items.length);
   const lastNewest = useRef(items[items.length - 1]?.id);
@@ -247,8 +257,19 @@ export function ChatThread({
             className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-[20px] border-t border-border bg-background px-4 pb-[max(env(safe-area-inset-bottom),16px)] outline-none"
           >
             <Drawer.Handle className="!mx-auto !mt-2.5 !mb-3 !h-1.5 !w-10 !rounded-full !bg-border-strong" />
-            <Drawer.Title className="sr-only">Message actions</Drawer.Title>
-            {sheetFor && (
+            <Drawer.Title className="sr-only">{reporting ? "Report message" : "Message actions"}</Drawer.Title>
+            {sheetFor && reporting && (
+              <>
+                <p className="mb-3 text-center font-display text-lg font-semibold text-foreground">Report message</p>
+                <ReportReasons
+                  onPick={(reason) => {
+                    onReport?.(sheetFor, reason);
+                    setSheetFor(null);
+                  }}
+                />
+              </>
+            )}
+            {sheetFor && !reporting && (
               <>
                 <p className="mb-3 line-clamp-2 rounded-xl bg-surface px-3 py-2 text-sm text-foreground/80">
                   <span className="font-semibold text-foreground">{sheetFor.authorName}</span> {summary(sheetFor)}
@@ -295,6 +316,17 @@ export function ChatThread({
                       setSheetFor(null);
                     }}
                   />
+                  )}
+                  {onReport && selfId && sheetFor.userId && sheetFor.userId !== selfId && (
+                    <SheetAction
+                      label="Report"
+                      icon={
+                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+                          <path d="M3.5 14V2.8M3.5 3h8l-1.6 3 1.6 3h-8" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      }
+                      onClick={() => setReporting(true)}
+                    />
                   )}
                 </div>
               </>

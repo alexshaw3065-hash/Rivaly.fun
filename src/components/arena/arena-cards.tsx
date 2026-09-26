@@ -8,6 +8,9 @@ import { formatMoney } from "@/lib/mock-data";
 import { TeamCrest } from "@/components/team-crest";
 import { RivalCharacter } from "@/components/rival-character";
 import { Photo } from "@/components/chat-thread";
+import { BottomSheet } from "@/components/bottom-sheet";
+import { ReportReasons } from "@/components/report-reasons";
+import type { ReportReason } from "@/lib/report";
 import {
   ARENA_EMOJI,
   ago,
@@ -38,6 +41,10 @@ export interface CardActions {
   onTake: (moment: MomentItem) => void;
   onMatch: (matchId: string) => void;
   onDelete?: (item: PostItem) => void;
+  /** Report someone else's post (it disappears for you at once). Signed out: undefined → asks to sign in. */
+  onReport?: (item: PostItem, reason: ReportReason) => void;
+  /** Called instead of reporting when nobody is signed in. */
+  onSignIn?: () => void;
   /** Reply to a post (opens the composer in reply mode). */
   onReply?: (item: PostItem | ReceiptItem) => void;
   viewerId: string | null;
@@ -262,6 +269,53 @@ function Row({ face, children, onOpen, rowRef }: { face: React.ReactNode; childr
   );
 }
 
+// ── The ⋯ menu on a post: Delete yours, Report anyone else's ──────────
+
+function PostMenu({ item, own, actions }: { item: PostItem; own: boolean; actions: CardActions }) {
+  const [open, setOpen] = useState(false);
+  if (own ? !actions.onDelete : !actions.onReport && !actions.onSignIn) return null;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => (own || actions.viewerId ? setOpen(true) : actions.onSignIn?.())}
+        aria-label="Post options"
+        className="-my-1 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+          <circle cx="3.5" cy="8" r="1.3" fill="currentColor" />
+          <circle cx="8" cy="8" r="1.3" fill="currentColor" />
+          <circle cx="12.5" cy="8" r="1.3" fill="currentColor" />
+        </svg>
+      </button>
+      {/* The sheet lives inside the post's row: keep its taps from opening the post. */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <BottomSheet open={open} onClose={() => setOpen(false)} title={own ? "Your post" : "Report post"}>
+          {own ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                actions.onDelete?.(item);
+              }}
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-surface text-[15px] font-semibold text-rival-red ring-1 ring-border"
+            >
+              Delete post
+            </button>
+          ) : (
+            <ReportReasons
+              onPick={(reason) => {
+                setOpen(false);
+                actions.onReport?.(item, reason);
+              }}
+            />
+          )}
+        </BottomSheet>
+      </div>
+    </>
+  );
+}
+
 // ── The X-style action row on every post ─────────────────────────────
 
 const ICON = {
@@ -399,13 +453,7 @@ export function PostCard({
       <Who
         author={item.author}
         at={item.at}
-        extra={
-          own && actions.onDelete ? (
-            <button type="button" onClick={() => actions.onDelete?.(item)} className="ml-auto shrink-0 text-[12px] text-muted hover:text-rival-red">
-              Delete
-            </button>
-          ) : null
-        }
+        extra={<PostMenu item={item} own={own} actions={actions} />}
       />
       {variant === "reply" && replyingTo && (
         <p className="text-[13px] text-muted">

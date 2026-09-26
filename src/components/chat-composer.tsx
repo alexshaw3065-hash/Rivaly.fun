@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { reportContent } from "@/lib/report";
 import { GifPicker } from "@/components/gif-picker";
 import { klipyCustomerId, klipyShared, type KlipyGif } from "@/lib/klipy";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -625,6 +626,10 @@ export function ChatComposer({
         reactions={reactions}
         onReact={react}
         onReply={reply}
+        onReport={(m, reason) => {
+          setItems((cur) => cur.filter((x) => x.id !== m.id));
+          void reportContent("message", m.id, reason);
+        }}
         empty={<p className="px-6 text-center text-sm text-muted">Quiet so far. Say something — the room&rsquo;s listening.</p>}
       />
 
