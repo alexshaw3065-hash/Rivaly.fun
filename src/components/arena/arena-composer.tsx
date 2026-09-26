@@ -47,6 +47,7 @@ export function ArenaComposer({
   loadRooms?: RoomsLoader;
 }) {
   const moment = preset.moment ?? null;
+  const replyTo = preset.replyTo ?? null;
   const me = useCurrentUser();
   const { matches } = useRealMatches();
   const [body, setBody] = useState(preset.body ?? "");
@@ -61,6 +62,7 @@ export function ArenaComposer({
   const [now] = useState(() => Date.now());
   const fileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  const caretPlaced = useRef(false);
 
   useEffect(() => {
     // Loaded on open: they feed both the suggestion chips and the Room list.
@@ -81,7 +83,7 @@ export function ArenaComposer({
   const focusMatch = preset.matchId ?? matches.find((m) => m.status === "live")?.id ?? null;
   const focusMatchRow = matches.find((m) => m.id === focusMatch) ?? null;
   const byFocus = (list: AttachedRoom[]) => [...list.filter((r) => r.matchId === focusMatch), ...list.filter((r) => r.matchId !== focusMatch)];
-  const suggestions = !moment && !call
+  const suggestions = !moment && !call && !replyTo
     ? {
         match: focusMatchRow && matchId !== focusMatchRow.id ? focusMatchRow : null,
         calls: byFocus(rooms?.mine ?? []).slice(0, 2),
@@ -128,11 +130,11 @@ export function ArenaComposer({
       id: crypto.randomUUID(),
       body: tidy(body).slice(0, MAX),
       attachment: stored,
-      matchId: call ? null : moment ? moment.match.id : matchId,
-      roomId: call?.id ?? null,
-      side: call?.side ?? null,
-      momentId: moment?.id ?? null,
-      parentId: null,
+      matchId: replyTo || call ? null : moment ? moment.match.id : matchId,
+      roomId: replyTo ? null : (call?.id ?? null),
+      side: replyTo ? null : (call?.side ?? null),
+      momentId: replyTo ? null : (moment?.id ?? null),
+      parentId: replyTo?.id ?? null,
     };
     const match = moment?.match ?? (tagged ? { id: tagged.id, home: tagged.homeTeam, away: tagged.awayTeam, competition: tagged.competition, sportId: tagged.sportId ?? null, status: tagged.status, homeScore: tagged.homeScore, awayScore: tagged.awayScore, kickoffAt: tagged.kickoffAt } : null);
     const optimistic: PostItem = {
@@ -146,7 +148,9 @@ export function ArenaComposer({
       match: call ? null : match,
       room: call ? { id: call.id, prediction: call.prediction, status: "open", pool: 0, yes: 0, no: 0, participants: 0, outcome: null, matchId: call.matchId, settledAt: null } : null,
       momentId: post.momentId,
+      parentId: post.parentId,
       replies: 0,
+      views: 0,
       reactions: {},
       mine: [],
     };
@@ -175,10 +179,18 @@ export function ArenaComposer({
               className="rounded-full px-5 py-2 text-[15px] font-bold text-white transition-opacity disabled:opacity-40"
               style={{ background: "var(--rival-blue)" }}
             >
-              {uploading ? "Uploading…" : "Post"}
+              {uploading ? "Uploading…" : replyTo ? "Reply" : "Post"}
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+            {replyTo && (
+              <div className="mb-2 border-l-2 border-border pl-3">
+                <p className="text-[13px] text-muted">
+                  Replying to <span className="font-semibold text-rival-blue">{replyTo.username ? `@${replyTo.username}` : replyTo.name}</span>
+                </p>
+                {replyTo.body && <p className="mt-0.5 line-clamp-2 text-[13px] text-muted">{replyTo.body}</p>}
+              </div>
+            )}
             {answering && moment && (
               <div className="mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] ring-1 ring-border">
                 <span className="font-bold uppercase text-foreground">{answering.title}</span>
@@ -190,11 +202,18 @@ export function ArenaComposer({
             <textarea
               ref={boxRef}
               value={body}
+              onFocus={(e) => {
+                // Starting text (an @mention, or a draft put back) — type after it, not before.
+                if (caretPlaced.current) return;
+                caretPlaced.current = true;
+                const end = e.currentTarget.value.length;
+                e.currentTarget.setSelectionRange(end, end);
+              }}
               onChange={(e) => setBody(e.target.value)}
               maxLength={MAX}
               rows={3}
               autoFocus
-              placeholder={call?.side ? `Why ${call.side.toUpperCase()}? Say it now, get the receipt later.` : call ? "Who's taking this on?" : moment ? "Your take on this…" : "What's your call?"}
+              placeholder={replyTo ? "Post your reply" : call?.side ? `Why ${call.side.toUpperCase()}? Say it now, get the receipt later.` : call ? "Who's taking this on?" : moment ? "Your take on this…" : "What's your call?"}
               className="w-full resize-none bg-transparent text-[17px] leading-snug text-foreground placeholder:text-muted focus:outline-none"
             />
             {body.length > MAX - 60 && <p className="text-right font-mono text-[11px] text-muted">{MAX - body.length} left</p>}
@@ -340,7 +359,7 @@ export function ArenaComposer({
             <Tool label="GIF" active={panel === "gif"} onClick={() => setPanel((p) => (p === "gif" ? null : "gif"))}>
               <span className="rounded border-[1.6px] border-current px-1 text-[10px] font-black leading-[14px]">GIF</span>
             </Tool>
-            {!moment && (
+            {!moment && !replyTo && (
               <Tool label="Tag a match" active={panel === "match"} onClick={() => setPanel((p) => (p === "match" ? null : "match"))}>
                 <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
                   <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
@@ -348,7 +367,7 @@ export function ArenaComposer({
                 </svg>
               </Tool>
             )}
-            {!moment && (
+            {!moment && !replyTo && (
               <Tool label="Attach a room" active={panel === "call"} onClick={() => setPanel((p) => (p === "call" ? null : "call"))}>
                 <span className="text-[13px] font-bold">Room</span>
               </Tool>

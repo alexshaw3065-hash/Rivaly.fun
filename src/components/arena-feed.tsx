@@ -183,7 +183,12 @@ export function ArenaFeed() {
   // What gets posted — from here or anywhere — shows at the top at once, and
   // comes off again if the save is refused (the host puts the text back).
   useEffect(() => {
-    const posted = (e: Event) => setItems((cur) => [(e as CustomEvent<PostedDetail>).detail.item, ...cur]);
+    const posted = (e: Event) => {
+      const item = (e as CustomEvent<PostedDetail>).detail.item;
+      // A reply bumps its post's count; a post goes on top.
+      if (item.parentId) setItems((cur) => cur.map((i) => ((i.kind === "post" || i.kind === "receipt") && i.id === item.parentId ? { ...i, replies: i.replies + 1 } : i)));
+      else setItems((cur) => [item, ...cur]);
+    };
     const failed = (e: Event) => {
       const id = (e as CustomEvent<FailedDetail>).detail.id;
       setItems((cur) => cur.filter((i) => !(i.kind === "post" && i.id === id)));
@@ -218,6 +223,13 @@ export function ArenaFeed() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       },
       onTake: (m) => openComposer(m),
+      onReply: (item) => {
+        if (!me) {
+          openAuthModal({ next: "/arena" });
+          return;
+        }
+        openArenaComposer({ replyTo: { id: item.id, name: item.author.name, username: item.author.username, body: item.body } });
+      },
       onReact: (item: ArenaItem, emoji: ArenaEmoji) => {
         if (!me) {
           openAuthModal({ next: "/arena" });

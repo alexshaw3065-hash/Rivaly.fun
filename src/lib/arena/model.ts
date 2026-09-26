@@ -73,6 +73,9 @@ export interface PostItem extends Base {
   room: ArenaRoom | null;
   momentId: string | null;
   replies: number;
+  views: number;
+  /** Set on replies: the post this answers. */
+  parentId?: string | null;
 }
 
 export interface ReceiptItem extends Base {
@@ -86,6 +89,8 @@ export interface ReceiptItem extends Base {
   room: ArenaRoom;
   won: boolean;
   rematchMatchId: string | null;
+  replies: number;
+  views: number;
 }
 
 export interface EntryItem extends Base {
@@ -318,4 +323,12 @@ export function decidedBy(moment: Pick<MomentItem, "action" | "payload" | "at" |
     out.push({ room, outcome: after.outcome });
   }
   return out;
+}
+
+/** X-style counts: 999, 1.2K, 12K, 1.2M. */
+export function compactCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 10_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
+  if (n < 1_000_000) return `${Math.floor(n / 1000)}K`;
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
 }

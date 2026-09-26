@@ -99,19 +99,66 @@ export async function fetchReplies(postId: string): Promise<Reply[]> {
   return ((data ?? []) as unknown as Row[]).map((r) => ({ id: r.id, body: r.body, attachment: r.attachment, at: r.created_at, author: author(r.author, r.author_id) }));
 }
 
+/** A post's replies as full posts (X-style thread), oldest first, with their reactions and views. */
+export async function fetchThread(postId: string, viewerId: string | null): Promise<PostItem[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("posts")
+    .select("id, body, attachment, created_at, author_id, reply_count, view_count, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)")
+    .eq("parent_id", postId)
+    .order("created_at", { ascending: true })
+    .limit(200);
+  type Row = { id: string; body: string; attachment: ChatAttachment | null; created_at: string; author_id: string; reply_count: number; view_count: number; author: AuthorRow };
+  const rows = (data ?? []) as unknown as Row[];
+  const counts = new Map<string, Record<string, number>>();
+  const mine = new Map<string, ArenaEmoji[]>();
+  if (rows.length > 0) {
+    const { data: rx } = await supabase.from("arena_reactions").select("target_id, emoji, user_id").eq("target_kind", "post").in("target_id", rows.map((r) => r.id));
+    for (const x of (rx ?? []) as { target_id: string; emoji: ArenaEmoji; user_id: string }[]) {
+      const c = counts.get(x.target_id) ?? {};
+      c[x.emoji] = (c[x.emoji] ?? 0) + 1;
+      counts.set(x.target_id, c);
+      if (x.user_id === viewerId) mine.set(x.target_id, [...(mine.get(x.target_id) ?? []), x.emoji]);
+    }
+  }
+  return rows.map((r) => ({
+    kind: "post",
+    id: r.id,
+    at: r.created_at,
+    author: author(r.author, r.author_id),
+    body: r.body,
+    attachment: r.attachment,
+    side: null,
+    match: null,
+    room: null,
+    momentId: null,
+    replies: r.reply_count,
+    views: r.view_count,
+    parentId: postId,
+    reactions: counts.get(r.id) ?? {},
+    mine: mine.get(r.id) ?? [],
+  }));
+}
+
+/** Count views (once per person per post — the database decides). Fire and forget. */
+export function recordViews(ids: string[]) {
+  if (ids.length === 0) return;
+  void createClient().rpc("record_post_views", { p_ids: ids }).then(() => {}, () => {});
+}
+
 /** One post as a feed item (for its own page), found by paging the feed isn't needed — read it directly. */
 export async function fetchPost(id: string, viewerId: string | null): Promise<PostItem | null> {
   const supabase = createClient();
   const { data } = await supabase
     .from("posts")
     .select(
-      "id, body, attachment, side, moment_id, reply_count, created_at, author_id, parent_id, match_id, room_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)",
+      "id, body, attachment, side, moment_id, reply_count, view_count, created_at, author_id, parent_id, match_id, room_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)",
     )
     .eq("id", id)
     .maybeSingle();
   if (!data) return null;
   const r = data as unknown as {
-    id: string; body: string; attachment: ChatAttachment | null; side: Side | null; moment_id: string | null; reply_count: number;
+    id: string; body: string; attachment: ChatAttachment | null; side: Side | null; moment_id: string | null; reply_count: number; view_count: number;
     created_at: string; author_id: string; parent_id: string | null; match_id: string | null; room_id: string | null; author: AuthorRow;
   };
   const [match, room, reactions] = await Promise.all([
@@ -137,6 +184,8 @@ export async function fetchPost(id: string, viewerId: string | null): Promise<Po
     side: r.side,
     momentId: r.moment_id,
     replies: r.reply_count,
+    views: r.view_count,
+    parentId: r.parent_id,
     reactions: counts,
     mine,
     match: m

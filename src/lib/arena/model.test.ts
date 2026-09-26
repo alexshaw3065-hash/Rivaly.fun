@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   ago,
+  compactCount,
   displayName,
   decidedBy,
   appendPage,
@@ -145,5 +146,15 @@ describe("decidedBy", () => {
   });
   it("skips cancelled rooms and custom ones", () => {
     assert.equal(decidedBy(goal(2, 1, "away"), [{ ...over25, status: "cancelled" }, room("custom", null)]).length, 0);
+  });
+});
+
+describe("compactCount", () => {
+  it("reads like X", () => {
+    assert.equal(compactCount(999), "999");
+    assert.equal(compactCount(1000), "1K");
+    assert.equal(compactCount(1234), "1.2K");
+    assert.equal(compactCount(12_345), "12K");
+    assert.equal(compactCount(1_250_000), "1.3M");
   });
 });

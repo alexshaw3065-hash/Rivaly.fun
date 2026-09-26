@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useViewOnScreen } from "@/lib/arena/use-view";
 import { formatMoney } from "@/lib/mock-data";
 import { TeamCrest } from "@/components/team-crest";
 import { RivalCharacter } from "@/components/rival-character";
@@ -9,6 +11,7 @@ import { Photo } from "@/components/chat-thread";
 import {
   ARENA_EMOJI,
   ago,
+  compactCount,
   isNfl,
   momentHeadline,
   decidedBy,
@@ -29,15 +32,14 @@ import {
   type SettledItem,
   type Side,
 } from "@/lib/arena/model";
-import { ArenaReplies } from "./arena-replies";
 
 export interface CardActions {
   onReact: (item: ArenaItem, emoji: ArenaEmoji) => void;
   onTake: (moment: MomentItem) => void;
   onMatch: (matchId: string) => void;
   onDelete?: (item: PostItem) => void;
-  /** False on a post's own page, where the replies are already open below. */
-  inlineThread?: boolean;
+  /** Reply to a post (opens the composer in reply mode). */
+  onReply?: (item: PostItem | ReceiptItem) => void;
   viewerId: string | null;
   names: Record<string, Record<number, string>>;
   /** Public rooms per match, for "decided by this goal" on moments. */
@@ -238,23 +240,162 @@ function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom;
   );
 }
 
-function Row({ face, children }: { face: React.ReactNode; children: React.ReactNode }) {
+function Row({ face, children, onOpen, rowRef }: { face: React.ReactNode; children: React.ReactNode; onOpen?: () => void; rowRef?: (el: HTMLElement | null) => void }) {
   return (
-    <article className="flex gap-3 px-4 py-3.5">
+    <article
+      ref={rowRef}
+      onClick={
+        onOpen
+          ? (e) => {
+              // Like X: tap a post to open it — except on its links, buttons and media.
+              if ((e.target as HTMLElement).closest("a,button,video,textarea,input")) return;
+              if (window.getSelection()?.toString()) return;
+              onOpen();
+            }
+          : undefined
+      }
+      className={`flex gap-3 px-4 py-3.5 ${onOpen ? "cursor-pointer transition-colors hover:bg-foreground/[0.02]" : ""}`}
+    >
       {face}
       <div className="min-w-0 flex-1">{children}</div>
     </article>
   );
 }
 
+// ── The X-style action row on every post ─────────────────────────────
+
+const ICON = {
+  reply: "M3.5 5.5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3h0a2 2 0 0 1-2-2v-6Z",
+  views: "M4 16V10M8 16V6M12 16v-4M16 16V4",
+  share: "M10 3v10M6 7l4-4 4 4M4 12v3.5A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5V12",
+};
+
+function Glyph({ d }: { d: string }) {
+  return (
+    <svg width="17" height="17" viewBox="0 0 20 20" aria-hidden>
+      <path d={d} stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PostActions({ item, actions, showViews = true }: { item: PostItem | ReceiptItem; actions: CardActions; showViews?: boolean }) {
+  return (
+    <div className="-ml-2 mt-1.5 flex max-w-md items-center justify-between text-muted">
+      <button
+        type="button"
+        onClick={() => actions.onReply?.(item)}
+        aria-label={item.replies ? `Reply, ${item.replies} replies` : "Reply"}
+        className="group flex h-8 items-center gap-1 rounded-full px-2 text-[13px] transition-colors hover:text-rival-blue"
+      >
+        <span className="flex h-8 w-8 items-center justify-center rounded-full transition-colors group-hover:bg-rival-blue/10">
+          <Glyph d={ICON.reply} />
+        </span>
+        {item.replies > 0 && <span className="tabular-nums">{compactCount(item.replies)}</span>}
+      </button>
+      <ReactButton item={item} onReact={actions.onReact} />
+      {showViews ? (
+        <span className="flex h-8 items-center gap-1 px-2 text-[13px]" aria-label={`${item.views} views`} title="Views">
+          <span className="flex h-8 w-8 items-center justify-center">
+            <Glyph d={ICON.views} />
+          </span>
+          {item.views > 0 && <span className="tabular-nums">{compactCount(item.views)}</span>}
+        </span>
+      ) : (
+        <span className="w-12" />
+      )}
+      <ShareLink id={item.id} />
+    </div>
+  );
+}
+
+/** Reactions, compact: your emoji (or the top ones) and the total; tap for all five. */
+function ReactButton({ item, onReact }: { item: ArenaItem; onReact: CardActions["onReact"] }) {
+  const [open, setOpen] = useState(false);
+  const total = ARENA_EMOJI.reduce((n, e) => n + (item.reactions[e] ?? 0), 0);
+  const top = [...ARENA_EMOJI]
+    .filter((e) => (item.reactions[e] ?? 0) > 0)
+    .sort((a, b) => (item.reactions[b] ?? 0) - (item.reactions[a] ?? 0))
+    .slice(0, 2);
+  const mine = item.mine.length > 0;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="React"
+        aria-expanded={open}
+        className="group flex h-8 items-center gap-1 rounded-full px-2 text-[13px] transition-colors"
+        style={{ color: mine ? "var(--rival-blue)" : undefined }}
+      >
+        <span className="flex h-8 min-w-8 items-center justify-center rounded-full px-1 transition-colors group-hover:bg-foreground/10">
+          {top.length > 0 ? (
+            <span className="flex text-[15px] leading-none">
+              {(mine ? item.mine.slice(0, 1) : top).map((e) => (
+                <span key={e}>{e}</span>
+              ))}
+            </span>
+          ) : (
+            <svg width="17" height="17" viewBox="0 0 20 20" aria-hidden>
+              <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
+              <circle cx="7.4" cy="8.4" r="1" fill="currentColor" />
+              <circle cx="12.6" cy="8.4" r="1" fill="currentColor" />
+              <path d="M6.8 12c.8 1.2 1.9 1.8 3.2 1.8s2.4-.6 3.2-1.8" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+            </svg>
+          )}
+        </span>
+        {total > 0 && <span className="tabular-nums">{compactCount(total)}</span>}
+      </button>
+      {open && (
+        <div className="absolute bottom-10 left-1/2 z-10 flex -translate-x-1/2 gap-0.5 rounded-full bg-surface-elevated p-1 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] ring-1 ring-border [animation:fade-in-up_140ms_ease-out_both]">
+          {ARENA_EMOJI.map((e) => {
+            const on = item.mine.includes(e);
+            return (
+              <button
+                key={e}
+                type="button"
+                onClick={() => {
+                  onReact(item, e);
+                  setOpen(false);
+                }}
+                aria-label={`React ${e}`}
+                aria-pressed={on}
+                className="flex h-10 min-w-10 flex-col items-center justify-center rounded-full px-1 transition-transform duration-150 hover:bg-foreground/10 active:scale-90"
+                style={{ background: on ? "color-mix(in srgb, var(--rival-blue) 18%, transparent)" : undefined }}
+              >
+                <span className="text-lg leading-none">{e}</span>
+                {(item.reactions[e] ?? 0) > 0 && <span className="font-mono text-[9px] text-muted">{item.reactions[e]}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Cards ─────────────────────────────────────────────────────────────
 
-function PostCard({ item, actions }: { item: PostItem; actions: CardActions }) {
-  const [thread, setThread] = useState(false);
-  const [replies, setReplies] = useState(item.replies);
+/**
+ * A post, X-style. feed: tap to open its page. detail: the post on its own
+ * page — bigger, with the full time and views. reply: a reply in a thread.
+ */
+export function PostCard({
+  item,
+  actions,
+  variant = "feed",
+  replyingTo,
+}: {
+  item: PostItem;
+  actions: CardActions;
+  variant?: "feed" | "detail" | "reply";
+  replyingTo?: string | null;
+}) {
+  const router = useRouter();
+  const viewRef = useViewOnScreen(item.id);
   const own = actions.viewerId === item.author.id;
+  const detail = variant === "detail";
   return (
-    <Row face={<Face author={item.author} />}>
+    <Row face={<Face author={item.author} size={detail ? 44 : 40} />} onOpen={variant === "feed" ? () => router.push(`/arena/p/${item.id}`) : undefined} rowRef={viewRef}>
       <Who
         author={item.author}
         at={item.at}
@@ -266,7 +407,12 @@ function PostCard({ item, actions }: { item: PostItem; actions: CardActions }) {
           ) : null
         }
       />
-      {item.body && <p className="mt-0.5 whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-foreground/90">{item.body}</p>}
+      {variant === "reply" && replyingTo && (
+        <p className="text-[13px] text-muted">
+          Replying to <span className="text-rival-blue">{replyingTo}</span>
+        </p>
+      )}
+      {item.body && <p className={`mt-0.5 whitespace-pre-wrap break-words leading-[1.45] text-foreground/90 ${detail ? "text-[18px]" : "text-[15px]"}`}>{item.body}</p>}
       {item.attachment && (
         <div className="mt-2">
           <Photo attachment={item.attachment} />
@@ -278,36 +424,28 @@ function PostCard({ item, actions }: { item: PostItem; actions: CardActions }) {
           <MatchTag match={item.match} onMatch={actions.onMatch} />
         </div>
       )}
-      <div className="mt-2.5 flex items-center gap-3">
-        <Reactions item={item} onReact={actions.onReact} />
-        {actions.inlineThread !== false && (
-        <button
-          type="button"
-          onClick={() => setThread((t) => !t)}
-          className="flex h-7 shrink-0 items-center gap-1.5 text-[13px] text-muted transition-colors hover:text-foreground"
-          aria-expanded={thread}
-        >
-          <svg width="15" height="15" viewBox="0 0 20 20" aria-hidden>
-            <path d="M3.5 5.5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3h0a2 2 0 0 1-2-2v-6Z" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" />
-          </svg>
-          {replies > 0 ? replies : "Reply"}
-        </button>
-        )}
-        <Link href={`/arena/p/${item.id}`} aria-label="Open post" className="flex h-7 shrink-0 items-center text-muted hover:text-foreground">
-          <svg width="15" height="15" viewBox="0 0 20 20" aria-hidden>
-            <path d="M8 4H5a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 5 16h9a1.5 1.5 0 0 0 1.5-1.5v-3M11 3.5h5.5V9M16.5 3.5 9 11" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-      </div>
-      {thread && <ArenaReplies postId={item.id} onCount={setReplies} />}
+      {detail && (
+        <p className="mt-3 border-b border-border pb-3 text-[14px] text-muted">
+          {new Date(item.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} · {new Date(item.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          {item.views > 0 && (
+            <>
+              {" · "}
+              <span className="font-semibold text-foreground">{compactCount(item.views)}</span> {item.views === 1 ? "View" : "Views"}
+            </>
+          )}
+        </p>
+      )}
+      <PostActions item={item} actions={actions} showViews={!detail} />
     </Row>
   );
 }
 
 function ReceiptCard({ item, actions }: { item: ReceiptItem; actions: CardActions }) {
+  const router = useRouter();
+  const viewRef = useViewOnScreen(item.id);
   const score = item.match && item.match.homeScore !== null ? `${item.match.home} ${item.match.homeScore}–${item.match.awayScore} ${item.match.away}` : null;
   return (
-    <Row face={<Face author={item.author} />}>
+    <Row face={<Face author={item.author} />} onOpen={() => router.push(`/arena/p/${item.id}`)} rowRef={viewRef}>
       <div className="flex items-center gap-2">
         <span
           className="rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest"
@@ -321,29 +459,28 @@ function ReceiptCard({ item, actions }: { item: ReceiptItem; actions: CardAction
       <blockquote className="mt-1.5 border-l-2 pl-3 text-[15px] leading-[1.45] text-foreground/90" style={{ borderColor: SIDE_COLOR[item.side] }}>
         {item.body || item.room.prediction}
       </blockquote>
-      <div className="mt-2.5 rounded-xl px-3.5 py-3 ring-1 ring-border">
-        <p className="text-[13px] font-semibold text-foreground">{item.room.prediction}</p>
-        <p className="mt-0.5 text-[13px] text-muted">
-          <span className="font-bold uppercase" style={{ color: SIDE_COLOR[(item.room.outcome as Side) ?? "yes"] }}>
-            {item.room.outcome}
-          </span>{" "}
-          won{score ? ` · ${score}` : ""} · {formatMoney(item.room.pool)} pot
-        </p>
-      </div>
-      <div className="mt-2.5 flex items-center gap-3">
-        <Reactions item={item} onReact={actions.onReact} />
+      <div className="mt-2.5 flex items-center gap-3 rounded-xl px-3.5 py-3 ring-1 ring-border">
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold text-foreground">{item.room.prediction}</p>
+          <p className="mt-0.5 text-[13px] text-muted">
+            <span className="font-bold uppercase" style={{ color: SIDE_COLOR[(item.room.outcome as Side) ?? "yes"] }}>
+              {item.room.outcome}
+            </span>{" "}
+            won{score ? ` · ${score}` : ""} · {formatMoney(item.room.pool)} pot
+          </p>
+        </div>
         {!item.won && item.rematchMatchId && (
           <Link href={`/rooms/create?matchId=${item.rematchMatchId}`} className="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-bold text-white" style={{ background: "var(--rival-blue)" }}>
             Rematch
           </Link>
         )}
-        <ShareLink id={item.id} className="shrink-0" />
       </div>
+      <PostActions item={item} actions={actions} />
     </Row>
   );
 }
 
-function ShareLink({ id, className = "" }: { id: string; className?: string }) {
+function ShareLink({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
   async function share() {
     const url = `${window.location.origin}/arena/p/${id}`;
@@ -357,11 +494,11 @@ function ShareLink({ id, className = "" }: { id: string; className?: string }) {
     } catch {}
   }
   return (
-    <button type="button" onClick={share} className={`flex h-7 items-center gap-1 text-[13px] text-muted hover:text-foreground ${className}`}>
-      <svg width="15" height="15" viewBox="0 0 20 20" aria-hidden>
-        <path d="M10 3v10M6 7l4-4 4 4M4 12v3.5A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5V12" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      {copied ? "Copied" : "Share"}
+    <button type="button" onClick={share} aria-label={copied ? "Link copied" : "Share"} className="group flex h-8 items-center gap-1 rounded-full px-2 text-[13px] transition-colors hover:text-rival-blue">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full transition-colors group-hover:bg-rival-blue/10">
+        <Glyph d={ICON.share} />
+      </span>
+      {copied && <span>Copied</span>}
     </button>
   );
 }

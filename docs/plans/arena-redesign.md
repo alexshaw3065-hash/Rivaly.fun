@@ -174,3 +174,18 @@ losing always shows the close call and a rematch.
   calls, the busiest open room as a quote, the match). Tag a match and Room
   stay on the toolbar as before (a "More…" fold was tried and removed). A refused save reopens the composer with your
   text, media and context and the reason.
+
+## X-style posts (built 2026-09-26, migration `20260926180000_post_views.sql`)
+
+- Every post (takes, calls, quotes, receipts, replies) has one action row:
+  reply · reactions (your emoji or the top two, plus the total; tap for all
+  five) · views · share.
+- **Views** count once per person per post: by account when signed in, by a
+  one-way hash of the network address salted with the post id when signed out
+  (nothing the client can invent); the author's own views don't count. A post
+  counts as seen after being half on screen for a second.
+- **Replies**: the reply button opens the composer ("Replying to @name"; text,
+  photo or GIF). Tap a post to open its page: the post big with its time and
+  views, "Post your reply", then every reply as a full post with its own
+  reactions and views. Replying to a reply tags that person (@name) under the
+  same post — threads stay one level deep.

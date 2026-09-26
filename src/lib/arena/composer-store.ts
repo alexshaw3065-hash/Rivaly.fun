@@ -16,7 +16,16 @@ export interface ComposerRoom {
   matchId: string | null;
 }
 
+export interface ComposerReplyTo {
+  id: string;
+  name: string;
+  username: string | null;
+  body: string;
+}
+
 export interface ComposerPreset {
+  /** Replying to a post (X-style): no room, match or moment of its own. */
+  replyTo?: ComposerReplyTo | null;
   moment?: MomentItem | null;
   room?: ComposerRoom | null;
   matchId?: string | null;
@@ -40,7 +49,7 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 export function openArenaComposer(preset: ComposerPreset = {}) {
-  const withContext = preset.moment || preset.room || preset.matchId !== undefined ? preset : { ...preset, matchId: context.matchId };
+  const withContext = preset.replyTo || preset.moment || preset.room || preset.matchId !== undefined ? preset : { ...preset, matchId: context.matchId };
   state = { open: true, preset: withContext, key: state.key + 1 };
   emit();
 }
