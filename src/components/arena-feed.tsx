@@ -10,7 +10,8 @@ import { useRealMatches } from "@/lib/use-real-matches";
 import { ARENA_COMPOSE_EVENT } from "@/lib/arena/events";
 import { ArenaCard, type CardActions } from "./arena/arena-cards";
 import { ArenaComposer } from "./arena/arena-composer";
-import { deletePost, fetchFeed, fetchPlayerNames, savePost, setReaction, type FeedScope, type NewPost } from "@/lib/arena/data";
+import { ArenaMatchRooms } from "./arena/arena-match-rooms";
+import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, savePost, setReaction, type FeedScope, type NewPost } from "@/lib/arena/data";
 import {
   appendPage,
   cursorOf,
@@ -20,6 +21,7 @@ import {
   toggleReaction,
   type ArenaEmoji,
   type ArenaItem,
+  type MatchRoom,
   type MomentItem,
   type PostItem,
 } from "@/lib/arena/model";
@@ -48,6 +50,8 @@ export function ArenaFeed() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [done, setDone] = useState(false);
   const [names, setNames] = useState<Record<string, Record<number, string>>>({});
+  const [matchRooms, setMatchRooms] = useState<Record<string, MatchRoom[]>>({});
+  const [roomsFor, setRoomsFor] = useState<MomentItem | null>(null);
   const [composer, setComposer] = useState<{ open: boolean; moment: MomentItem | null; key: number }>({ open: false, moment: null, key: 0 });
   const [notice, setNotice] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -81,6 +85,13 @@ export function ArenaFeed() {
     if (ids.length === 0) return;
     void fetchPlayerNames(ids).then((n) => setNames((prev) => ({ ...prev, ...n })));
   }, [items, names]);
+
+  // Rooms on those matches, so a moment can say which rooms it just decided.
+  useEffect(() => {
+    const ids = [...new Set(items.filter((i): i is MomentItem => i.kind === "moment" && i.rooms > 0).map((i) => i.match.id))].filter((id) => !(id in matchRooms));
+    if (ids.length === 0) return;
+    void fetchMatchRooms(ids).then((r) => setMatchRooms((prev) => ({ ...prev, ...r })));
+  }, [items, matchRooms]);
 
   // Anything new at the top? (Realtime nudges this; a slow timer backs it up
   // for things realtime can't see, like other people's stakes.)
@@ -197,6 +208,8 @@ export function ArenaFeed() {
     () => ({
       viewerId,
       names,
+      rooms: matchRooms,
+      onRooms: (m) => setRoomsFor(m),
       onMatch: (id) => {
         setMatchId(id);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -222,7 +235,7 @@ export function ArenaFeed() {
         }
       },
     }),
-    [viewerId, names, me, openComposer],
+    [viewerId, names, matchRooms, me, openComposer],
   );
 
   const live = matches.filter((m) => m.status === "live");
@@ -352,6 +365,7 @@ export function ArenaFeed() {
         </div>
       )}
 
+      <ArenaMatchRooms moment={roomsFor} rooms={roomsFor ? (matchRooms[roomsFor.match.id] ?? []) : []} onClose={() => setRoomsFor(null)} />
       <ArenaComposer
         key={composer.key}
         open={composer.open}

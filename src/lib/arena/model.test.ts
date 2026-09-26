@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   ago,
   displayName,
+  decidedBy,
   appendPage,
   cursorOf,
   momentHeadline,
@@ -14,6 +15,7 @@ import {
   type ArenaItem,
   type FeedRow,
   type MomentItem,
+  type MatchRoom,
 } from "./model.ts";
 
 const match = { id: "m1", home: "Arsenal", away: "Chelsea", competition: "Premier League", sportId: 1, status: "live", homeScore: 1, awayScore: 0, kickoffAt: "2026-09-26T14:00:00Z" };
@@ -112,5 +114,36 @@ describe("displayName", () => {
     assert.equal(displayName("92d50378-841c-4202-b777-6f14a551b17a", "uuyj"), "@uuyj");
     assert.equal(displayName("Tunde", "tunde"), "Tunde");
     assert.equal(displayName(null, null), "A rival");
+  });
+});
+
+describe("decidedBy", () => {
+  const room = (id: string, def: MatchRoom["def"], status = "live"): MatchRoom => ({ id, prediction: id, status, outcome: null, pool: 0, participants: 0, def });
+  const over25 = room("over", { stat: "total_goals", comparison: "over", threshold: 2.5 } as MatchRoom["def"]);
+  const btts = room("btts", { stat: "both_score" } as MatchRoom["def"]);
+  const winner = room("win", { stat: "winner", outcome: "home" } as MatchRoom["def"]);
+  const htOver = room("ht", { stat: "halftime_total_goals", comparison: "over", threshold: 0.5 } as MatchRoom["def"]);
+  const goal = (home: number, away: number, side: "home" | "away", minute = 60) => ({ ...moment("g", "goal", { home, away, side }), minute });
+
+  it("the third goal decides Over 2.5, and not before", () => {
+    assert.deepEqual(decidedBy(goal(2, 1, "away"), [over25]).map((d) => [d.room.id, d.outcome]), [["over", "yes"]]);
+    assert.equal(decidedBy(goal(2, 0, "home"), [over25]).length, 0);
+    assert.equal(decidedBy(goal(3, 1, "home"), [over25]).length, 0); // already decided at 2–1
+  });
+  it("both teams to score locks on the second team's first goal", () => {
+    assert.equal(decidedBy(goal(1, 1, "away"), [btts])[0]?.outcome, "yes");
+    assert.equal(decidedBy(goal(2, 0, "home"), [btts]).length, 0);
+  });
+  it("full time decides the winner", () => {
+    const ft = { ...moment("f", "game_finalised", { home: 2, away: 1 }), minute: null };
+    assert.equal(decidedBy(ft, [winner])[0]?.outcome, "yes");
+    assert.equal(decidedBy(goal(2, 1, "home"), [winner]).length, 0);
+  });
+  it("ignores first-half markets on second-half goals", () => {
+    assert.equal(decidedBy(goal(1, 0, "home", 70), [htOver]).length, 0);
+    assert.equal(decidedBy(goal(1, 0, "home", 20), [htOver])[0]?.outcome, "yes");
+  });
+  it("skips cancelled rooms and custom ones", () => {
+    assert.equal(decidedBy(goal(2, 1, "away"), [{ ...over25, status: "cancelled" }, room("custom", null)]).length, 0);
   });
 });

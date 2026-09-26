@@ -9,17 +9,18 @@ import { prepareChatPhoto, uploadChatPhoto } from "@/lib/cloudinary";
 import { klipyCustomerId, klipyShared, type KlipyGif } from "@/lib/klipy";
 import { useRealMatches } from "@/lib/use-real-matches";
 import type { ChatAttachment } from "@/lib/supabase/message-mapper";
-import { fetchCallableRooms } from "@/lib/arena/data";
+import { fetchCallableRooms, fetchQuotableRooms } from "@/lib/arena/data";
 import { momentHeadline, type MomentItem, type PostItem, type Side } from "@/lib/arena/model";
 import type { NewPost } from "@/lib/arena/data";
 
 const MAX = 500;
 const tidy = (t: string) => t.replace(/\n{3,}/g, "\n\n").trim();
 
-interface CallableRoom {
+interface AttachedRoom {
   id: string;
   prediction: string;
-  side: Side;
+  /** The side you staked — a call. Null for a quote (any public room). */
+  side: Side | null;
   matchId: string | null;
 }
 
@@ -46,18 +47,21 @@ export function ArenaComposer({
   const [gifQuery, setGifQuery] = useState<{ slug: string; q: string } | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [matchId, setMatchId] = useState<string | null>(null);
-  const [call, setCall] = useState<CallableRoom | null>(null);
+  const [call, setCall] = useState<AttachedRoom | null>(null);
   const [panel, setPanel] = useState<"gif" | "match" | "call" | null>(null);
-  const [rooms, setRooms] = useState<CallableRoom[] | null>(null);
+  const [rooms, setRooms] = useState<{ mine: AttachedRoom[]; others: AttachedRoom[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
   const fileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (panel !== "call" || !me || rooms) return;
-    void fetchCallableRooms(me.id).then(setRooms);
-  }, [panel, me, rooms]);
+    if (panel !== "call" || rooms) return;
+    void Promise.all([me ? fetchCallableRooms(me.id) : Promise.resolve([]), fetchQuotableRooms(moment?.match.id ?? matchId)]).then(([mine, open]) => {
+      const backed = new Set(mine.map((r) => r.id));
+      setRooms({ mine, others: open.filter((r) => !backed.has(r.id)).map((r) => ({ id: r.id, prediction: r.prediction, side: null, matchId: r.matchId })) });
+    });
+  }, [panel, me, rooms, moment, matchId]);
 
   useLayoutEffect(() => {
     const el = boxRef.current;
@@ -172,7 +176,7 @@ export function ArenaComposer({
               maxLength={MAX}
               rows={3}
               autoFocus
-              placeholder={call ? `Why ${call.side.toUpperCase()}? Say it now, get the receipt later.` : moment ? "Your take on this…" : "What's your call?"}
+              placeholder={call?.side ? `Why ${call.side.toUpperCase()}? Say it now, get the receipt later.` : call ? "Who's taking this on?" : moment ? "Your take on this…" : "What's your call?"}
               className="w-full resize-none bg-transparent text-[17px] leading-snug text-foreground placeholder:text-muted focus:outline-none"
             />
             {body.length > MAX - 60 && <p className="text-right font-mono text-[11px] text-muted">{MAX - body.length} left</p>}
@@ -207,8 +211,8 @@ export function ArenaComposer({
               <div className="mt-2 flex flex-wrap gap-2">
                 {call && (
                   <Chip onClear={() => setCall(null)}>
-                    <span className="font-bold uppercase" style={{ color: call.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}>
-                      {call.side}
+                    <span className="font-bold uppercase" style={{ color: call.side === "yes" ? "var(--rival-blue)" : call.side === "no" ? "var(--rival-red)" : "var(--muted)" }}>
+                      {call.side ?? "Room"}
                     </span>{" "}
                     {call.prediction}
                   </Chip>
@@ -252,28 +256,30 @@ export function ArenaComposer({
               </div>
             )}
             {panel === "call" && (
-              <div className="mt-3 rounded-xl ring-1 ring-border">
+              <div className="mt-3 max-h-72 overflow-y-auto rounded-xl ring-1 ring-border">
                 {rooms === null ? (
-                  <p className="p-4 text-sm text-muted">Loading your rooms…</p>
-                ) : rooms.length === 0 ? (
-                  <p className="p-4 text-sm text-muted">A call is backed by a stake — join a room first, then call it here.</p>
+                  <p className="p-4 text-sm text-muted">Loading rooms…</p>
                 ) : (
-                  rooms.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => {
+                  <>
+                    <RoomGroup
+                      title="Your calls"
+                      hint={rooms.mine.length === 0 ? "Back a room and you can call it here — it comes back as a receipt when it settles." : "Backed with your stake — comes back as a receipt."}
+                      rooms={rooms.mine}
+                      onPick={(r) => {
                         setCall(r);
                         setPanel(null);
                       }}
-                      className="flex w-full items-center gap-2 border-b border-border px-3 py-2.5 text-left text-[14px] last:border-0 hover:bg-foreground/5"
-                    >
-                      <span className="shrink-0 font-bold uppercase" style={{ color: r.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}>
-                        {r.side}
-                      </span>
-                      <span className="min-w-0 truncate text-foreground">{r.prediction}</span>
-                    </button>
-                  ))
+                    />
+                    <RoomGroup
+                      title="Quote a room"
+                      hint={rooms.others.length === 0 ? "No open public rooms right now." : "Share any open room — people join from your post."}
+                      rooms={rooms.others}
+                      onPick={(r) => {
+                        setCall(r);
+                        setPanel(null);
+                      }}
+                    />
+                  </>
                 )}
               </div>
             )}
@@ -298,8 +304,8 @@ export function ArenaComposer({
               </Tool>
             )}
             {!moment && (
-              <Tool label="Make a call" active={panel === "call"} onClick={() => setPanel((p) => (p === "call" ? null : "call"))}>
-                <span className="text-[13px] font-bold">Call</span>
+              <Tool label="Attach a room" active={panel === "call"} onClick={() => setPanel((p) => (p === "call" ? null : "call"))}>
+                <span className="text-[13px] font-bold">Room</span>
               </Tool>
             )}
             <input
@@ -343,5 +349,29 @@ function Chip({ children, onClear }: { children: React.ReactNode; onClear: () =>
         ×
       </button>
     </span>
+  );
+}
+
+function RoomGroup({ title, hint, rooms, onPick }: { title: string; hint: string; rooms: AttachedRoom[]; onPick: (r: AttachedRoom) => void }) {
+  return (
+    <div className="border-b border-border last:border-0">
+      <p className="px-3 pt-3 text-[11px] font-bold uppercase tracking-wider text-muted">{title}</p>
+      <p className="px-3 pb-2 text-[12px] text-muted">{hint}</p>
+      {rooms.map((r) => (
+        <button
+          key={r.id}
+          type="button"
+          onClick={() => onPick(r)}
+          className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-[14px] hover:bg-foreground/5"
+        >
+          {r.side && (
+            <span className="shrink-0 font-bold uppercase" style={{ color: r.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}>
+              {r.side}
+            </span>
+          )}
+          <span className="min-w-0 truncate text-foreground">{r.prediction}</span>
+        </button>
+      ))}
+    </div>
   );
 }

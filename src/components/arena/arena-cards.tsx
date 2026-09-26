@@ -11,6 +11,7 @@ import {
   ago,
   isNfl,
   momentHeadline,
+  decidedBy,
   opposite,
   sideShare,
   type ArenaAuthor,
@@ -21,6 +22,7 @@ import {
   type EntryItem,
   type HotItem,
   type MomentItem,
+  type MatchRoom,
   type MomentTone,
   type PostItem,
   type ReceiptItem,
@@ -38,6 +40,9 @@ export interface CardActions {
   inlineThread?: boolean;
   viewerId: string | null;
   names: Record<string, Record<number, string>>;
+  /** Public rooms per match, for "decided by this goal" on moments. */
+  rooms?: Record<string, MatchRoom[]>;
+  onRooms?: (moment: MomentItem) => void;
 }
 
 const SIDE_COLOR: Record<Side, string> = { yes: "var(--rival-blue)", no: "var(--rival-red)" };
@@ -174,17 +179,20 @@ function Reactions({ item, onReact }: { item: ArenaItem; onReact: CardActions["o
   );
 }
 
-/** The room a call or entry is on: the claim, both sides of the pot, and the one-tap challenge. */
-function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom; side: Side; amount?: number; authorId: string; viewerId: string | null }) {
+/**
+ * The room a post points at. A call or an entry has a side (the author staked
+ * it), so the challenge is "Fade it"; a quote has no side, so it's an open
+ * door — join either end.
+ */
+function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom; side: Side | null; amount?: number; authorId: string; viewerId: string | null }) {
   const yesShare = sideShare(room, "yes");
   const open = room.status === "open";
   const own = viewerId === authorId;
-  const fade = opposite(side);
   return (
     <div className="mt-2 overflow-hidden rounded-xl ring-1 ring-border">
       <Link href={`/rooms/${room.id}`} className="block px-3.5 pb-3 pt-3 transition-colors hover:bg-foreground/[0.03]">
         <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider">
-          <span style={{ color: SIDE_COLOR[side] }}>Backing {side}</span>
+          {side ? <span style={{ color: SIDE_COLOR[side] }}>Backing {side}</span> : <span className="text-muted">Room</span>}
           {amount !== undefined && <span className="font-mono text-muted">{formatMoney(amount)}</span>}
           <span className="ml-auto font-mono font-medium normal-case tracking-normal text-muted">{formatMoney(room.pool)} pot · {room.participants}</span>
         </div>
@@ -194,15 +202,15 @@ function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom;
           <span style={{ width: `${(1 - yesShare) * 100}%`, background: SIDE_COLOR.no }} />
         </div>
       </Link>
-      {open && !own && (
+      {open && side && !own && (
         <div className="grid grid-cols-2 border-t border-border">
           <Link
-            href={`/rooms/${room.id}?side=${fade}`}
+            href={`/rooms/${room.id}?side=${opposite(side)}`}
             className="flex h-11 items-center justify-center gap-1.5 text-[14px] font-bold transition-colors hover:bg-foreground/[0.04]"
-            style={{ color: SIDE_COLOR[fade] }}
+            style={{ color: SIDE_COLOR[opposite(side)] }}
           >
             Fade it
-            <span className="font-mono text-[11px] font-semibold uppercase opacity-80">· {fade}</span>
+            <span className="font-mono text-[11px] font-semibold uppercase opacity-80">· {opposite(side)}</span>
           </Link>
           <Link
             href={`/rooms/${room.id}?side=${side}`}
@@ -210,6 +218,20 @@ function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom;
           >
             Back it
           </Link>
+        </div>
+      )}
+      {open && !side && (
+        <div className="grid grid-cols-2 border-t border-border">
+          {(["yes", "no"] as const).map((s, i) => (
+            <Link
+              key={s}
+              href={`/rooms/${room.id}?side=${s}`}
+              className={`flex h-11 items-center justify-center gap-1.5 text-[14px] font-bold transition-colors hover:bg-foreground/[0.04] ${i ? "border-l border-border" : ""}`}
+              style={{ color: SIDE_COLOR[s] }}
+            >
+              Join {s.toUpperCase()}
+            </Link>
+          ))}
         </div>
       )}
     </div>
@@ -250,7 +272,7 @@ function PostCard({ item, actions }: { item: PostItem; actions: CardActions }) {
           <Photo attachment={item.attachment} />
         </div>
       )}
-      {item.room && item.side && <CallSlip room={item.room} side={item.side} authorId={item.author.id} viewerId={actions.viewerId} />}
+      {item.room && <CallSlip room={item.room} side={item.side} authorId={item.author.id} viewerId={actions.viewerId} />}
       {item.match && !item.room && (
         <div className="mt-2">
           <MatchTag match={item.match} onMatch={actions.onMatch} />
@@ -405,6 +427,7 @@ function HotCard({ item }: { item: HotItem }) {
 // penalties, full time, touchdowns, field goals) — so it's allowed to be big.
 function MomentCard({ item, actions }: { item: MomentItem; actions: CardActions }) {
   const { title, tone, detail } = momentHeadline(item, actions.names[item.match.id]);
+  const decided = decidedBy(item, actions.rooms?.[item.match.id] ?? []);
   const color = TONE[tone];
   const p = item.payload;
   const hasScore = p.home !== undefined && p.away !== undefined;
@@ -439,11 +462,22 @@ function MomentCard({ item, actions }: { item: MomentItem; actions: CardActions 
           {title}
         </p>
         {detail && <p className="mt-0.5 text-[13px] text-muted">{detail}</p>}
+        {decided.length > 0 && (
+          <button type="button" onClick={() => actions.onRooms?.(item)} className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold ring-1" style={{ color, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${color} 45%, transparent)` }}>
+            {item.action === "game_finalised" ? "Settles" : "Decided"} {decided.length} {decided.length === 1 ? "room" : "rooms"}
+            <span className="font-mono text-[11px] text-muted">
+              {(["yes", "no"] as const).map((o) => {
+                const n = decided.filter((d) => d.outcome === o).length;
+                return n ? `${o.toUpperCase()} ${n}` : null;
+              }).filter(Boolean).join(" · ")}
+            </span>
+          </button>
+        )}
       </div>
       <div className="mt-3 flex items-center gap-3">
         <Reactions item={item} onReact={actions.onReact} />
         {item.rooms > 0 && (
-          <button type="button" onClick={() => actions.onMatch(item.match.id)} className="shrink-0 whitespace-nowrap text-[13px] text-muted hover:text-foreground">
+          <button type="button" onClick={() => (actions.onRooms ? actions.onRooms(item) : actions.onMatch(item.match.id))} className="shrink-0 whitespace-nowrap text-[13px] text-muted underline-offset-2 hover:text-foreground hover:underline">
             {item.rooms} {item.rooms === 1 ? "room" : "rooms"}
           </button>
         )}

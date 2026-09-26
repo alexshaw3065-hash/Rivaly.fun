@@ -5,7 +5,8 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ChatAttachment } from "@/lib/supabase/message-mapper";
 import { playerNames } from "@/lib/match-lineups";
-import { displayName, toItems, type ArenaAuthor, type ArenaEmoji, type ArenaItem, type FeedRow, type PostItem, type Side } from "./model";
+import { displayName, toItems, type ArenaAuthor, type ArenaEmoji, type ArenaItem, type FeedRow, type MatchRoom, type PostItem, type Side } from "./model";
+import type { MarketSideDefinition } from "@/lib/types";
 
 export type FeedScope = "global" | "following";
 
@@ -182,6 +183,41 @@ export async function fetchCallableRooms(userId: string): Promise<{ id: string; 
   return ((data ?? []) as unknown as Row[])
     .filter((r) => r.room && !seen.has(r.room.id) && seen.add(r.room.id))
     .map((r) => ({ id: r.room!.id, prediction: r.room!.prediction, side: r.side, matchId: r.room!.match_id }));
+}
+
+/** Open public rooms anyone can quote in a post — the tagged match's first. */
+export async function fetchQuotableRooms(matchId: string | null): Promise<{ id: string; prediction: string; matchId: string | null; pool: number; participants: number }[]> {
+  const { data } = await createClient()
+    .from("rooms")
+    .select("id, prediction, match_id, pool_total_cents, participant_count")
+    .eq("visibility", "public")
+    .eq("status", "open")
+    .order("participant_count", { ascending: false })
+    .limit(30);
+  type Row = { id: string; prediction: string; match_id: string | null; pool_total_cents: number; participant_count: number };
+  const rows = ((data ?? []) as Row[]).map((r) => ({ id: r.id, prediction: r.prediction, matchId: r.match_id, pool: Number(r.pool_total_cents), participants: r.participant_count }));
+  return matchId ? [...rows.filter((r) => r.matchId === matchId), ...rows.filter((r) => r.matchId !== matchId)] : rows;
+}
+
+/** Every public room on these matches, with the rules that settle them (for moment cards). */
+const roomsCache = new Map<string, MatchRoom[]>();
+export async function fetchMatchRooms(matchIds: string[]): Promise<Record<string, MatchRoom[]>> {
+  const missing = [...new Set(matchIds)].filter((id) => !roomsCache.has(id));
+  if (missing.length > 0) {
+    const { data } = await createClient()
+      .from("rooms")
+      .select("id, prediction, status, resolved_outcome, pool_total_cents, participant_count, match_id, market_side_definition")
+      .eq("visibility", "public")
+      .in("match_id", missing)
+      .order("participant_count", { ascending: false });
+    type Row = { id: string; prediction: string; status: string; resolved_outcome: string | null; pool_total_cents: number; participant_count: number; match_id: string; market_side_definition: MarketSideDefinition | null };
+    const byMatch = new Map<string, MatchRoom[]>(missing.map((id) => [id, []]));
+    for (const r of (data ?? []) as Row[]) {
+      byMatch.get(r.match_id)?.push({ id: r.id, prediction: r.prediction, status: r.status, outcome: r.resolved_outcome, pool: Number(r.pool_total_cents), participants: r.participant_count, def: r.market_side_definition });
+    }
+    for (const [id, list] of byMatch) roomsCache.set(id, list);
+  }
+  return Object.fromEntries(matchIds.map((id) => [id, roomsCache.get(id) ?? []]));
 }
 
 /** Scorer names for moment cards, from each match's line-ups. */

@@ -4,6 +4,8 @@
 // (supabase/migrations/20260926090000_arena_v2.sql).
 
 import type { ChatAttachment } from "../supabase/message-mapper.ts";
+import type { MarketSideDefinition } from "../types.ts";
+import { resolveMarket, type MatchFacts, type Outcome } from "../settlement/resolve.ts";
 
 export const ARENA_EMOJI = ["🔥", "😂", "🎯", "🤡", "🧢"] as const;
 export type ArenaEmoji = (typeof ARENA_EMOJI)[number];
@@ -49,6 +51,9 @@ export interface MomentPayload {
   outcome?: string;
   playerId?: number;
   type?: string;
+  /** The score just before this moment (scoring moments only). */
+  prevHome?: number;
+  prevAway?: number;
 }
 
 interface Base {
@@ -263,4 +268,54 @@ export function ago(iso: string, now = Date.now()): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+const FIRST_HALF_STATS = new Set<string>(["halftime_result", "halftime_correct_score", "halftime_total_goals", "first_half_points"]);
+
+/** A public room on a match, with the market rules that settle it. */
+export interface MatchRoom {
+  id: string;
+  prediction: string;
+  status: string;
+  outcome: string | null;
+  pool: number;
+  participants: number;
+  def: MarketSideDefinition | null;
+}
+
+/**
+ * Which open rooms this moment just decided — asked of the same rules that
+ * settle rooms (resolveMarket), comparing the match just before and just
+ * after. A football goal is always one goal, so the score before is the score
+ * after minus one; NFL points vary, so it uses the previous scoring moment.
+ */
+export function decidedBy(moment: Pick<MomentItem, "action" | "payload" | "at" | "minute">, rooms: MatchRoom[]): { room: MatchRoom; outcome: Outcome }[] {
+  const p = moment.payload;
+  if (p.home === undefined || p.away === undefined) return [];
+  let beforeHome = p.prevHome;
+  let beforeAway = p.prevAway;
+  if (moment.action === "goal") {
+    beforeHome = p.home - (p.side === "home" ? 1 : 0);
+    beforeAway = p.away - (p.side === "away" ? 1 : 0);
+  }
+  const at = Date.parse(moment.at);
+  const facts = (home: number, away: number, finished: boolean): MatchFacts => ({ status: finished ? "finished" : "live", homeScore: home, awayScore: away, homeScoreHt: null, awayScoreHt: null });
+  const finalWhistle = moment.action === "game_finalised";
+  const out: { room: MatchRoom; outcome: Outcome }[] = [];
+  // First-half markets read the live score as the half-time score, so only
+  // trust them for moments we know happened in the first half.
+  const firstHalf = typeof moment.minute === "number" && moment.minute <= 45;
+  for (const room of rooms) {
+    if (!room.def || room.status === "cancelled") continue;
+    if (FIRST_HALF_STATS.has(room.def.stat) && !firstHalf) continue;
+    const after = resolveMarket(room.def, facts(p.home, p.away, finalWhistle), [{ action: moment.action, at }]);
+    if (after.kind !== "locked" && after.kind !== "final") continue;
+    if (!finalWhistle) {
+      if (beforeHome === undefined || beforeAway === undefined) continue;
+      const before = resolveMarket(room.def, facts(beforeHome, beforeAway, false), []);
+      if (before.kind !== "open") continue;
+    }
+    out.push({ room, outcome: after.outcome });
+  }
+  return out;
 }

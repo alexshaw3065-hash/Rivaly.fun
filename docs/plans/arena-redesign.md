@@ -17,9 +17,15 @@ player records into one, and drop anything the feed later discarded (e.g. a
 goal VAR took away). Rules checked in a rolled-back transaction: fake calls,
 impersonation, outside image URLs and deep replies are all refused.
 
-Not done yet: a "rooms flipped by this goal" line on moments (shows the room
-count instead); an OG image for shared receipts (the share page has title and
-description only); Arena photos don't expire (chat photos do, after 60 days).
+Follow-up (2026-09-26, migration `20260926120000_arena_quotes_and_moment_context.sql`):
+quote any public room in a post (Join YES / Join NO) — calls stay stake-backed
+and are the only posts that become receipts; moments carry the score just
+before them, and the card says which rooms the moment decided ("Decided 2 rooms
+· YES 1 · NO 1"), asked of the same `resolveMarket` rules that settle rooms
+(tested in `src/lib/arena/model.test.ts`); "N rooms" opens the match's rooms;
+shared posts unfurl with a card (`/arena/p/[postId]/opengraph-image`, a
+"CALLED IT" stamp on winning receipts); Arena photos expire after 60 days like
+chat photos.
 
 North star: open Rivaly and see straight away what everyone is talking about.
 It should feel like a viewing centre just after a big moment, not a comments
