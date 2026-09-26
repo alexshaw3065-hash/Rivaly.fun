@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { scoredCompetitionIds } from "@/lib/supabase/scored-competitions";
-import { matches as mockMatches } from "@/lib/mock-data";
 import { mapMatchRow, MATCH_COLUMNS, type MatchRow } from "@/lib/supabase/match-mapper";
 import type { Match } from "@/lib/types";
 
@@ -29,7 +28,7 @@ function forDisplay(a: Match, b: Match): number {
 
 export interface RealMatches {
   matches: Match[];
-  /** False while the first read is in flight, or when falling back to mock. */
+  /** False until the first read has landed. */
   isReal: boolean;
   isLoading: boolean;
 }
@@ -75,13 +74,7 @@ export function preloadMatches(force = false): Promise<Match[]> {
   return pending;
 }
 
-/**
- * Real fixtures and scores, with the seeded mock roster as a fallback.
- *
- * Same mock-vs-real convention used elsewhere in the codebase: if the table
- * has no rows (a fresh environment, or the ingester hasn't run), the app keeps
- * working on mock data rather than rendering an empty screen.
- */
+/** Real fixtures and scores. No fixtures means an empty list — never sample matches. */
 export function useRealMatches(): RealMatches {
   // Start from the shared cache when it's there — no loading flash.
   const [rows, setRows] = useState<Match[] | null>(() => cache?.rows ?? null);
@@ -126,11 +119,5 @@ export function useRealMatches(): RealMatches {
     };
   }, [load]);
 
-  return useMemo(() => {
-    const real = rows ?? [];
-    if (real.length === 0) {
-      return { matches: [...mockMatches].sort(forDisplay), isReal: false, isLoading };
-    }
-    return { matches: [...real].sort(forDisplay), isReal: true, isLoading: false };
-  }, [rows, isLoading]);
+  return useMemo(() => ({ matches: [...(rows ?? [])].sort(forDisplay), isReal: rows !== null, isLoading: rows === null && isLoading }), [rows, isLoading]);
 }

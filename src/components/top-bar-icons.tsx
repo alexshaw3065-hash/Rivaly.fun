@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { notifications } from "@/lib/mock-data";
 import { GiftIcon, BellIcon, PlusIcon } from "./icons";
 import { useLiveWalletBalance } from "@/lib/wallet/use-live-balance";
 import { formatUsdcCompact } from "@/lib/wallet/format";
@@ -11,7 +10,6 @@ import { openAuthModal } from "@/lib/auth-modal-store";
 
 export function TopBarIcons({ walletBordered = false }: { walletBordered?: boolean }) {
   const currentUser = useCurrentUser();
-  const hasUnread = notifications.some((n) => !n.read);
   const live = useLiveWalletBalance();
   // No wallet yet (or not read yet) is "—", never a made-up number — the
   // wallet page it links to offers the setup.
@@ -53,12 +51,6 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
         className="hover-link relative text-muted transition-colors"
       >
         <BellIcon />
-        {hasUnread && (
-          <span
-            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
-            style={{ background: "var(--rival-blue)" }}
-          />
-        )}
       </Link>
 
       {/* Desktop keeps the plain-text treatment (one less boxed element

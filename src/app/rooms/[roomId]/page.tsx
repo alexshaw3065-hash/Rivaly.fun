@@ -66,7 +66,8 @@ export default async function RoomPage({
   }
   const preselect: EntrySide | null = side === "yes" || side === "no" ? side : null;
 
-  if (!room) {
+  const match = room ? await getMatchById(room.matchId) : undefined;
+  if (!room || !match) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-16 text-center md:px-6">
         <p className="font-display text-xl font-semibold text-foreground">Room not found</p>
@@ -78,7 +79,6 @@ export default async function RoomPage({
     );
   }
 
-  const match = (await getMatchById(room.matchId))!;
   const creator = await getProfileById(room.creatorId);
   const myEntry = await getMyEntryForRoom(room.id);
   const stakesClosed = stakesAreClosed(match);

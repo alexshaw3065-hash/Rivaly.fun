@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { formatMoney, formatMoneyCompact, followedTopRivals, goatedRivals, profiles as demoProfiles } from "@/lib/mock-data";
+import { formatMoney, formatMoneyCompact } from "@/lib/mock-data";
 import { RivalCharacter } from "./rival-character";
 import { TeamCrest } from "./team-crest";
 import { AutoScrollRow } from "./auto-scroll-row";
@@ -14,9 +14,9 @@ import { RivalDivider } from "./rival-divider";
 //                  it (top_payouts)
 //   Goated       — current win streaks of 3+ (top_streaks)
 //   Hall of fame — all-time profit (top_earners)
-// All real data (public, settled rooms only). A group with no real data yet
-// falls back to the demo roster, flagged with a "sample rivals" note, and
-// switches to real people by itself as rooms settle. FOMO-style cards;
+// All real data (public, settled rooms only). A group with nobody in it yet
+// simply doesn't show; with nobody anywhere, the row says so and invites the
+// first room. Never sample people. FOMO-style cards;
 // tapping one pauses the row and opens the story beneath it.
 //
 // Engagement mechanisms (.claude/skills/rivaly-engagement-psychology):
@@ -118,7 +118,6 @@ interface RivalItem {
   metric: ReactNode;
   achievement: string;
   win?: TopWin;
-  demo: boolean;
 }
 
 const HEADINGS: Record<Group, string> = { top: "Top rivals", goated: "Goated rivals", hof: "Hall of fame" };
@@ -132,7 +131,6 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
         username: w.username,
         avatarUrl: w.avatarUrl,
         win: w,
-        demo: false,
         achievement: `Won ${formatMoney(profit(w))} on one call`,
         metric: (
           <>
@@ -144,16 +142,7 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
           </>
         ),
       }))
-    : followedTopRivals(5).map((p) => ({
-        key: `top-${p.id}`,
-        group: "top",
-        name: p.displayName,
-        username: p.username,
-        avatarUrl: p.avatarUrl,
-        demo: true,
-        achievement: `${formatMoney(p.totalWinningsCents)} won`,
-        metric: <span className="truncate font-mono text-sm font-semibold text-rival-green">+{formatMoneyCompact(p.totalWinningsCents)}</span>,
-      }));
+    : [];
 
   const goated: RivalItem[] = streaks.length
     ? streaks.map((s) => ({
@@ -162,23 +151,10 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
         name: s.displayName,
         username: s.username,
         avatarUrl: s.avatarUrl,
-        demo: false,
         achievement: `${s.streak} rooms won in a row — and counting`,
         metric: <span className="truncate font-mono text-sm font-semibold text-[#f5a524]">🔥 {s.streak} in a row</span>,
       }))
-    : [...demoProfiles]
-        .sort((a, b) => b.predictionAccuracy - a.predictionAccuracy)
-        .slice(0, 5)
-        .map((p) => ({
-          key: `goated-${p.id}`,
-          group: "goated",
-          name: p.displayName,
-          username: p.username,
-          avatarUrl: p.avatarUrl,
-          demo: true,
-          achievement: `Calls ${Math.round(p.predictionAccuracy * 100)}% right`,
-          metric: <span className="truncate font-mono text-sm font-semibold text-[#f5a524]">🔥 {Math.round(p.predictionAccuracy * 100)}% hit</span>,
-        }));
+    : [];
 
   const hof: RivalItem[] = earners.length
     ? earners.map((e) => ({
@@ -187,20 +163,10 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
         name: e.displayName,
         username: e.username,
         avatarUrl: e.avatarUrl,
-        demo: false,
         achievement: `${formatMoney(e.profitCents)} profit across ${e.roomsWon} winning room${e.roomsWon === 1 ? "" : "s"}`,
         metric: <span className="truncate font-mono text-sm font-semibold text-rival-green">👑 {formatMoneyCompact(e.profitCents)}</span>,
       }))
-    : goatedRivals(5).map((p) => ({
-        key: `hof-${p.id}`,
-        group: "hof",
-        name: p.displayName,
-        username: p.username,
-        avatarUrl: p.avatarUrl,
-        demo: true,
-        achievement: `${formatMoney(p.totalWinningsCents)} won all-time`,
-        metric: <span className="truncate font-mono text-sm font-semibold text-rival-green">👑 {formatMoneyCompact(p.totalWinningsCents)}</span>,
-      }));
+    : [];
 
   return [...top, ...goated, ...hof];
 }
@@ -214,7 +180,6 @@ export function TopRivals() {
 
   const items = isLoading ? [] : buildItems(wins, streaks, earners);
   const story = items.find((i) => i.key === storyKey) ?? null;
-  const anyDemo = items.some((i) => i.demo);
 
   function toggle(key: string) {
     const opening = openKey !== key;
@@ -265,6 +230,16 @@ export function TopRivals() {
               <div key={i} className="h-[92px] w-[150px] shrink-0 rounded-xl border border-border bg-surface" aria-hidden />
             ))}
           </div>
+        ) : items.length === 0 ? (
+          <div className="rounded-xl border border-border bg-surface px-4 py-5">
+            <p className="text-sm text-foreground">No winners yet.</p>
+            <p className="mt-0.5 text-sm text-muted">
+              The first room to settle puts someone here.{" "}
+              <Link href="/rooms/create" className="font-medium text-rival-blue">
+                Start one →
+              </Link>
+            </p>
+          </div>
         ) : (
           <AutoScrollRow itemCount={items.length} initialSectionLabel={HEADINGS.top} onActiveSectionChange={setHeading} paused={openKey !== null}>
             {row}
@@ -284,14 +259,7 @@ export function TopRivals() {
         </div>
       </div>
 
-      {anyDemo && (
-        <p className="mt-3 text-xs text-muted">
-          Sample rivals for now — real ones take their place as rooms settle.{" "}
-          <Link href="/rooms/create" className="font-medium text-rival-blue">
-            Be the first →
-          </Link>
-        </p>
-      )}
+
     </section>
   );
 }
@@ -305,7 +273,7 @@ function ProfileStory({ item, onClose }: { item: RivalItem; onClose: () => void 
           <p className="truncate font-display text-lg font-bold text-foreground">{item.name}</p>
           <p className="truncate text-xs text-muted">
             {HEADINGS[item.group]}
-            {item.demo ? " · sample" : ` · @${item.username}`}
+            {` · @${item.username}`}
           </p>
         </div>
         <button type="button" onClick={onClose} aria-label="Close" className="text-muted transition-colors hover:text-foreground">
@@ -316,15 +284,9 @@ function ProfileStory({ item, onClose }: { item: RivalItem; onClose: () => void 
       </div>
       <div className="mt-3 flex items-center gap-2 rounded-lg bg-background px-3 py-2.5">{item.metric}</div>
       <p className="mt-2 text-sm text-foreground">{item.achievement}</p>
-      {item.demo ? (
-        <Link href="/rooms/create" className="mt-3 block text-center text-sm font-medium text-rival-blue">
-          Start a room — your name could be here
-        </Link>
-      ) : (
-        <Link href={`/profile/${item.username}`} className="mt-3 block text-center text-sm font-medium text-rival-blue">
-          See {item.name}&rsquo;s profile
-        </Link>
-      )}
+      <Link href={`/profile/${item.username}`} className="mt-3 block text-center text-sm font-medium text-rival-blue">
+        See {item.name}&rsquo;s profile
+      </Link>
     </div>
   );
 }

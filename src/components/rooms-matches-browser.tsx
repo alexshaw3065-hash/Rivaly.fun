@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { leagues as mockLeagues } from "@/lib/mock-data";
 import { useRealMatches } from "@/lib/use-real-matches";
 import { sportOf } from "@/lib/markets";
 import { RoomFeed, type FilterTab } from "./room-feed";
@@ -149,7 +148,7 @@ export function RoomsMatchesBrowser({
 
   // Real fixtures and live scores, falling back to the seeded roster when the
   // matches table is empty.
-  const { matches: liveMatches, isReal } = useRealMatches();
+  const { matches: liveMatches } = useRealMatches();
 
   const matchMatchesLeagues = useCallback(
     (m: Match) => selectedLeagues.length === 0 || selectedLeagues.includes(m.competition),
@@ -160,8 +159,8 @@ export function RoomsMatchesBrowser({
   // League filter options follow whatever's actually browsable, so the list
   // can't offer a league with no matches behind it.
   const leagues = useMemo(
-    () => (isReal ? [...new Set(liveMatches.map((m) => m.competition))].sort() : mockLeagues),
-    [isReal, liveMatches],
+    () => [...new Set(liveMatches.map((m) => m.competition))].sort(),
+    [liveMatches],
   );
 
   const summary = summarizeLeagues(selectedLeagues);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { trendingSearchTerms, type SearchTopic } from "@/lib/mock-data";
+import type { SearchTopic } from "@/lib/mock-data";
 import { useRealMatches } from "@/lib/use-real-matches";
 import type { Match } from "@/lib/types";
 import { TeamCrest } from "./team-crest";
@@ -51,6 +51,20 @@ interface TopicTile {
   live?: boolean;
 }
 
+/** Teams playing right now, then whoever kicks off soonest — real fixtures, not a made-up popularity ranking. */
+function useTrendingTerms(count: number): string[] {
+  const { matches } = useRealMatches();
+  return useMemo(() => {
+    const terms: string[] = [];
+    const order = [...matches.filter((m) => m.status === "live"), ...matches.filter((m) => m.status === "scheduled")];
+    for (const m of order) {
+      for (const team of [m.homeTeam, m.awayTeam]) if (!terms.includes(team)) terms.push(team);
+      if (terms.length >= count) break;
+    }
+    return terms.slice(0, count);
+  }, [matches, count]);
+}
+
 /** Topics = the leagues that actually have games coming up (plus "Live now"). */
 function useTopicTiles(): TopicTile[] {
   const { matches, isReal } = useRealMatches();
@@ -79,7 +93,7 @@ function useTopicTiles(): TopicTile[] {
 // Polymarket's own mobile search exactly, per founder direction: Recents
 // (if any) then a plain "Trending" list — a term, a trend arrow, nothing
 // else. Trending terms are real (team names from matches that are live
-// right now — see trendingSearchTerms in mock-data.ts), not an invented
+// right now, then the next kickoffs — see useTrendingTerms), not an invented
 // popularity ranking; there's no real search-analytics backend to rank
 // against.
 export function SearchRollup({
@@ -95,9 +109,9 @@ export function SearchRollup({
 }) {
   const recents = useRecentSearches();
   const topics = useTopicTiles();
+  const trending = useTrendingTerms(6);
 
   if (compact) {
-    const trending = trendingSearchTerms(6);
     return (
       <div className="flex flex-col gap-8">
         {recents.length > 0 && (

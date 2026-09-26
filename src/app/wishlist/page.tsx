@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSavedItems } from "@/lib/use-saved-items";
-import { matchById, searchTopics } from "@/lib/mock-data";
+import { searchTopics } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
+import { mapMatchRow, MATCH_COLUMNS, type MatchRow } from "@/lib/supabase/match-mapper";
+import type { Match } from "@/lib/types";
 import { fetchRoomsByIds, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { RoomCard } from "@/components/room-card";
 import { MatchChip } from "@/components/match-chip";
@@ -29,10 +32,29 @@ export default function WishlistPage() {
     };
   }, [roomIdsKey]);
 
-  const savedMatches = savedItems
+  // Bookmarked matches, read from the real fixtures table.
+  const matchIdsKey = savedItems
     .filter((it) => it.type === "match")
-    .map((it) => matchById(it.id))
-    .filter((m): m is NonNullable<typeof m> => Boolean(m));
+    .map((it) => it.id)
+    .join(",");
+  const [savedMatches, setSavedMatches] = useState<Match[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const ids = matchIdsKey ? matchIdsKey.split(",").filter((id) => /^[0-9a-f-]{36}$/i.test(id)) : [];
+    const load = ids.length
+      ? createClient()
+          .from("matches")
+          .select(MATCH_COLUMNS)
+          .in("id", ids)
+          .then(({ data }) => (data ?? []).map((r) => mapMatchRow(r as MatchRow)))
+      : Promise.resolve([] as Match[]);
+    void load.then((rows) => {
+      if (!cancelled) setSavedMatches(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [matchIdsKey]);
 
   // Curated topics resolve against searchTopics; an ad-hoc saved search
   // (bookmarked from the results header, id prefixed "q:" — see
