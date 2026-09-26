@@ -44,6 +44,8 @@ export interface Profile {
   dynamicWalletAddress: string | null;
   /** Saved profile colours (null = the default picked from the id). */
   bannerColor?: string | null;
+  /** Banner photo (Cloudinary). Null = the banner colour. */
+  bannerUrl?: string | null;
   ringColor?: string | null;
 }
 

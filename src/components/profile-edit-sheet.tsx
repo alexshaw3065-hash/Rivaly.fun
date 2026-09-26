@@ -3,8 +3,9 @@
 import { useRef, useState } from "react";
 import type { SocialLink } from "@/lib/types";
 import { socialPlatformInfo } from "@/lib/social-platforms";
-import { uploadAvatarImage, MAX_AVATAR_BYTES, ALLOWED_AVATAR_TYPES } from "@/lib/cloudinary";
-import { Avatar, RING_COLORS } from "./avatar";
+import { uploadAvatarImage, uploadBannerImage, cloudinaryAvatarUrl, cloudinaryBannerUrl, MAX_AVATAR_BYTES, ALLOWED_AVATAR_TYPES } from "@/lib/cloudinary";
+import { RivalCharacter } from "./rival-character";
+import { RING_COLORS } from "./avatar";
 import { BottomSheet } from "./bottom-sheet";
 import { PencilIcon, XIcon } from "./icons";
 import { ProfileSocialsSheet } from "./profile-socials-sheet";
@@ -63,6 +64,8 @@ export function ProfileEditSheet({
   onRingColorChange,
   bannerColor,
   onBannerColorChange,
+  bannerUrl,
+  onBannerUrlChange,
   socialLinks,
   onSocialLinksChange,
 }: {
@@ -78,6 +81,8 @@ export function ProfileEditSheet({
   onRingColorChange: (v: string) => void;
   bannerColor: string;
   onBannerColorChange: (v: string) => void;
+  bannerUrl: string | null;
+  onBannerUrlChange: (v: string | null) => void;
   socialLinks: SocialLink[];
   onSocialLinksChange: (links: SocialLink[]) => void;
 }) {
@@ -88,6 +93,32 @@ export function ProfileEditSheet({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [bannerProgress, setBannerProgress] = useState<number | null>(null);
+
+  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError("That isn't an image.");
+      return;
+    }
+    setUploadError(null);
+    const local = URL.createObjectURL(file);
+    setBannerPreview(local);
+    setBannerProgress(0);
+    try {
+      onBannerUrlChange(await uploadBannerImage(file, setBannerProgress));
+    } catch {
+      setUploadError("Couldn't upload the cover — try again.");
+    } finally {
+      setBannerProgress(null);
+      setBannerPreview(null);
+      URL.revokeObjectURL(local);
+    }
+  }
   const BIO_MAX = 160;
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -136,10 +167,27 @@ export function ProfileEditSheet({
     >
       <div className="flex flex-col gap-6">
         <div>
-          <div className="relative h-24 rounded-lg" style={{ background: bannerColor, transition: "background 150ms ease" }}>
-            <div className="absolute right-2 top-2">
-              <PencilBadge onClick={() => setEditingBanner((v) => !v)} />
+          <div className="relative h-28 rounded-lg" style={{ background: bannerColor, transition: "background 150ms ease" }}>
+            {(bannerPreview ?? bannerUrl) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={bannerPreview ?? cloudinaryBannerUrl(bannerUrl!, 800)} alt="" className="absolute inset-0 h-full w-full rounded-lg object-cover" />
+            )}
+            {bannerProgress !== null && (
+              <span className="absolute inset-x-3 bottom-2 h-1 overflow-hidden rounded-full bg-black/40">
+                <span className="block h-full bg-white transition-[width]" style={{ width: `${Math.round(bannerProgress * 100)}%` }} />
+              </span>
+            )}
+            <div className="absolute right-2 top-2 flex gap-1.5">
+              <button
+                onClick={() => bannerInputRef.current?.click()}
+                className="rounded-full px-3 py-1 text-xs font-semibold text-white"
+                style={{ background: "rgba(10,10,10,0.55)" }}
+              >
+                {bannerUrl ? "Change cover" : "Add cover photo"}
+              </button>
+              {!bannerUrl && <PencilBadge onClick={() => setEditingBanner((v) => !v)} />}
             </div>
+            <input ref={bannerInputRef} type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
             <div className="absolute -bottom-8 left-3 rounded-full p-0.5" style={{ background: "var(--surface)" }}>
               <div className="relative">
                 <button
@@ -148,12 +196,17 @@ export function ProfileEditSheet({
                   className="block rounded-full transition-opacity"
                   style={{ opacity: uploading ? 0.6 : 1 }}
                 >
-                  <Avatar
-                    name={displayName}
-                    size={64}
-                    ringColor={ringColor}
-                    imageUrl={previewUrl ?? avatarUrl}
-                  />
+                  <span
+                    className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full"
+                    style={{ background: "var(--surface-elevated)", boxShadow: `0 0 0 2px ${ringColor}` }}
+                  >
+                    {previewUrl ?? avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewUrl ?? cloudinaryAvatarUrl(avatarUrl!, 64)} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <RivalCharacter name={displayName} size={50} />
+                    )}
+                  </span>
                 </button>
                 <input
                   ref={fileInputRef}
@@ -169,7 +222,12 @@ export function ProfileEditSheet({
             </div>
           </div>
 
-          {editingBanner && (
+          {bannerUrl && (
+            <button onClick={() => onBannerUrlChange(null)} className="hover-link mt-1.5 block w-full text-right text-xs text-muted transition-colors">
+              Remove cover photo
+            </button>
+          )}
+          {editingBanner && !bannerUrl && (
             <div className="enter-row mt-11 flex justify-center gap-2.5">
               {BANNER_COLORS.map((c) => (
                 <Swatch key={c} color={c} active={c === bannerColor} onClick={() => onBannerColorChange(c)} />

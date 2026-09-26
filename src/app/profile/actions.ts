@@ -17,6 +17,7 @@ export async function updateProfile(input: {
   avatarUrl?: string | null;
   bannerColor?: string;
   ringColor?: string;
+  bannerUrl?: string | null;
 }): Promise<UpdateProfileResult> {
   const supabase = await createClient();
   const {
@@ -33,6 +34,7 @@ export async function updateProfile(input: {
 
   if (input.bannerColor !== undefined && !BANNER_COLORS.includes(input.bannerColor)) return { ok: false, error: "Couldn't save that colour." };
   if (input.ringColor !== undefined && !RING_COLORS.includes(input.ringColor)) return { ok: false, error: "Couldn't save that colour." };
+  if (input.bannerUrl != null && !isCloudinaryUrl(input.bannerUrl)) return { ok: false, error: "Couldn't save that cover photo — try again." };
 
   const { error } = await supabase
     .from("profiles")
@@ -43,6 +45,7 @@ export async function updateProfile(input: {
       ...(input.avatarUrl !== undefined ? { avatar_url: input.avatarUrl } : {}),
       ...(input.bannerColor !== undefined ? { banner_color: input.bannerColor } : {}),
       ...(input.ringColor !== undefined ? { ring_color: input.ringColor } : {}),
+      ...(input.bannerUrl !== undefined ? { banner_url: input.bannerUrl } : {}),
     })
     .eq("id", user.id);
 

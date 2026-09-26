@@ -17,9 +17,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export function FollowButton({
   profileId,
   initialFollowing = false,
+  variant = "default",
 }: {
   profileId: string;
   initialFollowing?: boolean;
+  /** "pill": the profile header's big rounded button. */
+  variant?: "default" | "pill";
 }) {
   const currentUser = useCurrentUser();
   const isRealTarget = UUID_RE.test(profileId);
@@ -41,6 +44,19 @@ export function FollowButton({
       const res = await toggleFollow(profileId, following);
       if (!res.ok) setFollowing(!next);
     });
+  }
+
+  if (variant === "pill") {
+    return (
+      <button
+        onClick={handleClick}
+        disabled={pending}
+        className="h-10 rounded-full px-6 text-sm font-semibold transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-70"
+        style={following ? { background: "var(--foreground)", color: "var(--background)" } : { background: "var(--rival-blue)", color: "#fff" }}
+      >
+        {following ? "Following" : "Follow"}
+      </button>
+    );
   }
 
   return (

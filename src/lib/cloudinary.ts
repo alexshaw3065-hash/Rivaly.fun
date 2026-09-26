@@ -47,6 +47,13 @@ export function cloudinaryAvatarUrl(url: string, size: number): string {
   return url.replace("/upload/", `/upload/w_${px},h_${px},c_fill,g_face,f_auto,q_auto/`);
 }
 
+/** A banner photo cropped to the header's shape and sized for its width. */
+export function cloudinaryBannerUrl(url: string, width: number): string {
+  if (!url.includes("/upload/")) return url;
+  const w = Math.round(width);
+  return url.replace("/upload/", `/upload/c_fill,g_auto,w_${w},h_${Math.round(w * 0.4)},f_auto,q_auto/`);
+}
+
 export function isCloudinaryUrl(url: string): boolean {
   return CLOUD_NAME !== undefined && url.startsWith(`https://res.cloudinary.com/${CLOUD_NAME}/`);
 }
@@ -119,4 +126,12 @@ export function uploadChatPhoto(blob: Blob, publicId: string, onProgress?: (p: n
 /** A chat photo sized for where it's shown (2× for sharp screens), best format for the device. */
 export function chatPhotoUrl(ref: string, width: number): string {
   return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/c_limit,w_${Math.round(width)},f_auto,q_auto/${ref}`;
+}
+
+/** A profile banner: shrunk on the phone, uploaded, resolved to its delivery URL. */
+export async function uploadBannerImage(file: File, onProgress?: (p: number) => void): Promise<string> {
+  const photo = await prepareChatPhoto(file);
+  URL.revokeObjectURL(photo.previewUrl);
+  const ref = await uploadChatPhoto(photo.blob, `banners/${crypto.randomUUID()}`, onProgress);
+  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${ref}`;
 }
