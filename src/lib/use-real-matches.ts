@@ -15,7 +15,7 @@ import type { Match } from "@/lib/types";
 // and yesterday's results still matter on the day after.
 const PAST_HOURS = 36;
 const FUTURE_DAYS = 21; // three weeks — covers an international break (Create Room lists the same span)
-const LIMIT = 200;
+const LIMIT = 500; // seven football leagues + the NFL over three weeks runs past 200
 
 // Live first, then whatever kicks off soonest — the order someone browsing
 // actually wants, rather than raw chronology.
