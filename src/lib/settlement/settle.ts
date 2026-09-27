@@ -354,7 +354,13 @@ export async function settleDueRooms(budgetMs = 45_000): Promise<SettleRunResult
     try {
       rooms.push(await settleRoom(id));
     } catch (e) {
-      rooms.push({ roomId: id, state: "skipped", detail: e instanceof Error ? e.message : String(e) });
+      const detail = e instanceof Error ? e.message : String(e);
+      rooms.push({ roomId: id, state: "skipped", detail });
+      // Visible in /admin → Settlement → Failed (best-effort).
+      await admin
+        .from("platform_events")
+        .insert({ type: "SETTLEMENT_FAILED", room_id: id, source: "settlement", status: "failed", metadata: { error: detail.slice(0, 300) } })
+        .then(() => undefined, () => undefined);
     }
   }
   const recovered = await recoverStakes(admin).catch(() => 0);

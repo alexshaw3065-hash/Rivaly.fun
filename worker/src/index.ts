@@ -276,13 +276,23 @@ if (BIGBALLS_API_KEY) {
   const bb = state.bigballs;
   bb.on = true;
 
+  // Job runs for /admin → System → Jobs (best-effort).
+  const recordRun = (job: string, started: number, ok: boolean, detail: unknown) =>
+    supabase
+      .from("job_runs")
+      .insert({ job, started_at: new Date(started).toISOString(), finished_at: new Date().toISOString(), ok, detail: { ...(detail as object), ms: Date.now() - started } })
+      .then(() => undefined, () => undefined);
+
   const fixturesTick = async () => {
+    const started = Date.now();
     try {
       bb.lastFixtures = await syncFixtures(supabase, BIGBALLS_API_KEY);
       bb.lastFixturesAt = new Date().toISOString();
+      await recordRun("bigballs-fixtures", started, true, bb.lastFixtures);
     } catch (e) {
       bb.lastError = `fixtures: ${(e as Error).message}`;
       console.error("[bigballs] fixtures:", (e as Error).message);
+      await recordRun("bigballs-fixtures", started, false, { error: (e as Error).message });
     }
     bb.callsToday = usedToday();
   };
@@ -291,15 +301,19 @@ if (BIGBALLS_API_KEY) {
 
   const liveTick = async () => {
     let delay = 60_000;
+    const started = Date.now();
     try {
       const r = await pollLive(supabase, BIGBALLS_API_KEY);
       delay = r.delayMs;
       bb.lastPoll = r;
       bb.lastPollAt = new Date().toISOString();
       if (r.errors.length) bb.lastError = r.errors.join("; ");
+      // Only polls that did something (idle checks every few minutes would drown the log).
+      if (r.calls > 0 || r.errors.length > 0) await recordRun("bigballs-live", started, r.errors.length === 0, r);
     } catch (e) {
       bb.lastError = `live: ${(e as Error).message}`;
       console.error("[bigballs] live:", (e as Error).message);
+      await recordRun("bigballs-live", started, false, { error: (e as Error).message });
     }
     bb.callsToday = usedToday();
     bb.nextPollInS = Math.round(delay / 1000);

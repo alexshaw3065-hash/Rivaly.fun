@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
 // Populated once, server-side, in src/app/layout.tsx (getCurrentProfile())
@@ -16,6 +17,20 @@ export function CurrentUserProvider({
   profile: Profile | null;
   children: React.ReactNode;
 }) {
+  // Counts today as an active day for this person, once a day (DAU/WAU/MAU
+  // and retention in /admin → Analytics). Best-effort; storage may be off.
+  const userId = profile?.id ?? null;
+  useEffect(() => {
+    if (!userId) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `rivaly-active:${userId}`;
+    try {
+      if (localStorage.getItem(key) === today) return;
+      localStorage.setItem(key, today);
+    } catch {}
+    void createClient().rpc("touch_active").then(() => undefined, () => undefined);
+  }, [userId]);
+
   return <CurrentUserContext.Provider value={profile}>{children}</CurrentUserContext.Provider>;
 }
 

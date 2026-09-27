@@ -103,5 +103,8 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
     return { ok: false, error: "Couldn't sign you in — try again." };
   }
 
+  // Admin analytics: a sign-in (best-effort — never blocks signing in).
+  await admin.from("platform_events").insert({ type: "USER_LOGIN", user_id: userId, source: "app" }).then(() => undefined, () => undefined);
+
   return { ok: true, hashedToken: link.properties.hashed_token, usernameIsPlaceholder };
 }

@@ -1,4 +1,5 @@
 import { syncScores } from "@/lib/txline/sync-scores";
+import { recordJob } from "@/lib/admin/jobs";
 
 // The correctness backstop for match results. Runs frequently enough to keep
 // finished matches accurate without needing the always-on SSE worker, and
@@ -23,10 +24,10 @@ export async function GET(request: Request) {
   const includeFinished = params.get("includeFinished") === "1";
 
   try {
-    const result = await syncScores({
+    const result = await recordJob("txline-scores", () => syncScores({
       ...(Number.isFinite(pastHours) && pastHours !== undefined ? { pastHours } : {}),
       includeFinished,
-    });
+    }));
     return Response.json({ ok: true, ...result });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });

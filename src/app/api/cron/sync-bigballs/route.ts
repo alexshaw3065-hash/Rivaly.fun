@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recordJob } from "@/lib/admin/jobs";
 import { syncFixtures } from "@/lib/bigballs/sync";
 
 // Big Balls fixtures for UCL, La Liga, Bundesliga, Serie A, Ligue 1 and MLS
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   const key = process.env.BIGBALLS_API_KEY;
   if (!key) return Response.json({ error: "BIGBALLS_API_KEY is not configured" }, { status: 500 });
   try {
-    const result = await syncFixtures(createAdminClient(), key);
+    const result = await recordJob("bigballs-fixtures", () => syncFixtures(createAdminClient(), key));
     return Response.json({ ok: true, ...result });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });

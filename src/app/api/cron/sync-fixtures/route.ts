@@ -1,4 +1,5 @@
 import { syncFixtures } from "@/lib/txline/sync-fixtures";
+import { recordJob } from "@/lib/admin/jobs";
 
 // Fixtures change slowly (kickoff times, postponements), so hourly is ample —
 // which is why this is a scheduled route rather than part of the always-on
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await syncFixtures();
+    const result = await recordJob("txline-fixtures", () => syncFixtures());
     // Per-competition errors are reported rather than thrown: one gated or
     // flaky competition shouldn't fail the whole run.
     return Response.json({ ok: true, ...result });

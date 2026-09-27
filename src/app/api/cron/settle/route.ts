@@ -1,4 +1,5 @@
 import { settleDueRooms } from "@/lib/settlement/settle";
+import { recordJob } from "@/lib/admin/jobs";
 
 // Settlement pass: rooms go live at kickoff, resolve (early, behind the
 // 10-minute safety window, or at the whistle), and winners are paid from
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
-    const result = await settleDueRooms();
+    const result = await recordJob("settle", () => settleDueRooms());
     return Response.json({ ok: true, ...result });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });

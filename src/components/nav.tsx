@@ -47,12 +47,17 @@ export function Nav({ children }: { children: ReactNode }) {
   const searchOpen = useSearchOverlayOpen();
   const currentUser = useCurrentUser();
 
+  // /admin has its own shell (src/app/admin/layout.tsx).
+  const isAdmin = pathname.startsWith("/admin");
+
   const tabs = [
     ...baseTabs,
     currentUser
       ? { href: `/profile/${currentUser.username}`, label: "Profile" }
       : { href: "/login", label: "Sign in" },
   ];
+
+  if (isAdmin) return <>{children}</>;
 
   return (
     <>

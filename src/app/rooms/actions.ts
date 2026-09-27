@@ -112,6 +112,17 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
   if (!wallet) return { ok: false, error: "Your wallet is still being set up — try again in a moment.", code: "no_wallet" };
 
   const admin = createAdminClient();
+  // Operations controls (/admin): account restrictions, pause switches, the platform stake cap.
+  const [{ data: restricted }, { data: flags }, { data: settings }] = await Promise.all([
+    admin.rpc("is_restricted", { p_user: user.id }),
+    admin.from("feature_flags").select("key, enabled").in("key", ["stakes_paused", "room_creation_paused"]),
+    admin.from("platform_settings").select("max_stake_cents").eq("id", true).maybeSingle(),
+  ]);
+  if (restricted) return { ok: false, error: "Your account can't stake right now. Contact support if you think this is a mistake." };
+  const flagOn = (k: string) => ((flags ?? []) as { key: string; enabled: boolean }[]).some((f) => f.key === k && f.enabled);
+  if (flagOn("stakes_paused")) return { ok: false, error: "Stakes are paused for a moment — try again soon." };
+  if (req.kind === "create" && flagOn("room_creation_paused")) return { ok: false, error: "New rooms are paused for a moment — try again soon." };
+  const platformMax = (settings?.max_stake_cents as number | null | undefined) ?? null;
   let result: Omit<Validated, "userId" | "wallet">;
 
   if (req.kind === "create") {
@@ -180,6 +191,10 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     const { data: existing } = await admin.from("entries").select("id").eq("room_id", roomId).eq("user_id", user.id).maybeSingle();
     if (existing) return { ok: false, error: DB_ERRORS.already_joined };
     result = { amountCents, side, roomId, payload: { p_room: roomId } };
+  }
+
+  if (platformMax !== null && result.amountCents > platformMax) {
+    return { ok: false, error: `Stakes are capped at $${(platformMax / 100).toFixed(2)} right now.` };
   }
 
   try {
