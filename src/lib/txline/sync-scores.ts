@@ -51,6 +51,7 @@ export async function syncScores(options: { pastHours?: number; includeFinished?
   const { data: comps } = await supabase
     .from("tracked_competitions")
     .select("competition_id")
+    .eq("provider", "txline")
     .eq("enabled", true)
     .eq("scores_available", true);
   const allowed = (comps ?? []).map((c) => c.competition_id as number);
@@ -60,6 +61,7 @@ export async function syncScores(options: { pastHours?: number; includeFinished?
   const { data: matches, error } = await supabase
     .from("matches")
     .select("id, provider_fixture_id, sport_id, status")
+    .eq("provider", "txline")
     .in("competition_id", allowed)
     // A backfill can re-read finished matches too (e.g. to pick up line-ups
     // and every goal after the switch to the historical log).

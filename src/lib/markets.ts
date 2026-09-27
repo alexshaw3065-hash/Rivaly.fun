@@ -62,6 +62,21 @@ const SPORT_MARKETS: Record<Sport, ReadonlySet<CreateRoomMarket["type"]>> = {
   ]),
 };
 
+// Big Balls' free plan scores goals live but has cards, corners, VAR and the
+// half-time score only after the match, if at all — so its leagues offer the
+// markets a full-time scoreline settles, and nothing a room could get stuck on.
+const GOAL_MARKETS: ReadonlySet<CreateRoomMarket["type"]> = new Set(["winner", "total_goals", "both_score", "correct_score", "handicap", "custom"]);
+
+/** Whether this match's data can only settle goal-based markets (Big Balls leagues). */
+export function goalsOnly(match: { provider?: string }): boolean {
+  return match.provider === "bigballs";
+}
+
+/** Whether this market can be offered on this match: right sport, and data that can settle it. */
+export function marketFitsMatch(market: CreateRoomMarket, match: { sportId?: number; provider?: string }): boolean {
+  return marketFitsSport(market, sportOf(match)) && (!goalsOnly(match) || GOAL_MARKETS.has(market.type));
+}
+
 /** Whether this market means anything for this match's sport (no corners in the NFL). */
 export function marketFitsSport(market: CreateRoomMarket, sport: Sport): boolean {
   if (sport === "nfl" && market.type === "winner" && market.outcome === "draw") return false;

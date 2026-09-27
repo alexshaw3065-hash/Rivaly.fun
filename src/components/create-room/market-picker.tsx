@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { composeMarket, sportOf, type CreateRoomMarket, type Sport } from "@/lib/markets";
+import { composeMarket, goalsOnly, sportOf, type CreateRoomMarket, type Sport } from "@/lib/markets";
 import type { EntrySide, Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 import { Accordion, HelpTip, OptionCell, OverUnderGrid, ScoreStepper, Segmented } from "./controls";
@@ -100,7 +100,8 @@ interface PickerProps {
 export function MarketPicker(props: PickerProps) {
   const { match, pick } = props;
   const sport = sportOf(match);
-  const tabs = TABS[sport];
+  // Big Balls leagues: goal markets only (see goalsOnly in markets.ts).
+  const tabs = goalsOnly(match) ? TABS[sport].filter((t) => t.id === "main" || t.id === "score") : TABS[sport];
   const [tab, setTab] = useState(() => tabFor(pick, sport));
   const pickTab = pick ? tabFor(pick, sport) : null;
 

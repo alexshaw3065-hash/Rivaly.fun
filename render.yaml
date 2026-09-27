@@ -49,3 +49,8 @@ services:
         sync: false
       - key: CRON_SECRET
         sync: false
+      # Big Balls Data: UCL, La Liga, Bundesliga, Serie A, Ligue 1 and MLS
+      # fixtures + live scores (docs/plans/match-data-providers.md). Without
+      # it the worker simply doesn't poll them.
+      - key: BIGBALLS_API_KEY
+        sync: false

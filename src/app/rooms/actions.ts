@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMatchById } from "@/lib/supabase/matches";
 import { matchIsScored } from "@/lib/supabase/scored-competitions";
-import { composeMarket, invalidMarketReason, marketFitsSport, MIN_STAKE_FLOOR_CENTS, sportOf, type CreateRoomMarket } from "@/lib/markets";
+import { composeMarket, invalidMarketReason, marketFitsMatch, MIN_STAKE_FLOOR_CENTS, type CreateRoomMarket } from "@/lib/markets";
 import { walletUsdcCents } from "@/lib/wallet/stakeable";
 import {
   buildStakeTransaction,
@@ -133,7 +133,7 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     if (match.status !== "scheduled" || +new Date(match.kickoffAt) - Date.now() < KICKOFF_BUFFER_MS) {
       return { ok: false, error: DB_ERRORS.stakes_closed };
     }
-    if (!marketFitsSport(input.market, sportOf(match))) return { ok: false, error: "That market doesn't exist for this match." };
+    if (!marketFitsMatch(input.market, match)) return { ok: false, error: "That market doesn't exist for this match." };
     // A room settles from the live score feed; no feed, no room.
     if (!(await matchIsScored(admin, input.matchId))) return { ok: false, error: NOT_COVERED };
 

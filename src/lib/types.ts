@@ -79,6 +79,8 @@ export interface Match {
   // TxLINE sport id (1 = soccer, 6 = NFL). Absent on the mock roster, which
   // is all soccer — read it through sportOf() in src/lib/markets.ts.
   sportId?: number;
+  /** Who scores it: "txline" (Premier League, NFL) or "bigballs" (UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS). */
+  provider?: string;
   // NFL-only stats, same "absent until the ingester extracts them" rule.
   homeTouchdowns?: number | null;
   awayTouchdowns?: number | null;

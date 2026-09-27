@@ -3,6 +3,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { applyScores } from "../../src/lib/txline/apply-scores";
 import type { TxLineScores } from "../../src/lib/txline/types";
 import { consumeSse, SseHttpError } from "./sse";
+import { pollLive, syncFixtures } from "../../src/lib/bigballs/sync";
+import { usedToday } from "../../src/lib/bigballs/client";
 
 // Always-on consumer of TxLINE's scores stream.
 //
@@ -42,6 +44,16 @@ const state = {
   reconnects: 0,
   backfills: 0,
   lastError: null as string | null,
+  bigballs: {
+    on: false,
+    callsToday: 0,
+    lastPollAt: null as string | null,
+    lastPoll: null as unknown,
+    nextPollInS: null as number | null,
+    lastFixturesAt: null as string | null,
+    lastFixtures: null as unknown,
+    lastError: null as string | null,
+  },
 };
 
 function requireEnv(name: string): string {
@@ -70,6 +82,7 @@ async function activeMatches(supabase: SupabaseClient): Promise<Map<number, Trac
   const { data, error } = await supabase
     .from("matches")
     .select("id, sport_id, provider_fixture_id, competition_id")
+    .eq("provider", "txline")
     .in("status", ["scheduled", "live"])
     .gte("kickoff_at", new Date(now - 6 * 3600_000).toISOString())
     .lte("kickoff_at", new Date(now + 6 * 3600_000).toISOString());
@@ -251,6 +264,49 @@ if (SETTLE_URL && CRON_SECRET) {
   };
   setTimeout(expireTick, 5 * 60_000);
   setInterval(expireTick, 24 * 60 * 60_000);
+}
+
+// Big Balls: UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS. Fixtures every
+// 6 hours (one call per league); live scores only for matches with a room,
+// paced by the daily-budget governor in src/lib/bigballs/logic.ts. Off
+// without BIGBALLS_API_KEY. Plan: docs/plans/match-data-providers.md.
+const BIGBALLS_API_KEY = process.env.BIGBALLS_API_KEY?.trim();
+if (BIGBALLS_API_KEY) {
+  const supabase = db();
+  const bb = state.bigballs;
+  bb.on = true;
+
+  const fixturesTick = async () => {
+    try {
+      bb.lastFixtures = await syncFixtures(supabase, BIGBALLS_API_KEY);
+      bb.lastFixturesAt = new Date().toISOString();
+    } catch (e) {
+      bb.lastError = `fixtures: ${(e as Error).message}`;
+      console.error("[bigballs] fixtures:", (e as Error).message);
+    }
+    bb.callsToday = usedToday();
+  };
+  setTimeout(fixturesTick, 60_000);
+  setInterval(fixturesTick, 6 * 60 * 60_000);
+
+  const liveTick = async () => {
+    let delay = 60_000;
+    try {
+      const r = await pollLive(supabase, BIGBALLS_API_KEY);
+      delay = r.delayMs;
+      bb.lastPoll = r;
+      bb.lastPollAt = new Date().toISOString();
+      if (r.errors.length) bb.lastError = r.errors.join("; ");
+    } catch (e) {
+      bb.lastError = `live: ${(e as Error).message}`;
+      console.error("[bigballs] live:", (e as Error).message);
+    }
+    bb.callsToday = usedToday();
+    bb.nextPollInS = Math.round(delay / 1000);
+    setTimeout(liveTick, delay);
+  };
+  setTimeout(liveTick, 30_000);
+  console.log("[bigballs] on — fixtures every 6h, live polling for matches with rooms");
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {

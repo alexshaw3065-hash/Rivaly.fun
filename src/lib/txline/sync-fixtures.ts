@@ -31,6 +31,7 @@ export async function syncFixtures(): Promise<SyncFixturesResult> {
   const { data: comps, error: compsError } = await supabase
     .from("tracked_competitions")
     .select("competition_id, name, sport_id")
+    .eq("provider", "txline")
     .eq("enabled", true);
   if (compsError) throw new Error(`could not read tracked_competitions: ${compsError.message}`);
 
