@@ -3,7 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { HomeIcon, SearchIcon, RoomsIcon, ArenaIcon, ChevronIcon, KeyIcon } from "./icons";
+import { HomeIcon, SearchIcon, ColosseumIcon, ChevronIcon, PersonIcon, XIcon, TiktokIcon, LinkedInIcon } from "./icons";
+import { RivalyMark } from "./rivaly-wordmark";
+import { SOCIALS } from "@/lib/socials";
 import { Avatar } from "./avatar";
 import { useCurrentUser } from "./current-user-provider";
 import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-collapsed";
@@ -21,12 +23,16 @@ import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-coll
 // "this one is you" convention the mobile top bar already uses. Built
 // per-render below (not a module-level constant) now that who's signed in
 // is real, not a hardcoded stand-in.
+// Same icons as the mobile tab bar: Rooms wears the Rivaly mark (greyed until
+// active), Arena is the Colosseum.
 const baseLinks = [
   { href: "/", label: "Home", Icon: HomeIcon },
   { href: "/search", label: "Search", Icon: SearchIcon },
-  { href: "/rooms", label: "Rooms", Icon: RoomsIcon },
-  { href: "/arena", label: "Arena", Icon: ArenaIcon },
+  { href: "/rooms", label: "Rooms", Icon: null, mark: true },
+  { href: "/arena", label: "Arena", Icon: ColosseumIcon },
 ];
+
+const SOCIAL_ICONS = { x: XIcon, tiktok: TiktokIcon, linkedin: LinkedInIcon } as const;
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -36,8 +42,8 @@ export function Sidebar() {
   const links = [
     ...baseLinks,
     currentUser
-      ? { href: `/profile/${currentUser.username}`, label: "Profile", Icon: null }
-      : { href: "/login", label: "Sign in", Icon: null },
+      ? { href: `/profile/${currentUser.username}`, label: "Profile", Icon: null, mark: false }
+      : { href: "/login", label: "Sign in", Icon: PersonIcon, mark: false },
   ];
 
   return (
@@ -61,8 +67,8 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 px-3">
-        {links.map(({ href, label, Icon }) => {
-          const active = pathname === href;
+        {links.map(({ href, label, Icon, mark }) => {
+          const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}
@@ -75,19 +81,42 @@ export function Sidebar() {
               }}
             >
               <span className="shrink-0">
-                {Icon ? (
+                {mark ? (
+                  <span className="flex h-[19px] w-[19px] items-center justify-center">
+                    <RivalyMark height={14} muted={!active} />
+                  </span>
+                ) : Icon ? (
                   <Icon />
                 ) : currentUser ? (
                   <Avatar name={currentUser.displayName} size={18} imageUrl={currentUser.avatarUrl} />
-                ) : (
-                  <KeyIcon />
-                )}
+                ) : null}
               </span>
               {!collapsed && <span className="truncate">{label}</span>}
             </Link>
           );
         })}
       </nav>
+
+      {!collapsed && (
+        <div className="flex shrink-0 items-center gap-1 px-4 pb-2">
+          {SOCIALS.map(({ key, label, href }) => {
+            const SocialIcon = SOCIAL_ICONS[key];
+            return (
+              <a
+                key={key}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Rivaly on ${label}`}
+                title={`Rivaly on ${label}`}
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-surface hover:text-foreground [&>svg]:h-[18px] [&>svg]:w-[18px]"
+              >
+                <SocialIcon />
+              </a>
+            );
+          })}
+        </div>
+      )}
 
       <div className="shrink-0 px-3 pb-5">
         <button

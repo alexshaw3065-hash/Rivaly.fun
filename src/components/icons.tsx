@@ -271,10 +271,13 @@ export function SettingsIcon() {
 // Connect-socials set — same bare hand-drawn convention as the rest of this
 // file: simplified, recognizable silhouettes, not traced brand logos.
 
+// X's mark reads by its weight contrast — one heavy stroke, one light,
+// broken where they cross — which is what separates it from a close "×".
 export function XIcon() {
   return (
     <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
-      <path d="M4.5 4.5 15.5 15.5M15.5 4.5 4.5 15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4.6 3.8 15.4 16.2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M15.4 3.8 11.3 8.5M8.7 11.5 4.6 16.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -407,6 +410,30 @@ export function LinkedInIcon() {
 // the pitch (the center dot) — for the Arena nav tab. Deliberately not a
 // trophy (that reads as "you already won something"; Arena is the crowd,
 // not the prize).
+// The Colosseum, front on: an elliptical rim, two tiers — pillars above,
+// arches at ground level — for Arena, where rivals meet in front of a crowd.
+export function ColosseumIcon({ size = 19, strokeWidth = 1.5 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg viewBox="0 0 20 20" width={size} height={size} fill="none" aria-hidden>
+      <path d="M2.8 7.4C2.8 5.5 6 4 10 4s7.2 1.5 7.2 3.4" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <path d="M2.8 7.4c1.6 1 4.3 1.5 7.2 1.5s5.6-.5 7.2-1.5M2.8 11.4c1.6 1 4.3 1.5 7.2 1.5s5.6-.5 7.2-1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <path d="M2.8 7.4V16M17.2 7.4V16M2 16h16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.3 8.6v3.3M10 8.9v3.4M13.7 8.6v3.3" stroke="currentColor" strokeWidth={strokeWidth * 0.8} strokeLinecap="round" />
+      <path d="M5 16v-1.6a1.1 1.1 0 0 1 2.2 0V16M8.9 16v-1.6a1.1 1.1 0 0 1 2.2 0V16M12.8 16v-1.6a1.1 1.1 0 0 1 2.2 0V16" stroke="currentColor" strokeWidth={strokeWidth * 0.8} strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Signed-out "you" — head and shoulders, same stroke language.
+export function PersonIcon({ size = 19, strokeWidth = 1.5 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg viewBox="0 0 20 20" width={size} height={size} fill="none" aria-hidden>
+      <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth={strokeWidth} />
+      <path d="M3.8 16.5c.8-3 3.3-4.8 6.2-4.8s5.4 1.8 6.2 4.8" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function ArenaIcon() {
   return (
     <svg viewBox="0 0 20 20" width="19" height="19" fill="none" aria-hidden>

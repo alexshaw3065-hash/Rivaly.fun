@@ -6,6 +6,7 @@ import { MoreIcon, SunIcon, MoonIcon, XIcon, TiktokIcon, LinkedInIcon } from "./
 import { ThemeToggle, useIsLightTheme } from "./theme-toggle";
 import { useCurrentUser } from "./current-user-provider";
 import { useSignOut } from "@/lib/use-sign-out";
+import { SOCIALS } from "@/lib/socials";
 
 const menuLinks = [
   { href: "/docs", label: "Documentation" },
@@ -13,17 +14,8 @@ const menuLinks = [
   { href: "/support", label: "Support" },
 ];
 
-// Not yet linked — Rivaly's real accounts aren't set up yet. Shown dimmed
-// and inert (not a <button>/<a> to nowhere) rather than a dead "#" link,
-// same "locked, not hidden" convention the achievements badges already
-// use for not-yet-true state. Sized and colored to stay legible in dark
-// mode (var(--foreground) at partial opacity, not var(--muted) stacked
-// with its own opacity — that combination read as barely-there).
-const socialIcons = [
-  { label: "X", Icon: XIcon },
-  { label: "TikTok", Icon: TiktokIcon },
-  { label: "LinkedIn", Icon: LinkedInIcon },
-];
+// Rivaly's official accounts (src/lib/socials.ts).
+const SOCIAL_ICONS = { x: XIcon, tiktok: TiktokIcon, linkedin: LinkedInIcon } as const;
 
 // A real anchored dropdown — positioned off its trigger corner, not a
 // full-width bottom sheet. `absolute` (not `fixed`) inside a `relative`
@@ -113,17 +105,23 @@ export function MobileMoreMenu() {
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-7 border-t border-border py-4">
-            {socialIcons.map(({ label, Icon }) => (
-              <span
-                key={label}
-                title={`${label} — coming soon`}
-                className="[&>svg]:h-6 [&>svg]:w-6"
-                style={{ color: "var(--foreground)", opacity: 0.55 }}
-              >
-                <Icon />
-              </span>
-            ))}
+          <div className="flex items-center justify-center gap-3 border-t border-border py-2.5">
+            {SOCIALS.map(({ key, label, href }) => {
+              const Icon = SOCIAL_ICONS[key];
+              return (
+                <a
+                  key={key}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Rivaly on ${label}`}
+                  onClick={() => setOpen(false)}
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface-elevated hover:text-foreground active:opacity-70 [&>svg]:h-[22px] [&>svg]:w-[22px]"
+                >
+                  <Icon />
+                </a>
+              );
+            })}
           </div>
         </div>
       )}

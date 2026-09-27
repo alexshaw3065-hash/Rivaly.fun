@@ -43,3 +43,20 @@ export function RivalyWordmark() {
     </span>
   );
 }
+
+/**
+ * The mark alone, from the same PNG. `muted` greys it out (to sit with the
+ * inactive line icons in the tab bar); unmuted it's in brand colour. A
+ * one-colour mask would merge its white chevron into the halves, so this
+ * keeps the real artwork and only drains its colour.
+ */
+export function RivalyMark({ height = 18, muted = false }: { height?: number; muted?: boolean }) {
+  const crop = cropStyle(ICON_BOX, height / ICON_BOX.h);
+  return (
+    <span
+      aria-hidden
+      className="inline-block shrink-0"
+      style={{ ...crop, filter: muted ? "grayscale(1)" : "none", opacity: muted ? 0.62 : 1, transition: "filter 150ms ease, opacity 150ms ease" }}
+    />
+  );
+}

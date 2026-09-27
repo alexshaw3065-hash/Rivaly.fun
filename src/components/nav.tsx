@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { AppPreloader } from "./app-preloader";
 import { usePathname } from "next/navigation";
-import { RivalyWordmark } from "./rivaly-wordmark";
+import { RivalyMark, RivalyWordmark } from "./rivaly-wordmark";
+import { ColosseumIcon, HomeIcon, PersonIcon, SearchIcon } from "./icons";
+import { Avatar } from "./avatar";
 import { TopBarIcons } from "./top-bar-icons";
 import { MobileMoreMenu } from "./mobile-more-menu";
 import { Sidebar } from "./sidebar";
@@ -35,12 +37,25 @@ import { ArenaComposerHost } from "./arena/arena-composer-host";
 // The Profile tab's href/label are built per-render below now that who's
 // signed in is real (useCurrentUser()), not a hardcoded stand-in — signed
 // out, it points at /login instead of a profile that doesn't exist yet.
-const baseTabs = [
-  { href: "/", label: "Home" },
-  { href: "/search", label: "Search" },
-  { href: "/rooms", label: "Rooms" },
-  { href: "/arena", label: "Arena" },
+//
+// Icon over label, Polymarket-style. Rooms wears the Rivaly mark — rooms are
+// the product — greyed until active, full brand colour when it is. Arena is
+// the Colosseum: where rivals meet in front of a crowd.
+type TabKey = "home" | "search" | "rooms" | "arena" | "me";
+const baseTabs: { key: TabKey; href: string; label: string }[] = [
+  { key: "home", href: "/", label: "Home" },
+  { key: "search", href: "/search", label: "Search" },
+  { key: "rooms", href: "/rooms", label: "Rooms" },
+  { key: "arena", href: "/arena", label: "Arena" },
 ];
+
+function isActive(key: TabKey, href: string, pathname: string, searchOpen: boolean): boolean {
+  if (key === "search") return searchOpen || pathname === "/search";
+  if (searchOpen) return false;
+  if (key === "home") return pathname === "/";
+  if (key === "rooms") return pathname === "/rooms" || (pathname.startsWith("/rooms/") && pathname !== "/rooms/create");
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function Nav({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -53,9 +68,30 @@ export function Nav({ children }: { children: ReactNode }) {
   const tabs = [
     ...baseTabs,
     currentUser
-      ? { href: `/profile/${currentUser.username}`, label: "Profile" }
-      : { href: "/login", label: "Sign in" },
+      ? { key: "me" as const, href: `/profile/${currentUser.username}`, label: "Profile" }
+      : { key: "me" as const, href: "/login", label: "Sign in" },
   ];
+
+  const icon = (key: TabKey, active: boolean) => {
+    switch (key) {
+      case "home":
+        return <span className="[&>svg]:h-[24px] [&>svg]:w-[24px]"><HomeIcon /></span>;
+      case "search":
+        return <span className="[&>svg]:h-[22px] [&>svg]:w-[22px]"><SearchIcon /></span>;
+      case "rooms":
+        return <RivalyMark height={17} muted={!active} />;
+      case "arena":
+        return <ColosseumIcon size={23} />;
+      case "me":
+        return currentUser ? (
+          <span className="rounded-full" style={{ boxShadow: active ? "0 0 0 1.5px var(--foreground)" : "none" }}>
+            <Avatar name={currentUser.displayName} size={22} imageUrl={currentUser.avatarUrl} />
+          </span>
+        ) : (
+          <PersonIcon size={22} />
+        );
+    }
+  };
 
   if (isAdmin) return <>{children}</>;
 
@@ -130,43 +166,35 @@ export function Nav({ children }: { children: ReactNode }) {
         </Link>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm md:hidden">
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         <div className="mx-auto flex max-w-5xl items-stretch justify-around">
           {tabs.map((tab) => {
-            const isSearch = tab.href === "/search";
-            const active = isSearch ? searchOpen || pathname === "/search" : pathname === tab.href;
-            const dot = (
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: active ? "var(--rival-blue)" : "transparent" }}
-              />
+            const active = isActive(tab.key, tab.href, pathname, searchOpen);
+            const body = (
+              <>
+                <span className="flex h-6 items-center justify-center">{icon(tab.key, active)}</span>
+                <span className="text-[11px] leading-none" style={{ fontWeight: active ? 600 : 500 }}>
+                  {tab.label}
+                </span>
+              </>
             );
+            const className = "flex flex-1 flex-col items-center gap-1.5 pb-2.5 pt-2 transition-colors duration-150 active:opacity-70";
+            const style = { color: active ? "var(--foreground)" : "var(--muted)" };
             // Search opens the overlay in place (mobile-search-overlay.tsx)
             // instead of navigating — that's what lets dismissing it drop
             // you back exactly where you were, on whatever page/tab you
             // were already looking at.
-            if (isSearch) {
-              return (
-                <button
-                  key={tab.href}
-                  onClick={openSearchOverlay}
-                  className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium"
-                  style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
-                >
-                  {dot}
-                  {tab.label}
-                </button>
-              );
-            }
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium"
-                style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
-              >
-                {dot}
-                {tab.label}
+            return tab.key === "search" ? (
+              <button key={tab.key} type="button" onClick={openSearchOverlay} aria-current={active ? "page" : undefined} className={className} style={style}>
+                {body}
+              </button>
+            ) : (
+              <Link key={tab.key} href={tab.href} aria-current={active ? "page" : undefined} className={className} style={style}>
+                {body}
               </Link>
             );
           })}
