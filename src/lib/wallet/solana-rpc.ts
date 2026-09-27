@@ -12,8 +12,16 @@ export const RPC_URL =
   process.env.NEXT_PUBLIC_SOLANA_RPC_URL ??
   "https://api.devnet.solana.com";
 
+/** The public devnet endpoint — the browser's fallback, and the server's when Helius fails. */
+export const PUBLIC_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+
 export async function solanaRpc<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(RPC_URL, {
+  return rpcAt<T>(RPC_URL, method, params);
+}
+
+/** The same call against a specific endpoint. */
+export async function rpcAt<T>(url: string, method: string, params: unknown[]): Promise<T> {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
@@ -30,8 +38,8 @@ export interface RpcTokenAccount {
   account?: { data?: { parsed?: { info?: { tokenAmount?: { uiAmountString?: string } } } } };
 }
 
-export async function getUsdcTokenAccounts(owner: string, mint: string): Promise<RpcTokenAccount[]> {
-  const result = await solanaRpc<{ value: RpcTokenAccount[] }>("getTokenAccountsByOwner", [
+export async function getUsdcTokenAccounts(owner: string, mint: string, url: string = RPC_URL): Promise<RpcTokenAccount[]> {
+  const result = await rpcAt<{ value: RpcTokenAccount[] }>(url, "getTokenAccountsByOwner", [
     owner,
     { mint },
     // "confirmed", not the default "finalized": finalized trails a landed

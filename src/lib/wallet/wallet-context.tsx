@@ -15,8 +15,8 @@ import { syncWalletAddress } from "@/app/auth/wallet-sync-action";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrentUser } from "@/components/current-user-provider";
-import { USDC_MINT } from "./constants";
-import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
+import { readBalancesAt } from "./balances";
+import { PUBLIC_RPC_URL } from "./solana-rpc";
 import { watchWallet } from "./watch-wallet";
 
 // Derived from the hook rather than imported from
@@ -61,20 +61,17 @@ export interface WalletState {
 
 const WalletContext = createContext<WalletState | null>(null);
 
+// Through our server (/api/wallet/balance → Helius, key never in the
+// browser); straight to the public RPC if that's unreachable, so a balance
+// always comes back one way or the other.
 async function readBalances(address: string): Promise<{ usdc: number; sol: number }> {
-  const [tokenAccounts, lamports] = await Promise.all([
-    getUsdcTokenAccounts(address, USDC_MINT),
-    solanaRpc<{ value: number }>("getBalance", [address, { commitment: "confirmed" }]),
-  ]);
-
-  // A wallet can legitimately hold more than one token account for the same
-  // mint, so sum rather than taking the first.
-  const usdc = tokenAccounts.reduce((total, entry) => {
-    const amount = parseFloat(entry.account?.data?.parsed?.info?.tokenAmount?.uiAmountString ?? "0");
-    return total + (Number.isFinite(amount) ? amount : 0);
-  }, 0);
-
-  return { usdc, sol: (lamports.value ?? 0) / 1_000_000_000 };
+  try {
+    const res = await fetch(`/api/wallet/balance?address=${encodeURIComponent(address)}`, { cache: "no-store" });
+    if (res.ok) return (await res.json()) as { usdc: number; sol: number };
+  } catch {
+    // fall back below
+  }
+  return readBalancesAt(PUBLIC_RPC_URL, address);
 }
 
 // One balance read for the whole app. Every wallet surface (top bar chip,
