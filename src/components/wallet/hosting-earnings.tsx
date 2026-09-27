@@ -12,7 +12,7 @@ import { pct, useFeeSettings } from "@/lib/fees";
 // in the same on-chain run as the winners (room_fees, readable only by you).
 // Private — nobody else sees this unless you choose to show it on your profile.
 
-interface Earning {
+export interface Earning {
   roomId: string;
   cents: number;
   signature: string | null;
@@ -65,6 +65,11 @@ export function HostingEarnings() {
     );
   }
 
+  return <HostingList rows={rows} />;
+}
+
+/** The Hosting section itself — what the wallet shows once there are earnings. */
+export function HostingList({ rows }: { rows: Earning[] }) {
   const total = rows.filter((r) => r.signature).reduce((s, r) => s + r.cents, 0);
   return (
     <div className="mt-10">

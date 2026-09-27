@@ -29,9 +29,14 @@ export function HostLine({ profileId, isSelf }: { profileId: string; isSelf: boo
   }, [profileId]);
 
   if (!s || s.rooms === 0 || s.pot === 0) return null;
+  return <HostLineView pot={s.pot} earnings={s.earnings} isSelf={isSelf} />;
+}
+
+export function HostLineView({ pot, earnings, isSelf }: { pot: number; earnings: number | null; isSelf: boolean }) {
+  const s = { pot, earnings };
   return (
     <p className="mt-2 text-sm text-muted">
-      <span className="font-semibold text-foreground">{formatMoneyCompact(s.pot)}</span> staked in rooms they host
+      <span className="font-semibold text-foreground">{formatMoneyCompact(s.pot)}</span> staked in rooms {isSelf ? "you" : "they"} host
       {s.earnings !== null && s.earnings > 0 && (
         <>
           {" · "}

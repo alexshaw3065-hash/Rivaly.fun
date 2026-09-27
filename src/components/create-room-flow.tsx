@@ -21,7 +21,8 @@ import { useStakeable } from "@/lib/wallet/use-stakeable";
 import { useStake } from "@/lib/escrow/use-stake";
 import { StakeButton } from "./stake-button";
 import { explorerTxUrl } from "@/lib/wallet/constants";
-import { pct, useFeeSettings } from "@/lib/fees";
+import { useFeeSettings } from "@/lib/fees";
+import { HostEarnLine } from "./create-room/host-earn-line";
 
 // How far ahead Create Room lists matches. Three weeks, so an international
 // break never leaves the Premier League off the list (a week wasn't enough:
@@ -387,12 +388,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
               availableCents={stakeable.availableCents}
               hasLoaded={stakeable.hasLoaded}
             />
-            {fees.live && fees.hostBps > 0 && (
-              <p className="-mt-3 text-xs text-muted">
-                You host this room: you earn <span className="font-semibold text-foreground">{pct(fees.hostBps)} of the winnings</span> when it
-                settles, whichever side wins.
-              </p>
-            )}
+            {fees.live && fees.hostBps > 0 && <HostEarnLine hostBps={fees.hostBps} />}
           </div>
         )}
       </div>
