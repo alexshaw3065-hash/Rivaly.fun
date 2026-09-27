@@ -139,6 +139,62 @@ Keep the founder palette; make it a real scale and remove one-offs.
 Depth: **no card shadows**. Surface steps + a 1px inner ring. Shadows exist
 only for floating layers (sheet, menu, toast, FAB) — three tokens, tinted, tight.
 
+### 3.4b Lines, borders, dividers & shadows (the edge system)
+
+**Audit today:** two competing ways to draw an edge — CSS `border` (268 uses,
+`border-border` 175, `border-border-strong` 41) and `ring-1` (110 uses) —
+mixed freely, so neighbouring cards have different-weight edges and some get
+doubled (border + divider). **43 inline `boxShadow`s** plus 10 distinct shadow
+utilities (`shadow-lg/xl/sm` and four arbitrary `shadow-[…]` values). Arena
+cards carry a 3px coloured bar down the left edge — the named "accent-bar
+card" tell.
+
+**The rules:**
+
+| Element | Treatment |
+|---|---|
+| **Card / panel edge** | One method only: a 1px **inner ring** in `--line` (white 7% dark / black 8% light). Drawn with a single `.edge` utility (inset box-shadow) — never `border` on cards (no layout shift, no double edges when cards stack). |
+| **Card interior** | No borders inside a card. Separate its parts with spacing; if a divide is truly needed, one hairline `--line`, full width of the card's content (not edge to edge). |
+| **List rows** (notifications, followers, settings, wallet history) | Rows inside one grouped surface; **inset hairline dividers** that start after the avatar/icon (iOS-style), none after the last row. Never a divider *and* a card edge on the same line. |
+| **Between sections** | **Space, not lines** — 32px section gap. No horizontal rules between page sections. |
+| **Sticky headers / top bar / tab bar** | No permanent bottom border. A hairline (or soft fade) appears **only once content scrolls under it** (Apple's scroll-edge effect). |
+| **Tabs** | 1px `--line` track + a 2px indicator under the active tab that slides between tabs (transform, 220ms `--ease-out`). |
+| **Inputs** | 1px `--line-strong` border (inputs are the one place a real border belongs); focus = border to `--foreground` 40% + 3px focus ring in YES blue at 25%. Error = NO red border + message below, never a red fill. |
+| **Buttons** | No borders on filled buttons. `secondary` = surface fill + `.edge` ring. `ghost` = no edge until pressed. |
+| **Selected state** (chosen side, active chip) | Tint fill + 1px ring in the side colour at 40% — not a thicker border. |
+| **Focus (keyboard only)** | `:focus-visible` 2px YES-blue ring with 2px offset; never shown on tap. |
+| **Accent bars** | The Arena left colour bar goes; the take's side is carried by the YES/NO pill and the avatar ring instead. *(Decision 6 below.)* |
+
+**Shadows — four tokens, nothing else:**
+
+| Token | Value (dark) | Only for |
+|---|---|---|
+| `--shadow-none` | — | every card, row, chip, button on the page (depth = surface step + ring) |
+| `--shadow-pop` | `0 8px 24px -8px rgb(0 0 0 / .6)` + `.edge` ring | dropdowns, menus, popovers, the moment card on the timeline |
+| `--shadow-sheet` | `0 -12px 32px -12px rgb(0 0 0 / .7)` | bottom sheets, modals |
+| `--shadow-fab` | `0 6px 16px -4px color-mix(YES blue 45%)` | the create / post floating button only |
+
+Light mode uses the same tokens at roughly half the opacity. All 43 inline
+shadows and 10 shadow utilities migrate to these four.
+
+### 3.3b Spacing specifics (fixing the off-grid values)
+
+**Audit today:** paddings and gaps use half-steps — `py-2.5` (10px) 45×,
+`px-3.5` (14px) 24×, `gap-1.5` (6px) 69×, `gap-2.5` (10px) 24×, `py-1.5` 19× —
+so rhythm drifts by 2px between screens.
+
+- **Allowed values:** 2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64. `6` is allowed
+  **only** for icon-to-label gaps inside one control.
+- 10 → 8 or 12, 14 → 12 or 16, by context (listed per screen in Phase 3).
+- **Component metrics** (fixed, from the kit):
+  - Card padding 16 · card-to-card gap 12 · section gap 32
+  - List row: 12px vertical / 16px horizontal, min-height 56 with avatar, 48 text-only
+  - Chip: 32 tall, 12 horizontal padding, 8 gap between chips
+  - Buttons: sm 32 tall / 12 pad · md 40 / 16 · lg 48 / 20 · cta 56 full width
+  - Icon button: 36 or 40 visual, 44 hit area
+  - Top bar 56 + safe area · bottom tab bar 56 + safe area
+  - Stack of label + value: 4 gap; title + body: 8 gap; header + content: 16 gap
+
 ### 3.5 Motion (Emil Kowalski / Apple rules)
 
 - Tokens: `--ease-out: cubic-bezier(0.23,1,0.32,1)` (default),
@@ -209,7 +265,7 @@ buttons by hand:
 
 | Phase | What | You review |
 |---|---|---|
-| **0 — Foundations** | Tokens in `globals.css` `@theme` (type ramp utilities, spacing, radii, colours, shadows, motion); mobile-native baseline; haptics helper; a `npm run lint:design` drift check (flags `text-[Npx]`, raw hex in components, off-scale radii) | Before/after screenshots — should look ~identical, feel better on phone |
+| **0 — Foundations** | Tokens in `globals.css` `@theme` (type ramp utilities, spacing, radii, colours, line & edge utilities, the four shadow tokens, motion); mobile-native baseline; haptics helper; a `npm run lint:design` drift check (flags `text-[Npx]`, raw hex in components, off-scale radii, inline `boxShadow`, `border` on cards, off-grid spacing) | Before/after screenshots — should look ~identical, feel better on phone |
 | **1 — Component kit** | Build the §5 kit against the tokens | A one-page kit preview (temporary, local) |
 | **2 — Shell + instant nav** | Top bar, bottom tabs, sidebar, FAB on tokens; `loading.tsx` skeletons; prefetch; pending states | Screen recording: tap → instant response |
 | **3 — Screen passes** | In order: Home → Room (stage, timeline, join, chat) → Create flow → Arena → Search → Profile → Wallet & sheets → Notifications → Auth/username → Admin (light touch) | Phone screenshots per screen, approve each |
@@ -230,6 +286,9 @@ rolled back.
    add the small `motion` library only if sheet drag physics need springs?
 4. **Light mode** — keep maintaining it alongside dark (recommended), or go
    dark-only to halve the polish work?
+6. **Arena's left colour bar** — remove it (recommended; it's the
+   "accent-bar card" tell and the side is already shown by the YES/NO pill)
+   or keep it as a deliberate signature?
 5. **The other reference tabs you mentioned** — Claude in Chrome wasn't
    connected, so I couldn't see them. Send the links (or reconnect Chrome)
    and I'll fold them in before Phase 0.
