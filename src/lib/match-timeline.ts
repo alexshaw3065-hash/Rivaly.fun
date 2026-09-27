@@ -120,8 +120,14 @@ function describe(action: string, p: Record<string, unknown>): { kind: TimelineK
       return p.Outcome === "successful" ? { kind: "goal", title: "Field goal", detail: null } : null;
     case "safety":
       return { kind: "goal", title: "Safety", detail: null };
-    // Yellow cards, "penalty awarded" and VAR looks stay in Stats — on the
-    // timeline they crowded out the moments that decide a match.
+    case "penalty":
+      return { kind: "penalty", title: "Penalty awarded", detail: null };
+    case "yellow_card":
+      return { kind: "yellow", title: "Yellow card", detail: null };
+    case "var":
+      return { kind: "var", title: "VAR check", detail: typeof p.Type === "string" ? `Checking: ${p.Type.toLowerCase()}` : null };
+    case "var_end":
+      return { kind: "var-end", title: "VAR decision", detail: p.Outcome === "Overturned" ? "Overturned" : "Decision stands" };
     case "red_card":
       return { kind: "red", title: "Red card", detail: p.Type === "SecondYellow" ? "Second yellow" : typeof p.Type === "string" ? p.Type : "Straight red" };
     case "kickoff":

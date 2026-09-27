@@ -36,10 +36,10 @@ describe("buildTimeline", () => {
   ];
   const t = buildTimeline({ sport: "soccer", kickoffAt: KO, rows, messageTimes: [min(31.2), min(31.5), min(32.9), min(40), min(88.5)] });
 
-  it("keeps only the moments that decide a match (no yellow cards), in match order", () => {
+  it("keeps the moments that matter, in match order", () => {
     assert.deepEqual(
       t.events.map((e) => e.kind),
-      ["kickoff", "goal", "halftime", "goal", "red", "fulltime"],
+      ["kickoff", "yellow", "goal", "halftime", "goal", "red", "fulltime"],
     );
   });
   it("rewinds the scoreboard to any minute", () => {
