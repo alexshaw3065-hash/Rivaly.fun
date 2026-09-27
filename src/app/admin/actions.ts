@@ -47,7 +47,7 @@ export async function suspendUser(userId: string, days: number, reason: string):
   const { data: before } = await db().from("profiles").select("suspended_until, banned_at").eq("id", userId).maybeSingle();
   const { error } = await db().from("profiles").update({ suspended_until: until, moderation_reason: reason }).eq("id", userId);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "suspend_user", targetType: "user", targetId: userId, reason, before, after: { suspended_until: until }, userId, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "suspend_user", targetType: "user", targetId: userId, reason, before, after: { suspended_until: until }, userId, moderation: true });
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true, message: `Suspended for ${days} day${days === 1 ? "" : "s"}.` };
 }
@@ -60,7 +60,7 @@ export async function banUser(userId: string, reason: string): Promise<ActionRes
   const now = new Date().toISOString();
   const { error } = await db().from("profiles").update({ banned_at: now, moderation_reason: reason }).eq("id", userId);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "ban_user", targetType: "user", targetId: userId, reason, after: { banned_at: now }, userId, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "ban_user", targetType: "user", targetId: userId, reason, after: { banned_at: now }, userId, moderation: true });
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true, message: "Banned. They can't stake, post or chat." };
 }
@@ -72,7 +72,7 @@ export async function liftRestriction(userId: string, reason: string): Promise<A
   if (needReason(reason)) return fail("Add a reason.");
   const { error } = await db().from("profiles").update({ banned_at: null, suspended_until: null, moderation_reason: null }).eq("id", userId);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "lift_restriction", targetType: "user", targetId: userId, reason, before: p, userId, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "lift_restriction", targetType: "user", targetId: userId, reason, before: p, userId, moderation: true });
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true, message: "Restriction lifted." };
 }
@@ -84,7 +84,7 @@ export async function addNote(userId: string, body: string): Promise<ActionResul
   if (!text) return fail("Write something.");
   const { error } = await db().from("admin_notes").insert({ user_id: userId, admin_id: me.userId, body: text.slice(0, 2000) });
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "add_note", targetType: "user", targetId: userId, userId, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "add_note", targetType: "user", targetId: userId, userId, moderation: true });
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true };
 }
@@ -97,7 +97,7 @@ export async function addFlag(userId: string, flag: string, note: string): Promi
   if (!FLAGS.includes(flag)) return fail("Unknown flag.");
   const { error } = await db().from("user_flags").insert({ user_id: userId, flag, note: note.trim() || null, admin_id: me.userId });
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: `flag_${flag}`, targetType: "user", targetId: userId, reason: note, userId, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: `flag_${flag}`, targetType: "user", targetId: userId, reason: note, userId, moderation: true });
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true };
 }
@@ -107,7 +107,7 @@ export async function clearFlag(flagId: string, userId: string): Promise<ActionR
   if ("error" in me) return fail(me.error);
   const { error } = await db().from("user_flags").update({ cleared_at: new Date().toISOString(), cleared_by: me.userId }).eq("id", flagId);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "clear_flag", targetType: "flag", targetId: flagId, userId, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "clear_flag", targetType: "flag", targetId: flagId, userId, moderation: true });
   revalidatePath(`/admin/users/${userId}`);
   return { ok: true };
 }
@@ -133,7 +133,7 @@ export async function resolveReport(kind: "post" | "message", targetId: string, 
     .eq("target_id", targetId)
     .is("resolution", null);
   const authorId = (target as Record<string, string | null>)[authorCol] ?? null;
-  await recordAdminAction({ adminId: me.userId, action: resolution === "removed" ? `remove_${kind}` : `keep_${kind}`, targetType: kind, targetId, reason, userId: authorId, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: resolution === "removed" ? `remove_${kind}` : `keep_${kind}`, targetType: kind, targetId, reason, userId: authorId, moderation: true });
   revalidatePath("/admin/moderation");
   return { ok: true, message: resolution === "removed" ? "Removed for everyone." : "Kept up. Reports closed." };
 }
@@ -144,7 +144,7 @@ export async function restoreContent(kind: "post" | "message", targetId: string,
   if (needReason(reason)) return fail("Add a reason.");
   const { error } = await db().from(kind === "post" ? "posts" : "messages").update({ hidden_at: null }).eq("id", targetId);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: `restore_${kind}`, targetType: kind, targetId, reason, moderation: true });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: `restore_${kind}`, targetType: kind, targetId, reason, moderation: true });
   revalidatePath("/admin/moderation");
   return { ok: true, message: "Restored." };
 }
@@ -168,7 +168,7 @@ export async function voidRoom(roomId: string, reason: string): Promise<ActionRe
     .select("id")
     .maybeSingle();
   if (!claimed) return fail("Settlement got there first — refresh.");
-  await recordAdminAction({ adminId: me.userId, action: "void_room", targetType: "room", targetId: roomId, reason, before: room, after: { resolved_outcome: "void" }, roomId });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "void_room", targetType: "room", targetId: roomId, reason, before: room, after: { resolved_outcome: "void" }, roomId });
   // Start the refunds now rather than waiting for the next minute's run.
   const r = await settleRoom(roomId).catch((e) => ({ state: "skipped", detail: e instanceof Error ? e.message : String(e) }));
   revalidatePath(`/admin/rooms/${roomId}`);
@@ -179,7 +179,7 @@ export async function rerunSettlement(roomId: string): Promise<ActionResult> {
   const me = await adminForAction("admin");
   if ("error" in me) return fail(me.error);
   const r = await settleRoom(roomId).catch((e) => ({ roomId, state: "skipped" as const, detail: e instanceof Error ? e.message : String(e) }));
-  await recordAdminAction({ adminId: me.userId, action: "rerun_settlement", targetType: "room", targetId: roomId, after: r, roomId });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "rerun_settlement", targetType: "room", targetId: roomId, after: r, roomId });
   revalidatePath(`/admin/rooms/${roomId}`);
   return { ok: true, message: `Settlement ran: ${r.state}${r.detail ? ` — ${r.detail}` : ""}.` };
 }
@@ -194,7 +194,7 @@ export async function setFeatureFlag(key: string, enabled: boolean, reason: stri
   if (!before) return fail("Unknown flag.");
   const { error } = await db().from("feature_flags").update({ enabled, updated_by: me.userId, updated_at: new Date().toISOString() }).eq("key", key);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: `flag_${key}_${enabled ? "on" : "off"}`, targetType: "setting", targetId: key, reason, before, after: { enabled } });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: `flag_${key}_${enabled ? "on" : "off"}`, targetType: "setting", targetId: key, reason, before, after: { enabled } });
   revalidatePath("/admin/settings");
   return { ok: true, message: `${key.replaceAll("_", " ")} is ${enabled ? "ON" : "off"}.` };
 }
@@ -213,7 +213,7 @@ export async function updateFees(input: { enabled: boolean; rivalyBps: number; h
   const after = { fees_enabled: input.enabled, rivaly_fee_bps: input.rivalyBps, host_fee_bps: input.hostBps, fee_wallet: wallet || null };
   const { error } = await db().from("platform_settings").update({ ...after, updated_at: new Date().toISOString() }).eq("id", true);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "update_fees", targetType: "fees", targetId: "platform", reason: input.reason, before, after });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "update_fees", targetType: "fees", targetId: "platform", reason: input.reason, before, after });
   revalidatePath("/admin/settings");
   return { ok: true, message: "Saved. Applies to rooms created from now on." };
 }
@@ -228,7 +228,7 @@ export async function updateLimits(input: { maxStakeDollars: string; reason: str
   const { data: before } = await db().from("platform_settings").select("max_stake_cents").eq("id", true).maybeSingle();
   const { error } = await db().from("platform_settings").update({ max_stake_cents: cents, updated_at: new Date().toISOString() }).eq("id", true);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "update_limits", targetType: "setting", targetId: "max_stake_cents", reason: input.reason, before, after: { max_stake_cents: cents } });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "update_limits", targetType: "setting", targetId: "max_stake_cents", reason: input.reason, before, after: { max_stake_cents: cents } });
   revalidatePath("/admin/settings");
   return { ok: true, message: cents === null ? "No platform stake cap." : `Stakes capped at $${(cents / 100).toFixed(2)}.` };
 }
@@ -259,7 +259,7 @@ export async function withdrawRivalyFees(reason: string): Promise<ActionResult> 
     return fail("Couldn't reach Solana — nothing was sent. Try again.");
   }
   await db().from("fee_claims").update({ status: "sent", payout_tx_signature: signed.signature, payout_valid_until_height: signed.lastValidBlockHeight }).eq("id", claim.claim_id);
-  await recordAdminAction({ adminId: me.userId, action: "withdraw_rivaly_fees", targetType: "fees", targetId: claim.claim_id, reason, after: { cents, wallet, signature: signed.signature } });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "withdraw_rivaly_fees", targetType: "fees", targetId: claim.claim_id, reason, after: { cents, wallet, signature: signed.signature } });
   try {
     await sendSignedBatch(signed);
     await db().from("fee_claims").update({ status: "confirmed", confirmed_at: new Date().toISOString() }).eq("id", claim.claim_id);
@@ -281,7 +281,7 @@ export async function addAdmin(username: string, role: "admin" | "moderator" | "
   if (!p) return fail("No user with that username.");
   const { error } = await db().from("admins").upsert({ user_id: p.id, role, added_by: me.userId });
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: `grant_${role}`, targetType: "admin", targetId: p.id as string, userId: p.id as string });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: `grant_${role}`, targetType: "admin", targetId: p.id as string, userId: p.id as string });
   revalidatePath("/admin/settings");
   return { ok: true, message: `@${username.replace(/^@/, "")} is now ${role}.` };
 }
@@ -295,7 +295,7 @@ export async function removeAdmin(userId: string): Promise<ActionResult> {
   if (target?.role === "owner" && (count ?? 0) <= 1) return fail("There must always be one owner.");
   const { error } = await db().from("admins").delete().eq("user_id", userId);
   if (error) return fail(error.message);
-  await recordAdminAction({ adminId: me.userId, action: "revoke_admin", targetType: "admin", targetId: userId, before: target, userId });
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "revoke_admin", targetType: "admin", targetId: userId, before: target, userId });
   revalidatePath("/admin/settings");
   return { ok: true };
 }

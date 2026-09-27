@@ -5,7 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // the target's timeline too.
 
 export async function recordAdminAction(opts: {
-  adminId: string;
+  adminId: string | null;
+  /** "password" or "account" — how the admin signed in. */
+  via?: "password" | "account";
   action: string;
   targetType: "user" | "room" | "post" | "message" | "setting" | "flag" | "admin" | "fees";
   targetId: string | null;
@@ -21,6 +23,7 @@ export async function recordAdminAction(opts: {
   await Promise.all([
     admin.from("admin_audit").insert({
       admin_id: opts.adminId,
+      admin_label: opts.via === "password" ? "ops password" : null,
       action: opts.action,
       target_type: opts.targetType,
       target_id: opts.targetId,

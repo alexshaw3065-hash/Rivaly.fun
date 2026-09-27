@@ -1,10 +1,13 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasPasswordSession } from "./session";
 
 // Who may use /admin, checked on the server for every page and every
-// action — never trusted from the browser. Non-admins get a plain 404, so
-// the admin area doesn't even admit it exists.
+// action — never trusted from the browser. Two ways in:
+//   · the ops password (ADMIN_PASSWORD, signed session cookie) → owner
+//   · a named admin account (the admins table) → its role
+// Everyone else is sent to /admin/login.
 //
 // Roles, each including the one below it:
 //   moderator — reports, content, suspensions, notes, flags
@@ -16,7 +19,10 @@ export type AdminRole = "owner" | "admin" | "moderator";
 const RANK: Record<AdminRole, number> = { moderator: 1, admin: 2, owner: 3 };
 
 export interface AdminUser {
-  userId: string;
+  /** The signed-in Rivaly account, if any (null under the ops password alone). */
+  userId: string | null;
+  /** How this admin got in, for the audit log. */
+  via: "password" | "account";
   role: AdminRole;
   username: string;
   displayName: string;
@@ -28,21 +34,28 @@ export function atLeast(role: AdminRole, min: AdminRole): boolean {
 
 export async function getAdmin(): Promise<AdminUser | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const admin = createAdminClient();
-  const { data } = await admin.from("admins").select("role, profile:profiles!admins_user_id_fkey(username, display_name)").eq("user_id", user.id).maybeSingle();
-  if (!data) return null;
-  const profile = data.profile as unknown as { username: string; display_name: string } | null;
-  return { userId: user.id, role: data.role as AdminRole, username: profile?.username ?? "admin", displayName: profile?.display_name ?? "Admin" };
+  const [
+    {
+      data: { user },
+    },
+    password,
+  ] = await Promise.all([supabase.auth.getUser(), hasPasswordSession()]);
+  if (user) {
+    const { data } = await createAdminClient().from("admins").select("role, profile:profiles!admins_user_id_fkey(username, display_name)").eq("user_id", user.id).maybeSingle();
+    if (data) {
+      const profile = data.profile as unknown as { username: string; display_name: string } | null;
+      return { userId: user.id, via: "account", role: data.role as AdminRole, username: profile?.username ?? "admin", displayName: profile?.display_name ?? "Admin" };
+    }
+  }
+  if (password) return { userId: user?.id ?? null, via: "password", role: "owner", username: "ops", displayName: "Ops" };
+  return null;
 }
 
-/** For pages: the signed-in admin, or a 404. */
+/** For pages: the signed-in admin; otherwise off to the login page (or a 404 for too low a role). */
 export async function requireAdmin(min: AdminRole = "moderator"): Promise<AdminUser> {
   const a = await getAdmin();
-  if (!a || !atLeast(a.role, min)) notFound();
+  if (!a) redirect("/admin/login");
+  if (!atLeast(a.role, min)) notFound();
   return a;
 }
 

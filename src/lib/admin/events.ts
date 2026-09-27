@@ -110,6 +110,10 @@ export function describeEvent(e: PlatformEvent, ctx: EventContext): EventLine {
       return { text: `${who} joined a league`, tone: "neutral", href: userHref };
     case "REPORT_CREATED":
       return { text: `${who} reported a ${String(m.target ?? "post")} (${String(m.reason ?? "")})`, tone: "warn", href: "/admin/moderation" };
+    case "ADMIN_LOGIN":
+      return { text: "Someone signed in to Rivaly Ops", tone: "admin", href: "/admin/system?tab=audit" };
+    case "ADMIN_LOGIN_FAILED":
+      return { text: "Failed Rivaly Ops sign-in (wrong password)", tone: "bad", href: "/admin/system?tab=audit" };
     case "MODERATION_ACTION":
     case "ADMIN_ACTION":
       return { text: `Admin: ${String(m.action ?? "action").replaceAll("_", " ")}${m.reason ? ` — ${String(m.reason)}` : ""}`, tone: "admin", href: e.room_id ? roomHref : userHref };
@@ -128,5 +132,5 @@ export const EVENT_GROUPS: { label: string; types: string[] }[] = [
   { label: "Money", types: ["PAYOUT_SENT", "REFUND_SENT", "FEE_EARNED", "CLAIM_STARTED", "CLAIM_COMPLETED", "DEPOSIT", "WITHDRAWAL"] },
   { label: "Social", types: ["POST_CREATED", "REPLY_CREATED", "CHAT_MESSAGE", "REACTION", "LEAGUE_JOINED"] },
   { label: "Problems", types: ["STAKE_FAILED", "SETTLEMENT_FAILED", "CLAIM_FAILED", "SYSTEM_ERROR", "REPORT_CREATED"] },
-  { label: "Admin", types: ["MODERATION_ACTION", "ADMIN_ACTION"] },
+  { label: "Admin", types: ["MODERATION_ACTION", "ADMIN_ACTION", "ADMIN_LOGIN", "ADMIN_LOGIN_FAILED"] },
 ];

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { adminLogout } from "@/app/admin/login/actions";
 
 // The admin navigation, grouped the way operators think: what's happening,
 // the people, the rooms, the matches behind them, the money, settlement,
@@ -118,7 +119,7 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
           <button type="button" onClick={() => setOpen((v) => !v)} className="text-[13px] text-muted lg:hidden" aria-label="Menu">
             Menu
           </button>
-          <span className="font-display text-[15px] font-bold tracking-tight text-foreground">Rivaly Ops</span>
+          <span className="font-display text-[15px] font-bold tracking-tight text-foreground lg:hidden">Rivaly Ops</span>
         </div>
         <div className="flex items-center gap-4 text-[12px] text-muted">
           <span>
@@ -127,6 +128,9 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
           <Link href="/" className="hover:text-foreground">
             Back to app
           </Link>
+          <form action={adminLogout}>
+            <button className="hover:text-foreground">Sign out</button>
+          </form>
         </div>
       </header>
       <aside className="fixed bottom-0 left-0 top-0 z-40 hidden w-[232px] overflow-y-auto border-r border-border bg-surface lg:block">
