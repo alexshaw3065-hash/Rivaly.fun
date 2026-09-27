@@ -36,7 +36,8 @@ const likeSafe = (q: string) => q.replace(/[%_,()\\]/g, " ").trim();
 function usePeopleSearch(q: string): Profile[] {
   const [result, setResult] = useState<{ q: string; people: Profile[] }>({ q: "", people: [] });
   useEffect(() => {
-    const term = likeSafe(q);
+    // "@warren" should find warren — usernames are shown with an @, so people type one.
+    const term = likeSafe(q).replace(/^@+/, "");
     if (term.length < 2) return;
     let cancelled = false;
     // A short pause while typing, so a burst of keystrokes is one query.
@@ -57,7 +58,7 @@ function usePeopleSearch(q: string): Profile[] {
       window.clearTimeout(id);
     };
   }, [q]);
-  return likeSafe(q).length >= 2 && result.q === q ? result.people : [];
+  return likeSafe(q).replace(/^@+/, "").length >= 2 && result.q === q ? result.people : [];
 }
 
 export function useSearchResults(query: string, selectedLeagues: string[] = []) {
