@@ -32,17 +32,6 @@ const FILTER_ICONS: Partial<Record<FilterTab, typeof TrendingIcon>> = {
   personal: ForYouIcon,
 };
 
-// Each Browse chip's icon carries its own colour (Polymarket-style), so the
-// row reads at a glance instead of as six grey pills.
-const FILTER_COLORS: Partial<Record<FilterTab, string>> = {
-  trending: "var(--rival-blue)",
-  new: "#f5a524",
-  live: "var(--rival-red)",
-  closing: "#a855f7",
-  pools: "var(--rival-green)",
-  "close-call": "#14b8c4",
-  personal: "var(--rival-blue)",
-};
 
 interface TopicTile {
   topic: SearchTopic;
@@ -225,8 +214,9 @@ export function SearchRollup({
                 onClick={() => onSelectTab(f.id)}
                 className="flex h-10 items-center gap-2 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-foreground transition-[transform,border-color,background-color] duration-150 ease-out hover:border-border-strong active:scale-[0.96]"
               >
+                {/* Monochrome, like Polymarket's own chips — the glyph shapes do the telling. */}
                 {Icon && (
-                  <span className="[&_svg]:h-5 [&_svg]:w-5" style={{ color: FILTER_COLORS[f.id] ?? "var(--muted)" }}>
+                  <span className="text-foreground/80 [&_svg]:h-5 [&_svg]:w-5">
                     <Icon />
                   </span>
                 )}

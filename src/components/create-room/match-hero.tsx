@@ -99,6 +99,12 @@ export function MatchBanner({ match, size = "lg", children }: { match: Match; si
           </span>
           {match.status === "live" ? (
             <LiveBadge />
+          ) : match.status === "finished" ? (
+            <span className="shrink-0 font-mono text-[11px] text-foreground/80">
+              FT{match.homeScore != null && match.awayScore != null ? ` · ${match.homeScore}–${match.awayScore}` : ""}
+            </span>
+          ) : match.status === "postponed" || match.status === "cancelled" ? (
+            <span className="shrink-0 font-mono text-[11px] capitalize text-foreground/80">{match.status}</span>
           ) : (
             <span className="shrink-0 font-mono text-[11px] text-foreground/80">
               <Countdown kickoffAt={match.kickoffAt} />

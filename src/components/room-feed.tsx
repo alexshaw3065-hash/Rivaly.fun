@@ -132,6 +132,7 @@ export function RoomFeed({
   tabs = filters,
   activeChipBg = "var(--surface-elevated)",
   highlightTabId,
+  emptyFiltered,
 }: {
   extraFilter?: (room: RoomWithMatch["room"], match: Match) => boolean;
   chipRowEnd?: ReactNode;
@@ -142,6 +143,8 @@ export function RoomFeed({
   tabs?: { id: FilterTab; label: string }[];
   activeChipBg?: string;
   highlightTabId?: FilterTab;
+  /** Replaces "No rooms match this filter yet" — e.g. a start-a-room call on one match. */
+  emptyFiltered?: ReactNode;
 }) {
   const [internalTab, setInternalTab] = useState<FilterTab>(initialTab);
   const tab = controlledTab ?? internalTab;
@@ -278,10 +281,8 @@ export function RoomFeed({
         </div>
       )}
 
-      {!isLoading && items.length === 0 && <EmptyRooms />}
-      {items.length > 0 && filtered.length === 0 && (
-        <p className="py-14 text-center text-sm text-muted">No rooms match this filter yet.</p>
-      )}
+      {!isLoading && items.length === 0 && (emptyFiltered ?? <EmptyRooms />)}
+      {items.length > 0 && filtered.length === 0 && (emptyFiltered ?? <p className="py-14 text-center text-sm text-muted">No rooms match this filter yet.</p>)}
     </div>
   );
 }

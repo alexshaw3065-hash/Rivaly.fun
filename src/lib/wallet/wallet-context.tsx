@@ -196,9 +196,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(id);
   }, [profile, address, dynamicLoggedIn]);
 
-  const [usdcBalance, setUsdcBalance] = useState(0);
-  const [solBalance, setSolBalance] = useState(0);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  // A balance is only ever shown for the wallet it was read from. Stored with
+  // its owner, so switching accounts on the same page (sign out, sign in as
+  // someone else — no reload) can never show the previous account's money,
+  // and a slow read for the old wallet landing late is simply ignored.
+  const [read, setRead] = useState<{ owner: string; usdc: number; sol: number } | null>(null);
+  const current = read && read.owner === address ? read : null;
+  const usdcBalance = current?.usdc ?? 0;
+  const solBalance = current?.sol ?? 0;
+  const hasLoaded = current !== null;
 
   // Signing needs the wallet object, and it must be the one matching the
   // address above — never just whichever wallet Dynamic considers primary.
@@ -208,24 +214,29 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   );
 
   const retryTimer = useRef<number | undefined>(undefined);
+  // The address the page is on right now — a read for any other wallet is dropped.
+  const liveAddress = useRef(address);
+  useEffect(() => {
+    liveAddress.current = address;
+    window.clearTimeout(retryTimer.current);
+  }, [address]);
   const load = useCallback(async () => {
     if (!address) return;
     const owner = address;
-    // Keep the last known-good value on failure — a stale-but-real number
-    // beats a zero that never happened — and retry a few times with backoff
-    // so a blip on the first read doesn't leave "—" up until the next focus.
-    async function read(attempt: number): Promise<void> {
+    // Keep this wallet's last known-good value on failure — a stale-but-real
+    // number beats a zero that never happened — and retry a few times with
+    // backoff so a blip on the first read doesn't leave "—" up until the next
+    // focus.
+    async function attemptRead(attempt: number): Promise<void> {
       window.clearTimeout(retryTimer.current);
       try {
         const { usdc, sol } = await readBalances(owner);
-        setUsdcBalance(usdc);
-        setSolBalance(sol);
-        setHasLoaded(true);
+        if (liveAddress.current === owner) setRead({ owner, usdc, sol });
       } catch {
-        if (attempt < 4) retryTimer.current = window.setTimeout(() => void read(attempt + 1), 2000 * 2 ** attempt);
+        if (attempt < 4 && liveAddress.current === owner) retryTimer.current = window.setTimeout(() => void attemptRead(attempt + 1), 2000 * 2 ** attempt);
       }
     }
-    await read(0);
+    await attemptRead(0);
   }, [address]);
   useEffect(() => () => window.clearTimeout(retryTimer.current), []);
 

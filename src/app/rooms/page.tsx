@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { RoomFeed, type FilterTab } from "@/components/room-feed";
 import { RoomsExplodingSection } from "@/components/rooms-exploding-section";
@@ -9,6 +9,12 @@ import { RoomsLiveFeed } from "@/components/rooms-live-feed";
 import { RoomsFollowingFeed } from "@/components/rooms-following-feed";
 import { RoomsMineFeed } from "@/components/rooms-mine-feed";
 import { JoinPrivateRoomButton } from "@/components/join-private-room-button";
+import Link from "next/link";
+import { MatchBanner } from "@/components/create-room/match-hero";
+import { useRealMatches } from "@/lib/use-real-matches";
+import { createClient } from "@/lib/supabase/client";
+import { mapMatchRow, MATCH_COLUMNS, type MatchRow } from "@/lib/supabase/match-mapper";
+import type { Match } from "@/lib/types";
 
 type RoomsTab = "discover" | "live" | "following" | "mine";
 
@@ -49,6 +55,10 @@ function RoomsPageContent() {
   const initialTab = tabs.some((t) => t.id === requestedTab) ? (requestedTab as RoomsTab) : "discover";
   const [tab, setTab] = useState<RoomsTab>(initialTab);
   const [discoverTab, setDiscoverTab] = useState<FilterTab>("trending");
+
+  // ?match=<id> (from a match on Home): every room on that one match.
+  const matchId = searchParams.get("match");
+  if (matchId) return <MatchRooms matchId={matchId} />;
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
@@ -92,3 +102,73 @@ function RoomsPageContent() {
     </main>
   );
 }
+
+// One match's rooms: the match up top, its rooms below, and when there are
+// none yet the one obvious action — start the first.
+function MatchRooms({ matchId }: { matchId: string }) {
+  const { matches, isReal } = useRealMatches();
+  const listed = matches.find((m) => m.id === matchId) ?? null;
+  // Older results (or a shared link to one) aren't in the app's match list —
+  // fetch that one match directly.
+  const [fetched, setFetched] = useState<{ id: string; match: Match | null } | null>(null);
+  useEffect(() => {
+    if (!isReal || listed) return;
+    let cancelled = false;
+    void createClient()
+      .from("matches")
+      .select(MATCH_COLUMNS)
+      .eq("id", matchId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setFetched({ id: matchId, match: data ? mapMatchRow(data as MatchRow) : null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isReal, listed, matchId]);
+  const match = listed ?? (fetched?.id === matchId ? fetched.match : null);
+  // Only once the match is known to be upcoming — never offered on a finished one.
+  const canStart = match?.status === "scheduled";
+  const startHref = `/rooms/create?matchId=${matchId}`;
+
+  return (
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Link href="/rooms" className="text-sm text-muted transition-colors hover:text-foreground">
+          ← All rooms
+        </Link>
+        {canStart && (
+          <Link href={startHref} className="text-sm font-medium text-rival-blue">
+            + New room
+          </Link>
+        )}
+      </div>
+      {match && (
+        <div className="overflow-hidden rounded-2xl border border-border">
+          <MatchBanner match={match} />
+        </div>
+      )}
+      <h1 className="mt-6 font-display text-lg font-bold text-foreground">Rooms on this match</h1>
+      <div className="mt-4">
+        <RoomFeed
+          extraFilter={(_room, m) => m.id === matchId}
+          emptyFiltered={
+            <div className="flex flex-col items-center gap-3 py-14 text-center">
+              <p className="font-display text-lg font-bold text-foreground">No rooms on this match yet</p>
+              <p className="max-w-xs text-sm text-muted">Make the first call and let someone take the other side.</p>
+              {canStart && (
+                <Link
+                  href={startHref}
+                  className="mt-1 rounded-md bg-rival-blue px-5 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+                >
+                  Start the first room
+                </Link>
+              )}
+            </div>
+          }
+        />
+      </div>
+    </main>
+  );
+}
+

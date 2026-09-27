@@ -11,7 +11,9 @@ function formatKickoff(iso: string): string {
 
 export function MatchChip({ match }: { match: Match }) {
   return (
-    <div className="flex min-w-[220px] shrink-0 flex-col gap-2.5 rounded-lg border border-border bg-surface px-4 py-3.5">
+    <div className="relative flex min-w-[220px] shrink-0 flex-col gap-2.5 rounded-lg border border-border bg-surface px-4 py-3.5 transition-colors duration-150 hover:border-border-strong">
+      {/* The whole card opens this match's rooms; the bookmark and Challenge sit above the link. */}
+      <Link href={`/rooms?match=${match.id}`} aria-label={`Rooms on ${match.homeTeam} v ${match.awayTeam}`} className="absolute inset-0 rounded-lg" />
       <div className="flex items-center justify-between">
         <span className="flex min-w-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted">
           <LeagueMark name={match.competition} size={12} />
@@ -25,7 +27,9 @@ export function MatchChip({ match }: { match: Match }) {
               {match.status === "finished" ? "FT" : formatKickoff(match.kickoffAt)}
             </span>
           )}
-          <BookmarkButton type="match" id={match.id} label="match" />
+          <span className="relative z-[1]">
+            <BookmarkButton type="match" id={match.id} label="match" />
+          </span>
         </div>
       </div>
       <div className="flex items-center justify-between text-sm font-medium text-foreground">
@@ -44,7 +48,7 @@ export function MatchChip({ match }: { match: Match }) {
       {match.status !== "finished" && (
         <Link
           href={`/rooms/create?matchId=${match.id}`}
-          className="mt-0.5 flex items-center justify-center gap-1.5 rounded-md border border-border-strong py-2 text-xs font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
+          className="relative z-[1] mt-0.5 flex items-center justify-center gap-1.5 rounded-md border border-border-strong py-2 text-xs font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
         >
           <span className="[&>svg]:h-3 [&>svg]:w-3">
             <PlusIcon />
