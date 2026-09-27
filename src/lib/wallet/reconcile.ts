@@ -22,7 +22,12 @@ import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
 // insert path. Pointing SOLANA_RPC_URL at Helius makes this faster and more
 // reliable for free, without moving the logic off our side.
 const SIGNATURE_SCAN_LIMIT = 40;
-const FETCH_CONCURRENCY = 5;
+// The public devnet RPC rate-limits getTransaction hard. Two at a time, and a
+// refused one is retried gently — then skipped, never failing the batch: the
+// next load picks it up (it's still missing from the log).
+const FETCH_CONCURRENCY = 2;
+const RETRY_DELAYS_MS = [700, 1800];
+const ESCROW = process.env.NEXT_PUBLIC_ESCROW_ADDRESS;
 
 interface TokenBalanceEntry {
   owner?: string;
@@ -53,6 +58,9 @@ function usdcHeldBy(rows: TokenBalanceEntry[] | undefined, owner: string): numbe
 
 function counterpartyOf(tx: ParsedTransaction, owner: string): string | null {
   const balances = [...(tx.meta?.preTokenBalances ?? []), ...(tx.meta?.postTokenBalances ?? [])];
+  // A payout batch touches every winner's account — the escrow is the real
+  // other side, so it wins over whichever winner happens to be listed first.
+  if (ESCROW && balances.some((row) => row.mint === USDC_MINT && row.owner === ESCROW)) return ESCROW;
   for (const row of balances) {
     if (row.mint === USDC_MINT && row.owner && row.owner !== owner) return row.owner;
   }
@@ -112,6 +120,7 @@ export async function reconcileWalletTransactions(): Promise<{ inserted: number 
     const { data: known } = await supabase
       .from("wallet_transactions")
       .select("tx_signature")
+      .eq("user_id", user.id)
       .in("tx_signature", candidates);
     const alreadyLogged = new Set((known ?? []).map((row) => row.tx_signature as string));
 
@@ -119,11 +128,18 @@ export async function reconcileWalletTransactions(): Promise<{ inserted: number 
     if (missing.length === 0) return { inserted: 0 };
 
     const fetched = await inChunks(missing, FETCH_CONCURRENCY, async (signature) => {
-      const tx = await solanaRpc<ParsedTransaction | null>("getTransaction", [
-        signature,
-        { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 },
-      ]);
-      return { signature, tx };
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const tx = await solanaRpc<ParsedTransaction | null>("getTransaction", [
+            signature,
+            { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 },
+          ]);
+          return { signature, tx };
+        } catch {
+          if (attempt >= RETRY_DELAYS_MS.length) return { signature, tx: null };
+          await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+        }
+      }
     });
 
     const rows = fetched
@@ -154,11 +170,13 @@ export async function reconcileWalletTransactions(): Promise<{ inserted: number 
     if (rows.length === 0) return { inserted: 0 };
 
     // ignoreDuplicates makes two concurrent reconciles harmless — the
-    // tx_signature unique constraint decides, and the loser no-ops instead
-    // of erroring. Still RLS-scoped: user_id is the session's own id.
+    // (user_id, tx_signature) unique constraint decides, and the loser no-ops
+    // instead of erroring. Per person, not global: one payout transaction
+    // belongs in every winner's history. Still RLS-scoped: user_id is the
+    // session's own id.
     const { data: written, error } = await supabase
       .from("wallet_transactions")
-      .upsert(rows, { onConflict: "tx_signature", ignoreDuplicates: true })
+      .upsert(rows, { onConflict: "user_id,tx_signature", ignoreDuplicates: true })
       .select("id");
     if (error) return { inserted: 0 };
 
