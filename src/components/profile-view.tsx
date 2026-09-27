@@ -1,5 +1,6 @@
 "use client";
 
+import { withRef } from "@/lib/referral";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import type { Profile, SocialLink } from "@/lib/types";
@@ -54,7 +55,7 @@ function IconButton({
 function ShareButton({ name }: { name: string }) {
   const [copied, setCopied] = useState(false);
   async function share() {
-    const url = window.location.href.split("?")[0];
+    const url = withRef(window.location.href.split("?")[0]);
     try {
       if (navigator.share) {
         await navigator.share({ title: `${name} on Rivaly`, text: `${name}'s Rivaly card — think you can beat them?`, url });

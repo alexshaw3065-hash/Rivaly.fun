@@ -1,5 +1,6 @@
 "use client";
 
+import { withRef } from "@/lib/referral";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { createLeague, fetchLeagueTable, fetchMyLeagues, joinLeague, leaveLeague, type League, type TableRow } from "@/lib/arena/data";
@@ -100,7 +101,7 @@ function LeagueTable({ league, highlight = false, onLeft }: { league: League | n
     if (!league) return;
     const text = `Join my Rivaly league "${league.name}" — code ${league.code}`;
     try {
-      if (navigator.share) await navigator.share({ text, url: `${window.location.origin}/arena` });
+      if (navigator.share) await navigator.share({ text, url: withRef(`${window.location.origin}/arena`) });
       else {
         await navigator.clipboard.writeText(league.code);
         setCopied(true);

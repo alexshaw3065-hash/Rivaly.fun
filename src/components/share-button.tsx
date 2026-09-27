@@ -1,5 +1,6 @@
 "use client";
 
+import { withRef } from "@/lib/referral";
 import { useState } from "react";
 import { ShareIcon } from "./icons";
 
@@ -16,7 +17,7 @@ export function ShareButton({ path, label = "item" }: { path: string; label?: st
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        const url = `${window.location.origin}${path}`;
+        const url = withRef(`${window.location.origin}${path}`);
         navigator.clipboard.writeText(url).then(() => {
           setCopied(true);
           window.setTimeout(() => setCopied(false), 1500);

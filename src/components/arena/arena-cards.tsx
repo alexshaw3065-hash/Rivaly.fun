@@ -1,5 +1,6 @@
 "use client";
 
+import { withRef } from "@/lib/referral";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -531,7 +532,7 @@ function ReceiptCard({ item, actions }: { item: ReceiptItem; actions: CardAction
 function ShareLink({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
   async function share() {
-    const url = `${window.location.origin}/arena/p/${id}`;
+    const url = withRef(`${window.location.origin}/arena/p/${id}`);
     try {
       if (navigator.share) await navigator.share({ url });
       else {

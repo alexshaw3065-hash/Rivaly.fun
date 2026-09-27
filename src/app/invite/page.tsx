@@ -1,5 +1,6 @@
 "use client";
 
+import { withRef } from "@/lib/referral";
 import Link from "next/link";
 import { useState } from "react";
 import { useCurrentUser } from "@/components/current-user-provider";
@@ -17,14 +18,14 @@ export default function InvitePage() {
 
   async function copy() {
     if (!path) return;
-    await navigator.clipboard?.writeText(`${window.location.origin}${path}`).catch(() => undefined);
+    await navigator.clipboard?.writeText(withRef(`${window.location.origin}${path}`)).catch(() => undefined);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
   async function share() {
     if (!path) return;
-    const url = `${window.location.origin}${path}`;
+    const url = withRef(`${window.location.origin}${path}`);
     try {
       if (navigator.share) await navigator.share({ title: "Rivaly", text: "Think you know football better than me? Prove it on Rivaly.", url });
       else await copy();

@@ -1,5 +1,6 @@
 "use client";
 
+import { withRef } from "@/lib/referral";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { formatMoney } from "@/lib/mock-data";
@@ -125,7 +126,7 @@ function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; s
   const [copied, setCopied] = useState(false);
 
   async function share() {
-    const url = `${window.location.origin}${sharePath}`;
+    const url = withRef(`${window.location.origin}${sharePath}`);
     try {
       if (navigator.share) await navigator.share({ title: "Called it on Rivaly", url });
       else {

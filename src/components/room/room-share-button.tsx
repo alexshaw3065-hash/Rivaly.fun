@@ -1,4 +1,5 @@
 "use client";
+import { withRef } from "@/lib/referral";
 import { track } from "@/lib/analytics/track";
 
 import { useState } from "react";
@@ -22,7 +23,7 @@ export function RoomShareButton({
 
   async function share() {
     track("room_shared", { native: Boolean(navigator.share) });
-    const url = `${window.location.origin}${path}`;
+    const url = withRef(`${window.location.origin}${path}`);
     const text = `“${claim}” — I've called it on Rivaly. Think I'm wrong? Prove it.`;
     if (navigator.share) {
       try {

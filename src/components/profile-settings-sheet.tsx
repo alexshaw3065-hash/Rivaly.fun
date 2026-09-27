@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { setTrackingOptOut, subscribeTrackingPreference, trackingPreference } from "@/lib/analytics/track";
 import { useSignOut } from "@/lib/use-sign-out";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrentUser } from "./current-user-provider";
@@ -25,6 +26,8 @@ export function ProfileSettingsSheet({
   createdAt: string;
 }) {
   const { signOut, signingOut } = useSignOut();
+  // Anonymous usage data (first-party analytics). On unless you — or your browser — say no.
+  const sharing = useSyncExternalStore(subscribeTrackingPreference, trackingPreference, () => "on" as const);
   const me = useCurrentUser();
   // Host earnings on your profile — private by default.
   const [showEarnings, setShowEarnings] = useState<boolean | null>(null);
@@ -56,6 +59,28 @@ export function ProfileSettingsSheet({
         <div className="flex items-center justify-between">
           <p className="text-sm text-foreground">Light mode</p>
           <ThemeToggle />
+        </div>
+        <div className="flex items-center justify-between gap-4 border-t border-border pt-5">
+          <div>
+            <p className="text-sm text-foreground">Share anonymous usage data</p>
+            <p className="text-xs text-muted">
+              {sharing === "browser"
+                ? "Off — your browser asks sites not to track you, so Rivaly doesn't."
+                : "Which pages and features get used — never your name, messages or wallet. Helps make Rivaly better."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={sharing === "on"}
+            aria-label="Share anonymous usage data"
+            disabled={sharing === "browser"}
+            onClick={() => setTrackingOptOut(sharing === "on")}
+            className="relative h-7 w-12 shrink-0 rounded-full transition-colors duration-150 disabled:opacity-40"
+            style={{ background: sharing === "on" ? "var(--rival-green)" : "var(--border-strong)" }}
+          >
+            <span className="absolute top-1 h-5 w-5 rounded-full bg-white transition-[left] duration-150 ease-out" style={{ left: sharing === "on" ? 24 : 4 }} />
+          </button>
         </div>
         <div className="flex items-center justify-between gap-4 border-t border-border pt-5">
           <div>

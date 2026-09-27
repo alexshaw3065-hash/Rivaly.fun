@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { setReferrer } from "@/lib/referral";
 import type { Profile } from "@/lib/types";
 
 // Populated once, server-side, in src/app/layout.tsx (getCurrentProfile())
@@ -20,6 +21,8 @@ export function CurrentUserProvider({
   // Counts today as an active day for this person, once a day (DAU/WAU/MAU
   // and retention in /admin → Analytics). Best-effort; storage may be off.
   const userId = profile?.id ?? null;
+  const username = profile?.username ?? null;
+  useEffect(() => setReferrer(username), [username]);
   useEffect(() => {
     if (!userId) return;
     const today = new Date().toISOString().slice(0, 10);

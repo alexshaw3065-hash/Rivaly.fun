@@ -305,6 +305,7 @@ function TopList({ title, rows, unit = "views" }: { title: string; rows: Top[]; 
 }
 
 type Acq = { source: string; signups: number; wallets: number; stakers: number; volume_cents: number };
+type Ref = { referrer_id: string | null; referrer_username: string; signups: number; wallets: number; stakers: number; volume_cents: number };
 
 async function Traffic({ range }: { range: number }) {
   const [t, daily, paths, refs, sources, campaigns, countries, devices, acq] = await Promise.all([
@@ -318,6 +319,7 @@ async function Traffic({ range }: { range: number }) {
     rpc<Top[]>("admin_top", { p_dim: "device", p_days: range, p_limit: 5 }),
     rpc<Acq[]>("admin_acquisition", { p_days: Math.max(range, 30) }),
   ]);
+  const referrers = await rpc<Ref[]>("admin_referrals", { p_days: Math.max(range, 30) });
   const mins = Math.floor((t.avg_session_seconds ?? 0) / 60);
   const secs = (t.avg_session_seconds ?? 0) % 60;
   return (
@@ -359,6 +361,21 @@ async function Traffic({ range }: { range: number }) {
         <p className="mt-2 text-[12px] text-muted">
           Tag links with ?utm_source=…&amp;utm_campaign=… (or ?ref=…) and every signup from them is attributed here. Accounts made before tracking began show as “before tracking”.
         </p>
+      </Section>
+      <Section title="Top referrers" hint="Every link a signed-in person shares carries ?ref=their username.">
+        <DataTable
+          columns={
+            [
+              { label: "Referrer", cell: (r: Ref) => (r.referrer_id ? <a href={`/admin/users/${r.referrer_id}`} className="underline">@{r.referrer_username}</a> : `@${r.referrer_username}`) },
+              { label: "Signups", cell: (r: Ref) => num(r.signups), align: "right" },
+              { label: "Wallet ready", cell: (r: Ref) => num(r.wallets), align: "right" },
+              { label: "Staked", cell: (r: Ref) => num(r.stakers), align: "right" },
+              { label: "Their volume", cell: (r: Ref) => usd(r.volume_cents), align: "right" },
+            ] as Column<Ref>[]
+          }
+          rows={referrers}
+          empty="No referred signups yet."
+        />
       </Section>
     </>
   );

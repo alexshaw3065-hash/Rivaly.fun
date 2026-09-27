@@ -42,9 +42,18 @@ const rand = () => {
   return btoa(String.fromCharCode(...b)).replace(/[+/=]/g, (c) => (c === "+" ? "-" : c === "/" ? "_" : ""));
 };
 
+/** The browser itself asks sites not to track (Do Not Track, or Global Privacy Control — Firefox, Brave, DuckDuckGo). */
+export function browserSaysDontTrack(): boolean {
+  try {
+    return navigator.doNotTrack === "1" || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
+  } catch {
+    return false;
+  }
+}
+
 function disabled(): boolean {
   try {
-    return typeof window === "undefined" || navigator.doNotTrack === "1" || localStorage.getItem(OPT_OUT) === "1" || location.pathname.startsWith("/admin");
+    return typeof window === "undefined" || browserSaysDontTrack() || localStorage.getItem(OPT_OUT) === "1" || location.pathname.startsWith("/admin");
   } catch {
     return true;
   }
@@ -62,10 +71,12 @@ function anonId(): string {
 function source(): Session["src"] {
   const q = new URLSearchParams(location.search);
   const ref = document.referrer && !document.referrer.startsWith(location.origin) ? document.referrer : undefined;
+  // ?ref=<username> is a person's referral link: source = who, medium = referral.
+  const referral = q.get("ref")?.match(/^[A-Za-z0-9_]{2,30}$/)?.[0];
   return {
     ref,
-    utm_source: q.get("utm_source") ?? q.get("ref") ?? undefined,
-    utm_medium: q.get("utm_medium") ?? undefined,
+    utm_source: q.get("utm_source") ?? referral ?? undefined,
+    utm_medium: q.get("utm_medium") ?? (referral ? "referral" : undefined),
     utm_campaign: q.get("utm_campaign") ?? undefined,
   };
 }
@@ -137,9 +148,30 @@ export function track(event: string, props?: Props) {
   } catch {}
 }
 
+const PREF_EVENT = "rvl-tracking-pref";
+
 export function setTrackingOptOut(out: boolean) {
   try {
-    if (out) localStorage.setItem(OPT_OUT, "1");
-    else localStorage.removeItem(OPT_OUT);
+    if (out) {
+      localStorage.setItem(OPT_OUT, "1");
+      queue.length = 0; // nothing already queued goes out either
+    } else localStorage.removeItem(OPT_OUT);
   } catch {}
+  window.dispatchEvent(new Event(PREF_EVENT));
+}
+
+/** "on" (sharing), "off" (opted out here), or "browser" (the browser asks not to be tracked). */
+export function trackingPreference(): "on" | "off" | "browser" {
+  if (typeof window === "undefined") return "on";
+  if (browserSaysDontTrack()) return "browser";
+  try {
+    return localStorage.getItem(OPT_OUT) === "1" ? "off" : "on";
+  } catch {
+    return "off";
+  }
+}
+
+export function subscribeTrackingPreference(cb: () => void): () => void {
+  window.addEventListener(PREF_EVENT, cb);
+  return () => window.removeEventListener(PREF_EVENT, cb);
 }
