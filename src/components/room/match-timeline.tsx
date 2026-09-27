@@ -273,7 +273,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
                   transform: `translate(-50%, calc(-50% + ${dy}px)) scale(${reached ? 0.8 : 0.68})`,
                 }}
               >
-                <MomentMark kind={e.kind} ring={e.side === "home" ? home.primary : e.side === "away" ? away.primary : undefined} />
+                <MomentMark sport={data.sport} kind={e.kind} ring={e.side === "home" ? home.primary : e.side === "away" ? away.primary : undefined} />
               </button>
             );
           })}
@@ -290,7 +290,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             </div>
           )}
 
-          {picked && <MomentCard event={picked} left={(picked.minute / data.domain) * 100} home={match.homeTeam} away={match.awayTeam} />}
+          {picked && <MomentCard event={picked} left={(picked.minute / data.domain) * 100} home={match.homeTeam} away={match.awayTeam} sport={data.sport} />}
         </div>
 
         <span className="font-mono text-[10px] text-white/55">{data.sport === "nfl" ? (data.domain > 60 ? "OT" : "Q4") : `${Math.round(data.domain)}’`}</span>
@@ -312,7 +312,17 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
   );
 }
 
-function MomentMark({ kind, ring }: { kind: TimelineEvent["kind"]; ring?: string }) {
+function MomentMark({ kind, ring, sport = "soccer" }: { kind: TimelineEvent["kind"]; ring?: string; sport?: "soccer" | "nfl" }) {
+  if (kind === "goal" && sport === "nfl")
+    return (
+      <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white shadow-sm" style={{ boxShadow: ring ? `0 0 0 2px ${ring}` : undefined }}>
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+          <ellipse cx="8" cy="8" rx="6.6" ry="4.2" transform="rotate(-35 8 8)" fill="#7a3e1d" />
+          <path d="M5.8 10.2 10.2 5.8" stroke="#fff" strokeWidth="0.9" strokeLinecap="round" />
+          <path d="M6.9 8.2l.9.9M7.9 7.2l.9.9M8.9 6.2l.9.9" stroke="#fff" strokeWidth="0.8" strokeLinecap="round" />
+        </svg>
+      </span>
+    );
   if (kind === "goal")
     return (
       <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white shadow-sm" style={{ boxShadow: ring ? `0 0 0 2px ${ring}` : undefined }}>
@@ -345,7 +355,7 @@ function MomentMark({ kind, ring }: { kind: TimelineEvent["kind"]; ring?: string
   );
 }
 
-function MomentCard({ event, left, home, away }: { event: TimelineEvent; left: number; home: string; away: string }) {
+function MomentCard({ event, left, home, away, sport }: { event: TimelineEvent; left: number; home: string; away: string; sport: "soccer" | "nfl" }) {
   const team = event.side === "home" ? home : event.side === "away" ? away : null;
   // Keep the card on screen near the edges.
   const anchor = left < 22 ? "left" : left > 78 ? "right" : "center";
@@ -361,7 +371,7 @@ function MomentCard({ event, left, home, away }: { event: TimelineEvent; left: n
       }}
     >
       <div className="flex items-center gap-2">
-        <MomentMark kind={event.kind} />
+        <MomentMark kind={event.kind} sport={sport} />
         <p className="min-w-0 flex-1 truncate font-display text-sm font-bold text-foreground">
           {event.title}
           {event.player && <span className="font-semibold text-foreground/80"> · {event.player}</span>}

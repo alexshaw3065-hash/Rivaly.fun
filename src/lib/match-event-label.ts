@@ -32,21 +32,25 @@ export interface MomentContext {
   nfl?: NflClock;
 }
 
-/** NFL's feed speaks its own language — never soccer's "penalty shout" or "extra time". */
+/**
+ * NFL chat lines — only the moments that matter: kickoff, every score,
+ * halftime, overtime and the final. The feed's early-warning flags (a flag on
+ * the play, a big play, a touchdown threat) fire every few plays and flooded
+ * the room; they stay off the chat.
+ */
 function nflMoment(action: string, p: Record<string, unknown>, ctx: MomentContext, team: string | undefined): MatchMoment | null {
   const at = ctx.nfl ? nflTick(ctx.nfl, p) : null;
   const when = at ? ` · ${nflClockLabel(at.quarter, at.clock)}` : "";
   const by = team ? ` · ${team}` : "";
+  // The clock resetting into the 3rd quarter is the end of the first half.
+  if (at?.newQuarter && at.quarter === 3) return { label: "Halftime", tone: "whistle" };
   switch (action) {
-    case "kickoff": {
-      // Only a quarter's first snap (clock at 15:00): Q1, Q3 and overtime. Every
-      // kick after a score is a kickoff too, and says nothing new.
+    case "kickoff":
+      // A quarter's first snap only (clock at 15:00) — every kick after a score is a kickoff too.
       if (!at || at.clock !== 900) return null;
       if (at.quarter === 1) return { label: "Kickoff", tone: "whistle" };
-      if (at.quarter === 3) return { label: "Second half", tone: "whistle" };
       if (at.quarter >= 5) return { label: "Overtime", tone: "whistle" };
       return null;
-    }
     case "halftime_finalised":
       return { label: "Halftime", tone: "whistle" };
     case "game_finalised":
@@ -57,18 +61,6 @@ function nflMoment(action: string, p: Record<string, unknown>, ctx: MomentContex
       return p.Outcome === "successful" ? { label: `🏈 Field goal${by}${when}`, tone: "goal" } : null;
     case "safety":
       return { label: `Safety${by}${when}`, tone: "goal" };
-    // The feed's "possible" flags: the beat before the outcome. Only raised
-    // flags get a line; the record that clears them says nothing.
-    case "possible": {
-      if (p.Touchdown === true) return { label: `👀 Touchdown threat${by}${when}`, tone: "whistle" };
-      if (p.FieldGoal === true) return { label: `👀 Field goal try${by}${when}`, tone: "whistle" };
-      if (p.Safety === true) return { label: `👀 Possible safety${when}`, tone: "whistle" };
-      if (p.Turnover === true) return { label: `👀 Possible turnover${when}`, tone: "var" };
-      if (p.Penalty === true) return { label: `🚩 Flag on the play${when}`, tone: "var" };
-      if (p.Challenge === true) return { label: `🚩 Coach's challenge${when}`, tone: "var" };
-      if (p.BigPlay === true) return { label: `⚡ Big play${by}${when}`, tone: "whistle" };
-      return null;
-    }
     default:
       return null;
   }
@@ -84,46 +76,18 @@ export function matchMoment(
   const names = ctx.names;
   const team = p._side === "home" ? ctx.teams?.home : p._side === "away" ? ctx.teams?.away : undefined;
   if (ctx.sport === "nfl") return nflMoment(action, p, ctx, team);
+  // Soccer chat lines — only kick-off, goals, half-time and full time. Cards,
+  // VAR looks, penalty shouts and added time stay on the timeline and in
+  // Stats; in the chat they drowned out the room.
   switch (action) {
-    case "kickoff": {
-      const k = kickoffKind(p);
-      if (k === "restart") return null;
-      return { label: k === "second-half" ? "Second half" : k === "extra-time" ? "Extra time" : "Kick-off", tone: "whistle" };
-    }
+    case "kickoff":
+      return kickoffKind(p) === "start" ? { label: "Kick-off", tone: "whistle" } : null;
     case "halftime_finalised":
       return { label: "Half-time", tone: "whistle" };
     case "game_finalised":
       return { label: "Full time", tone: "whistle" };
     case "goal":
       return { label: `⚽ GOAL${at(minute)}${who(p, names, p.GoalType === "Own" || p.GoalType === "OwnGoal" ? " (OG)" : "")}`, tone: "goal" };
-    case "touchdown":
-      return { label: `🏈 TOUCHDOWN${at(minute)}`, tone: "goal" };
-    case "field_goal":
-      return p.Outcome === "successful" ? { label: `🏈 Field goal${at(minute)}`, tone: "goal" } : null;
-    case "safety":
-      return { label: `Safety${at(minute)}`, tone: "goal" };
-    case "penalty":
-      return { label: `Penalty${at(minute)}`, tone: "var" };
-    case "yellow_card":
-      return { label: `🟨 Yellow card${at(minute)}${who(p, names)}`, tone: "card" };
-    case "red_card":
-      return { label: `🟥 Red card${at(minute)}${who(p, names)}`, tone: "card" };
-    case "var":
-      return { label: `VAR check${typeof p.Type === "string" ? ` · ${p.Type.toLowerCase()}` : ""}`, tone: "var" };
-    // The feed's "possible" flags: the beat before an outcome — a shot that
-    // could go in, a penalty shout, a VAR look. Only raised flags get a line;
-    // the record that clears them says nothing.
-    case "possible": {
-      if (p.Penalty === true) return { label: `👀 Penalty shout${at(minute)}${team ? ` · ${team}` : ""}`, tone: "var" };
-      if (p.VAR === true) return { label: `👀 Possible VAR check${at(minute)}`, tone: "var" };
-      if (p.RedCard === true) return { label: `👀 Possible red card${at(minute)}`, tone: "card" };
-      if (p.Goal === true) return { label: `👀 Big chance${at(minute)}${team ? ` · ${team}` : ""}`, tone: "whistle" };
-      return null;
-    }
-    case "additional_time":
-      return typeof p.Minutes === "number" && p.Minutes > 0 ? { label: `⏱ +${p.Minutes} minutes added`, tone: "whistle" } : null;
-    case "var_end":
-      return { label: `VAR: ${p.Outcome === "Overturned" ? "overturned" : "decision stands"}`, tone: "var" };
     default:
       return null;
   }

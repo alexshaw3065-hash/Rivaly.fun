@@ -17,12 +17,16 @@ const QUARTER_SECONDS = 900;
 const RESET_JUMP = 120;
 
 /** Advances the clock with one record's payload; returns where that record sits, or null if it has no clock. */
-export function nflTick(state: NflClock, payload: Record<string, unknown> | null | undefined): { quarter: number; clock: number } | null {
+export function nflTick(
+  state: NflClock,
+  payload: Record<string, unknown> | null | undefined,
+): { quarter: number; clock: number; newQuarter: boolean } | null {
   const clock = typeof payload?._clock === "number" ? payload._clock : null;
   if (clock === null) return null;
-  if (state.last !== null && clock > state.last + RESET_JUMP) state.quarter += 1;
+  const newQuarter = state.last !== null && clock > state.last + RESET_JUMP;
+  if (newQuarter) state.quarter += 1;
   state.last = clock;
-  return { quarter: state.quarter, clock };
+  return { quarter: state.quarter, clock, newQuarter };
 }
 
 /** Minutes of game time played: Q1 0–15, Q2 15–30 … overtime beyond 60. */

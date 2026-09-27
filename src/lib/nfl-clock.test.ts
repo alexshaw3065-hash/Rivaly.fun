@@ -6,10 +6,10 @@ import { buildTimeline, type EventRow } from "./match-timeline.ts";
 
 test("the quarter advances when the countdown jumps back to 15:00", () => {
   const c = newNflClock();
-  assert.deepEqual(nflTick(c, { _clock: 900 }), { quarter: 1, clock: 900 });
+  assert.deepEqual(nflTick(c, { _clock: 900 }), { quarter: 1, clock: 900, newQuarter: false });
   nflTick(c, { _clock: 300 });
   nflTick(c, { _clock: 0 });
-  assert.deepEqual(nflTick(c, { _clock: 900 }), { quarter: 2, clock: 900 });
+  assert.deepEqual(nflTick(c, { _clock: 900 }), { quarter: 2, clock: 900, newQuarter: true });
   // A small upward correction isn't a new quarter.
   nflTick(c, { _clock: 500 });
   assert.equal(nflTick(c, { _clock: 560 })?.quarter, 2);
@@ -23,15 +23,33 @@ test("game minute and label", () => {
   assert.equal(nflClockLabel(5, 190), "OT 3:10");
 });
 
-test("NFL moments speak NFL, never soccer", () => {
+test("NFL chat: kickoff, scores, halftime, final — nothing else", () => {
   const ctx = { sport: "nfl" as const, nfl: newNflClock(), teams: { home: "SF", away: "ARI" } };
   assert.equal(matchMoment("kickoff", null, { Type: "regular", _clock: 900 }, ctx)?.label, "Kickoff");
-  assert.equal(matchMoment("possible", null, { Penalty: true, _clock: 614 }, ctx)?.label, "🚩 Flag on the play · Q1 10:14");
+  // Early-warning flags never reach the chat.
+  assert.equal(matchMoment("possible", null, { Penalty: true, _clock: 614 }, ctx), null);
+  assert.equal(matchMoment("possible", null, { BigPlay: true, Touchdown: true, _clock: 600 }, ctx), null);
   assert.equal(matchMoment("touchdown", null, { _side: "home", _clock: 506 }, ctx)?.label, "🏈 TOUCHDOWN · SF · Q1 8:26");
   // A kick after a score (clock not at 15:00) says nothing.
   assert.equal(matchMoment("kickoff", null, { Type: "regular", _clock: 506 }, ctx), null);
-  // Soccer is untouched.
-  assert.equal(matchMoment("possible", null, { Penalty: true }, { teams: { home: "ARS", away: "LEE" } })?.label, "👀 Penalty shout");
+  // Q1 → Q2 is not a line; Q2 → Q3 is halftime.
+  matchMoment("status", null, { _clock: 0 }, ctx);
+  assert.equal(matchMoment("status", null, { _clock: 900 }, ctx), null);
+  matchMoment("status", null, { _clock: 0 }, ctx);
+  assert.equal(matchMoment("status", null, { _clock: 900 }, ctx)?.label, "Halftime");
+  assert.equal(matchMoment("game_finalised", null, {}, ctx)?.label, "Final");
+});
+
+test("soccer chat: kick-off, goals, half-time, full time — nothing else", () => {
+  const ctx = { teams: { home: "ARS", away: "LEE" } };
+  assert.equal(matchMoment("kickoff", null, { _clock: 0 }, ctx)?.label, "Kick-off");
+  assert.equal(matchMoment("kickoff", null, { _clock: 2700 }, ctx), null);
+  assert.equal(matchMoment("goal", 23, {}, ctx)?.label, "⚽ GOAL 23'");
+  assert.equal(matchMoment("halftime_finalised", null, {}, ctx)?.label, "Half-time");
+  assert.equal(matchMoment("game_finalised", null, {}, ctx)?.label, "Full time");
+  for (const quiet of ["possible", "yellow_card", "red_card", "var", "var_end", "penalty", "additional_time"]) {
+    assert.equal(matchMoment(quiet, 50, { Penalty: true, Minutes: 3 }, ctx), null, quiet);
+  }
 });
 
 test("the NFL timeline runs on game time, Q1 to Q4", () => {

@@ -75,7 +75,8 @@ const HEAT_WINDOW_MS = 120_000;
 const QUICK_COOLDOWN_MS = 1200;
 
 /** One tap, no typing: the things people actually shout at a screen. */
-const QUICK = ["🔥", "😂", "😤", "👀", "⚽ GOAL!", "Told you 😏", "🧢 Cap", "Robbed 😭"];
+// One-tap shouts, in the sport's own language.
+const QUICK = { soccer: ["🔥", "😂", "😤", "👀", "⚽ GOAL!", "Told you 😏", "🧢 Cap", "Robbed 😭"], nfl: ["🔥", "😂", "😤", "👀", "🏈 TOUCHDOWN!", "Told you 😏", "🧢 Cap", "Robbed 😭"] };
 
 /** Wall-clock read for event handlers (kept out of render). */
 const clock = () => Date.now();
@@ -649,7 +650,7 @@ export function ChatComposer({
             typing), or emoji for your message. */}
         {tray === "quick" && (
           <div className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3">
-            {QUICK.map((q) => (
+            {QUICK[sport].map((q) => (
               <button
                 key={q}
                 type="button"
