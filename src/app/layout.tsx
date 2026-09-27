@@ -6,6 +6,7 @@ import { CurrentUserProvider } from "@/components/current-user-provider";
 import { DynamicProvider } from "@/components/dynamic-provider";
 import { WalletProvider } from "@/lib/wallet/wallet-context";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
+import { AnalyticsTracker } from "@/components/analytics-tracker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -86,6 +87,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             {/* Inside DynamicProvider (needs its wallet list to sign) and
                 CurrentUserProvider (the profile carries the address). */}
             <WalletProvider>
+              <AnalyticsTracker />
               <Nav>{children}</Nav>
             </WalletProvider>
           </DynamicProvider>

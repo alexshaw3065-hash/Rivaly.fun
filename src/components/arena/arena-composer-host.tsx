@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -23,6 +24,7 @@ export function ArenaComposerHost({ save = savePost, loadRooms }: { save?: typeo
   async function post(p: NewPost, optimistic: PostItem) {
     if (!me) return;
     window.dispatchEvent(new CustomEvent(ARENA_POSTED, { detail: { item: optimistic } }));
+    track("arena_post_submitted", { reply: Boolean(optimistic.parentId), call: Boolean(optimistic.side) });
     const refused = await save(me.id, p);
     if (refused) {
       window.dispatchEvent(new CustomEvent(ARENA_POST_FAILED, { detail: { id: p.id } }));

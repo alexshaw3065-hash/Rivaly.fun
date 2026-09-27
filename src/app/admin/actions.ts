@@ -299,3 +299,72 @@ export async function removeAdmin(userId: string): Promise<ActionResult> {
   revalidatePath("/admin/settings");
   return { ok: true };
 }
+
+// ── Rivaly Data: partners & keys ─────────────────────────────────────
+
+export type KeyResult = { ok: true; key: string; prefix: string } | { ok: false; error: string };
+
+export async function createPartner(input: { name: string; contact: string; datasets: string[]; ratePerMin: number }): Promise<ActionResult> {
+  const me = await adminForAction("owner");
+  if ("error" in me) return fail(me.error);
+  const { DATASETS } = await import("@/lib/data/datasets");
+  const name = input.name.trim();
+  if (name.length < 2) return fail("Name the partner.");
+  const datasets = input.datasets.filter((d) => DATASETS.some((x) => x.id === d));
+  const rate = Math.max(1, Math.min(6000, Math.round(input.ratePerMin) || 60));
+  const { data, error } = await db().from("data_partners").insert({ name, contact: input.contact.trim() || null, datasets, rate_per_min: rate }).select("id").single();
+  if (error) return fail(error.message);
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "create_data_partner", targetType: "setting", targetId: data.id, after: { name, datasets, rate } });
+  revalidatePath("/admin/data");
+  return { ok: true, message: `${name} created. Issue them a key.` };
+}
+
+export async function updatePartner(id: string, input: { datasets: string[]; ratePerMin: number; active: boolean }): Promise<ActionResult> {
+  const me = await adminForAction("owner");
+  if ("error" in me) return fail(me.error);
+  const { DATASETS } = await import("@/lib/data/datasets");
+  const datasets = input.datasets.filter((d) => DATASETS.some((x) => x.id === d));
+  const rate = Math.max(1, Math.min(6000, Math.round(input.ratePerMin) || 60));
+  const { data: before } = await db().from("data_partners").select("datasets, rate_per_min, active").eq("id", id).maybeSingle();
+  const { error } = await db().from("data_partners").update({ datasets, rate_per_min: rate, active: input.active }).eq("id", id);
+  if (error) return fail(error.message);
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "update_data_partner", targetType: "setting", targetId: id, before, after: { datasets, rate_per_min: rate, active: input.active } });
+  revalidatePath("/admin/data");
+  return { ok: true, message: "Saved." };
+}
+
+/** A new API key for a partner — returned once, only its hash is kept. */
+export async function issueKey(partnerId: string): Promise<KeyResult> {
+  const me = await adminForAction("owner");
+  if ("error" in me) return { ok: false, error: me.error };
+  const { newApiKey } = await import("@/lib/data/format");
+  const k = newApiKey();
+  const { error } = await db().from("data_api_keys").insert({ partner_id: partnerId, prefix: k.prefix, key_hash: k.hash });
+  if (error) return { ok: false, error: error.message };
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "issue_data_key", targetType: "setting", targetId: partnerId, after: { prefix: k.prefix } });
+  revalidatePath("/admin/data");
+  return { ok: true, key: k.key, prefix: k.prefix };
+}
+
+export async function revokeKey(keyId: string): Promise<ActionResult> {
+  const me = await adminForAction("owner");
+  if ("error" in me) return fail(me.error);
+  const { error } = await db().from("data_api_keys").update({ revoked_at: new Date().toISOString() }).eq("id", keyId).is("revoked_at", null);
+  if (error) return fail(error.message);
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "revoke_data_key", targetType: "setting", targetId: keyId });
+  revalidatePath("/admin/data");
+  return { ok: true, message: "Revoked — it stops working immediately." };
+}
+
+export async function setDataMinGroup(n: number, reason: string): Promise<ActionResult> {
+  const me = await adminForAction("owner");
+  if ("error" in me) return fail(me.error);
+  if (needReason(reason)) return fail("Add a reason.");
+  if (!Number.isInteger(n) || n < 3 || n > 100) return fail("Choose 3–100 people.");
+  const { data: before } = await db().from("platform_settings").select("data_min_group").eq("id", true).maybeSingle();
+  const { error } = await db().from("platform_settings").update({ data_min_group: n }).eq("id", true);
+  if (error) return fail(error.message);
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "set_data_min_group", targetType: "setting", targetId: "data_min_group", reason, before, after: { data_min_group: n } });
+  revalidatePath("/admin/data");
+  return { ok: true, message: `Datasets now suppress any group under ${n} people.` };
+}

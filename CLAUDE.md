@@ -119,6 +119,8 @@ Two Claude Code skills apply to nearly everything built in this repo — invoke 
 
 `/admin` (Rivaly Ops) is the internal system: dashboard, live activity, users, rooms, matches, finance, settlement, moderation, analytics, system health and settings. Access is server-checked against the `admins` table (owner / admin / moderator); non-admins get a 404. Every meaningful thing that happens is a structured row in `platform_events` (written by database triggers), every admin action is in `admin_audit` with a reason, and analytics are computed in SQL functions (`admin_overview`, `admin_daily`, `admin_retention`, `admin_funnel`, `admin_users`, `admin_rooms`, `admin_matches`). Admin screens reuse the app's own logic (e.g. `planSettlement`) — never a second copy. Feature flags in `feature_flags` are enforced by the app and database.
 
+Access is either the ops password (`ADMIN_PASSWORD` + `ADMIN_SESSION_SECRET`, signed 12h cookie, rate-limited) or a named account in `admins`. Product analytics are first-party (`track()` in `src/lib/analytics/track.ts` → `/api/track` → `analytics_events`; no personal data, respects Do Not Track) with first-touch attribution on `profiles.acquisition`. **Rivaly Data** (B2B) sells only aggregated, anonymised datasets (`data_*` SQL functions, registry in `src/lib/data/datasets.ts`) — no row under `platform_settings.data_min_group` people, never names/wallets/messages — through a metered partner API (`/api/data/v1`, hashed keys). The privacy policy must disclose this before selling.
+
 ## Working Conventions
 
 - Before adding any feature or screen, check it against the Rivaly Test above and against [08-v1-scope.md](docs/masterplan/08-v1-scope.md); most things wait.

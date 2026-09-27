@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import { useSyncExternalStore } from "react";
 
@@ -49,6 +50,7 @@ export function useAuthModalState(): AuthModalState {
 
 export function openAuthModal(opts?: { next?: string; error?: string | null }) {
   state = { next: opts?.next ?? "/", error: opts?.error ?? null, openId: state.openId + 1 };
+  track("auth_modal_opened", { next: (opts?.next ?? "/").split("?")[0].slice(0, 60) });
   emit();
 }
 

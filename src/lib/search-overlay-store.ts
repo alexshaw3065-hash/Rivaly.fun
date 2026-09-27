@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import { useSyncExternalStore } from "react";
 
@@ -33,6 +34,7 @@ export function useSearchOverlayOpen(): boolean {
 }
 
 export function openSearchOverlay() {
+  track("search_opened");
   open = true;
   emit();
 }

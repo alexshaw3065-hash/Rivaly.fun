@@ -55,12 +55,21 @@ const NAV: { group: string; items: Item[] }[] = [
     { label: "History", href: "/admin/moderation?tab=history" },
   ] },
   { group: "Analytics", items: [
-    { label: "Growth", href: "/admin/analytics" },
+    { label: "Traffic & sources", href: "/admin/analytics?tab=traffic" },
+    { label: "Product funnels", href: "/admin/analytics?tab=product" },
+    { label: "Growth", href: "/admin/analytics?tab=growth" },
     { label: "Engagement & retention", href: "/admin/analytics?tab=engagement" },
     { label: "Rooms & predictions", href: "/admin/analytics?tab=rooms" },
     { label: "Revenue", href: "/admin/analytics?tab=revenue" },
     { label: "Social / Arena", href: "/admin/analytics?tab=social" },
     { label: "Funnels", href: "/admin/analytics?tab=funnels" },
+  ] },
+  { group: "Data (B2B)", items: [
+    { label: "Catalog & preview", href: "/admin/data" },
+    { label: "Exports", href: "/admin/data?tab=exports" },
+    { label: "Partners & keys", href: "/admin/data?tab=partners" },
+    { label: "Usage", href: "/admin/data?tab=usage" },
+    { label: "API docs", href: "/admin/data?tab=docs" },
   ] },
   { group: "System", items: [
     { label: "Health", href: "/admin/system" },

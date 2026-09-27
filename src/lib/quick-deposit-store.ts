@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import { useSyncExternalStore } from "react";
 
@@ -34,6 +35,7 @@ export function useQuickDepositOpen(): boolean {
 
 export function openQuickDeposit() {
   open = true;
+  track("deposit_opened");
   emit();
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -111,6 +112,7 @@ export function JoinPanel({
       // Gasless on-chain stake into escrow; the entry exists only once the
       // transfer is verified.
       const res = await stake({ kind: "join", roomId, side, amountCents: stakeCents });
+      track(res.ok ? "stake_submitted" : "stake_failed", res.ok ? { amount: stakeCents, side } : { kind: "join", code: res.code ?? "error" });
       if (res.ok) {
         navigator.vibrate?.(12);
         window.setTimeout(() => {

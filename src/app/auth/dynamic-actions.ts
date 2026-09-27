@@ -1,6 +1,7 @@
 "use server";
 
 import { verifyDynamicToken } from "@/lib/dynamic-jwt";
+import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type BridgeDynamicSessionResult =
@@ -54,6 +55,9 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
       return { ok: false, error: "Couldn't create your account — try again." };
     }
     userId = created.user.id;
+    // Where this person first came from (first-party cookie set by the
+    // tracker), for acquisition analytics. Best-effort.
+    await recordAcquisition(admin, userId).catch(() => undefined);
   } else if (!email) {
     // Returning user, this login didn't carry an email (e.g. logged in via
     // wallet this time) — look up the one already on file rather than
@@ -107,4 +111,25 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
   await admin.from("platform_events").insert({ type: "USER_LOGIN", user_id: userId, source: "app" }).then(() => undefined, () => undefined);
 
   return { ok: true, hashedToken: link.properties.hashed_token, usernameIsPlaceholder };
+}
+
+async function recordAcquisition(admin: ReturnType<typeof createAdminClient>, userId: string): Promise<void> {
+  const raw = (await cookies()).get("rvl_ft")?.value;
+  if (!raw) return;
+  const ft = JSON.parse(decodeURIComponent(raw)) as Record<string, unknown>;
+  const pick = (k: string, max = 80) => (typeof ft[k] === "string" ? (ft[k] as string).slice(0, max) : null);
+  await admin
+    .from("profiles")
+    .update({
+      acquisition: {
+        source: pick("source"),
+        medium: pick("medium"),
+        campaign: pick("campaign"),
+        referrer_host: pick("referrer_host", 120),
+        landing_path: pick("landing_path", 200)?.split("?")[0] ?? null,
+        first_seen: pick("at", 40),
+      },
+    })
+    .eq("id", userId)
+    .is("acquisition", null);
 }

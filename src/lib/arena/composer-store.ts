@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import { useSyncExternalStore } from "react";
 import type { ChatAttachment } from "@/lib/supabase/message-mapper";
@@ -51,6 +52,7 @@ const emit = () => listeners.forEach((l) => l());
 export function openArenaComposer(preset: ComposerPreset = {}) {
   const withContext = preset.replyTo || preset.moment || preset.room || preset.matchId !== undefined ? preset : { ...preset, matchId: context.matchId };
   state = { open: true, preset: withContext, key: state.key + 1 };
+  track("arena_composer_opened", { reply: Boolean(preset.replyTo), moment: Boolean(preset.moment), room: Boolean(preset.room) });
   emit();
 }
 

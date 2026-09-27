@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -156,6 +157,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
       setStakeDollars(String((limits.maxCents === null ? suggested : Math.min(suggested, limits.maxCents)) / 100));
     }
     setStep(target);
+    track("room_create_step", { step: target });
     window.scrollTo({ top: 0 });
   }
 
@@ -216,6 +218,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
         },
       });
       if (res.ok) {
+        track("room_created", { amount: stakeCents, side, market: pick.market.type, visibility: settings.visibility });
         clearDraft();
         stakeable.refresh();
         router.prefetch(`/rooms/${res.roomId}`);
@@ -228,6 +231,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
         }, 450);
       } else {
         setError(res.error);
+        track("stake_failed", { kind: "create", code: res.code ?? "error" });
         if (res.code === "insufficient_balance") stakeable.refresh();
       }
     })();

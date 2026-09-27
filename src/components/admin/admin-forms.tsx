@@ -249,3 +249,152 @@ export function AddAdminForm({ action }: { action: (username: string, role: "adm
     </div>
   );
 }
+
+// ── Rivaly Data ──────────────────────────────────────────────────────
+
+type DatasetOption = { id: string; title: string };
+
+function DatasetChecks({ options, value, onChange }: { options: DatasetOption[]; value: string[]; onChange: (v: string[]) => void }) {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      {options.map((d) => (
+        <label key={d.id} className="flex items-center gap-1.5 text-[12px] text-foreground">
+          <input type="checkbox" checked={value.includes(d.id)} onChange={(e) => onChange(e.target.checked ? [...value, d.id] : value.filter((x) => x !== d.id))} />
+          {d.title}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+export function PartnerForm({ options, action }: { options: DatasetOption[]; action: (v: { name: string; contact: string; datasets: string[]; ratePerMin: number }) => Promise<ActionResult> }) {
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [datasets, setDatasets] = useState<string[]>([]);
+  const [rate, setRate] = useState("60");
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <div className="flex flex-col gap-3 rounded-xl bg-surface p-4 ring-1 ring-border">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Partner name" className={input} />
+        <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact (email or person)" className={input} />
+        <label className="flex items-center gap-2 text-[12px] text-muted">
+          Requests / min
+          <input value={rate} onChange={(e) => setRate(e.target.value.replace(/\D/g, ""))} className={`${input} w-24`} inputMode="numeric" />
+        </label>
+      </div>
+      <DatasetChecks options={options} value={datasets} onChange={setDatasets} />
+      <button
+        type="button"
+        disabled={!name.trim() || pending}
+        onClick={() =>
+          start(async () => {
+            const r = await action({ name, contact, datasets, ratePerMin: Number(rate) });
+            setResult(r);
+            if (r.ok) {
+              setName("");
+              setContact("");
+              setDatasets([]);
+            }
+          })
+        }
+        className={`${btn()} self-start`}
+      >
+        Add partner
+      </button>
+      <Result r={result} />
+    </div>
+  );
+}
+
+export function PartnerEdit({
+  options,
+  initial,
+  action,
+}: {
+  options: DatasetOption[];
+  initial: { datasets: string[]; ratePerMin: number; active: boolean };
+  action: (v: { datasets: string[]; ratePerMin: number; active: boolean }) => Promise<ActionResult>;
+}) {
+  const [datasets, setDatasets] = useState(initial.datasets);
+  const [rate, setRate] = useState(String(initial.ratePerMin));
+  const [active, setActive] = useState(initial.active);
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <div className="flex flex-col gap-2">
+      <DatasetChecks options={options} value={datasets} onChange={setDatasets} />
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-[12px] text-muted">
+          Requests / min
+          <input value={rate} onChange={(e) => setRate(e.target.value.replace(/\D/g, ""))} className={`${input} w-20`} inputMode="numeric" />
+        </label>
+        <label className="flex items-center gap-1.5 text-[12px] text-foreground">
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Active
+        </label>
+        <button type="button" disabled={pending} onClick={() => start(async () => setResult(await action({ datasets, ratePerMin: Number(rate), active })))} className={btn()}>
+          Save
+        </button>
+      </div>
+      <Result r={result} />
+    </div>
+  );
+}
+
+export function IssueKeyButton({ action }: { action: () => Promise<{ ok: true; key: string; prefix: string } | { ok: false; error: string }> }) {
+  const [key, setKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [pending, start] = useTransition();
+  if (key) {
+    return (
+      <div className="rounded-lg border border-[var(--rival-green)] bg-background p-3">
+        <p className="text-[12px] text-rival-green">New key — copy it now. It won&apos;t be shown again (only its hash is stored).</p>
+        <code className="mt-2 block break-all font-mono text-[12px] text-foreground">{key}</code>
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard.writeText(key);
+            setCopied(true);
+          }}
+          className={`${btn()} mt-2`}
+        >
+          {copied ? "Copied" : "Copy key"}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const r = await action();
+            if (r.ok) setKey(r.key);
+            else setError(r.error);
+          })
+        }
+        className={btn()}
+      >
+        {pending ? "Issuing…" : "Issue API key"}
+      </button>
+      {error && <p className="mt-1 text-[12px] text-rival-red">{error}</p>}
+    </div>
+  );
+}
+
+export function MinGroupForm({ initial, action }: { initial: number; action: (n: number, reason: string) => Promise<ActionResult> }) {
+  const [n, setN] = useState(String(initial));
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-surface p-4 ring-1 ring-border">
+      <label className="flex items-center gap-2 text-[12px] text-muted">
+        Smallest group a dataset may describe
+        <input value={n} onChange={(e) => setN(e.target.value.replace(/\D/g, ""))} className={`${input} w-20`} inputMode="numeric" /> people
+      </label>
+      <ActionButton label="Save threshold" action={(reason) => action(Number(n), reason)} help="Any row describing fewer people than this is left out of every dataset, export and API response. 3 minimum; 5 or more recommended." />
+    </div>
+  );
+}

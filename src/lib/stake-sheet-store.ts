@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/analytics/track";
 
 import { useSyncExternalStore } from "react";
 import type { EntrySide } from "@/lib/types";
@@ -11,6 +12,7 @@ const listeners = new Set<() => void>();
 
 export function openStakeSheet(next: EntrySide | null) {
   side = next;
+  if (next) track("stake_panel_opened", { side: next });
   listeners.forEach((l) => l());
 }
 

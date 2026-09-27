@@ -8,6 +8,8 @@ import { Bars, DataTable, Funnel, Kpi, KpiGrid, PageHeader, Section, Tabs, num, 
 // funnel from admin_funnel — all in the database.
 
 const TABS = [
+  { id: "traffic", label: "Traffic & sources" },
+  { id: "product", label: "Product funnels" },
   { id: "growth", label: "Acquisition & activation" },
   { id: "engagement", label: "Engagement & retention" },
   { id: "rooms", label: "Rooms & predictions" },
@@ -43,6 +45,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         }
       />
       <Tabs tabs={TABS} active={tab} base={`/admin/analytics?days=${range}`} />
+      {tab === "traffic" && <Traffic range={range} />}
+      {tab === "product" && <Product range={range} />}
       {tab === "growth" && <Growth days={days} />}
       {tab === "engagement" && <Engagement days={days} />}
       {tab === "rooms" && <Rooms days={days} />}
@@ -272,6 +276,117 @@ async function Funnels() {
             { label: "Posted in the Arena", value: Number(f.posted_in_arena ?? 0) },
           ]}
         />
+      </Section>
+    </>
+  );
+}
+
+// ── Traffic & product (first-party tracking: analytics_events) ────────
+
+type Top = { label: string; visitors: number; total: number };
+
+function TopList({ title, rows, unit = "views" }: { title: string; rows: Top[]; unit?: string }) {
+  const max = Math.max(1, ...rows.map((r) => r.total));
+  return (
+    <div className="rounded-xl bg-surface p-4 ring-1 ring-border">
+      <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted">{title}</p>
+      {rows.length === 0 && <p className="py-4 text-[12px] text-muted">No data yet.</p>}
+      {rows.map((r) => (
+        <div key={r.label} className="relative mb-1 flex items-center justify-between overflow-hidden rounded px-2 py-1 text-[12px]">
+          <span className="absolute inset-y-0 left-0 rounded" style={{ width: `${(r.total / max) * 100}%`, background: "color-mix(in srgb, var(--rival-blue) 14%, transparent)" }} aria-hidden />
+          <span className="relative truncate text-foreground">{r.label}</span>
+          <span className="relative shrink-0 font-mono text-muted">
+            {num(r.visitors)} visitors · {num(r.total)} {unit}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type Acq = { source: string; signups: number; wallets: number; stakers: number; volume_cents: number };
+
+async function Traffic({ range }: { range: number }) {
+  const [t, daily, paths, refs, sources, campaigns, countries, devices, acq] = await Promise.all([
+    rpc<Record<string, number>>("admin_traffic", { p_days: range }),
+    rpc<{ day: string; visitors: number; sessions: number; pageviews: number }[]>("admin_traffic_daily", { p_days: range }),
+    rpc<Top[]>("admin_top", { p_dim: "path", p_days: range, p_limit: 15 }),
+    rpc<Top[]>("admin_top", { p_dim: "referrer", p_days: range, p_limit: 10 }),
+    rpc<Top[]>("admin_top", { p_dim: "utm_source", p_days: range, p_limit: 10 }),
+    rpc<Top[]>("admin_top", { p_dim: "utm_campaign", p_days: range, p_limit: 10 }),
+    rpc<Top[]>("admin_top", { p_dim: "country", p_days: range, p_limit: 10 }),
+    rpc<Top[]>("admin_top", { p_dim: "device", p_days: range, p_limit: 5 }),
+    rpc<Acq[]>("admin_acquisition", { p_days: Math.max(range, 30) }),
+  ]);
+  const mins = Math.floor((t.avg_session_seconds ?? 0) / 60);
+  const secs = (t.avg_session_seconds ?? 0) % 60;
+  return (
+    <>
+      <KpiGrid>
+        <Kpi label="Visitors" value={num(t.visitors)} sub={`${num(t.signed_in_visitors)} signed in`} />
+        <Kpi label="Sessions" value={num(t.sessions)} />
+        <Kpi label="Page views" value={num(t.pageviews)} sub={`${t.pages_per_session} per session`} />
+        <Kpi label="Avg session" value={`${mins}m ${secs}s`} />
+        <Kpi label="Bounce rate" value={`${t.bounce_rate}%`} sub="sessions with a single event" />
+        <Kpi label="Tracked actions" value={num(t.events)} />
+      </KpiGrid>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Chart title="Visitors per day" data={daily.map((d) => ({ label: short(d.day), value: d.visitors }))} />
+        <Chart title="Page views per day" data={daily.map((d) => ({ label: short(d.day), value: d.pageviews }))} />
+      </div>
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        <TopList title="Top pages" rows={paths} />
+        <TopList title="Referring sites" rows={refs} unit="events" />
+        <TopList title="Sources (utm_source / ?ref=)" rows={sources} unit="events" />
+        <TopList title="Campaigns" rows={campaigns} unit="events" />
+        <TopList title="Countries" rows={countries} unit="events" />
+        <TopList title="Devices" rows={devices} unit="events" />
+      </div>
+      <Section title="Which channels bring people who stake">
+        <DataTable
+          columns={
+            [
+              { label: "First-touch source", cell: (r: Acq) => r.source },
+              { label: "Signups", cell: (r: Acq) => num(r.signups), align: "right" },
+              { label: "Wallet ready", cell: (r: Acq) => num(r.wallets), align: "right" },
+              { label: "Staked", cell: (r: Acq) => num(r.stakers), align: "right" },
+              { label: "Signup → stake", cell: (r: Acq) => (r.signups ? `${Math.round((r.stakers / r.signups) * 100)}%` : "—"), align: "right" },
+              { label: "Volume", cell: (r: Acq) => usd(r.volume_cents), align: "right" },
+            ] as Column<Acq>[]
+          }
+          rows={acq}
+        />
+        <p className="mt-2 text-[12px] text-muted">
+          Tag links with ?utm_source=…&amp;utm_campaign=… (or ?ref=…) and every signup from them is attributed here. Accounts made before tracking began show as “before tracking”.
+        </p>
+      </Section>
+    </>
+  );
+}
+
+const FUNNELS: { title: string; steps: string[]; labels: string[] }[] = [
+  { title: "Visit → stake", steps: ["page_view", "stake_panel_opened", "stake_submitted"], labels: ["Visited", "Opened the stake panel", "Staked"] },
+  { title: "Visit → room created", steps: ["page_view", "room_create_step", "room_created"], labels: ["Visited", "Started creating a room", "Created a room"] },
+  { title: "Sign-in prompt → stake", steps: ["auth_modal_opened", "stake_panel_opened", "stake_submitted"], labels: ["Saw sign-in", "Opened the stake panel", "Staked"] },
+  { title: "Arena", steps: ["page_view", "arena_composer_opened", "arena_post_submitted"], labels: ["Visited", "Opened the composer", "Posted"] },
+];
+
+async function Product({ range }: { range: number }) {
+  const [funnels, events] = await Promise.all([
+    Promise.all(FUNNELS.map((f) => rpc<{ step: number; event: string; visitors: number }[]>("admin_event_funnel", { p_steps: f.steps, p_days: range }))),
+    rpc<Top[]>("admin_top", { p_dim: "event", p_days: range, p_limit: 30 }),
+  ]);
+  return (
+    <>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {FUNNELS.map((f, i) => (
+          <Section key={f.title} title={f.title}>
+            <Funnel steps={funnels[i].map((s, j) => ({ label: f.labels[j] ?? s.event, value: s.visitors }))} />
+          </Section>
+        ))}
+      </div>
+      <Section title="Every tracked action" hint="Funnels count visitors in order: each step only counts people who did the previous one first.">
+        <TopList title="Actions" rows={events} unit="times" />
       </Section>
     </>
   );
