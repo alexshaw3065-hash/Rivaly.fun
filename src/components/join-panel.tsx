@@ -13,6 +13,7 @@ import { StakeButton } from "./stake-button";
 import { useStake } from "@/lib/escrow/use-stake";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import { CallItPrompt } from "./arena/call-it-prompt";
+import { estimateWin, pct } from "@/lib/fees";
 
 const SIDE = {
   yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
@@ -34,10 +35,13 @@ export function JoinPanel({
   initialSide = null,
   returnPath,
   canCall = false,
+  pool = null,
 }: {
   roomId: string;
   minStakeCents: number;
   maxStakeCents: number | null;
+  /** The room's money right now and its fee rates, for the "if you win" line. */
+  pool?: { yesCents: number; noCents: number; feeBps: number; hostFeeBps: number } | null;
   initialEntry?: EntrySide | null;
   initialSide?: EntrySide | null;
   returnPath: string;
@@ -151,6 +155,7 @@ export function JoinPanel({
       </div>
 
       <StakeInput valueDollars={stakeDollars} onChange={setStakeDollars} limits={limits} error={problem} side={side} />
+      {pool && !problem && <WinLine side={side} stakeCents={stakeCents} pool={pool} />}
       <WalletLine
         needCents={stakeCents}
         signedIn={Boolean(currentUser)}
@@ -186,5 +191,29 @@ export function JoinPanel({
         </button>
       )}
     </div>
+  );
+}
+
+// What this stake pays if its side wins, from the room as it stands — with
+// the fee spelled out, never folded in quietly. It moves as others join.
+function WinLine({
+  side,
+  stakeCents,
+  pool,
+}: {
+  side: EntrySide;
+  stakeCents: number;
+  pool: { yesCents: number; noCents: number; feeBps: number; hostFeeBps: number };
+}) {
+  const win = estimateWin({ stakeCents, side, ...pool });
+  const totalBps = pool.feeBps + pool.hostFeeBps;
+  if (!win) {
+    return <p className="-mt-1 text-xs text-muted">Nobody&rsquo;s on the other side yet — if nobody joins it, you get your stake back.</p>;
+  }
+  return (
+    <p className="-mt-1 text-xs text-muted">
+      If {SIDE[side].label} wins right now: <span className="font-semibold text-foreground">{formatMoney(win.payoutCents)}</span>
+      {totalBps > 0 && win.feeCents > 0 && <> · after a {pct(totalBps)} fee on winnings ({formatMoney(win.feeCents)})</>}
+    </p>
   );
 }

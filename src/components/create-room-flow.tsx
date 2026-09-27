@@ -21,6 +21,7 @@ import { useStakeable } from "@/lib/wallet/use-stakeable";
 import { useStake } from "@/lib/escrow/use-stake";
 import { StakeButton } from "./stake-button";
 import { explorerTxUrl } from "@/lib/wallet/constants";
+import { pct, useFeeSettings } from "@/lib/fees";
 
 // How far ahead Create Room lists matches. Three weeks, so an international
 // break never leaves the Premier League off the list (a week wasn't enough:
@@ -94,6 +95,7 @@ const STEPS: { id: Step; label: string; title: string }[] = [
 // single-tap choice both selects and advances; every step keeps its state
 // when you jump back through the progress bar, so nothing is picked twice.
 export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initialMatchId?: string; resume?: boolean; vs?: string }) {
+  const fees = useFeeSettings();
   const router = useRouter();
   const currentUser = useCurrentUser();
   const stakeable = useStakeable();
@@ -385,6 +387,12 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
               availableCents={stakeable.availableCents}
               hasLoaded={stakeable.hasLoaded}
             />
+            {fees.live && fees.hostBps > 0 && (
+              <p className="-mt-3 text-xs text-muted">
+                You host this room: you earn <span className="font-semibold text-foreground">{pct(fees.hostBps)} of the winnings</span> when it
+                settles, whichever side wins.
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -17,6 +17,7 @@ export function RoomTakeSide({
   returnPath,
   preselect,
   canCall = false,
+  pool = null,
 }: {
   roomId: string;
   minStakeCents: number;
@@ -24,6 +25,7 @@ export function RoomTakeSide({
   returnPath: string;
   preselect: EntrySide | null;
   canCall?: boolean;
+  pool?: { yesCents: number; noCents: number; feeBps: number; hostFeeBps: number } | null;
 }) {
   const sheetSide = useStakeSheet();
   const setSheetSide = openStakeSheet;
@@ -42,6 +44,7 @@ export function RoomTakeSide({
       initialSide={side}
       returnPath={returnPath}
       canCall={canCall}
+      pool={pool}
     />
   );
 

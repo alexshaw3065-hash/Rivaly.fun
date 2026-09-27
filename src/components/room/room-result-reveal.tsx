@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/mock-data";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import type { MyEntry } from "@/lib/supabase/entries";
 import { useCountUp } from "@/components/room-result";
+import { pct } from "@/lib/fees";
 
 // The first time you open a room after it's decided, the result comes to
 // you instead of waiting below the stadium: what you won, the close call
@@ -60,6 +61,7 @@ export function RoomResultReveal({
   noCents,
   recent,
   sharePath,
+  feeBps = 0,
 }: {
   roomId: string;
   outcome: "yes" | "no" | "void";
@@ -74,6 +76,8 @@ export function RoomResultReveal({
   /** Decided in the last week — old rooms don't pop "you missed this". */
   recent: boolean;
   sharePath: string;
+  /** The room's total fee on winnings (Rivaly + host), in basis points. */
+  feeBps?: number;
 }) {
   const seen = useSeen(roomId);
   const won = entry?.isWinner === true;
@@ -104,7 +108,7 @@ export function RoomResultReveal({
         {refunded || outcome === "void" ? (
           <Refund entry={entry} settled={settled} oneSided={outcome !== "void"} onClose={close} />
         ) : entry && won ? (
-          <Win entry={entry} settled={settled} sharePath={sharePath} onClose={close} />
+          <Win entry={entry} settled={settled} sharePath={sharePath} feeBps={feeBps} onClose={close} />
         ) : entry ? (
           <Loss entry={entry} outcome={outcome} onClose={close} />
         ) : (
@@ -115,7 +119,7 @@ export function RoomResultReveal({
   );
 }
 
-function Win({ entry, settled, sharePath, onClose }: { entry: MyEntry; settled: boolean; sharePath: string; onClose: () => void }) {
+function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; settled: boolean; sharePath: string; feeBps: number; onClose: () => void }) {
   const payout = useCountUp(entry.payoutCents ?? 0, 1100);
   const profit = (entry.payoutCents ?? 0) - entry.amountCents;
   const [copied, setCopied] = useState(false);
@@ -141,6 +145,7 @@ function Win({ entry, settled, sharePath, onClose }: { entry: MyEntry; settled: 
           {entry.side.toUpperCase()}
         </span>
         . {settled ? "It's in your wallet." : "On its way to your wallet."}
+        {feeBps > 0 && <> After the {pct(feeBps)} fee on winnings.</>}
       </p>
       {entry.payoutTxSignature && (
         <a href={explorerTxUrl(entry.payoutTxSignature)} target="_blank" rel="noopener noreferrer" className="hover-link mt-1 inline-block text-xs text-muted underline underline-offset-2">

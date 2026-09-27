@@ -193,6 +193,9 @@ export interface Room {
   allowSpectators: boolean;
   // Set once settlement decides the room (early or at the whistle).
   resolvedOutcome?: "yes" | "no" | "void" | null;
+  /** Rivaly's and the host's cut of the winners' profit, in basis points (300 = 3%). 0 = no fee. */
+  feeBps?: number;
+  hostFeeBps?: number;
 }
 
 export type EntrySide = "yes" | "no";

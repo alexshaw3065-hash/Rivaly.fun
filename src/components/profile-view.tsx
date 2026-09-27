@@ -23,6 +23,7 @@ import { ProfileReplies } from "./profile-replies";
 import { ProfileActivity } from "./profile-activity";
 import { ProfileEditSheet, BANNER_COLORS } from "./profile-edit-sheet";
 import { ProfileSettingsSheet } from "./profile-settings-sheet";
+import { HostLine } from "./profile/host-line";
 import { ProfileSocialsSheet } from "./profile-socials-sheet";
 import { RivalyScoreBadge } from "./rivaly-score-badge";
 
@@ -257,6 +258,7 @@ function ProfileHeader({
               <span className="font-semibold text-foreground">{profile.roomsCreated}</span> Rooms
             </span>
           </div>
+          <HostLine profileId={profile.id} isSelf={isSelf} />
 
           <div className="mt-3">
             <ProfileAchievements profile={profile} isSelf={isSelf} stats={stats} />

@@ -57,3 +57,11 @@ test("groups by day, dropping empty groups", () => {
     ],
   );
 });
+
+test("someone you follow opening a room links straight to it", () => {
+  const v = describe(base({ kind: "creator_room", data: { prediction: "Barcelona to beat Getafe" } }));
+  assert.equal(v.who, "Daniel");
+  assert.equal(v.text, "opened a room");
+  assert.equal(v.detail, "Barcelona to beat Getafe");
+  assert.equal(v.href, "/rooms/r1");
+});

@@ -15,7 +15,7 @@ import {
 } from "@/lib/escrow/escrow";
 import type { MarketSideDefinition, MatchStatus } from "@/lib/types";
 import { decideSettlement, resolveMarket, type MatchEventFact, type MatchFacts, type Pending } from "./resolve";
-import { planPayouts } from "./payouts";
+import { planSettlement } from "./payouts";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -30,6 +30,10 @@ interface RoomRow {
   resolved_outcome: "yes" | "no" | "void" | null;
   pending_outcome: "yes" | "no" | null;
   pending_since: string | null;
+  creator_id: string;
+  fee_bps: number;
+  host_fee_bps: number;
+  fee_plan: FeePlan | null;
 }
 
 const SETTLEMENT_ACTIONS = ["halftime_finalised", "penalty", "var", "var_end", "instant_replay", "instant_replay_end", "action_discarded", "action_amend"];
@@ -133,50 +137,147 @@ interface EntryRow {
   profile: { dynamic_wallet_address: string | null } | null;
 }
 
-/** Step 3: pay (or refund) every entry, recording each batch's signature before it's sent. */
-async function pay(admin: Admin, roomId: string, outcome: "yes" | "no" | "void"): Promise<RoomSettleResult["state"]> {
+interface FeeRow {
+  kind: "rivaly" | "host";
+  wallet: string;
+  cents: number;
+  payout_tx_signature: string | null;
+  payout_valid_until_height: number | null;
+}
+
+/** Who a room's fees go to, frozen by the first payout run (rooms.fee_plan). */
+interface FeePlan {
+  rivalyBps: number;
+  hostBps: number;
+  rivalyWallet: string | null;
+  hostWallet: string | null;
+}
+
+/** One transfer owed from escrow: a winner/refund (entries) or a fee (room_fees). */
+interface PayItem {
+  table: "entries" | "room_fees";
+  /** entries.id, or room_fees.kind */
+  key: string;
+  to: string | null;
+  cents: number;
+  sig: string | null;
+  validUntil: number | null;
+}
+
+/**
+ * Freeze who gets the room's fees, once. A fee only applies if there's a
+ * wallet to pay it to right now — otherwise that share stays with the
+ * winners. Stored before anything is paid, so every later run (a retry, a
+ * racing run) pays exactly the same split.
+ */
+async function feePlanFor(admin: Admin, room: RoomRow): Promise<FeePlan> {
+  if (room.fee_plan) return room.fee_plan;
+  let plan: FeePlan = { rivalyBps: 0, hostBps: 0, rivalyWallet: null, hostWallet: null };
+  if ((room.fee_bps ?? 0) > 0 || (room.host_fee_bps ?? 0) > 0) {
+    const [{ data: settings }, { data: host }] = await Promise.all([
+      admin.from("platform_settings").select("fee_wallet").eq("id", true).maybeSingle(),
+      admin.from("profiles").select("dynamic_wallet_address").eq("id", room.creator_id).maybeSingle(),
+    ]);
+    const rivalyWallet = (settings?.fee_wallet as string | null) ?? null;
+    const hostWallet = (host?.dynamic_wallet_address as string | null) ?? null;
+    plan = {
+      rivalyBps: rivalyWallet ? room.fee_bps : 0,
+      hostBps: hostWallet ? room.host_fee_bps : 0,
+      rivalyWallet,
+      hostWallet,
+    };
+  }
+  await admin.from("rooms").update({ fee_plan: plan }).eq("id", room.id).is("fee_plan", null);
+  const { data: stored } = await admin.from("rooms").select("fee_plan").eq("id", room.id).maybeSingle();
+  return (stored?.fee_plan as FeePlan | null) ?? plan;
+}
+
+/** Step 3: pay (or refund) every entry, and the room's fees, recording each batch's signature before it's sent. */
+async function pay(admin: Admin, room: RoomRow, outcome: "yes" | "no" | "void"): Promise<RoomSettleResult["state"]> {
+  const roomId = room.id;
   const { data } = await admin
     .from("entries")
     .select("id, side, amount_cents, payout_tx_signature, payout_valid_until_height, profile:profiles(dynamic_wallet_address)")
     .eq("room_id", roomId)
     .not("stake_tx_signature", "is", null);
   const entries = (data ?? []) as unknown as EntryRow[];
-  const plan = planPayouts(
+  const fees = await feePlanFor(admin, room);
+  const settlement = planSettlement(
     entries.map((e) => ({ id: e.id, side: e.side, amountCents: e.amount_cents })),
     outcome,
+    { rivalyBps: fees.rivalyBps, hostBps: fees.hostBps },
   );
+  const plan = settlement.payouts;
 
   // Results first (idempotent): who won, and how much each is owed.
   for (const p of plan) {
     await admin.from("entries").update({ is_winner: p.isWinner, payout_cents: p.cents }).eq("id", p.entryId);
   }
+  // Fees owed, recorded once (the plan is frozen, so a re-run writes the same rows).
+  const feeRows = [
+    ...(settlement.rivalyCents > 0 && fees.rivalyWallet
+      ? [{ room_id: roomId, kind: "rivaly", recipient_id: null, wallet: fees.rivalyWallet, cents: settlement.rivalyCents }]
+      : []),
+    ...(settlement.hostCents > 0 && fees.hostWallet
+      ? [{ room_id: roomId, kind: "host", recipient_id: room.creator_id, wallet: fees.hostWallet, cents: settlement.hostCents }]
+      : []),
+  ];
+  if (feeRows.length > 0) await admin.from("room_fees").upsert(feeRows, { onConflict: "room_id,kind", ignoreDuplicates: true });
+  const { data: feeData } = await admin
+    .from("room_fees")
+    .select("kind, wallet, cents, payout_tx_signature, payout_valid_until_height")
+    .eq("room_id", roomId);
+
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  const items: PayItem[] = [
+    ...plan.map((p) => {
+      const e = byId.get(p.entryId);
+      return {
+        table: "entries" as const,
+        key: p.entryId,
+        to: e?.profile?.dynamic_wallet_address ?? null,
+        cents: p.cents,
+        sig: e?.payout_tx_signature ?? null,
+        validUntil: e?.payout_valid_until_height ?? null,
+      };
+    }),
+    ...((feeData ?? []) as FeeRow[]).map((f) => ({
+      table: "room_fees" as const,
+      key: f.kind,
+      to: f.wallet,
+      cents: Number(f.cents),
+      sig: f.payout_tx_signature,
+      validUntil: f.payout_valid_until_height,
+    })),
+  ];
+  const clearSig = (item: PayItem) =>
+    item.table === "entries"
+      ? admin.from("entries").update({ payout_tx_signature: null, payout_valid_until_height: null }).eq("id", item.key)
+      : admin.from("room_fees").update({ payout_tx_signature: null, payout_valid_until_height: null }).eq("room_id", roomId).eq("kind", item.key);
 
   // Anything already sent: landed, failed, or still landing?
   let inFlight = false;
-  const height = entries.some((e) => e.payout_tx_signature) ? await currentBlockHeight() : 0;
+  const height = items.some((i) => i.sig) ? await currentBlockHeight() : 0;
   const confirmedSigs = new Set<string>();
-  for (const e of entries) {
-    if (!e.payout_tx_signature) continue;
-    const state = confirmedSigs.has(e.payout_tx_signature) ? "confirmed" : await transactionState(e.payout_tx_signature);
+  for (const item of items) {
+    if (!item.sig) continue;
+    const state = confirmedSigs.has(item.sig) ? "confirmed" : await transactionState(item.sig);
     if (state === "confirmed") {
-      confirmedSigs.add(e.payout_tx_signature);
+      confirmedSigs.add(item.sig);
       continue;
     }
-    const expired = state === "failed" || (e.payout_valid_until_height !== null && height > e.payout_valid_until_height);
+    const expired = state === "failed" || (item.validUntil !== null && height > item.validUntil);
     if (expired) {
-      await admin.from("entries").update({ payout_tx_signature: null, payout_valid_until_height: null }).eq("id", e.id);
-      e.payout_tx_signature = null;
+      await clearSig(item);
+      item.sig = null;
     } else {
       inFlight = true; // may still land — never resend while it could
     }
   }
   if (inFlight) return "paying";
 
-  const byId = new Map(entries.map((e) => [e.id, e]));
-  const owedNow = plan
-    .filter((p) => p.cents > 0 && !byId.get(p.entryId)?.payout_tx_signature)
-    .map((p) => ({ entryId: p.entryId, to: byId.get(p.entryId)?.profile?.dynamic_wallet_address ?? null, cents: p.cents }));
-  const unpaid = owedNow.filter((p): p is { entryId: string; to: string; cents: number } => Boolean(p.to));
+  const owedNow = items.filter((i) => i.cents > 0 && !i.sig);
+  const unpaid = owedNow.filter((i): i is PayItem & { to: string } => Boolean(i.to));
   // Every staker staked from a wallet, so this shouldn't happen — but if an
   // address is missing, keep the room open rather than close it with money
   // still owed.
@@ -186,13 +287,11 @@ async function pay(admin: Admin, roomId: string, outcome: "yes" | "no" | "void")
   for (let i = 0; i < unpaid.length; i += PAYOUTS_PER_TX) {
     const chunk = unpaid.slice(i, i + PAYOUTS_PER_TX);
     const signed = await signPayoutBatch(chunk.map((c) => ({ to: c.to, cents: c.cents })));
-    await admin
-      .from("entries")
-      .update({ payout_tx_signature: signed.signature, payout_valid_until_height: signed.lastValidBlockHeight })
-      .in(
-        "id",
-        chunk.map((c) => c.entryId),
-      );
+    const stamp = { payout_tx_signature: signed.signature, payout_valid_until_height: signed.lastValidBlockHeight };
+    const entryIds = chunk.filter((c) => c.table === "entries").map((c) => c.key);
+    const feeKinds = chunk.filter((c) => c.table === "room_fees").map((c) => c.key);
+    if (entryIds.length > 0) await admin.from("entries").update(stamp).in("id", entryIds);
+    if (feeKinds.length > 0) await admin.from("room_fees").update(stamp).eq("room_id", roomId).in("kind", feeKinds);
     try {
       await sendSignedBatch(signed);
     } catch {
@@ -213,14 +312,14 @@ export async function settleRoom(roomId: string, now = Date.now()): Promise<Room
   const admin = createAdminClient();
   const { data: room } = await admin
     .from("rooms")
-    .select("id, status, match_id, market_side_definition, resolved_outcome, pending_outcome, pending_since")
+    .select("id, status, match_id, market_side_definition, resolved_outcome, pending_outcome, pending_since, creator_id, fee_bps, host_fee_bps, fee_plan")
     .eq("id", roomId)
     .maybeSingle<RoomRow>();
   if (!room || !["open", "live"].includes(room.status)) return { roomId, state: "skipped" };
 
   const { outcome, state } = await decide(admin, room, now);
   if (!outcome) return { roomId, state };
-  return { roomId, state: await pay(admin, room.id, outcome) };
+  return { roomId, state: await pay(admin, room, outcome) };
 }
 
 /**

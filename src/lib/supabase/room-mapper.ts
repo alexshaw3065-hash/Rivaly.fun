@@ -29,6 +29,9 @@ export interface RoomRow {
   max_stake_cents: number | null;
   allow_spectators: boolean;
   resolved_outcome: "yes" | "no" | "void" | null;
+  fee_bps?: number | null;
+  host_fee_bps?: number | null;
+  fee_plan?: { rivalyBps: number; hostBps: number } | null;
 }
 
 /**
@@ -65,11 +68,15 @@ export function mapRoomRow(row: RoomRow): RoomWithTotals {
     maxStakeCents: row.max_stake_cents,
     allowSpectators: row.allow_spectators,
     resolvedOutcome: row.resolved_outcome,
+    // What the fee actually is: the frozen plan once the room has paid out,
+    // otherwise the rates it was created with.
+    feeBps: row.fee_plan?.rivalyBps ?? row.fee_bps ?? 0,
+    hostFeeBps: row.fee_plan?.hostBps ?? row.host_fee_bps ?? 0,
   };
 }
 
 export const ROOM_COLUMNS =
-  "id, creator_id, match_id, prediction, entry_amount_cents, visibility, status, pool_total_cents, yes_total_cents, no_total_cents, participant_count, resolution_source, invite_code, created_at, settled_at, market_type, market_line, market_side_definition, settlement_mode, min_stake_cents, max_stake_cents, allow_spectators, resolved_outcome";
+  "id, creator_id, match_id, prediction, entry_amount_cents, visibility, status, pool_total_cents, yes_total_cents, no_total_cents, participant_count, resolution_source, invite_code, created_at, settled_at, market_type, market_line, market_side_definition, settlement_mode, min_stake_cents, max_stake_cents, allow_spectators, resolved_outcome, fee_bps, host_fee_bps, fee_plan";
 
 // Real ids are UUIDs; every mock room id is a short "r1"-style string —
 // cheap, reliable way to know which source to query without hitting both.

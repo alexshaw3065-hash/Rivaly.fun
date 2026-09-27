@@ -50,7 +50,7 @@ That's Rivaly's "create token."
 Clans (group trading, copy-trading, shared audience-building — see §7
 below) · ❌ Shortcuts · ❌ Voice chat · ❌ Streaming · ❌ Money-entry
 Tournaments (real entry fees, prize pools) · ❌ AI · ❌ Complex achievements
-· ❌ Creator monetization
+· ❌ Creator monetization beyond host earnings — *revised 2026-09-27: the founder brought fees + host earnings into V1 (5% of winners' profit: 3% Rivaly, 2% the host; private by default). Verified creators, featured rooms, subscriptions, tipping and paid entry remain out.*
 
 ### §7 — Leagues vs. Tournaments (2026-08-20 clarification)
 

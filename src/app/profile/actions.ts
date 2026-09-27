@@ -83,3 +83,16 @@ export async function toggleFollow(targetUserId: string, currentlyFollowing: boo
   revalidatePath("/profile/[username]", "page");
   return { ok: true, following: true };
 }
+
+/** Host earnings on your profile: private unless you turn this on. */
+export async function setShowHostEarnings(show: boolean): Promise<UpdateProfileResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in first." };
+  const { error } = await supabase.from("profiles").update({ show_host_earnings: show === true }).eq("id", user.id);
+  if (error) return { ok: false, error: "Couldn't save that — try again." };
+  revalidatePath("/profile/[username]", "page");
+  return { ok: true };
+}

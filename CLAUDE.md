@@ -74,7 +74,9 @@ Rivaly's one thing: **"I want to put my football opinion up against someone else
 
 **Build:** Home (live matches, trending rooms) · Room (chat, pool, predictions, join/leave, settlement) · Create Room (fast) · Search (rooms, matches, users) · Profile (minimal: history, followers, accuracy) · Wallet (deposit, withdraw, balance) · Arena (formerly "Following" — the social/engagement hub: Feed, points-only Leagues, Leaderboard; see [docs/masterplan/08-v1-scope.md](docs/masterplan/08-v1-scope.md) for the 2026-08-20 revision and its psychology-research rationale).
 
-**Do not build yet:** Communities, club/fan groups, Tribes/Clans (copy-trading, shared audience — a fuller vision is captured in the blueprint's V2 section), voice chat, streaming, money-entry tournaments, AI features, complex achievements, creator monetization. These are V2+ — see [docs/masterplan/07-product-blueprint.md](docs/masterplan/07-product-blueprint.md) for the full long-term surface area.
+**Do not build yet:** Communities, club/fan groups, Tribes/Clans (copy-trading, shared audience — a fuller vision is captured in the blueprint's V2 section), voice chat, streaming, money-entry tournaments, AI features, complex achievements, creator monetization beyond host earnings. These are V2+ — see [docs/masterplan/07-product-blueprint.md](docs/masterplan/07-product-blueprint.md) for the full long-term surface area.
+
+**Fees and host earnings (founder decision 2026-09-27, overriding the earlier V2 deferral):** 5% of the winners' *profit* — never of a stake — 3% to Rivaly, 2% to the room's host; refunds pay nothing; rates frozen on each room at creation; shown on the stake panel, results and receipts; host earnings private by default. Off until Rivaly's fee wallet is set in `platform_settings`. Verified creators, featured rooms, subscriptions, tipping and paid entry stay V2+ or never.
 
 Core loop: `Create Room → Challenge Friends → People Join → Live Match → Chat Explodes → Winner Paid → Screenshots → People Share → New Users → More Rooms`
 

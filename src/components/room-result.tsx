@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatMoney } from "@/lib/mock-data";
 import { explorerTxUrl } from "@/lib/wallet/constants";
+import { pct } from "@/lib/fees";
 import type { MyEntry } from "@/lib/supabase/entries";
 
 // The room's resolution, from the viewer's side. Per the emotion design: a
@@ -47,6 +48,7 @@ export function RoomResult({
   refunded,
   matchStillLive,
   entry,
+  feeBps = 0,
 }: {
   outcome: "yes" | "no" | "void";
   /** Payouts confirmed (room settled/refunded) vs. still being sent. */
@@ -55,6 +57,8 @@ export function RoomResult({
   refunded: boolean;
   matchStillLive: boolean;
   entry: MyEntry | null;
+  /** The room's total fee on winnings (Rivaly + host), in basis points. */
+  feeBps?: number;
 }) {
   const won = entry?.isWinner === true;
   const payout = useCountUp(won ? (entry?.payoutCents ?? 0) : 0);
@@ -89,7 +93,7 @@ export function RoomResult({
             <span className="font-semibold" style={{ color: SIDE_COLOR[entry.side] }}>
               {entry.side.toUpperCase()}
             </span>
-            .
+            .{feeBps > 0 && <> After the {pct(feeBps)} fee on winnings.</>}
           </p>
           <div className="mt-2 flex flex-wrap gap-3">
             <Receipt signature={entry.payoutTxSignature} label="Verify payout on Solana" />

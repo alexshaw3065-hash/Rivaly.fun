@@ -13,7 +13,8 @@ export type NotificationKind =
   | "reply"
   | "mention"
   | "follow"
-  | "league_join";
+  | "league_join"
+  | "creator_room";
 
 export interface NotificationActor {
   username: string | null;
@@ -90,6 +91,8 @@ export function describe(n: AppNotification): NotificationView {
       return { who, text: "mentioned you", detail: n.data.body || null, href: thread, tone: "neutral" };
     case "follow":
       return { who, text: "followed you", detail: null, href: n.actor?.username ? `/profile/${n.actor.username}` : "/arena", tone: "neutral" };
+    case "creator_room":
+      return { who, text: "opened a room", detail: claim, href: room, tone: "live" };
     case "league_join":
       return { who, text: `joined ${n.data.league ?? "your league"}`, detail: null, href: "/arena?tab=leagues", tone: "neutral" };
   }

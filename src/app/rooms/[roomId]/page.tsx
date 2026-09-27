@@ -181,6 +181,7 @@ export default async function RoomPage({
                 noCents={room.noTotalCents ?? 0}
                 recent={decidedRecently(room.settledAt ?? match.kickoffAt)}
                 sharePath={sharePath}
+                feeBps={(room.feeBps ?? 0) + (room.hostFeeBps ?? 0)}
               />
             )}
             {outcome && (
@@ -190,6 +191,7 @@ export default async function RoomPage({
                 refunded={room.status === "refunded" || outcome === "void"}
                 matchStillLive={match.status === "live"}
                 entry={myEntry}
+                feeBps={(room.feeBps ?? 0) + (room.hostFeeBps ?? 0)}
               />
             )}
 
@@ -280,6 +282,7 @@ export default async function RoomPage({
                   returnPath={sharePath}
                   preselect={preselect}
                   canCall={room.visibility === "public"}
+                  pool={{ yesCents: room.yesTotalCents ?? 0, noCents: room.noTotalCents ?? 0, feeBps: room.feeBps ?? 0, hostFeeBps: room.hostFeeBps ?? 0 }}
                 />
               ))}
 
