@@ -4,7 +4,11 @@
 Geist, full-round chips, CSS-only motion, light mode kept). **Phase 0 done**
 (tokens, mobile-native baseline, haptics helper, `npm run lint:design` —
 baseline 833 drift items: font-size 428, raw-hex 120, shadow 71, radius 15,
-off-grid 162, mono-label 37). Next: Phase 1, the component kit.
+off-grid 162, mono-label 37). **Phase 1 done** (2026-09-28): the kit in
+`src/components/ui/` — Button/ButtonLink, IconButton, Chip, SidePill, Tabs,
+Segmented, Card, SectionHeader, ListGroup/ListRow, Badge/LiveBadge, Skeleton,
+EmptyState, Amount (count-up), Sheet — previewed against today's markup at
+`/kit` (dev only). Next: Phase 2, the shell and instant navigation.
 
 Written 2026-09-27. Scope: polish the **existing** app — styling, type, colour,
 spacing, components, interactions, motion, responsiveness — so it feels like
