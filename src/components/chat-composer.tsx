@@ -15,7 +15,8 @@ import {
   type MessageReaction,
   type MessageRow,
 } from "@/lib/supabase/message-mapper";
-import { encodeMoment, matchMoment, takeoverMoment } from "@/lib/match-event-label";
+import { encodeMoment, matchMoment, takeoverMoment, type MomentContext } from "@/lib/match-event-label";
+import type { NflClock } from "@/lib/nfl-clock";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { addRaceMessage, initRace, useRoomRace } from "@/lib/room-energy";
 import type { RaceState } from "@/lib/room-race";
@@ -99,6 +100,8 @@ export function ChatComposer({
   players,
   teams,
   matchTeams,
+  sport = "soccer",
+  nflClock,
 }: {
   roomId: string;
   matchId?: string;
@@ -118,6 +121,10 @@ export function ChatComposer({
   teams?: { home: string; away: string };
   /** The two teams' names, for the live pressure ticker over the header. */
   matchTeams?: { home: string; away: string };
+  /** Labels match moments in the sport's own language. */
+  sport?: "soccer" | "nfl";
+  /** NFL: the quarter state where the server's initial feed left off, carried on by live events. */
+  nflClock?: NflClock;
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
@@ -174,10 +181,14 @@ export function ChatComposer({
   useEffect(() => {
     sidesRef.current = sides;
   }, [sides]);
-  const momentCtx = useRef({ names: players, teams });
+  // The NFL clock is one running state for the life of the room page: seeded
+  // from where the server's feed left off, advanced by each live event.
+  // (One object for the page's life, mutated in place by matchMoment — never re-set.)
+  const [nflState] = useState<NflClock | undefined>(() => (nflClock ? { ...nflClock } : undefined));
+  const momentCtx = useRef<MomentContext>({ names: players, teams, sport, nfl: nflState });
   useEffect(() => {
-    momentCtx.current = { names: players, teams };
-  }, [players, teams]);
+    momentCtx.current = { names: players, teams, sport, nfl: nflState };
+  }, [players, teams, sport, nflState]);
   // The feed sends each event more than once (first report, confirmation,
   // the scorer's name) under one event id; the room hears it once — the
   // first, fastest report.

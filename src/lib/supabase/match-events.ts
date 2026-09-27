@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { encodeMoment, matchMoment, type MomentContext } from "@/lib/match-event-label";
+import { newNflClock } from "@/lib/nfl-clock";
 import { collapseEvents } from "@/lib/match-feed";
 import type { EventRow } from "@/lib/match-timeline";
 import type { DisplayChatMessage } from "@/lib/supabase/message-mapper";
@@ -42,8 +43,10 @@ export async function getMatchEventRows(matchId: string): Promise<EventRow[]> {
 
 /** The moments worth a line in the room's feed (kick-off, goals, cards, VAR, whistles). */
 export function momentsFromRows(rows: EventRow[], roomId: string, ctx: MomentContext = {}): DisplayChatMessage[] {
+  // Every row advances the NFL clock (even the ones that get no line), in order.
+  const run: MomentContext = ctx.sport === "nfl" ? { ...ctx, nfl: ctx.nfl ?? newNflClock() } : ctx;
   return rows.flatMap((e) => {
-    const moment = matchMoment(e.action, e.minute, e.payload, ctx);
+    const moment = matchMoment(e.action, e.minute, e.payload, run);
     if (!moment) return [];
     return [
       {

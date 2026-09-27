@@ -12,6 +12,7 @@ import { ARENA_POST_FAILED, ARENA_POSTED, openArenaComposer, setComposerContext,
 import { ArenaCard, type CardActions } from "./arena/arena-cards";
 import { ArenaMatchRooms } from "./arena/arena-match-rooms";
 import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, fetchRanked, newRankedSession, setReaction, type FeedScope, type RankedSession } from "@/lib/arena/data";
+import { ArenaRivals } from "./arena/arena-rivals";
 import {
   appendPage,
   cursorOf,
@@ -344,6 +345,8 @@ export function ArenaFeed() {
           Showing one match · show everything
         </button>
       )}
+
+      <ArenaRivals />
 
       <button
         type="button"

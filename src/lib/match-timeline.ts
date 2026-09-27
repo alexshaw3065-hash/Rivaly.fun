@@ -10,14 +10,17 @@
 // id the line-ups can put a name to (see match-lineups.ts). Never invented.
 
 import { kickoffKind } from "./match-feed.ts";
+import { nflClockLabel, nflGameMinute, nflTick, type NflClock } from "./nfl-clock.ts";
 
 export type TimelineKind = "goal" | "penalty" | "yellow" | "red" | "var" | "var-end" | "kickoff" | "halftime" | "fulltime";
 
 export interface TimelineEvent {
   id: string;
   kind: TimelineKind;
-  /** Position on the track (match minutes, or wall minutes for NFL). */
+  /** Position on the track: match minutes (soccer) or game minutes, 0-60 plus overtime (NFL). */
   minute: number;
+  /** NFL: the game clock at the moment, e.g. "Q2 8:26". */
+  clock?: string | null;
   side: "home" | "away" | null;
   /** The scorer / booked player, from the line-ups. */
   player: string | null;
@@ -46,6 +49,8 @@ export interface TimelineData {
   halftimeAt: number | null;
   /** Player id → name, so live moments can be named too. */
   players?: Record<number, string>;
+  /** NFL: the quarter state after the last row, so live events carry on counting. */
+  nfl?: NflClock;
 }
 
 export const HEAT_BUCKETS = 45;
@@ -70,6 +75,30 @@ export function wallToMinute(at: number, kickoffAt: number, halftimeAt: number |
   const secondHalfStart = halftimeAt + HALFTIME_BREAK_MIN * 60_000;
   if (at <= secondHalfStart) return Math.max(45, firstHalf);
   return Math.max(45, firstHalf) + (at - secondHalfStart) / 60_000;
+}
+
+function describeNfl(action: string, p: Record<string, unknown>, at: { quarter: number; clock: number } | null): { kind: TimelineKind; title: string; detail: string | null } | null {
+  switch (action) {
+    case "touchdown":
+      return { kind: "goal", title: "Touchdown", detail: typeof p.Type === "string" ? `${p.Type} play` : null };
+    case "field_goal":
+      return p.Outcome === "successful" ? { kind: "goal", title: "Field goal", detail: null } : null;
+    case "safety":
+      return { kind: "goal", title: "Safety", detail: null };
+    case "kickoff":
+      // A quarter's first snap only (15:00 on the clock), not every kick after a score.
+      if (!at || at.clock !== 900) return null;
+      if (at.quarter === 1) return { kind: "kickoff", title: "Kickoff", detail: null };
+      if (at.quarter === 3) return { kind: "halftime", title: "Second half", detail: null };
+      if (at.quarter >= 5) return { kind: "kickoff", title: "Overtime", detail: null };
+      return null;
+    case "halftime_finalised":
+      return { kind: "halftime", title: "Halftime", detail: null };
+    case "game_finalised":
+      return { kind: "fulltime", title: "Final", detail: null };
+    default:
+      return null;
+  }
 }
 
 function describe(action: string, p: Record<string, unknown>): { kind: TimelineKind; title: string; detail: string | null } | null {
@@ -111,12 +140,15 @@ function describe(action: string, p: Record<string, unknown>): { kind: TimelineK
 /** One stored event → a marker (null for the actions the timeline skips). */
 export function eventFromRow(
   row: EventRow,
-  ctx: { sport: "soccer" | "nfl"; kickoffAt: number; halftimeAt: number | null; players?: Record<number, string> },
+  ctx: { sport: "soccer" | "nfl"; kickoffAt: number; halftimeAt: number | null; players?: Record<number, string>; nfl?: NflClock },
 ): TimelineEvent | null {
   const p = row.payload ?? {};
-  const d = describe(row.action, p);
+  // NFL: every row advances the quarter count, even the ones with no marker.
+  const nflAt = ctx.sport === "nfl" && ctx.nfl ? nflTick(ctx.nfl, p) : null;
+  const d = ctx.sport === "nfl" ? describeNfl(row.action, p, nflAt) : describe(row.action, p);
   if (!d) return null;
   const at = +new Date(row.occurredAt);
+  const nflPos = nflAt ?? (ctx.nfl && ctx.nfl.last !== null ? { quarter: ctx.nfl.quarter, clock: ctx.nfl.last } : null);
   const minute =
     ctx.sport === "soccer"
       ? typeof row.minute === "number" && row.minute > 0
@@ -126,14 +158,19 @@ export function eventFromRow(
           : d.kind === "halftime"
             ? 45
             : wallToMinute(at, ctx.kickoffAt, ctx.halftimeAt)
-      : Math.max(0, (at - ctx.kickoffAt) / 60_000);
+      : nflPos
+        ? nflGameMinute(nflPos.quarter, nflPos.clock)
+        : d.kind === "fulltime"
+          ? 60
+          : 0;
   const score = typeof p._home === "number" && typeof p._away === "number" ? { home: p._home, away: p._away } : null;
   const side = p._side === "home" || p._side === "away" ? p._side : null;
   const player = typeof p.PlayerId === "number" ? (ctx.players?.[p.PlayerId] ?? null) : null;
   // One marker per real event: the feed's first report, confirmation and
   // detail share an event id, so live updates replace rather than stack.
   const id = typeof p._eid === "number" ? `${row.action}:${p._eid}` : row.id;
-  return { id, kind: d.kind, minute, side, player, title: d.title, detail: d.detail, score, at, reactions: null };
+  const clock = ctx.sport === "nfl" && nflPos && d.kind !== "fulltime" ? nflClockLabel(nflPos.quarter, nflPos.clock) : null;
+  return { id, kind: d.kind, minute, clock, side, player, title: d.title, detail: d.detail, score, at, reactions: null };
 }
 
 /** Which team a goal was for, from the score before and after it. */
@@ -154,11 +191,21 @@ export function buildTimeline(input: {
   const { sport, kickoffAt, players } = input;
   const ht = input.rows.find((r) => r.action === "halftime_finalised");
   const halftimeAt = ht ? +new Date(ht.occurredAt) : null;
-  const ctx = { sport, kickoffAt, halftimeAt, players };
+  const nfl: NflClock | undefined = sport === "nfl" ? { quarter: 1, last: null } : undefined;
+  const ctx = { sport, kickoffAt, halftimeAt, players, nfl };
 
-  const events = input.rows
-    .map((r) => eventFromRow(r, ctx))
-    .filter((e): e is TimelineEvent => e !== null);
+  // NFL: wall time -> game minute, sampled at every row, to place the chat's pulse.
+  const clockPoints: [number, number][] = [];
+  const events: TimelineEvent[] = [];
+  for (const r of input.rows) {
+    const e = eventFromRow(r, ctx);
+    if (e) events.push(e);
+    if (nfl && nfl.last !== null) clockPoints.push([+new Date(r.occurredAt), nflGameMinute(nfl.quarter, nfl.last)]);
+  }
+  if (sport === "nfl") {
+    const lastInPlay = events.reduce((m, e) => (e.kind === "fulltime" ? m : Math.max(m, e.minute)), 0);
+    for (const e of events) if (e.kind === "fulltime") e.minute = Math.max(60, lastInPlay);
+  }
   // Full time sits at the end of play (90' or the last stoppage-time moment),
   // not at the wall-clock time the whistle was logged.
   if (sport === "soccer") {
@@ -179,18 +226,28 @@ export function buildTimeline(input: {
   for (const e of events) e.reactions = times.filter((t) => t >= e.at && t < e.at + REACTION_WINDOW_MS).length;
 
   const maxMinute = events.reduce((m, e) => Math.max(m, e.minute), 0);
-  const domain = sport === "soccer" ? Math.max(90, Math.ceil(maxMinute)) : Math.max(180, Math.ceil(maxMinute) + 5);
+  const domain = sport === "soccer" ? Math.max(90, Math.ceil(maxMinute)) : Math.max(60, Math.ceil(maxMinute));
 
   // The room's pulse: messages per slice of the track.
   const heat = new Array<number>(HEAT_BUCKETS).fill(0);
   for (const t of times) {
     if (t < kickoffAt) continue;
-    const m = sport === "soccer" ? wallToMinute(t, kickoffAt, halftimeAt) : (t - kickoffAt) / 60_000;
+    const m = sport === "soccer" ? wallToMinute(t, kickoffAt, halftimeAt) : gameMinuteAt(clockPoints, t);
     const i = Math.floor((m / domain) * HEAT_BUCKETS);
     if (i >= 0 && i < HEAT_BUCKETS) heat[i]++;
   }
 
-  return { sport, domain, events, heat, kickoffAt, halftimeAt, players };
+  return { sport, domain, events, heat, kickoffAt, halftimeAt, players, nfl };
+}
+
+/** NFL: the game minute at a wall-clock time, from the last sampled point at or before it. */
+function gameMinuteAt(points: [number, number][], t: number): number {
+  let m = 0;
+  for (const [at, minute] of points) {
+    if (at > t) break;
+    m = minute;
+  }
+  return m;
 }
 
 /** The score at a point on the track: the latest snapshot at or before it. */
@@ -209,7 +266,9 @@ export function scoreAt(events: TimelineEvent[], minute: number): { home: number
 
 /** Where the live playhead sits: the later of the last event and the clock. */
 export function liveMinute(data: TimelineData, now: number): number {
-  const clock = data.sport === "soccer" ? wallToMinute(now, data.kickoffAt, data.halftimeAt) : (now - data.kickoffAt) / 60_000;
+  // NFL has no wall-clock mapping (its clock stops constantly): the game clock's last reading is live.
+  const clock =
+    data.sport === "soccer" ? wallToMinute(now, data.kickoffAt, data.halftimeAt) : data.nfl && data.nfl.last !== null ? nflGameMinute(data.nfl.quarter, data.nfl.last) : 0;
   const last = data.events.reduce((m, e) => Math.max(m, e.minute), 0);
   return Math.min(data.domain, Math.max(last, clock));
 }

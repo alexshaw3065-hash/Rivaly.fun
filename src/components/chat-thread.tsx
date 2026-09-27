@@ -537,7 +537,7 @@ function MessageRow({
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-x-1.5 leading-tight">
                 <span className="text-[15px] font-bold" style={{ color }}>
-                  {name}
+                  {self ? "You" : name}
                 </span>
                 {side ? (
                   <span className="rounded px-1 py-px font-mono text-[9px] font-bold text-white" style={{ background: color }}>
@@ -546,7 +546,6 @@ function MessageRow({
                 ) : (
                   <span className="rounded px-1 py-px font-mono text-[9px] font-bold text-muted ring-1 ring-border">WATCHING</span>
                 )}
-                {self && <span className="text-[11px] text-muted">(you)</span>}
                 <span className="font-mono text-[10px] text-muted">{time(message.createdAt)}</span>
               </p>
               <div className="mt-0.5">{body}</div>

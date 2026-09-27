@@ -207,7 +207,7 @@ export function RoomStage({
           {creator && (
             <Link href={`/profile/${creator.username}`} className="mt-1.5 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white">
               <RivalCharacter name={creator.username} imageUrl={creator.avatarUrl} size={22} />
-              Called by <span className="font-semibold text-white">{creator.displayName}</span>
+              Called by <span className="font-semibold text-white">@{creator.username}</span>
             </Link>
           )}
         </div>

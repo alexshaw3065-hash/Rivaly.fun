@@ -7,6 +7,7 @@ import { BookmarkButton } from "./bookmark-button";
 import { ShareButton } from "./share-button";
 import { RivalsInRoom } from "./rivals-in-room";
 import { MatchBanner } from "./create-room/match-hero";
+import { RoomChatPreview } from "./room-chat-preview";
 import { abbreviateClaim } from "@/lib/team-identity";
 
 // The page's one signature artifact (see anti-slop-design-law.md) — not
@@ -28,6 +29,7 @@ export function ExplodingRoomCard({ room, match }: { room: RoomWithTotals; match
           {abbreviateClaim(room.prediction, match.homeTeam, match.awayTeam)}
         </p>
         <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
+        <RoomChatPreview roomId={room.id} />
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3.5 font-mono text-xs text-muted">
           <span className="shrink-0" title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>
           <div className="flex min-w-0 items-center gap-3">

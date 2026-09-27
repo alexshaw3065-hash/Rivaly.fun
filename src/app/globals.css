@@ -686,3 +686,16 @@ html[data-arena-tab]:not([data-arena-tab="feed"]) .arena-fab {
   from { visibility: hidden; }
   to { visibility: visible; }
 }
+
+/* Exploding card chat preview: each newly shown line slides up into place.
+   Starts visible (translate only), so it never hides content if motion is off. */
+.chat-preview-line {
+  animation: chat-preview-in 400ms ease-out both;
+}
+@keyframes chat-preview-in {
+  from { transform: translateY(6px); }
+  to { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-preview-line { animation: none; }
+}

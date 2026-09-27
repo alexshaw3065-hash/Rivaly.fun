@@ -28,6 +28,7 @@ import { settleRoom } from "@/lib/settlement/settle";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import { abbreviateClaim, teamIdentity } from "@/lib/team-identity";
 import type { EntrySide } from "@/lib/types";
+import { newNflClock } from "@/lib/nfl-clock";
 
 // The heart of the product: a digital viewing centre, not a form. Per
 // docs/masterplan/07-product-blueprint.md#45-room and the 2026-09-24 room
@@ -102,7 +103,10 @@ export default async function RoomPage({
   // Player names from the line-ups, so moments can say who scored.
   const names = playerNames(eventRows);
   const teams = { home: teamIdentity(match.homeTeam).code, away: teamIdentity(match.awayTeam).code };
-  const moments = momentsFromRows(eventRows, room.id, { names, teams });
+  const sport = sportOf(match);
+  // NFL: the quarter is counted from the clock as rows go by; the chat carries the same state on live.
+  const nflClock = sport === "nfl" ? newNflClock() : undefined;
+  const moments = momentsFromRows(eventRows, room.id, { names, teams, sport, nfl: nflClock });
   // The match on one line under the stadium, with the room's pulse beneath it.
   const timeline = buildTimeline({
     sport: sportOf(match),
@@ -217,7 +221,7 @@ export default async function RoomPage({
             )}
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} initialReactions={reactions} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} />}
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} initialReactions={reactions} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} sport={sport} nflClock={nflClock} />}
               match={match}
               sport={sportOf(match)}
               events={eventRows}

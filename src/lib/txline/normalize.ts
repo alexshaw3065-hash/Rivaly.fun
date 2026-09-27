@@ -27,6 +27,12 @@ const NOTABLE_ACTIONS = new Set([
   "kickoff",
   "halftime_finalised",
   "game_finalised",
+  // NFL scoring plays. The "score changed" rule below can't catch these live:
+  // the worker applies one record at a time, so there's no previous score to
+  // compare against — every touchdown was being dropped from the timeline.
+  "touchdown",
+  "field_goal",
+  "safety",
   // The squads, shortly before kick-off — the room's Lineup tab.
   "lineups",
   // Corrections. Names arrive on amends (a card's player, a substitution's

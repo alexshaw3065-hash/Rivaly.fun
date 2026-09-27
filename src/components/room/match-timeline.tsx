@@ -26,7 +26,10 @@ const TONE = {
 
 export function MatchTimeline({ match, initial }: { match: Match; initial: TimelineData }) {
   const [events, setEvents] = useState(initial.events);
-  const data = useMemo(() => ({ ...initial, events }), [initial, events]);
+  // NFL: the quarter count carries on from the server's build as live events arrive.
+  const nflRef = useRef(initial.nfl ? { ...initial.nfl } : undefined);
+  const [nfl, setNfl] = useState(initial.nfl);
+  const data = useMemo(() => ({ ...initial, events, nfl }), [initial, events, nfl]);
   const live = match.status === "live";
   const finished = match.status === "finished";
   const started = live || finished || events.length > 0;
@@ -41,8 +44,9 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
       .channel(`timeline:${match.id}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${match.id}` }, (payload) => {
         const r = payload.new as { id: string; action: string; minute: number | null; payload: Record<string, unknown> | null; occurred_at: string };
-        const e = eventFromRow({ id: r.id, action: r.action, minute: r.minute, payload: r.payload, occurredAt: r.occurred_at }, initial);
+        const e = eventFromRow({ id: r.id, action: r.action, minute: r.minute, payload: r.payload, occurredAt: r.occurred_at }, { ...initial, nfl: nflRef.current });
         if (e) setEvents((list) => [...list.filter((x) => x.id !== e.id), e].sort((a, b) => a.minute - b.minute || a.at - b.at));
+        if (nflRef.current) setNfl({ ...nflRef.current });
       })
       .subscribe();
     return () => {
@@ -207,7 +211,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             </svg>
           )}
         </button>
-        <span className="font-mono text-[10px] text-white/55">0&rsquo;</span>
+        <span className="font-mono text-[10px] text-white/55">{data.sport === "nfl" ? "Q1" : "0’"}</span>
 
         {/* The track */}
         <div
@@ -248,6 +252,9 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             <div className="h-full rounded-full bg-rival-green" style={{ width: pct(head) }} />
           </div>
           {data.sport === "soccer" && <div className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-white/30" style={{ left: pct(45) }} aria-hidden />}
+          {/* NFL: a notch at each quarter break. */}
+          {data.sport === "nfl" &&
+            [15, 30, 45, 60].filter((m) => m < data.domain).map((m) => <div key={m} className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-white/30" style={{ left: pct(m) }} aria-hidden />)}
 
           {/* Moments */}
           {placed.map(({ e, dy }) => {
@@ -258,7 +265,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
                 type="button"
                 data-moment
                 onClick={() => setSelected(selected === e.id ? null : e.id)}
-                aria-label={`${e.title}, ${Math.floor(e.minute)} minutes`}
+                aria-label={`${e.title}, ${e.clock ?? `${Math.floor(e.minute)} minutes`}`}
                 className="absolute top-1/2 transition-[opacity,transform] duration-300 ease-out"
                 style={{
                   left: pct(e.minute),
@@ -286,7 +293,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
           {picked && <MomentCard event={picked} left={(picked.minute / data.domain) * 100} home={match.homeTeam} away={match.awayTeam} />}
         </div>
 
-        <span className="font-mono text-[10px] text-white/55">{Math.round(data.domain)}&rsquo;</span>
+        <span className="font-mono text-[10px] text-white/55">{data.sport === "nfl" ? (data.domain > 60 ? "OT" : "Q4") : `${Math.round(data.domain)}’`}</span>
         {live && !following && (
           <button
             type="button"
@@ -359,7 +366,7 @@ function MomentCard({ event, left, home, away }: { event: TimelineEvent; left: n
           {event.title}
           {event.player && <span className="font-semibold text-foreground/80"> · {event.player}</span>}
         </p>
-        <span className="font-mono text-xs font-semibold text-muted">{Math.floor(event.minute)}&rsquo;</span>
+        <span className="font-mono text-xs font-semibold text-muted">{event.clock ?? `${Math.floor(event.minute)}’`}</span>
       </div>
       {event.detail && <p className="mt-1.5 text-xs text-foreground/85">{event.detail}</p>}
       {team && (

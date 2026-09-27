@@ -21,8 +21,8 @@ export function FollowButton({
 }: {
   profileId: string;
   initialFollowing?: boolean;
-  /** "pill": the profile header's big rounded button. */
-  variant?: "default" | "pill";
+  /** "pill": the profile header's big rounded button. "compact": full-width and small (Arena's Rivals row). */
+  variant?: "default" | "pill" | "compact";
 }) {
   const currentUser = useCurrentUser();
   const isRealTarget = UUID_RE.test(profileId);
@@ -63,7 +63,7 @@ export function FollowButton({
     <button
       onClick={handleClick}
       disabled={pending}
-      className="rounded-md border px-4 py-2 text-sm font-medium transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-70"
+      className={`rounded-md border transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-70 ${variant === "compact" ? "w-full py-1.5 text-xs font-semibold" : "px-4 py-2 text-sm font-medium"}`}
       style={{
         borderColor: following ? "var(--border)" : "var(--rival-blue)",
         background: following ? "transparent" : "var(--rival-blue)",

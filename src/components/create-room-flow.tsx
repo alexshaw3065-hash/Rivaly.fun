@@ -675,7 +675,13 @@ function CreatedView({
   async function share() {
     // A challenge link opens the room straight on the other side for them.
     const other = side === "yes" ? "no" : "yes";
-    const url = withRef(siteUrl(`/rooms/${roomId}${vs ? `?side=${other}` : ""}`));
+    // The code rides on the link: a private room only opens for someone who
+    // has it, and without it a friend tapping the link would hit "not found".
+    const params = new URLSearchParams();
+    if (inviteCode) params.set("code", inviteCode);
+    if (vs) params.set("side", other);
+    const qs = params.toString();
+    const url = withRef(siteUrl(`/rooms/${roomId}${qs ? `?${qs}` : ""}`));
     const call = side === "yes" ? "YES" : "NO";
     const text = vs
       ? `@${vs} — ${claim}. I'm on ${call}. You take the other side. Code ${inviteCode}`

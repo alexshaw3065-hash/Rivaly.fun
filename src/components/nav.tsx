@@ -19,6 +19,8 @@ import { useSearchOverlayOpen, openSearchOverlay } from "@/lib/search-overlay-st
 import { openArenaComposer } from "@/lib/arena/composer-store";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { ArenaComposerHost } from "./arena/arena-composer-host";
+import { useEffect } from "react";
+import { joinOnline } from "@/lib/online-presence";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
@@ -64,6 +66,14 @@ export function Nav({ children }: { children: ReactNode }) {
 
   // /admin has its own shell (src/app/admin/layout.tsx).
   const isAdmin = pathname.startsWith("/admin");
+
+  // App-wide "online now" (Arena's Rivals row): join once, as whoever's signed in.
+  const onlineMe = currentUser ? `${currentUser.id}|${currentUser.username}|${currentUser.displayName}|${currentUser.avatarUrl ?? ""}` : null;
+  useEffect(() => {
+    if (pathname.startsWith("/admin")) return;
+    const [id, username, name, avatar] = onlineMe ? onlineMe.split("|") : [];
+    joinOnline(onlineMe ? { id, username, name, avatar: avatar || null } : null);
+  }, [onlineMe, pathname]);
 
   const tabs = [
     ...baseTabs,
