@@ -16,7 +16,7 @@ Sources this plan is built on:
   `find-animation-opportunities`, `review-animations`, performance cheatsheet.
 - Expo skills (docs.expo.dev/skills): `expo-design-system` (tokens, variants,
   drift audit, the 20 "native-slop" tells), `expo-animation` (haptics/motion).
-- Live teardown today (phone viewport, computed styles) of **Polymarket**
+- Live teardown today (phone viewport, computed styles) of **Polymarket**, **Kalshi** and **FotMob** — see the comparison table in §3.4b. Earlier: **Polymarket**
   (home + the Cardinals v 49ers game page) and **Kalshi**.
 
 ---
@@ -164,6 +164,26 @@ card" tell.
 | **Selected state** (chosen side, active chip) | Tint fill + 1px ring in the side colour at 40% — not a thicker border. |
 | **Focus (keyboard only)** | `:focus-visible` 2px YES-blue ring with 2px offset; never shown on tap. |
 | **Accent bars** | The Arena left colour bar goes; the take's side is carried by the YES/NO pill and the avatar ring instead. *(Decision 6 below.)* |
+
+**How the references do it** (measured live at phone size, 2026-09-27):
+
+| | Polymarket | Kalshi | FotMob | **Rivaly target** |
+|---|---|---|---|---|
+| Card edge | No border; 1px ring at 6% black | Thin light-grey border, faint tint | **True hairline** (0.67px = 1 device pixel) in `#f0f0f0` | 1px inner ring, `--line` (hairline on high-DPI via 0.5px where supported) |
+| Card shadow | Ring + two whisper shadows at 2.5% (`0 2px 6px`, `0 2px 10px`) | Minimal | **None** | **None** (depth from surface step) |
+| Card radius | ~15px | 16px | 16px | 14px (`r-md`) |
+| Card padding | 12px sides | ~16px | 0 (rows pad themselves) | 16px |
+| Card-to-card gap | 12px | ~16px | ~16px | 12px |
+| Rows inside a card | No dividers — spacing only | Spacing | Hairlines between match rows | Inset hairlines only in list groups; spacing in cards |
+| Header / tab bar edge | **No line** on either | No line | No line | No line — edge appears only when content scrolls under |
+| Pills / chips | 32px chips, 6px radius; Yes/No 27px tint pills, 5px radius | Fully rounded (100px) pills | Rounded segmented buttons | Chips full-round 32px; YES/NO tint pills 6px (`r-xs`) |
+| Brand typeface | Inter (variable, tuned weights) | Own face (Kalshi Sans + Condensed) | Own licensed face (GT Walsheim) | Cabinet Grotesk display + Geist UI (decision 1) |
+| Type sizes in use | ~5 (11–15, 24) | ~6 (11–16, 24) | ~5 (10–14) | 9-step ramp, same discipline |
+| Loading | — | — | **Skeleton blocks** while data loads | Skeletons on every route (`loading.tsx`) |
+
+The common thread across all three: **no heavy shadows, no double edges,
+no lines between big sections, one quiet edge per card.** That's exactly
+where Rivaly drifts today (border + ring mixed, 43 inline shadows).
 
 **Shadows — four tokens, nothing else:**
 
