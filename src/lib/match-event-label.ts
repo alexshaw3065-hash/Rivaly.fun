@@ -42,8 +42,14 @@ function nflMoment(action: string, p: Record<string, unknown>, ctx: MomentContex
   const at = ctx.nfl ? nflTick(ctx.nfl, p) : null;
   const when = at ? ` · ${nflClockLabel(at.quarter, at.clock)}` : "";
   const by = team ? ` · ${team}` : "";
-  // The clock resetting into the 3rd quarter is the end of the first half.
-  if (at?.newQuarter && at.quarter === 3) return { label: "Halftime", tone: "whistle" };
+  // Halftime: the feed's own event, or the clock resetting into the 3rd quarter
+  // — whichever comes first; the other says nothing.
+  const halftime = (): MatchMoment | null => {
+    if (ctx.nfl?.halftime) return null;
+    if (ctx.nfl) ctx.nfl.halftime = true;
+    return { label: "Halftime", tone: "whistle" };
+  };
+  if (at?.newQuarter && at.quarter === 3) return halftime();
   switch (action) {
     case "kickoff":
       // A quarter's first snap only (clock at 15:00) — every kick after a score is a kickoff too.
@@ -52,7 +58,7 @@ function nflMoment(action: string, p: Record<string, unknown>, ctx: MomentContex
       if (at.quarter >= 5) return { label: "Overtime", tone: "whistle" };
       return null;
     case "halftime_finalised":
-      return { label: "Halftime", tone: "whistle" };
+      return halftime();
     case "game_finalised":
       return { label: "Final", tone: "whistle" };
     case "touchdown":

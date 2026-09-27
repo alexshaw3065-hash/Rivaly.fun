@@ -18,6 +18,9 @@ import { TeamCrest } from "../team-crest";
 // off at 67'") and #2 (anticipation: the live playhead creeping toward 90').
 
 const REPLAY_SECONDS = 18;
+// Which marker sits on top when moments fan out: goals first.
+const IMPORTANCE: Partial<Record<TimelineEvent["kind"], number>> = { goal: 6, red: 5, penalty: 4, var: 3, "var-end": 3, yellow: 2 };
+
 const TONE = {
   goal: "var(--rival-green)",
   yellow: "#f5c542",
@@ -46,7 +49,13 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${match.id}` }, (payload) => {
         const r = payload.new as { id: string; action: string; minute: number | null; payload: Record<string, unknown> | null; occurred_at: string };
         const e = eventFromRow({ id: r.id, action: r.action, minute: r.minute, payload: r.payload, occurredAt: r.occurred_at }, { ...initial, nfl: nflRef.current });
-        if (e) setEvents((list) => [...list.filter((x) => x.id !== e.id), e].sort((a, b) => a.minute - b.minute || a.at - b.at));
+        if (e)
+          setEvents((list) =>
+            // One halftime marker, however the feed reports it.
+            e.kind === "halftime" && list.some((x) => x.kind === "halftime" && x.id !== e.id)
+              ? list
+              : [...list.filter((x) => x.id !== e.id), e].sort((a, b) => a.minute - b.minute || a.at - b.at),
+          );
         if (nflRef.current) setNfl({ ...nflRef.current });
       })
       .subscribe();
@@ -168,18 +177,33 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
 
   const pct = (m: number) => `${(m / data.domain) * 100}%`;
 
-  // Lay out the moments on the one rail, nudging any that would land on top
-  // of each other just above or below it so every one stays tappable.
+  // Lay out the moments on the one rail. Moments that land within a few
+  // minutes of each other form a little fan — each nudged sideways, up or
+  // down, and tilted slightly — so every one stays visible and tappable, with
+  // the one that matters most (a goal) drawn on top.
   const placed = useMemo(() => {
-    const out: { e: TimelineEvent; dy: number }[] = [];
-    let lastX = -100;
-    let flip = 0;
+    const out: { e: TimelineEvent; dx: number; dy: number; rot: number; z: number }[] = [];
+    const clusters: TimelineEvent[][] = [];
     for (const e of events) {
       const x = (e.minute / data.domain) * 100;
-      const crowded = x - lastX < 5;
-      flip = crowded ? flip + 1 : 0;
-      out.push({ e, dy: crowded ? (flip % 2 ? -12 : 12) : 0 });
-      lastX = x;
+      const cur = clusters[clusters.length - 1];
+      // Chained: a moment joins the fan if it's close to the previous one, so a run of them fans as one.
+      if (cur && x - (cur[cur.length - 1].minute / data.domain) * 100 < 5) cur.push(e);
+      else clusters.push([e]);
+    }
+    for (const group of clusters) {
+      const mid = (group.length - 1) / 2;
+      group.forEach((e, i) => {
+        const k = i - mid;
+        const fanned = group.length > 1;
+        out.push({
+          e,
+          dx: fanned ? k * 12 : 0,
+          dy: fanned ? (i % 2 ? -12 : 12) : 0,
+          rot: fanned ? Math.max(-18, Math.min(18, k * 9)) : 0,
+          z: IMPORTANCE[e.kind] ?? 1,
+        });
+      });
     }
     return out;
   }, [events, data.domain]);
@@ -265,7 +289,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             [15, 30, 45, 60].filter((m) => m < data.domain).map((m) => <div key={m} className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-white/30" style={{ left: pct(m) }} aria-hidden />)}
 
           {/* Moments */}
-          {placed.map(({ e, dy }) => {
+          {placed.map(({ e, dx, dy, rot, z }) => {
             const reached = e.minute <= head + 0.01;
             return (
               <button
@@ -278,7 +302,8 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
                 style={{
                   left: pct(e.minute),
                   opacity: reached ? 1 : 0.3,
-                  transform: `translate(-50%, calc(-50% + ${dy}px)) scale(${reached ? 0.8 : 0.68})`,
+                  transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg) scale(${reached ? 0.8 : 0.68})`,
+                  zIndex: z,
                 }}
               >
                 <MomentMark sport={data.sport} kind={e.kind} ring={e.side === "home" ? home.primary : e.side === "away" ? away.primary : undefined} />

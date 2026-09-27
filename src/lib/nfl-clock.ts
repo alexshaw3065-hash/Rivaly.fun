@@ -8,6 +8,8 @@
 export interface NflClock {
   quarter: number;
   last: number | null;
+  /** Halftime already announced — the feed's own event and the quarter reset both mark it; say it once. */
+  halftime?: boolean;
 }
 
 export const newNflClock = (): NflClock => ({ quarter: 1, last: null });

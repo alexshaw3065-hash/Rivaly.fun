@@ -223,6 +223,11 @@ export function buildTimeline(input: {
       scores.push([minute, p._home, p._away]);
     }
   }
+  // NFL halftime can be marked twice (the feed's event and the quarter reset): keep the first.
+  if (sport === "nfl") {
+    const firstHt = events.findIndex((e) => e.kind === "halftime");
+    if (firstHt >= 0) for (let i = events.length - 1; i > firstHt; i--) if (events[i].kind === "halftime") events.splice(i, 1);
+  }
   if (sport === "nfl") {
     const lastInPlay = events.reduce((m, e) => (e.kind === "fulltime" ? m : Math.max(m, e.minute)), 0);
     for (const e of events) if (e.kind === "fulltime") e.minute = Math.max(60, lastInPlay);
