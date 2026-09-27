@@ -1,5 +1,6 @@
 import { settleDueRooms } from "@/lib/settlement/settle";
 import { recordJob } from "@/lib/admin/jobs";
+import { runSignupGrants } from "@/lib/grants/signup";
 
 // Settlement pass: rooms go live at kickoff, resolve (early, behind the
 // 10-minute safety window, or at the whistle), and winners are paid from
@@ -15,7 +16,10 @@ export async function GET(request: Request) {
   }
   try {
     const result = await recordJob("settle", () => settleDueRooms());
-    return Response.json({ ok: true, ...result });
+    // Sign-up grants ride the same minute tick — separate job, and its
+    // failure never touches settlement's result.
+    const grants = await recordJob("signup_grants", () => runSignupGrants()).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+    return Response.json({ ok: true, ...result, grants });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }

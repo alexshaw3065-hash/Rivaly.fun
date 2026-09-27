@@ -2,6 +2,8 @@
 
 import { verifyDynamicToken } from "@/lib/dynamic-jwt";
 import { cookies } from "next/headers";
+import { after } from "next/server";
+import { grantSignupBonus } from "@/lib/grants/signup";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type BridgeDynamicSessionResult =
@@ -105,6 +107,14 @@ export async function bridgeDynamicSession(dynamicJwt: string): Promise<BridgeDy
   ]);
   if (linkError || !link) {
     return { ok: false, error: "Couldn't sign you in — try again." };
+  }
+
+  // Sign-up grant (once per account — the database decides): sent after the
+  // response so signing in never waits on the chain. The settle cron retries
+  // anything this misses (wallet not provisioned yet, welcome wallet low).
+  if (dynamicUser.walletAddress || existing?.dynamic_wallet_address) {
+    const uid = userId;
+    after(() => grantSignupBonus(uid).then(() => undefined, () => undefined));
   }
 
   // Admin analytics: a sign-in (best-effort — never blocks signing in).

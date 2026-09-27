@@ -223,6 +223,36 @@ export function LimitsForm({ initialDollars, action }: { initialDollars: string;
   );
 }
 
+export function SignupGrantForm({
+  initial,
+  action,
+}: {
+  initial: { enabled: boolean; dollars: string; dailyCapDollars: string };
+  action: (v: { enabled: boolean; dollars: string; dailyCapDollars: string; reason: string }) => Promise<ActionResult>;
+}) {
+  const [enabled, setEnabled] = useState(initial.enabled);
+  const [dollars, setDollars] = useState(initial.dollars);
+  const [cap, setCap] = useState(initial.dailyCapDollars);
+  return (
+    <div className="flex flex-col gap-3 rounded-xl bg-surface p-4 ring-1 ring-border">
+      <label className="flex items-center gap-2 text-[13px] text-foreground">
+        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> Give new accounts a starting balance
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="text-[12px] text-muted">
+          Per account ($)
+          <input value={dollars} onChange={(e) => setDollars(e.target.value)} className={`${input} mt-1`} inputMode="decimal" />
+        </label>
+        <label className="text-[12px] text-muted">
+          Daily total cap ($)
+          <input value={cap} onChange={(e) => setCap(e.target.value)} className={`${input} mt-1`} inputMode="decimal" />
+        </label>
+      </div>
+      <ActionButton label="Save grant" action={(reason) => action({ enabled, dollars, dailyCapDollars: cap, reason })} />
+    </div>
+  );
+}
+
 export function AddAdminForm({ action }: { action: (username: string, role: "admin" | "moderator" | "owner") => Promise<ActionResult> }) {
   const [username, setUsername] = useState("");
   const [role, setRole] = useState<"admin" | "moderator" | "owner">("moderator");

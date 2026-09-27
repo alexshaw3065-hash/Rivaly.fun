@@ -121,6 +121,8 @@ Two Claude Code skills apply to nearly everything built in this repo — invoke 
 
 Access is either the ops password (`ADMIN_PASSWORD` + `ADMIN_SESSION_SECRET`, signed 12h cookie, rate-limited) or a named account in `admins`. Product analytics are first-party (`track()` in `src/lib/analytics/track.ts` → `/api/track` → `analytics_events`; no personal data, respects Do Not Track) with first-touch attribution on `profiles.acquisition`. **Rivaly Data** (B2B) sells only aggregated, anonymised datasets (`data_*` SQL functions, registry in `src/lib/data/datasets.ts`) — no row under `platform_settings.data_min_group` people, never names/wallets/messages — through a metered partner API (`/api/data/v1`, hashed keys). The privacy policy must disclose this before selling.
 
+**Sign-up grant:** new accounts get a starting balance (default $5 devnet USDC, admin-set in Settings) sent straight to their wallet — normal balance, no bonus bucket, no wagering strings — from a separate welcome wallet (`WELCOME_SECRET_KEY`), never escrow. Rules live in `start_signup_grant` (once per account and wallet, accounts created after `signup_grant_since`, daily cap); sending/recovery in `src/lib/grants/signup.ts`, retried by the settle cron. Devnet onboarding only: a cash welcome bonus is a sportsbook tactic, so revisit before mainnet.
+
 ## Working Conventions
 
 - Before adding any feature or screen, check it against the Rivaly Test above and against [08-v1-scope.md](docs/masterplan/08-v1-scope.md); most things wait.

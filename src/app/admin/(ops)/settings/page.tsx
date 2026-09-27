@@ -1,12 +1,21 @@
 import { atLeast, requireAdmin } from "@/lib/admin/guard";
 import { db, displayName } from "@/lib/admin/data";
 import { PageHeader, Section, Tabs, when } from "@/components/admin/ui";
-import { AddAdminForm, FeesForm, FlagSwitch, LimitsForm, SmallAction } from "@/components/admin/admin-forms";
-import { addAdmin, removeAdmin, setFeatureFlag, updateFees, updateLimits } from "@/app/admin/actions";
+import { AddAdminForm, FeesForm, FlagSwitch, LimitsForm, SignupGrantForm, SmallAction } from "@/components/admin/admin-forms";
+import { addAdmin, removeAdmin, setFeatureFlag, updateFees, updateLimits, updateSignupGrant } from "@/app/admin/actions";
+import { welcomeWalletStatus } from "@/lib/grants/signup";
 
 // The controls: fees (owner), limits, feature flags (real switches the app
 // enforces), and who can use this area. Every change asks for a reason and
 // lands in the audit log.
+
+/** Grant dollars sent (or in flight) since midnight UTC — the number the daily cap counts. */
+async function sentToday(): Promise<number | null> {
+  const midnight = new Date();
+  midnight.setUTCHours(0, 0, 0, 0);
+  const { data } = await db().from("signup_grants").select("cents").neq("status", "failed").gte("created_at", midnight.toISOString());
+  return data ? data.reduce((t, g) => t + Number(g.cents), 0) : null;
+}
 
 const TABS = [
   { id: "platform", label: "Fees & limits" },
@@ -68,7 +77,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     );
   }
 
-  const { data: s } = await admin.from("platform_settings").select("fees_enabled, rivaly_fee_bps, host_fee_bps, fee_wallet, max_stake_cents, updated_at").eq("id", true).maybeSingle();
+  const [welcome, grantsToday] = await Promise.all([welcomeWalletStatus().catch(() => null), sentToday()]);
+  const { data: s } = await admin.from("platform_settings").select("fees_enabled, rivaly_fee_bps, host_fee_bps, fee_wallet, max_stake_cents, signup_grant_enabled, signup_grant_cents, signup_grant_daily_cap_cents, updated_at").eq("id", true).maybeSingle();
   return (
     <div>
       <PageHeader title="Settings" subtitle={s?.updated_at ? `Last changed ${when(s.updated_at)}` : undefined} />
@@ -91,6 +101,25 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <LimitsForm initialDollars={s?.max_stake_cents ? String(s.max_stake_cents / 100) : ""} action={updateLimits} />
           ) : (
             <p className="rounded-xl bg-surface p-4 text-[13px] ring-1 ring-border">Largest stake: {s?.max_stake_cents ? `$${s.max_stake_cents / 100}` : "no cap"}.</p>
+          )}
+        </Section>
+        <Section title="Sign-up grant" hint="Sent once per account and wallet from the welcome wallet (WELCOME_SECRET_KEY) — never escrow.">
+          {!welcome && <p className="mb-3 text-[12px] text-danger-red">WELCOME_SECRET_KEY isn&apos;t set, so nothing is sent yet.</p>}
+          {welcome && (
+            <p className="mb-3 text-[12px] text-muted">
+              Welcome wallet {welcome.address.slice(0, 4)}…{welcome.address.slice(-4)}: ${(welcome.usdcCents / 100).toFixed(2)} USDC · {welcome.sol.toFixed(3)} SOL
+              {grantsToday !== null && ` · $${(grantsToday / 100).toFixed(2)} sent today`}
+            </p>
+          )}
+          {atLeast(me.role, "owner") ? (
+            <SignupGrantForm
+              initial={{ enabled: s?.signup_grant_enabled ?? true, dollars: String((s?.signup_grant_cents ?? 500) / 100), dailyCapDollars: String((s?.signup_grant_daily_cap_cents ?? 25000) / 100) }}
+              action={updateSignupGrant}
+            />
+          ) : (
+            <p className="rounded-xl bg-surface p-4 text-[13px] ring-1 ring-border">
+              {s?.signup_grant_enabled ? `New accounts get $${((s?.signup_grant_cents ?? 0) / 100).toFixed(2)}.` : "Off."} Only an owner can change it.
+            </p>
           )}
         </Section>
       </div>

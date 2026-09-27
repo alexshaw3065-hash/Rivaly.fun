@@ -1,6 +1,8 @@
 "use server";
 
+import { after } from "next/server";
 import { verifyDynamicToken } from "@/lib/dynamic-jwt";
+import { grantSignupBonus } from "@/lib/grants/signup";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -43,5 +45,7 @@ export async function syncWalletAddress(dynamicJwt: string | null | undefined): 
     .select("dynamic_wallet_address")
     .maybeSingle();
   if (error || !data) return { filled: false, address: null };
+  // The wallet just arrived — a new account's sign-up grant can go now.
+  after(() => grantSignupBonus(user.id).then(() => undefined, () => undefined));
   return { filled: true, address: data.dynamic_wallet_address as string };
 }

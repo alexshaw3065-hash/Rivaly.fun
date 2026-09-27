@@ -90,6 +90,10 @@ export function describeEvent(e: PlatformEvent, ctx: EventContext): EventLine {
       return { text: m.kind === "rivaly" ? `${usd(e.amount_cents)} of Rivaly fees withdrawn` : `${who} claimed ${usd(e.amount_cents)}`, tone: "money", href: userHref };
     case "CLAIM_FAILED":
       return { text: `${m.kind === "rivaly" ? "Rivaly withdrawal" : `${who}'s claim`} of ${usd(e.amount_cents)} failed — back to claimable`, tone: "bad", href: userHref };
+    case "SIGNUP_GRANT":
+      return { text: `${who} got their ${usd(e.amount_cents)} sign-up grant`, tone: "money", href: userHref };
+    case "SIGNUP_GRANT_FAILED":
+      return { text: `${who}'s ${usd(e.amount_cents)} sign-up grant failed — will retry`, tone: "bad", href: userHref };
     case "DEPOSIT":
       return { text: `${who} deposited ${usd(e.amount_cents)}`, tone: "money", href: userHref };
     case "WITHDRAWAL":
@@ -129,8 +133,8 @@ export const EVENT_GROUPS: { label: string; types: string[] }[] = [
   { label: "People", types: ["USER_SIGNUP", "USER_LOGIN", "WALLET_CONNECTED", "USER_PROFILE_UPDATED", "FOLLOW"] },
   { label: "Rooms", types: ["ROOM_CREATED", "STAKE_PLACED", "ROOM_STARTED", "ROOM_CANCELLED"] },
   { label: "Results", types: ["MATCH_STARTED", "MATCH_FINISHED", "RESULT_HELD", "RESULT_RECEIVED", "SETTLEMENT_COMPLETED"] },
-  { label: "Money", types: ["PAYOUT_SENT", "REFUND_SENT", "FEE_EARNED", "CLAIM_STARTED", "CLAIM_COMPLETED", "DEPOSIT", "WITHDRAWAL"] },
+  { label: "Money", types: ["PAYOUT_SENT", "REFUND_SENT", "FEE_EARNED", "CLAIM_STARTED", "CLAIM_COMPLETED", "SIGNUP_GRANT", "DEPOSIT", "WITHDRAWAL"] },
   { label: "Social", types: ["POST_CREATED", "REPLY_CREATED", "CHAT_MESSAGE", "REACTION", "LEAGUE_JOINED"] },
-  { label: "Problems", types: ["STAKE_FAILED", "SETTLEMENT_FAILED", "CLAIM_FAILED", "SYSTEM_ERROR", "REPORT_CREATED"] },
+  { label: "Problems", types: ["STAKE_FAILED", "SETTLEMENT_FAILED", "CLAIM_FAILED", "SIGNUP_GRANT_FAILED", "SYSTEM_ERROR", "REPORT_CREATED"] },
   { label: "Admin", types: ["MODERATION_ACTION", "ADMIN_ACTION", "ADMIN_LOGIN", "ADMIN_LOGIN_FAILED"] },
 ];

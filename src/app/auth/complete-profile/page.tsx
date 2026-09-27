@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -105,6 +106,13 @@ export default function CompleteProfilePage() {
         >
           {busy ? "Saving…" : "Continue"}
         </button>
+        <p className="mt-3 text-center text-xs text-muted">
+          By continuing you agree to Rivaly&apos;s{" "}
+          <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+            Terms and Conditions
+          </Link>
+          .
+        </p>
       </form>
     </main>
   );

@@ -233,6 +233,23 @@ export async function updateLimits(input: { maxStakeDollars: string; reason: str
   return { ok: true, message: cents === null ? "No platform stake cap." : `Stakes capped at $${(cents / 100).toFixed(2)}.` };
 }
 
+export async function updateSignupGrant(input: { enabled: boolean; dollars: string; dailyCapDollars: string; reason: string }): Promise<ActionResult> {
+  const me = await adminForAction("owner");
+  if ("error" in me) return fail(me.error);
+  if (needReason(input.reason)) return fail("Add a reason.");
+  const cents = Math.round(Number(input.dollars) * 100);
+  const cap = Math.round(Number(input.dailyCapDollars) * 100);
+  if (!Number.isInteger(cents) || cents < 0 || cents > 10000) return fail("The grant must be $0–$100.");
+  if (!Number.isInteger(cap) || cap < 0) return fail("Enter a daily cap in dollars.");
+  const { data: before } = await db().from("platform_settings").select("signup_grant_enabled, signup_grant_cents, signup_grant_daily_cap_cents").eq("id", true).maybeSingle();
+  const after = { signup_grant_enabled: input.enabled, signup_grant_cents: cents, signup_grant_daily_cap_cents: cap };
+  const { error } = await db().from("platform_settings").update({ ...after, updated_at: new Date().toISOString() }).eq("id", true);
+  if (error) return fail(error.message);
+  await recordAdminAction({ adminId: me.userId, via: me.via, action: "update_signup_grant", targetType: "setting", targetId: "signup_grant", reason: input.reason, before, after });
+  revalidatePath("/admin/settings");
+  return { ok: true, message: input.enabled ? `New accounts get $${(cents / 100).toFixed(2)}, up to $${(cap / 100).toFixed(2)} a day.` : "Sign-up grant off." };
+}
+
 // ── Money out: Rivaly's fees ─────────────────────────────────────────
 
 export async function withdrawRivalyFees(reason: string): Promise<ActionResult> {
