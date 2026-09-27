@@ -1,7 +1,15 @@
 # Match data providers — limits, timing and how we stay under them
 
-Status: plan (2026-09-27). Nothing here is wired yet; needs the keys below.
-Agreed stack from 2026-09-22/25 — see memory `project_data_providers`.
+Status (2026-09-27): **founder chose Big Balls only** — no API-Football, no football-data.org ("so confusion doesn't arise"). Built and pushed:
+`src/lib/bigballs/` (client, pure logic + tests, sync), the Render worker loop, `/api/cron/sync-bigballs`.
+
+What that changes from the plan below:
+- **No second opinion on payouts.** Instead, full time is trusted only once Big Balls has reported the same finished score for 5 minutes (`confirmFinal`), a goal taken back writes `action_discarded` (restarting any early-lock safety window), and the planned admin page is the human check.
+- **Schedules come from Big Balls too**: fixtures every 6 hours, one call per league (6 leagues ≈ 24 calls/day).
+- **No friendlies**: Big Balls doesn't offer them (its football leagues: epl, laliga, seriea, bundesliga, ligue1, ucl, mls, wc2026). EPL stays on TxLINE.
+- Leagues are in `tracked_competitions` (provider `bigballs`, ids 900001–900006) with `scores_available = false` until the Render worker is confirmed polling — flip to true to offer them in Create Room.
+
+The API-Football / football-data.org sections below are kept for reference only.
 
 ## Who does what
 
