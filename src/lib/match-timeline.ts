@@ -51,6 +51,8 @@ export interface TimelineData {
   players?: Record<number, string>;
   /** NFL: the quarter state after the last row, so live events carry on counting. */
   nfl?: NflClock;
+  /** The score through the match — [minute, home, away] from every record that carried it — for the scoreboard rewind. */
+  scores?: [number, number, number][];
 }
 
 export const HEAT_BUCKETS = 45;
@@ -77,7 +79,13 @@ export function wallToMinute(at: number, kickoffAt: number, halftimeAt: number |
   return Math.max(45, firstHalf) + (at - secondHalfStart) / 60_000;
 }
 
-function describeNfl(action: string, p: Record<string, unknown>, at: { quarter: number; clock: number } | null): { kind: TimelineKind; title: string; detail: string | null } | null {
+function describeNfl(
+  action: string,
+  p: Record<string, unknown>,
+  at: { quarter: number; clock: number; newQuarter: boolean } | null,
+): { kind: TimelineKind; title: string; detail: string | null } | null {
+  // The clock resetting into the 3rd quarter is the end of the first half.
+  if (at?.newQuarter && at.quarter === 3) return { kind: "halftime", title: "Halftime", detail: null };
   switch (action) {
     case "touchdown":
       return { kind: "goal", title: "Touchdown", detail: typeof p.Type === "string" ? `${p.Type} play` : null };
@@ -89,7 +97,6 @@ function describeNfl(action: string, p: Record<string, unknown>, at: { quarter: 
       // A quarter's first snap only (15:00 on the clock), not every kick after a score.
       if (!at || at.clock !== 900) return null;
       if (at.quarter === 1) return { kind: "kickoff", title: "Kickoff", detail: null };
-      if (at.quarter === 3) return { kind: "halftime", title: "Second half", detail: null };
       if (at.quarter >= 5) return { kind: "kickoff", title: "Overtime", detail: null };
       return null;
     case "halftime_finalised":
@@ -113,21 +120,13 @@ function describe(action: string, p: Record<string, unknown>): { kind: TimelineK
       return p.Outcome === "successful" ? { kind: "goal", title: "Field goal", detail: null } : null;
     case "safety":
       return { kind: "goal", title: "Safety", detail: null };
-    case "penalty":
-      return { kind: "penalty", title: "Penalty awarded", detail: null };
-    case "yellow_card":
-      return { kind: "yellow", title: "Yellow card", detail: null };
+    // Yellow cards, "penalty awarded" and VAR looks stay in Stats — on the
+    // timeline they crowded out the moments that decide a match.
     case "red_card":
       return { kind: "red", title: "Red card", detail: p.Type === "SecondYellow" ? "Second yellow" : typeof p.Type === "string" ? p.Type : "Straight red" };
-    case "var":
-      return { kind: "var", title: "VAR check", detail: typeof p.Type === "string" ? `Checking: ${p.Type.toLowerCase()}` : null };
-    case "var_end":
-      return { kind: "var-end", title: "VAR decision", detail: p.Outcome === "Overturned" ? "Overturned" : "Decision stands" };
-    case "kickoff": {
-      const k = kickoffKind(p);
-      if (k === "restart") return null;
-      return { kind: "kickoff", title: k === "second-half" ? "Second half" : k === "extra-time" ? "Extra time" : "Kick-off", detail: null };
-    }
+    case "kickoff":
+      // The match's first kick only — the second half and extra time start at the half-time notch.
+      return kickoffKind(p) === "start" ? { kind: "kickoff", title: "Kick-off", detail: null } : null;
     case "halftime_finalised":
       return { kind: "halftime", title: "Half-time", detail: null };
     case "game_finalised":
@@ -196,11 +195,27 @@ export function buildTimeline(input: {
 
   // NFL: wall time -> game minute, sampled at every row, to place the chat's pulse.
   const clockPoints: [number, number][] = [];
+  // The score through the match, from every record that carried a snapshot.
+  const scores: [number, number, number][] = [];
   const events: TimelineEvent[] = [];
   for (const r of input.rows) {
     const e = eventFromRow(r, ctx);
     if (e) events.push(e);
-    if (nfl && nfl.last !== null) clockPoints.push([+new Date(r.occurredAt), nflGameMinute(nfl.quarter, nfl.last)]);
+    const at = +new Date(r.occurredAt);
+    if (nfl && nfl.last !== null) clockPoints.push([at, nflGameMinute(nfl.quarter, nfl.last)]);
+    const p = r.payload ?? {};
+    if (typeof p._home === "number" && typeof p._away === "number") {
+      const minute = e
+        ? e.minute
+        : sport === "soccer"
+          ? typeof r.minute === "number" && r.minute > 0
+            ? r.minute
+            : wallToMinute(at, kickoffAt, halftimeAt)
+          : nfl && nfl.last !== null
+            ? nflGameMinute(nfl.quarter, nfl.last)
+            : 0;
+      scores.push([minute, p._home, p._away]);
+    }
   }
   if (sport === "nfl") {
     const lastInPlay = events.reduce((m, e) => (e.kind === "fulltime" ? m : Math.max(m, e.minute)), 0);
@@ -214,12 +229,20 @@ export function buildTimeline(input: {
   }
   events.sort((a, b) => a.minute - b.minute || a.at - b.at);
 
-  // Goals: fill in the team from the score change where the feed didn't say.
+  // Goals: fill in the team from the score change where the feed didn't say
+  // — and, for a soccer goal that came without a score, the score from the team.
   let lastScore: { home: number; away: number } | null = { home: 0, away: 0 };
   for (const e of events) {
     if (e.kind === "goal" && !e.side) e.side = goalSide(lastScore, e.score);
+    if (e.kind === "goal" && !e.score && sport === "soccer" && e.side && lastScore) {
+      const s: { home: number; away: number } = { home: lastScore.home + (e.side === "home" ? 1 : 0), away: lastScore.away + (e.side === "away" ? 1 : 0) };
+      scores.push([e.minute, s.home, s.away]);
+      lastScore = s;
+      continue;
+    }
     if (e.score) lastScore = e.score;
   }
+  scores.sort((a, b) => a[0] - b[0]);
 
   // The room's reaction to each moment.
   const times = [...input.messageTimes].sort((a, b) => a - b);
@@ -237,7 +260,34 @@ export function buildTimeline(input: {
     if (i >= 0 && i < HEAT_BUCKETS) heat[i]++;
   }
 
-  return { sport, domain, events, heat, kickoffAt, halftimeAt, players, nfl };
+  return { sport, domain, events, heat, kickoffAt, halftimeAt, players, nfl, scores };
+}
+
+/** The score at a point on the track, for the scoreboard rewind: the latest snapshot at or before it (0–0 before the first). */
+export function scoreAtMinute(data: Pick<TimelineData, "scores" | "events">, minute: number): { home: number; away: number } {
+  let score = { home: 0, away: 0 };
+  for (const [m, home, away] of data.scores ?? []) {
+    if (m > minute + 1e-9) break;
+    score = { home, away };
+  }
+  // Live events arriving after the page loaded carry their own snapshot.
+  for (const e of data.events) if (e.score && e.minute <= minute + 1e-9 && e.minute >= lastPoint(data.scores)) score = e.score;
+  return score;
+}
+
+function lastPoint(scores: [number, number, number][] | undefined): number {
+  return scores && scores.length ? scores[scores.length - 1][0] : 0;
+}
+
+/** The label for a point on the track: "30'" · "45+'" · "Q2 8:26". */
+export function minuteLabel(sport: "soccer" | "nfl", minute: number): string {
+  if (sport === "nfl") {
+    // Regulation is Q1–Q4 up to and including 60:00 (Q4 0:00); beyond it, overtime.
+    const quarter = minute <= 60 ? Math.min(4, Math.floor(minute / 15) + 1) : 5 + Math.floor((minute - 60) / 15);
+    const into = minute - (quarter - 1) * 15;
+    return nflClockLabel(quarter, Math.max(0, Math.round((15 - into) * 60)));
+  }
+  return `${Math.max(0, Math.floor(minute))}\u2019`;
 }
 
 /** NFL: the game minute at a wall-clock time, from the last sampled point at or before it. */

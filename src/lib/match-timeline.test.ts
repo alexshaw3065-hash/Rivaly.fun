@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildTimeline, liveMinute, scoreAt, wallToMinute, type EventRow } from "./match-timeline.ts";
+import { buildTimeline, liveMinute, minuteLabel, scoreAt, scoreAtMinute, wallToMinute, type EventRow } from "./match-timeline.ts";
 
 const KO = Date.parse("2026-09-24T19:00:00Z");
 const min = (m: number) => KO + m * 60_000;
@@ -36,11 +36,16 @@ describe("buildTimeline", () => {
   ];
   const t = buildTimeline({ sport: "soccer", kickoffAt: KO, rows, messageTimes: [min(31.2), min(31.5), min(32.9), min(40), min(88.5)] });
 
-  it("keeps the moments that matter, in match order", () => {
+  it("keeps only the moments that decide a match (no yellow cards), in match order", () => {
     assert.deepEqual(
       t.events.map((e) => e.kind),
-      ["kickoff", "yellow", "goal", "halftime", "goal", "red", "fulltime"],
+      ["kickoff", "goal", "halftime", "goal", "red", "fulltime"],
     );
+  });
+  it("rewinds the scoreboard to any minute", () => {
+    assert.deepEqual(scoreAtMinute(t, 10), { home: 0, away: 0 });
+    assert.deepEqual(scoreAtMinute(t, 31), { home: 1, away: 0 });
+    assert.deepEqual(scoreAtMinute(t, 90), { home: 1, away: 1 });
   });
   it("says who scored from the score change, and describes the goal", () => {
     const [g1, g2] = t.events.filter((e) => e.kind === "goal");
@@ -68,3 +73,29 @@ describe("buildTimeline", () => {
     assert.equal(liveMinute(t, min(500)), t.domain);
   });
 });
+
+describe("scoreboard rewind", () => {
+  it("counts a goal the feed sent without a score", () => {
+    const t = buildTimeline({
+      sport: "soccer",
+      kickoffAt: KO,
+      rows: [
+        row("k", "kickoff", null, min(0)),
+        row("g1", "goal", 12, min(12), { _side: "home" }),
+        row("g2", "goal", 40, min(40), { _side: "away" }),
+        row("g3", "goal", 60, min(75), { _side: "home" }),
+      ],
+      messageTimes: [],
+    });
+    assert.deepEqual(scoreAtMinute(t, 30), { home: 1, away: 0 });
+    assert.deepEqual(scoreAtMinute(t, 45), { home: 1, away: 1 });
+    assert.deepEqual(scoreAtMinute(t, 89), { home: 2, away: 1 });
+  });
+  it("labels the playhead in the sport's own time", () => {
+    assert.equal(minuteLabel("soccer", 30.6), "30’");
+    assert.equal(minuteLabel("nfl", 0), "Q1 15:00");
+    assert.equal(minuteLabel("nfl", 22.5), "Q2 7:30");
+    assert.equal(minuteLabel("nfl", 60), "Q4 0:00");
+  });
+});
+

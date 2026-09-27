@@ -15,6 +15,7 @@ import { Stadium } from "./stadium";
 import { useRoomRace } from "@/lib/room-energy";
 import { RoomShareButton } from "./room-share-button";
 import { hasInAppHistory } from "../app-preloader";
+import { useReplay } from "@/lib/replay-store";
 
 export const REACTION_EVENT = "rivaly:reaction";
 
@@ -69,6 +70,8 @@ export function RoomStage({
   const live = match.status === "live";
   const finished = match.status === "finished";
   const started = live || finished;
+  // Dragging the timeline back rewinds this scoreboard (replay-store.ts).
+  const replay = useReplay(match.id);
 
   // Goal detection: the page re-renders with a new score over realtime.
   const prev = useRef({ home: match.homeScore ?? 0, away: match.awayScore ?? 0 });
@@ -189,14 +192,30 @@ export function RoomStage({
           <Team name={match.homeTeam} code={home.code} />
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/55 px-3 py-0.5 font-display text-2xl font-bold tabular-nums text-white md:text-3xl">
-              <span key={`h${match.homeScore ?? "x"}`} className={goal?.side === "home" ? "score-bump" : undefined}>
-                {started ? (match.homeScore ?? 0) : "–"}
-              </span>
-              <span className="text-white/30">:</span>
-              <span key={`a${match.awayScore ?? "x"}`} className={goal?.side === "away" ? "score-bump" : undefined}>
-                {started ? (match.awayScore ?? 0) : "–"}
-              </span>
+              {replay ? (
+                <>
+                  {/* Rewound: the score at the playhead, bumping as each goal comes round again. */}
+                  <span key={`rh${replay.score.home}`} className="score-bump">{replay.score.home}</span>
+                  <span className="text-white/30">:</span>
+                  <span key={`ra${replay.score.away}`} className="score-bump">{replay.score.away}</span>
+                </>
+              ) : (
+                <>
+                  <span key={`h${match.homeScore ?? "x"}`} className={goal?.side === "home" ? "score-bump" : undefined}>
+                    {started ? (match.homeScore ?? 0) : "–"}
+                  </span>
+                  <span className="text-white/30">:</span>
+                  <span key={`a${match.awayScore ?? "x"}`} className={goal?.side === "away" ? "score-bump" : undefined}>
+                    {started ? (match.awayScore ?? 0) : "–"}
+                  </span>
+                </>
+              )}
             </div>
+            {replay && (
+              <span className="mt-1 rounded-full bg-black/60 px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white/90" aria-live="polite">
+                {replay.label}
+              </span>
+            )}
           </div>
           <Team name={match.awayTeam} code={away.code} />
         </div>

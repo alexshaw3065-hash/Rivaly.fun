@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { teamIdentity } from "@/lib/team-identity";
-import { eventFromRow, liveMinute, type TimelineData, type TimelineEvent } from "@/lib/match-timeline";
+import { eventFromRow, liveMinute, minuteLabel, scoreAtMinute, type TimelineData, type TimelineEvent } from "@/lib/match-timeline";
+import { setReplay } from "@/lib/replay-store";
 import type { Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 
@@ -185,6 +186,13 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
   const heatMax = Math.max(1, ...data.heat);
   const showMinute = started && (!following || playing);
 
+  // While you drag back or replay, the stadium's scoreboard shows the score
+  // and minute at the playhead (replay-store.ts); following live, it's live.
+  useEffect(() => {
+    setReplay(match.id, showMinute ? { score: scoreAtMinute(data, head), label: minuteLabel(data.sport, head) } : null);
+  }, [match.id, showMinute, data, head]);
+  useEffect(() => () => setReplay(match.id, null), [match.id]);
+
   return (
     <section
       ref={wrap}
@@ -284,7 +292,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
               <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#050806] bg-white" />
               {showMinute && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded bg-white px-1 font-mono text-[9px] font-bold tabular-nums text-[#0a0a0a]">
-                  {Math.floor(head)}&rsquo;
+                  {minuteLabel(data.sport, head)}
                 </span>
               )}
             </div>
