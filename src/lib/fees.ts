@@ -10,7 +10,7 @@ import { planSettlement } from "@/lib/settlement/payouts";
 // screen promises is what the settlement pays.
 
 export interface FeeSettings {
-  /** Fees are switched on (Rivaly's fee wallet is set). */
+  /** Fees are switched on (platform_settings.fees_enabled). */
   live: boolean;
   rivalyBps: number;
   hostBps: number;
@@ -26,11 +26,11 @@ export function useFeeSettings(): FeeSettings {
     cached ??= Promise.resolve(
       createClient()
         .from("platform_settings")
-        .select("fee_wallet, rivaly_fee_bps, host_fee_bps")
+        .select("fees_enabled, rivaly_fee_bps, host_fee_bps")
         .eq("id", true)
         .maybeSingle(),
     ).then(({ data }) =>
-      data?.fee_wallet ? { live: true, rivalyBps: Number(data.rivaly_fee_bps), hostBps: Number(data.host_fee_bps) } : OFF,
+      data?.fees_enabled ? { live: true, rivalyBps: Number(data.rivaly_fee_bps), hostBps: Number(data.host_fee_bps) } : OFF,
     );
     let live = true;
     void cached.then((v) => live && setS(v));
@@ -72,3 +72,5 @@ export function estimateWin(opts: {
   const myShareOfFees = Math.round(((plan.rivalyCents + plan.hostCents) * stakeCents) / (stakeCents + mine));
   return { payoutCents: me.cents, feeCents: myShareOfFees };
 }
+
+export { pendingHostRange } from "./fee-math";

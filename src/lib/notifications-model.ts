@@ -14,7 +14,8 @@ export type NotificationKind =
   | "mention"
   | "follow"
   | "league_join"
-  | "creator_room";
+  | "creator_room"
+  | "host_earned";
 
 export interface NotificationActor {
   username: string | null;
@@ -93,6 +94,8 @@ export function describe(n: AppNotification): NotificationView {
       return { who, text: "followed you", detail: null, href: n.actor?.username ? `/profile/${n.actor.username}` : "/arena", tone: "neutral" };
     case "creator_room":
       return { who, text: "opened a room", detail: claim, href: room, tone: "live" };
+    case "host_earned":
+      return { who: null, text: `You earned ${money(n.data.amount)} hosting`, detail: claim ? `${claim} · claim it in your wallet` : "Claim it in your wallet", href: "/wallet", tone: "win" };
     case "league_join":
       return { who, text: `joined ${n.data.league ?? "your league"}`, detail: null, href: "/arena?tab=leagues", tone: "neutral" };
   }

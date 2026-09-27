@@ -137,62 +137,30 @@ interface EntryRow {
   profile: { dynamic_wallet_address: string | null } | null;
 }
 
-interface FeeRow {
-  kind: "rivaly" | "host";
-  wallet: string;
-  cents: number;
-  payout_tx_signature: string | null;
-  payout_valid_until_height: number | null;
-}
-
-/** Who a room's fees go to, frozen by the first payout run (rooms.fee_plan). */
+/** A room's fee rates, frozen by the first payout run (rooms.fee_plan). */
 interface FeePlan {
   rivalyBps: number;
   hostBps: number;
-  rivalyWallet: string | null;
-  hostWallet: string | null;
-}
-
-/** One transfer owed from escrow: a winner/refund (entries) or a fee (room_fees). */
-interface PayItem {
-  table: "entries" | "room_fees";
-  /** entries.id, or room_fees.kind */
-  key: string;
-  to: string | null;
-  cents: number;
-  sig: string | null;
-  validUntil: number | null;
 }
 
 /**
- * Freeze who gets the room's fees, once. A fee only applies if there's a
- * wallet to pay it to right now — otherwise that share stays with the
- * winners. Stored before anything is paid, so every later run (a retry, a
- * racing run) pays exactly the same split.
+ * Freeze the room's fee rates, once, before anything is paid — so every
+ * later run (a retry, a racing run) splits the pool exactly the same way.
  */
 async function feePlanFor(admin: Admin, room: RoomRow): Promise<FeePlan> {
   if (room.fee_plan) return room.fee_plan;
-  let plan: FeePlan = { rivalyBps: 0, hostBps: 0, rivalyWallet: null, hostWallet: null };
-  if ((room.fee_bps ?? 0) > 0 || (room.host_fee_bps ?? 0) > 0) {
-    const [{ data: settings }, { data: host }] = await Promise.all([
-      admin.from("platform_settings").select("fee_wallet").eq("id", true).maybeSingle(),
-      admin.from("profiles").select("dynamic_wallet_address").eq("id", room.creator_id).maybeSingle(),
-    ]);
-    const rivalyWallet = (settings?.fee_wallet as string | null) ?? null;
-    const hostWallet = (host?.dynamic_wallet_address as string | null) ?? null;
-    plan = {
-      rivalyBps: rivalyWallet ? room.fee_bps : 0,
-      hostBps: hostWallet ? room.host_fee_bps : 0,
-      rivalyWallet,
-      hostWallet,
-    };
-  }
+  const plan: FeePlan = { rivalyBps: room.fee_bps ?? 0, hostBps: room.host_fee_bps ?? 0 };
   await admin.from("rooms").update({ fee_plan: plan }).eq("id", room.id).is("fee_plan", null);
   const { data: stored } = await admin.from("rooms").select("fee_plan").eq("id", room.id).maybeSingle();
   return (stored?.fee_plan as FeePlan | null) ?? plan;
 }
 
-/** Step 3: pay (or refund) every entry, and the room's fees, recording each batch's signature before it's sent. */
+/**
+ * Step 3: pay (or refund) every entry, recording each batch's signature
+ * before it's sent. The room's fees aren't sent anywhere: they're recorded
+ * in room_fees and stay in escrow — the host claims theirs from the wallet
+ * (src/app/wallet/actions.ts), Rivaly's is withdrawn from the admin page.
+ */
 async function pay(admin: Admin, room: RoomRow, outcome: "yes" | "no" | "void"): Promise<RoomSettleResult["state"]> {
   const roomId = room.id;
   const { data } = await admin
@@ -205,7 +173,7 @@ async function pay(admin: Admin, room: RoomRow, outcome: "yes" | "no" | "void"):
   const settlement = planSettlement(
     entries.map((e) => ({ id: e.id, side: e.side, amountCents: e.amount_cents })),
     outcome,
-    { rivalyBps: fees.rivalyBps, hostBps: fees.hostBps },
+    fees,
   );
   const plan = settlement.payouts;
 
@@ -213,71 +181,39 @@ async function pay(admin: Admin, room: RoomRow, outcome: "yes" | "no" | "void"):
   for (const p of plan) {
     await admin.from("entries").update({ is_winner: p.isWinner, payout_cents: p.cents }).eq("id", p.entryId);
   }
-  // Fees owed, recorded once (the plan is frozen, so a re-run writes the same rows).
+  // Fees earned, recorded once (the plan is frozen, so a re-run writes the same rows).
   const feeRows = [
-    ...(settlement.rivalyCents > 0 && fees.rivalyWallet
-      ? [{ room_id: roomId, kind: "rivaly", recipient_id: null, wallet: fees.rivalyWallet, cents: settlement.rivalyCents }]
-      : []),
-    ...(settlement.hostCents > 0 && fees.hostWallet
-      ? [{ room_id: roomId, kind: "host", recipient_id: room.creator_id, wallet: fees.hostWallet, cents: settlement.hostCents }]
-      : []),
+    ...(settlement.rivalyCents > 0 ? [{ room_id: roomId, kind: "rivaly", recipient_id: null, cents: settlement.rivalyCents }] : []),
+    ...(settlement.hostCents > 0 ? [{ room_id: roomId, kind: "host", recipient_id: room.creator_id, cents: settlement.hostCents }] : []),
   ];
   if (feeRows.length > 0) await admin.from("room_fees").upsert(feeRows, { onConflict: "room_id,kind", ignoreDuplicates: true });
-  const { data: feeData } = await admin
-    .from("room_fees")
-    .select("kind, wallet, cents, payout_tx_signature, payout_valid_until_height")
-    .eq("room_id", roomId);
-
-  const byId = new Map(entries.map((e) => [e.id, e]));
-  const items: PayItem[] = [
-    ...plan.map((p) => {
-      const e = byId.get(p.entryId);
-      return {
-        table: "entries" as const,
-        key: p.entryId,
-        to: e?.profile?.dynamic_wallet_address ?? null,
-        cents: p.cents,
-        sig: e?.payout_tx_signature ?? null,
-        validUntil: e?.payout_valid_until_height ?? null,
-      };
-    }),
-    ...((feeData ?? []) as FeeRow[]).map((f) => ({
-      table: "room_fees" as const,
-      key: f.kind,
-      to: f.wallet,
-      cents: Number(f.cents),
-      sig: f.payout_tx_signature,
-      validUntil: f.payout_valid_until_height,
-    })),
-  ];
-  const clearSig = (item: PayItem) =>
-    item.table === "entries"
-      ? admin.from("entries").update({ payout_tx_signature: null, payout_valid_until_height: null }).eq("id", item.key)
-      : admin.from("room_fees").update({ payout_tx_signature: null, payout_valid_until_height: null }).eq("room_id", roomId).eq("kind", item.key);
 
   // Anything already sent: landed, failed, or still landing?
   let inFlight = false;
-  const height = items.some((i) => i.sig) ? await currentBlockHeight() : 0;
+  const height = entries.some((e) => e.payout_tx_signature) ? await currentBlockHeight() : 0;
   const confirmedSigs = new Set<string>();
-  for (const item of items) {
-    if (!item.sig) continue;
-    const state = confirmedSigs.has(item.sig) ? "confirmed" : await transactionState(item.sig);
+  for (const e of entries) {
+    if (!e.payout_tx_signature) continue;
+    const state = confirmedSigs.has(e.payout_tx_signature) ? "confirmed" : await transactionState(e.payout_tx_signature);
     if (state === "confirmed") {
-      confirmedSigs.add(item.sig);
+      confirmedSigs.add(e.payout_tx_signature);
       continue;
     }
-    const expired = state === "failed" || (item.validUntil !== null && height > item.validUntil);
+    const expired = state === "failed" || (e.payout_valid_until_height !== null && height > e.payout_valid_until_height);
     if (expired) {
-      await clearSig(item);
-      item.sig = null;
+      await admin.from("entries").update({ payout_tx_signature: null, payout_valid_until_height: null }).eq("id", e.id);
+      e.payout_tx_signature = null;
     } else {
       inFlight = true; // may still land — never resend while it could
     }
   }
   if (inFlight) return "paying";
 
-  const owedNow = items.filter((i) => i.cents > 0 && !i.sig);
-  const unpaid = owedNow.filter((i): i is PayItem & { to: string } => Boolean(i.to));
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  const owedNow = plan
+    .filter((p) => p.cents > 0 && !byId.get(p.entryId)?.payout_tx_signature)
+    .map((p) => ({ entryId: p.entryId, to: byId.get(p.entryId)?.profile?.dynamic_wallet_address ?? null, cents: p.cents }));
+  const unpaid = owedNow.filter((p): p is { entryId: string; to: string; cents: number } => Boolean(p.to));
   // Every staker staked from a wallet, so this shouldn't happen — but if an
   // address is missing, keep the room open rather than close it with money
   // still owed.
@@ -287,11 +223,13 @@ async function pay(admin: Admin, room: RoomRow, outcome: "yes" | "no" | "void"):
   for (let i = 0; i < unpaid.length; i += PAYOUTS_PER_TX) {
     const chunk = unpaid.slice(i, i + PAYOUTS_PER_TX);
     const signed = await signPayoutBatch(chunk.map((c) => ({ to: c.to, cents: c.cents })));
-    const stamp = { payout_tx_signature: signed.signature, payout_valid_until_height: signed.lastValidBlockHeight };
-    const entryIds = chunk.filter((c) => c.table === "entries").map((c) => c.key);
-    const feeKinds = chunk.filter((c) => c.table === "room_fees").map((c) => c.key);
-    if (entryIds.length > 0) await admin.from("entries").update(stamp).in("id", entryIds);
-    if (feeKinds.length > 0) await admin.from("room_fees").update(stamp).eq("room_id", roomId).in("kind", feeKinds);
+    await admin
+      .from("entries")
+      .update({ payout_tx_signature: signed.signature, payout_valid_until_height: signed.lastValidBlockHeight })
+      .in(
+        "id",
+        chunk.map((c) => c.entryId),
+      );
     try {
       await sendSignedBatch(signed);
     } catch {
@@ -305,6 +243,38 @@ async function pay(admin: Admin, room: RoomRow, outcome: "yes" | "no" | "void"):
   const final = outcome === "void" || plan.every((p) => p.isWinner === null) ? "refunded" : "settled";
   await admin.from("rooms").update({ status: final, settled_at: new Date().toISOString() }).eq("id", roomId).in("status", ["open", "live"]);
   return final;
+}
+
+/**
+ * Host claims that didn't finish in the request that started them (a crash,
+ * a timeout, a slow chain). Decided from the chain: landed → confirmed;
+ * failed or expired → released, so the balance is claimable again; still
+ * landing → left alone.
+ */
+async function recoverClaims(admin: Admin): Promise<void> {
+  const cutoff = new Date(Date.now() - 2 * 60_000).toISOString();
+  const { data } = await admin
+    .from("fee_claims")
+    .select("id, status, payout_tx_signature, payout_valid_until_height")
+    .in("status", ["pending", "sent"])
+    .lt("created_at", cutoff)
+    .limit(50);
+  const claims = (data ?? []) as { id: string; status: string; payout_tx_signature: string | null; payout_valid_until_height: number | null }[];
+  if (claims.length === 0) return;
+  const height = claims.some((c) => c.payout_tx_signature) ? await currentBlockHeight() : 0;
+  for (const c of claims) {
+    if (!c.payout_tx_signature) {
+      // Never signed: nothing can land.
+      await admin.from("fee_claims").update({ status: "failed" }).eq("id", c.id).eq("status", c.status);
+      continue;
+    }
+    const state = await transactionState(c.payout_tx_signature);
+    if (state === "confirmed") {
+      await admin.from("fee_claims").update({ status: "confirmed", confirmed_at: new Date().toISOString() }).eq("id", c.id);
+    } else if (state === "failed" || (c.payout_valid_until_height !== null && height > c.payout_valid_until_height)) {
+      await admin.from("fee_claims").update({ status: "failed" }).eq("id", c.id).eq("status", c.status);
+    }
+  }
 }
 
 export async function settleRoom(roomId: string, now = Date.now()): Promise<RoomSettleResult> {
@@ -388,6 +358,7 @@ export async function settleDueRooms(budgetMs = 45_000): Promise<SettleRunResult
     }
   }
   const recovered = await recoverStakes(admin).catch(() => 0);
+  await recoverClaims(admin).catch((e) => console.error("[settlement] claim recovery:", e instanceof Error ? e.message : e));
 
   // Reconciliation: escrow must always hold at least what open rooms owe.
   const { data: owed } = await admin
@@ -395,10 +366,16 @@ export async function settleDueRooms(budgetMs = 45_000): Promise<SettleRunResult
     .select("amount_cents, room:rooms!inner(status)")
     .in("room.status", ["open", "live"])
     .not("stake_tx_signature", "is", null);
-  const owedCents = ((owed ?? []) as { amount_cents: number }[]).reduce((s, e) => s + e.amount_cents, 0);
+  const stakesOwed = ((owed ?? []) as { amount_cents: number }[]).reduce((s, e) => s + e.amount_cents, 0);
+  // Fees earned but not yet paid out of escrow (unclaimed, or a claim still landing).
+  const { data: feeRows } = await admin.from("room_fees").select("cents, claim:fee_claims(status)");
+  const feesOwed = ((feeRows ?? []) as unknown as { cents: number; claim: { status: string } | null }[])
+    .filter((f) => f.claim?.status !== "confirmed")
+    .reduce((s, f) => s + Number(f.cents), 0);
+  const owedCents = stakesOwed + feesOwed;
   const balanceCents = await escrowUsdcCents();
   const ok = balanceCents >= owedCents;
-  if (!ok) console.error(`[settlement] escrow short: holds ${balanceCents}c, open rooms owe ${owedCents}c`);
+  if (!ok) console.error(`[settlement] escrow short: holds ${balanceCents}c, owes ${owedCents}c (stakes ${stakesOwed}c + unclaimed fees ${feesOwed}c)`);
 
   return { rooms, recovered, escrow: { balanceCents, owedCents, ok } };
 }

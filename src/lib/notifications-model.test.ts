@@ -65,3 +65,10 @@ test("someone you follow opening a room links straight to it", () => {
   assert.equal(v.detail, "Barcelona to beat Getafe");
   assert.equal(v.href, "/rooms/r1");
 });
+
+test("host earnings point to the wallet to claim", () => {
+  const v = describe(base({ kind: "host_earned", actor: null, data: { amount: 60, prediction: "Over 2.5" } }));
+  assert.equal(v.text, "You earned $0.60 hosting");
+  assert.equal(v.detail, "Over 2.5 · claim it in your wallet");
+  assert.equal(v.href, "/wallet");
+});

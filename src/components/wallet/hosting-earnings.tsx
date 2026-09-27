@@ -1,59 +1,113 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrentUser } from "@/components/current-user-provider";
 import { formatMoney } from "@/lib/mock-data";
 import { explorerTxUrl } from "@/lib/wallet/constants";
-import { pct, useFeeSettings } from "@/lib/fees";
+import { pct, pendingHostRange, useFeeSettings } from "@/lib/fees";
+import { claimHostEarnings } from "@/app/wallet/actions";
 
-// What you've earned hosting rooms: your cut of each room's winnings, paid
-// in the same on-chain run as the winners (room_fees, readable only by you).
-// Private — nobody else sees this unless you choose to show it on your profile.
+// Hosting: what your rooms earn you, as one balance.
+//   Pending   — your open and live rooms, rising as people join (you earn a
+//               cut of whichever side loses, so it's a range until it settles)
+//   Claimable — settled rooms' fees, claimed all at once ($1 minimum) in one
+//               transfer to your wallet
+// Private: only you see this unless you choose to show earnings on your profile.
+//
+// Engagement mechanisms (rivaly-engagement-psychology): #2 anticipation — the
+// pending number climbs in real time during a match; #7 investment — a
+// balance that builds up and is yours to claim.
 
 export interface Earning {
   roomId: string;
   cents: number;
-  signature: string | null;
-  at: string;
   prediction: string;
+  at: string;
+  status: "claimable" | "claiming" | "claimed";
+  signature: string | null;
 }
+
+export interface LiveHosted {
+  roomId: string;
+  prediction: string;
+  min: number;
+  max: number;
+}
+
+const MIN_CLAIM = 100;
 
 export function HostingEarnings() {
   const me = useCurrentUser();
   const fees = useFeeSettings();
-  const [rows, setRows] = useState<Earning[] | null>(null);
+  const [data, setData] = useState<{ earned: Earning[]; live: LiveHosted[]; claimable: number; inFlight: number } | null>(null);
+  const [claim, setClaim] = useState<{ state: "idle" | "claiming" } | { state: "done"; cents: number; signature: string } | { state: "error"; message: string }>({ state: "idle" });
+
+  const load = useCallback(async () => {
+    if (!me) return;
+    const supabase = createClient();
+    const [{ data: bal }, { data: fees }, { data: rooms }] = await Promise.all([
+      supabase.rpc("my_host_balance"),
+      supabase
+        .from("room_fees")
+        .select("room_id, cents, created_at, room:rooms(prediction), claim:fee_claims(status, payout_tx_signature)")
+        .eq("kind", "host")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("rooms")
+        .select("id, prediction, yes_total_cents, no_total_cents, host_fee_bps")
+        .eq("creator_id", me.id)
+        .in("status", ["open", "live"])
+        .gt("host_fee_bps", 0),
+    ]);
+    const b = (Array.isArray(bal) ? bal[0] : bal) as { claimable_cents: number; in_flight_cents: number } | null;
+    type FeeRow = { room_id: string; cents: number; created_at: string; room: { prediction: string } | null; claim: { status: string; payout_tx_signature: string | null } | null };
+    type RoomRow = { id: string; prediction: string; yes_total_cents: number; no_total_cents: number; host_fee_bps: number };
+    setData({
+      claimable: Number(b?.claimable_cents ?? 0),
+      inFlight: Number(b?.in_flight_cents ?? 0),
+      earned: ((fees ?? []) as unknown as FeeRow[]).map((f) => ({
+        roomId: f.room_id,
+        cents: Number(f.cents),
+        prediction: f.room?.prediction ?? "A room you hosted",
+        at: f.created_at,
+        status: f.claim?.status === "confirmed" ? "claimed" : f.claim && f.claim.status !== "failed" ? "claiming" : "claimable",
+        signature: f.claim?.status === "confirmed" ? f.claim.payout_tx_signature : null,
+      })),
+      live: ((rooms ?? []) as RoomRow[]).map((r) => {
+        const range = pendingHostRange([{ yesCents: Number(r.yes_total_cents), noCents: Number(r.no_total_cents), hostFeeBps: r.host_fee_bps }]);
+        return { roomId: r.id, prediction: r.prediction, ...range };
+      }),
+    });
+  }, [me]);
 
   useEffect(() => {
     if (!me) return;
-    let live = true;
-    void createClient()
-      .from("room_fees")
-      .select("room_id, cents, payout_tx_signature, created_at, room:rooms(prediction)")
-      .eq("kind", "host")
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        if (!live) return;
-        type Row = { room_id: string; cents: number; payout_tx_signature: string | null; created_at: string; room: { prediction: string } | null };
-        setRows(
-          ((data ?? []) as unknown as Row[]).map((r) => ({
-            roomId: r.room_id,
-            cents: Number(r.cents),
-            signature: r.payout_tx_signature,
-            at: r.created_at,
-            prediction: r.room?.prediction ?? "A room you hosted",
-          })),
-        );
-      });
+    const t = window.setTimeout(() => void load(), 0);
+    // Live: your rooms' pools move as people join, and settle into claimable.
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`hosting:${me.id}:${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `creator_id=eq.${me.id}` }, () => void load())
+      .subscribe();
     return () => {
-      live = false;
+      window.clearTimeout(t);
+      void supabase.removeChannel(channel);
     };
-  }, [me]);
+  }, [me, load]);
 
-  if (!me || rows === null) return null;
-  if (rows.length === 0) {
+  async function onClaim() {
+    setClaim({ state: "claiming" });
+    const r = await claimHostEarnings();
+    if (r.ok) setClaim({ state: "done", cents: r.cents, signature: r.signature });
+    else setClaim({ state: "error", message: r.error });
+    void load();
+  }
+
+  if (!me || !data) return null;
+  if (data.earned.length === 0 && data.live.length === 0) {
     if (!fees.live || fees.hostBps <= 0) return null;
     return (
       <p className="mt-6 text-sm text-muted">
@@ -64,41 +118,109 @@ export function HostingEarnings() {
       </p>
     );
   }
-
-  return <HostingList rows={rows} />;
+  return <HostingList {...data} claim={claim} onClaim={() => void onClaim()} />;
 }
 
-/** The Hosting section itself — what the wallet shows once there are earnings. */
-export function HostingList({ rows }: { rows: Earning[] }) {
-  const total = rows.filter((r) => r.signature).reduce((s, r) => s + r.cents, 0);
+type ClaimState = { state: "idle" | "claiming" } | { state: "done"; cents: number; signature: string } | { state: "error"; message: string };
+
+/** The Hosting section itself (display only — also used by previews). */
+export function HostingList({
+  earned,
+  live,
+  claimable,
+  inFlight,
+  claim,
+  onClaim,
+}: {
+  earned: Earning[];
+  live: LiveHosted[];
+  claimable: number;
+  inFlight: number;
+  claim: ClaimState;
+  onClaim: () => void;
+}) {
+  const pending = live.reduce((s, r) => ({ min: s.min + r.min, max: s.max + r.max }), { min: 0, max: 0 });
+  const canClaim = claimable >= MIN_CLAIM && claim.state !== "claiming";
+  const range = (min: number, max: number) => (min === max ? formatMoney(max) : `${formatMoney(min)}–${formatMoney(max)}`);
+
   return (
     <div className="mt-10">
       <div className="flex items-baseline justify-between">
         <p className="font-display text-xl font-semibold text-foreground">Hosting</p>
-        <p className="text-sm text-muted">
-          <span className="font-mono font-semibold text-rival-green">{formatMoney(total)}</span> earned · only you see this
-        </p>
+        <p className="text-xs text-muted">only you see this</p>
       </div>
-      <div className="mt-4 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
-        {rows.map((r) => (
-          <div key={r.roomId} className="flex items-center justify-between gap-3 px-4 py-3.5">
-            <Link href={`/rooms/${r.roomId}`} className="min-w-0">
-              <p className="truncate text-sm text-foreground">{r.prediction}</p>
-              <p className="text-xs text-muted">{new Date(r.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
-            </Link>
-            <div className="shrink-0 text-right">
-              <p className="font-mono text-sm font-semibold text-rival-green">+{formatMoney(r.cents)}</p>
-              {r.signature ? (
-                <a href={explorerTxUrl(r.signature)} target="_blank" rel="noopener noreferrer" className="hover-link text-xs text-muted underline underline-offset-2">
-                  Verify ↗
-                </a>
-              ) : (
-                <p className="text-xs text-muted">Paying…</p>
-              )}
+
+      <div className="mt-4 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+        {live.length > 0 && (
+          <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+            <div>
+              <p className="text-xs text-muted">Pending · {live.length} live room{live.length === 1 ? "" : "s"}</p>
+              <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-foreground">{range(pending.min, pending.max)}</p>
             </div>
+            <p className="max-w-[45%] text-right text-xs text-muted">Grows as people join. Lands in Claimable when each room settles.</p>
           </div>
-        ))}
+        )}
+        <div className="flex items-center justify-between gap-4 px-4 py-4">
+          <div>
+            <p className="text-xs text-muted">Claimable</p>
+            <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-rival-green">{formatMoney(claimable)}</p>
+            {inFlight > 0 && <p className="mt-0.5 text-xs text-muted">{formatMoney(inFlight)} on its way to your wallet</p>}
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={onClaim}
+              disabled={!canClaim}
+              className="h-11 rounded-full px-6 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
+              style={{ background: "var(--rival-green)" }}
+            >
+              {claim.state === "claiming" ? "Claiming…" : "Claim"}
+            </button>
+            {claimable < MIN_CLAIM && claim.state !== "done" && <p className="text-[11px] text-muted">$1 minimum</p>}
+          </div>
+        </div>
+        {claim.state === "done" && (
+          <p className="border-t border-border px-4 py-3 text-sm text-foreground">
+            {formatMoney(claim.cents)} sent to your wallet.{" "}
+            <a href={explorerTxUrl(claim.signature)} target="_blank" rel="noopener noreferrer" className="text-muted underline underline-offset-2">
+              Verify on Solana ↗
+            </a>
+          </p>
+        )}
+        {claim.state === "error" && <p className="border-t border-border px-4 py-3 text-sm text-rival-red">{claim.message}</p>}
       </div>
+
+      {(live.length > 0 || earned.length > 0) && (
+        <div className="mt-3 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+          {live.map((r) => (
+            <Link key={`live-${r.roomId}`} href={`/rooms/${r.roomId}`} className="flex items-center justify-between gap-3 px-4 py-3.5">
+              <div className="min-w-0">
+                <p className="truncate text-sm text-foreground">{r.prediction}</p>
+                <p className="text-xs text-muted">Live · depends on who wins</p>
+              </div>
+              <p className="shrink-0 font-mono text-sm text-foreground">{range(r.min, r.max)}</p>
+            </Link>
+          ))}
+          {earned.map((r) => (
+            <div key={r.roomId} className="flex items-center justify-between gap-3 px-4 py-3.5">
+              <Link href={`/rooms/${r.roomId}`} className="min-w-0">
+                <p className="truncate text-sm text-foreground">{r.prediction}</p>
+                <p className="text-xs text-muted">{new Date(r.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+              </Link>
+              <div className="shrink-0 text-right">
+                <p className="font-mono text-sm font-semibold text-rival-green">+{formatMoney(r.cents)}</p>
+                {r.status === "claimed" && r.signature ? (
+                  <a href={explorerTxUrl(r.signature)} target="_blank" rel="noopener noreferrer" className="hover-link text-xs text-muted underline underline-offset-2">
+                    Claimed ↗
+                  </a>
+                ) : (
+                  <p className="text-xs text-muted">{r.status === "claiming" ? "Claiming…" : "Claimable"}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

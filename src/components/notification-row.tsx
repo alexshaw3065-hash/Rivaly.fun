@@ -50,7 +50,7 @@ function KindMark({ kind, color }: { kind: AppNotification["kind"]; color: strin
         <path d="M10 5.6 13.4 8l-1.3 4H7.9L6.6 8 10 5.6Z" fill={color} />
       </svg>
     );
-  if (kind === "won")
+  if (kind === "won" || kind === "host_earned")
     return (
       <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden>
         <path d="m4.5 10.5 3.5 3.5 7.5-8" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
