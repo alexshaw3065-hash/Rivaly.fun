@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
 
-// Report-and-remove (supabase/migrations/20260926300000_report_and_remove.sql):
-// reported content disappears for the reporter at once, and for everyone
-// after three different people report it.
+// Report-and-remove (supabase/migrations/20260926300000_report_and_remove.sql,
+// 20260927090000_reports_go_to_review.sql): reported content disappears for
+// the reporter at once and goes to the review queue (content_reports). Only
+// a reviewer takes it down for everyone — reports never do on their own.
 
 export type ReportReason = "abuse" | "hate" | "explicit" | "spam" | "other";
 

@@ -19,7 +19,7 @@ export function ReportReasons({ onPick }: { onPick: (reason: ReportReason) => vo
           </button>
         ))}
       </div>
-      <p className="mt-3 px-1 text-[13px] text-muted">It disappears for you straight away. If three people report it, it comes down for everyone.</p>
+      <p className="mt-3 px-1 text-[13px] text-muted">It disappears for you straight away, and the Rivaly team reviews it.</p>
     </div>
   );
 }
