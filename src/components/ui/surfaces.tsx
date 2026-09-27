@@ -100,7 +100,7 @@ export function Badge({ tone = "neutral", children, className = "" }: { tone?: "
   const color = { neutral: "text-secondary", live: "text-live", yes: "text-yes-ink", no: "text-no-ink", money: "text-money-ink" }[tone];
   return (
     <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-micro uppercase ${color} ${className}`}>
-      {tone === "live" && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-live" />}
+      {tone === "live" && <span aria-hidden className="live-dot" />}
       {children}
     </span>
   );
