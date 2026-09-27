@@ -16,6 +16,7 @@ import { useCurrentUser } from "./current-user-provider";
 import { useIsLightTheme } from "./theme-toggle";
 import { RivalyWordmark } from "./rivaly-wordmark";
 import { getAuthModalNext, useAuthModalState } from "@/lib/auth-modal-store";
+import { clearSignOutFlag, finishDynamicLogout, signOutPending } from "@/lib/sign-out-state";
 
 // Dynamic's own OAuth round-trip (opening the provider's popup, the
 // redirect back) happens before onAuthSuccess ever fires, so by the time
@@ -74,17 +75,23 @@ const walletConnectors = [SolanaConnectorsWithoutLedgerStep];
 // that one, the Rivaly account switches with it — same page, no prompt.
 function DynamicAuthWatcher({ onAuthSuccess }: { onAuthSuccess: (opts?: { stayHere?: boolean }) => void }) {
   const isLoggedIn = useIsLoggedIn();
-  const { user: dynamicUser } = useDynamicContext();
+  const { user: dynamicUser, handleLogOut } = useDynamicContext();
   const currentUser = useCurrentUser();
   const attempted = useRef(false);
   const switchedFor = useRef<string | null>(null);
 
   useEffect(() => {
+    // Mid sign-out (or one Dynamic never confirmed, even across a reload):
+    // this same shape means "finish logging out", not "sign back in".
+    if (isLoggedIn && !currentUser && signOutPending()) {
+      void finishDynamicLogout(handleLogOut);
+      return;
+    }
     if (isLoggedIn && !currentUser && !attempted.current) {
       attempted.current = true;
       onAuthSuccess();
     }
-  }, [isLoggedIn, currentUser, onAuthSuccess]);
+  }, [isLoggedIn, currentUser, onAuthSuccess, handleLogOut]);
 
   useEffect(() => {
     const address = currentUser?.dynamicWalletAddress;
@@ -177,6 +184,7 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
 
   const handleAuthSuccess = useCallback(async (opts?: { stayHere?: boolean }) => {
     if (inFlightRef.current) return;
+    if (signOutPending()) return; // never re-bridge a session the user just signed out of
     const dynamicJwt = getAuthToken();
     if (!dynamicJwt) return;
 
@@ -255,7 +263,13 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
     () => ({
       environmentId: environmentId ?? "",
       walletConnectors,
-      events: { onAuthSuccess: () => void handleAuthSuccess() },
+      events: {
+        // A genuine sign-in from the modal — it overrides any unfinished sign-out.
+        onAuthSuccess: () => {
+          clearSignOutFlag();
+          void handleAuthSuccess();
+        },
+      },
     }),
     [handleAuthSuccess],
   );

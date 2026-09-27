@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
+import { getHiddenUserId, releaseHiddenUser, subscribeHiddenUser } from "@/lib/sign-out-state";
 import { createClient } from "@/lib/supabase/client";
 import { setReferrer } from "@/lib/referral";
 import type { Profile } from "@/lib/types";
@@ -18,10 +19,18 @@ export function CurrentUserProvider({
   profile: Profile | null;
   children: React.ReactNode;
 }) {
+  // Instant sign-out (use-sign-out.ts): the signed-out user is hidden right
+  // away, until the refreshed server profile (null) arrives.
+  const hidden = useSyncExternalStore(subscribeHiddenUser, getHiddenUserId, () => null);
+  useEffect(() => {
+    if (!profile) releaseHiddenUser();
+  }, [profile]);
+  const visible = profile && profile.id === hidden ? null : profile;
+
   // Counts today as an active day for this person, once a day (DAU/WAU/MAU
   // and retention in /admin → Analytics). Best-effort; storage may be off.
-  const userId = profile?.id ?? null;
-  const username = profile?.username ?? null;
+  const userId = visible?.id ?? null;
+  const username = visible?.username ?? null;
   useEffect(() => setReferrer(username), [username]);
   useEffect(() => {
     if (!userId) return;
@@ -34,7 +43,7 @@ export function CurrentUserProvider({
     void createClient().rpc("touch_active").then(() => undefined, () => undefined);
   }, [userId]);
 
-  return <CurrentUserContext.Provider value={profile}>{children}</CurrentUserContext.Provider>;
+  return <CurrentUserContext.Provider value={visible}>{children}</CurrentUserContext.Provider>;
 }
 
 export function useCurrentUser(): Profile | null {
