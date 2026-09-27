@@ -16,6 +16,7 @@ import { useRoomRace } from "@/lib/room-energy";
 import { RoomShareButton } from "./room-share-button";
 import { hasInAppHistory } from "../app-preloader";
 import { useReplay } from "@/lib/replay-store";
+import { haptic } from "@/lib/haptics";
 
 export const REACTION_EVENT = "rivaly:reaction";
 
@@ -84,7 +85,7 @@ export function RoomStage({
     if (!side) return;
     // Deferred a tick: never set state synchronously inside the effect body.
     const start = window.setTimeout(() => setGoal({ side, key: Date.now() }), 0);
-    navigator.vibrate?.([40, 60, 40]);
+    haptic("medium");
     const end = window.setTimeout(() => setGoal(null), 2600);
     return () => {
       window.clearTimeout(start);
@@ -126,7 +127,7 @@ export function RoomStage({
     seen.current = count;
     const latest = race.takeovers[count - 1];
     const show = window.setTimeout(() => setTakeover({ side: latest.side, key: latest.at }), 0);
-    navigator.vibrate?.([30, 50, 30, 50, 60]);
+    haptic("medium");
     const hide = window.setTimeout(() => setTakeover(null), 2800);
     return () => {
       window.clearTimeout(show);

@@ -11,6 +11,7 @@ import { decodeMoment, type EventTone } from "@/lib/match-event-label";
 import { formatMoneyCompact } from "@/lib/mock-data";
 import type { EntrySide } from "@/lib/types";
 import { RivalCharacter } from "./rival-character";
+import { haptic } from "@/lib/haptics";
 
 // The room's chat as a full thread, the way Discord lays one out: a person's
 // first message in a run carries their face, name (in the colour of the side
@@ -427,7 +428,7 @@ function MessageRow({
   const startHold = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse") return;
     hold.current = window.setTimeout(() => {
-      navigator.vibrate?.(10);
+      haptic("tick");
       onOpenSheet();
     }, HOLD_MS);
   };

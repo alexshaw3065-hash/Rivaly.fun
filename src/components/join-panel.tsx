@@ -15,6 +15,7 @@ import { useStake } from "@/lib/escrow/use-stake";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import { CallItPrompt } from "./arena/call-it-prompt";
 import { estimateWin, pct } from "@/lib/fees";
+import { haptic } from "@/lib/haptics";
 
 const SIDE = {
   yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
@@ -114,7 +115,7 @@ export function JoinPanel({
       const res = await stake({ kind: "join", roomId, side, amountCents: stakeCents });
       track(res.ok ? "stake_submitted" : "stake_failed", res.ok ? { amount: stakeCents, side } : { kind: "join", code: res.code ?? "error" });
       if (res.ok) {
-        navigator.vibrate?.(12);
+        haptic("tick");
         window.setTimeout(() => {
           setEntered({ side, cents: stakeCents, signature: res.signature });
           stakeable.refresh();

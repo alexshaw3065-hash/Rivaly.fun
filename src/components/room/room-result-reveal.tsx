@@ -9,6 +9,7 @@ import type { MyEntry } from "@/lib/supabase/entries";
 import { useCountUp } from "@/components/room-result";
 import { pct } from "@/lib/fees";
 import { siteUrl } from "@/lib/site";
+import { haptic } from "@/lib/haptics";
 
 // The first time you open a room after it's decided, the result comes to
 // you instead of waiting below the stadium: what you won, the close call
@@ -89,6 +90,12 @@ export function RoomResultReveal({
   // decided room, both sides backed, and it happened recently.
   const missed = !entry && !refunded && outcome !== "void" && winningCents > 0 && winningCents < pool && recent;
   const show = !seen && (entry !== null || missed);
+
+  // The reveal's one physical beat: a satisfying pulse for a win, a gentle one for a loss.
+  useEffect(() => {
+    if (!show || !entry || refunded || outcome === "void") return;
+    haptic(won ? "success" : "soft");
+  }, [show, entry, refunded, outcome, won]);
 
   useEffect(() => {
     if (!show) return;

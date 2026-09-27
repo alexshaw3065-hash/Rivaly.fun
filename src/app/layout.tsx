@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Nav } from "@/components/nav";
@@ -44,6 +44,20 @@ const cabinetGrotesk = localFont({
   display: "swap",
 });
 
+// Phone-native viewport (Emil Kowalski, mobile-native): paint edge to edge
+// under the notch / home bar (every fixed bar pads itself with
+// env(safe-area-inset-*)), let the Android keyboard resize the layout like
+// iOS does, and colour the status bar to match the app. Zoom stays enabled
+// (inputs are 16px, so the page never auto-zooms). The theme-color starts
+// dark (the default theme); the init script and ThemeToggle switch it.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: "#0a0a0a",
+};
+
 export const metadata: Metadata = {
   // Absolute URLs in link previews (og:image etc.) always point at rivaly.fun.
   metadataBase: new URL(SITE_URL),
@@ -56,7 +70,7 @@ export const metadata: Metadata = {
 // never removes it, so a missing/blocked script still renders dark, matching
 // the fallback baked into :root. Runs before paint to avoid a flash of the
 // wrong theme; kept inline rather than in an external file so it blocks.
-const themeInitScript = `(function(){try{if(localStorage.getItem('rivaly-theme')==='light'){document.documentElement.classList.add('light');}if(localStorage.getItem('rivaly-sidebar-collapsed')==='true'){document.documentElement.classList.add('sidebar-collapsed');}}catch(e){}})();`;
+const themeInitScript = `(function(){try{if(localStorage.getItem('rivaly-theme')==='light'){document.documentElement.classList.add('light');var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#ffffff');}if(localStorage.getItem('rivaly-sidebar-collapsed')==='true'){document.documentElement.classList.add('sidebar-collapsed');}}catch(e){}})();`;
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // The crest map is cached server-side (10 min), so it adds no query to a normal page load.

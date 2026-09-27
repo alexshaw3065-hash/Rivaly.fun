@@ -198,7 +198,7 @@ export function RoomTabs({
       {/* Sticks 44px down; once stuck, the mini scoreboard fills that strip
           above it. The bar's own height never changes, so nothing jumps
           as you scroll past. */}
-      <div ref={barRef} className="sticky top-[44px] z-30 pb-2 pt-2 md:top-[calc(var(--header-height)+44px)]">
+      <div ref={barRef} className="sticky top-[calc(44px+env(safe-area-inset-top))] z-30 pb-2 pt-2 md:top-[calc(var(--header-height)+44px)]">
         {stuck && (
           <div className="absolute inset-x-0 bottom-full flex h-11 items-end justify-center pb-0.5">
             <MiniScoreboard match={match} minute={minute} />
@@ -264,7 +264,7 @@ export function RoomTabs({
         <div
           ref={chatRef}
           hidden={tab !== "chat"}
-          className="h-[calc(100dvh-156px-env(safe-area-inset-bottom))] min-h-[420px] scroll-mt-[108px] md:h-[calc(100dvh-var(--header-height)-132px)] md:scroll-mt-[calc(var(--header-height)+108px)]"
+          className="h-[calc(100dvh-156px-env(safe-area-inset-bottom)-env(safe-area-inset-top))] min-h-[420px] scroll-mt-[calc(108px+env(safe-area-inset-top))] md:h-[calc(100dvh-var(--header-height)-132px)] md:scroll-mt-[calc(var(--header-height)+108px)]"
         >
           {chat}
         </div>

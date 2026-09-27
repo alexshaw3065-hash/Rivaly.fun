@@ -27,6 +27,7 @@ import { useFeeSettings } from "@/lib/fees";
 import { HostEarnLine } from "./create-room/host-earn-line";
 import { LeagueMark } from "@/components/league-mark";
 import { siteUrl } from "@/lib/site";
+import { haptic } from "@/lib/haptics";
 
 // How far ahead Create Room lists matches. Three weeks, so an international
 // break never leaves the Premier League off the list (a week wasn't enough:
@@ -225,7 +226,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
         clearDraft();
         stakeable.refresh();
         router.prefetch(`/rooms/${res.roomId}`);
-        navigator.vibrate?.(12);
+        haptic("tick");
         // Let the button sit on "Locked" for a beat — the confirmation that
         // the money actually moved — before the card takes over.
         window.setTimeout(() => {
@@ -451,7 +452,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
 
 function StickyBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-16 z-[5] -mx-4 mt-6 border-t border-border bg-background px-4 py-3 md:bottom-0 md:-mx-6 md:px-6">
+    <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[5] -mx-4 mt-6 border-t border-border bg-background px-4 py-3 md:bottom-0 md:-mx-6 md:px-6">
       <div className="flex items-center gap-3">{children}</div>
     </div>
   );

@@ -41,6 +41,8 @@ export function ThemeToggle() {
     // pre-toggle value.
     root.classList.add("theme-switching");
     root.classList.toggle("light", next);
+    // The phone's status bar follows the theme.
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", next ? "#ffffff" : "#0a0a0a");
     void root.offsetHeight; // force reflow before re-enabling transitions
     requestAnimationFrame(() => root.classList.remove("theme-switching"));
 

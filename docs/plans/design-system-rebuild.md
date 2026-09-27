@@ -1,4 +1,10 @@
-# Rivaly — Visual system & polish rebuild (plan, awaiting approval)
+# Rivaly — Visual system & polish rebuild
+
+**Status:** approved 2026-09-27 with the recommended defaults (Cabinet Grotesk +
+Geist, full-round chips, CSS-only motion, light mode kept). **Phase 0 done**
+(tokens, mobile-native baseline, haptics helper, `npm run lint:design` —
+baseline 833 drift items: font-size 428, raw-hex 120, shadow 71, radius 15,
+off-grid 162, mono-label 37). Next: Phase 1, the component kit.
 
 Written 2026-09-27. Scope: polish the **existing** app — styling, type, colour,
 spacing, components, interactions, motion, responsiveness — so it feels like

@@ -110,7 +110,10 @@ export function Nav({ children }: { children: ReactNode }) {
       {/* Mobile top bar — md:hidden, unaffected by the search overlay (it's
           a fixed sheet layered on top, not a route change — see
           mobile-search-overlay.tsx). */}
-      <nav className="mobile-topbar sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
+      <nav
+        className="mobile-topbar sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="flex items-center gap-3 py-4 pl-6 pr-4">
           <Link href="/" className="shrink-0">
             <RivalyWordmark />
@@ -153,7 +156,7 @@ export function Nav({ children }: { children: ReactNode }) {
           type="button"
           onClick={() => (currentUser ? openArenaComposer() : openAuthModal({ next: "/arena" }))}
           aria-label="Post a take"
-          className="arena-fab fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
+          className="arena-fab fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
           style={{ background: "var(--rival-blue)", boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)" }}
         >
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
@@ -166,7 +169,7 @@ export function Nav({ children }: { children: ReactNode }) {
           href="/rooms/create"
           prefetch
           aria-label="Create room"
-          className="fixed bottom-20 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
           style={{
             background: "var(--rival-blue)",
             boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)",

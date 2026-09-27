@@ -363,7 +363,7 @@ export function ArenaFeed() {
       {notice && <p className={`mt-3 text-center text-[13px] font-semibold ${notice.tone === "error" ? "text-rival-red" : "text-muted"}`}>{notice.text}</p>}
 
       {fresh.length > 0 && (
-        <div className="sticky top-[72px] z-10 mt-3 flex justify-center md:top-[88px]">
+        <div className="sticky top-[calc(72px+env(safe-area-inset-top))] z-10 mt-3 flex justify-center md:top-[88px]">
           <button
             type="button"
             onClick={showFresh}

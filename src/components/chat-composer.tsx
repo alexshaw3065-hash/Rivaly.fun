@@ -28,6 +28,7 @@ import { prepareChatPhoto, uploadChatPhoto } from "@/lib/cloudinary";
 import { REACTION_EVENT } from "./room/room-stage";
 import { PressureTicker } from "./room/pressure-ticker";
 import { announceChatActivity } from "./room/room-tabs-event";
+import { haptic } from "@/lib/haptics";
 
 // The crowd. A full chat thread (Discord-style, see chat-thread.tsx) with
 // the match's own moments (kick-off, goals, cards, VAR, whistles) landing
@@ -572,7 +573,7 @@ export function ChatComposer({
     const r = { messageId, userId: currentUser.id, emoji };
     const on = !(reactions[messageId]?.[emoji] ?? []).includes(currentUser.id);
     applyReaction(r, on);
-    navigator.vibrate?.(6);
+    haptic("tick");
     void channelRef.current?.send({ type: "broadcast", event: "react", payload: { ...r, on } satisfies LiveReaction });
     const table = createClient().from("message_reactions");
     const done = on
@@ -597,7 +598,7 @@ export function ChatComposer({
     const t = clock();
     if (t - lastQuick.current < QUICK_COOLDOWN_MS) return;
     lastQuick.current = t;
-    navigator.vibrate?.(8);
+    haptic("tick");
     post(body, false);
   }
 
