@@ -1,5 +1,8 @@
+"use client";
+
 import { useId } from "react";
 import { teamIdentity } from "@/lib/team-identity";
+import { CrestImage, useCrestUrl } from "./crest-provider";
 
 // A generated crest: shield silhouette in the team's primary kit colour,
 // one diagonal band of its secondary, and its short code. The same object
@@ -7,7 +10,22 @@ import { teamIdentity } from "@/lib/team-identity";
 // recognisable by colour before its name is read. A hairline in the ink
 // colour keeps very dark kits (Raiders, Bears) from dissolving into the
 // dark theme's background.
+//
+// With a real badge (src/lib/crests/), the badge shows in the same box and
+// this monogram becomes its instant placeholder and fallback — so the
+// layout never shifts and a slow or missing image never leaves a gap.
 export function TeamCrest({ name, size = 32, className = "" }: { name: string; size?: number; className?: string }) {
+  const src = useCrestUrl("team", name);
+  const height = (size * 36) / 32;
+  if (!src) return <Monogram name={name} size={size} className={className} />;
+  return (
+    <CrestImage src={src} alt={`${name} crest`} width={size} height={height} className={className}>
+      <Monogram name={name} size={size} />
+    </CrestImage>
+  );
+}
+
+function Monogram({ name, size, className = "" }: { name: string; size: number; className?: string }) {
   const id = useId();
   const t = teamIdentity(name);
   const long = t.code.length > 3;

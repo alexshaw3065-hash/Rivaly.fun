@@ -1,0 +1,24 @@
+import { revalidateTag } from "next/cache";
+import { syncCrests } from "@/lib/crests/sync";
+import { recordJob } from "@/lib/admin/jobs";
+
+// Real team/league badges for any team that doesn't have one yet (new
+// fixtures, retries of last week's misses). The Render worker pings this
+// hourly; each pass works for up to ~50s and the next one continues.
+export const maxDuration = 60;
+
+export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return Response.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
+  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+  try {
+    const result = await recordJob("sync_crests", () => syncCrests());
+    // New badges show on the next page load, not after the map's 10-minute cache.
+    if (result.added > 0) revalidateTag("crests", "max");
+    return Response.json({ ok: true, ...result });
+  } catch (e) {
+    return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+  }
+}

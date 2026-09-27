@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin/guard";
-import { rpc } from "@/lib/admin/data";
+import { db, rpc } from "@/lib/admin/data";
 import { workerHealth } from "@/lib/admin/health";
 import { DataTable, Kpi, KpiGrid, PageHeader, Section, StatePill, num, usd, when, type Column } from "@/components/admin/ui";
 
@@ -36,6 +36,17 @@ const VIEWS = [
   ["problems", "Data problems"],
 ] as const;
 
+type Miss = { kind: string; name: string; reason: string | null; attempts: number; tried_at: string };
+
+async function crestHealth(): Promise<{ teams: number; leagues: number; misses: Miss[] }> {
+  const [teams, leagues, misses] = await Promise.all([
+    db().from("crests").select("*", { count: "exact", head: true }).eq("kind", "team"),
+    db().from("crests").select("*", { count: "exact", head: true }).eq("kind", "league"),
+    db().from("crest_misses").select("kind, name, reason, attempts, tried_at").order("tried_at", { ascending: false }).limit(100),
+  ]);
+  return { teams: teams.count ?? 0, leagues: leagues.count ?? 0, misses: (misses.data ?? []) as Miss[] };
+}
+
 function verification(r: Row): { state: string; label: string } {
   if (r.status === "finished") return r.final_confirmed ? { state: "ok", label: "result confirmed" } : r.home_score == null ? { state: "failed", label: "no score" } : { state: "pending", label: "finished, not confirmed" };
   if (r.status === "live") return Date.now() - +new Date(r.updated_at) > 15 * 60_000 ? { state: "failed", label: "silent 15m+" } : { state: "ok", label: "updating" };
@@ -47,7 +58,7 @@ function verification(r: Row): { state: string; label: string } {
 export default async function MatchesPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   await requireAdmin();
   const { view = "with_rooms" } = await searchParams;
-  const [rows, worker] = await Promise.all([rpc<Row[]>("admin_matches", { p_view: view, p_limit: 200 }), workerHealth()]);
+  const [rows, worker, crestStats] = await Promise.all([rpc<Row[]>("admin_matches", { p_view: view, p_limit: 200 }), workerHealth(), crestHealth()]);
   const bb = worker?.bigballs;
 
   const columns: Column<Row>[] = [
@@ -76,6 +87,26 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
           <Kpi label="Last fixtures pull" value={<span className="text-[15px]">{when(bb?.lastFixturesAt)}</span>} sub={bb?.lastFixtures ? `${bb.lastFixtures.leagues} leagues · ${num(bb.lastFixtures.fetched)} matches` : undefined} />
           <Kpi label="Goals from last poll" value={num(bb?.lastPoll?.goals)} sub={bb?.lastPoll ? `${bb.lastPoll.polled} matches · ${bb.lastPoll.confirmedFinals} finals confirmed` : "no live rooms"} />
         </KpiGrid>
+      </Section>
+      <Section title="Badges" hint="Real team and league badges from TheSportsDB, synced hourly. A name with no certain match keeps its monogram — fix the feed name or leave it.">
+        <p className="mb-3 text-[13px] text-muted">
+          {num(crestStats.teams)} team badges · {num(crestStats.leagues)} league badges · {num(crestStats.misses.length)} without a match
+        </p>
+        {crestStats.misses.length > 0 && (
+          <DataTable
+            columns={
+              [
+                { label: "Name", cell: (m: Miss) => m.name },
+                { label: "Kind", cell: (m: Miss) => <span className="text-muted">{m.kind}</span> },
+                { label: "Why", cell: (m: Miss) => <span className="text-muted">{m.reason}</span> },
+                { label: "Tries", cell: (m: Miss) => num(m.attempts), align: "right" },
+                { label: "Last tried", cell: (m: Miss) => <span className="text-muted">{when(m.tried_at)}</span> },
+              ] as Column<Miss>[]
+            }
+            rows={crestStats.misses}
+            empty=""
+          />
+        )}
       </Section>
       <div className="no-scrollbar mb-4 flex gap-1 overflow-x-auto">
         {VIEWS.map(([id, label]) => (

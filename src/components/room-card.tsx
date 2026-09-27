@@ -13,6 +13,7 @@ import { ArenaQuoteButton } from "./arena/arena-room-buttons";
 import { RivalsInRoom } from "./rivals-in-room";
 import { TeamCrest } from "./team-crest";
 import { abbreviateClaim, teamIdentity } from "@/lib/team-identity";
+import { LeagueMark } from "./league-mark";
 
 // One-tap into a side, right from the feed — the Fast design principle's
 // "one-tap challenges." Now that entries move real balance, the pill can't
@@ -78,6 +79,7 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
             <TeamCrest name={match.homeTeam} size={18} />
             <TeamCrest name={match.awayTeam} size={18} />
           </span>
+          <LeagueMark name={match.competition} size={14} />
           <span className="truncate font-mono text-[11px] uppercase tracking-wider text-muted">{match.competition}</span>
         </span>
         {match.status === "live" ? (

@@ -25,6 +25,7 @@ import { StakeButton } from "./stake-button";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import { useFeeSettings } from "@/lib/fees";
 import { HostEarnLine } from "./create-room/host-earn-line";
+import { LeagueMark } from "@/components/league-mark";
 
 // How far ahead Create Room lists matches. Three weeks, so an international
 // break never leaves the Premier League off the list (a week wasn't enough:
@@ -619,7 +620,7 @@ function MatchRow({ match: m, selected, onPick }: { match: Match; selected: bool
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1 text-muted">
-          {nfl ? <GridironIcon className="h-3 w-3" /> : <SoccerIcon className="h-3 w-3" />}
+          <LeagueMark name={m.competition} size={12} fallback={nfl ? <GridironIcon className="h-3 w-3" /> : <SoccerIcon className="h-3 w-3" />} />
           <span className="truncate font-mono text-[10px] uppercase tracking-wider">{m.competition}</span>
         </span>
         <span className="mt-0.5 block truncate text-sm font-semibold text-foreground">

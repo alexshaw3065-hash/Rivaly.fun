@@ -3,6 +3,7 @@ import type { Match } from "@/lib/types";
 import { LiveBadge } from "./live-badge";
 import { BookmarkButton } from "./bookmark-button";
 import { PlusIcon } from "./icons";
+import { LeagueMark } from "./league-mark";
 
 function formatKickoff(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -12,8 +13,9 @@ export function MatchChip({ match }: { match: Match }) {
   return (
     <div className="flex min-w-[220px] shrink-0 flex-col gap-2.5 rounded-lg border border-border bg-surface px-4 py-3.5">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
-          {match.competition}
+        <span className="flex min-w-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+          <LeagueMark name={match.competition} size={12} />
+          <span className="truncate">{match.competition}</span>
         </span>
         <div className="flex items-center gap-2.5">
           {match.status === "live" ? (

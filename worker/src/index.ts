@@ -264,6 +264,19 @@ if (SETTLE_URL && CRON_SECRET) {
   };
   setTimeout(expireTick, 5 * 60_000);
   setInterval(expireTick, 24 * 60 * 60_000);
+
+  // Real team/league badges for new teams: hourly, same app, same secret.
+  const CRESTS_URL = new URL("/api/cron/sync-crests", SETTLE_URL).toString();
+  const crestsTick = async () => {
+    try {
+      const res = await fetch(CRESTS_URL, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+      if (!res.ok) console.error(`[sync-crests] ${res.status}`);
+    } catch (e) {
+      console.error("[sync-crests] ping failed:", (e as Error).message);
+    }
+  };
+  setTimeout(crestsTick, 2 * 60_000);
+  setInterval(crestsTick, 60 * 60_000);
 }
 
 // Big Balls: UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS. Fixtures every

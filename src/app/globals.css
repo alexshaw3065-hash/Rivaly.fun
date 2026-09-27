@@ -670,3 +670,19 @@ html[data-room-stuck] .mobile-topbar {
 html[data-arena-tab]:not([data-arena-tab="feed"]) .arena-fab {
   display: none;
 }
+
+/* Real badges (crest-provider.tsx): the monogram placeholder appears only if
+   the image hasn't arrived within ~180ms — a cached badge never flashes it —
+   and stays if the image fails. Visibility, not opacity: nothing is ever
+   stuck invisible. The badge itself is shown as-is. */
+.crest[data-state="loading"] > .crest-fallback {
+  animation: crest-fallback 0s linear 180ms both;
+}
+.crest[data-state="loaded"] > .crest-fallback,
+.crest[data-state="error"] > .crest-img {
+  display: none;
+}
+@keyframes crest-fallback {
+  from { visibility: hidden; }
+  to { visibility: visible; }
+}

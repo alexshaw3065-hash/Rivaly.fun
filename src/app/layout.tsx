@@ -7,6 +7,8 @@ import { DynamicProvider } from "@/components/dynamic-provider";
 import { WalletProvider } from "@/lib/wallet/wallet-context";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
+import { CrestProvider } from "@/components/crest-provider";
+import { getCrestMap } from "@/lib/crests/map";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,7 +55,8 @@ export const metadata: Metadata = {
 const themeInitScript = `(function(){try{if(localStorage.getItem('rivaly-theme')==='light'){document.documentElement.classList.add('light');}if(localStorage.getItem('rivaly-sidebar-collapsed')==='true'){document.documentElement.classList.add('sidebar-collapsed');}}catch(e){}})();`;
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const currentProfile = await getCurrentProfile();
+  // The crest map is cached server-side (10 min), so it adds no query to a normal page load.
+  const [currentProfile, crests] = await Promise.all([getCurrentProfile(), getCrestMap()]);
 
   return (
     <html
@@ -63,6 +66,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/* Badges come from our Supabase CDN — open the connection before the first one is needed. */}
+        {crests.base && <link rel="preconnect" href={new URL(crests.base).origin} />}
       </head>
       {/* Deliberately NOT display:flex. Nav's sidebar/header/bottom-bar are
           all fixed or sticky positioned (never flex siblings of the page
@@ -88,7 +93,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 CurrentUserProvider (the profile carries the address). */}
             <WalletProvider>
               <AnalyticsTracker />
-              <Nav>{children}</Nav>
+              <CrestProvider map={crests}>
+                <Nav>{children}</Nav>
+              </CrestProvider>
             </WalletProvider>
           </DynamicProvider>
         </CurrentUserProvider>

@@ -65,6 +65,18 @@ export default function TermsPage() {
             changes will be surfaced in-app, not silently applied.
           </p>
         </section>
+
+        <section>
+          <h2 className="font-display text-base font-semibold text-foreground">7. Team and league badges</h2>
+          <p className="mt-2 text-sm text-muted">
+            Team and league badges are sourced from{" "}
+            <a href="https://www.thesportsdb.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+              TheSportsDB
+            </a>{" "}
+            and remain the trademarks of their owners. They identify teams only and imply no endorsement or
+            partnership.
+          </p>
+        </section>
       </div>
     </main>
   );

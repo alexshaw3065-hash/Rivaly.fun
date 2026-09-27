@@ -7,6 +7,7 @@ import type { Match } from "@/lib/types";
 import { LiveBadge } from "../live-badge";
 import { TeamCrest } from "../team-crest";
 import { GridironIcon, SoccerIcon } from "./market-icons";
+import { LeagueMark } from "@/components/league-mark";
 
 export function kickoffLabel(kickoffAt: string, now: number = Date.now()): string {
   const diffMs = +new Date(kickoffAt) - now;
@@ -89,7 +90,11 @@ export function MatchBanner({ match, size = "lg", children }: { match: Match; si
       <div className={`relative ${size === "lg" ? "px-4 pb-4 pt-3.5" : "px-4 pb-3.5 pt-3"}`}>
         <div className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-1.5 text-foreground/80">
-            {sport === "nfl" ? <GridironIcon className="h-3.5 w-3.5 shrink-0" /> : <SoccerIcon className="h-3.5 w-3.5 shrink-0" />}
+            <LeagueMark
+              name={match.competition}
+              size={14}
+              fallback={sport === "nfl" ? <GridironIcon className="h-3.5 w-3.5 shrink-0" /> : <SoccerIcon className="h-3.5 w-3.5 shrink-0" />}
+            />
             <span className="truncate font-mono text-[10px] uppercase tracking-wider">{match.competition}</span>
           </span>
           {match.status === "live" ? (

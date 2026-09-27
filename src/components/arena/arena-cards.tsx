@@ -12,6 +12,7 @@ import { Photo } from "@/components/chat-thread";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { ReportReasons } from "@/components/report-reasons";
 import type { ReportReason } from "@/lib/report";
+import { LeagueMark } from "@/components/league-mark";
 import {
   ARENA_EMOJI,
   ago,
@@ -624,6 +625,7 @@ function MomentCard({ item, actions }: { item: MomentItem; actions: CardActions 
     <article className="relative px-4 pb-3.5 pt-3.5" style={{ background: `linear-gradient(180deg, color-mix(in srgb, ${color} 9%, transparent), transparent 70%)` }}>
       <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: color }} aria-hidden />
       <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-muted">
+        <LeagueMark name={item.match.competition} size={12} />
         <span className="truncate">{item.match.competition}</span>
         {minute && <span>· {minute}</span>}
         <span className="ml-auto font-medium normal-case tracking-normal">{ago(item.at)}</span>

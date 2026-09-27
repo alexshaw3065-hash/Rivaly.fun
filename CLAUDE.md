@@ -113,6 +113,7 @@ Two Claude Code skills apply to nearly everything built in this repo — invoke 
 - **App:** Next.js (App Router, TypeScript, Tailwind v4), dark-first theme with a light/dark switch (dark is the default and the no-JS fallback; light is an explicit opt-in via `ThemeToggle` in `Nav`). Deployed on Vercel.
 - **Backend:** Supabase — Postgres, Auth, RLS, Realtime, Storage. Client/server helpers live in `src/lib/supabase/`; no project is linked yet (see `.env.example`).
 - **Repo:** [github.com/alexshaw3065-hash/Rivaly.fun](https://github.com/alexshaw3065-hash/Rivaly.fun)
+- **Team and league badges:** fetched once from TheSportsDB (founder's call, credited on /terms, used as-is — resized only), stored as 128px WebP in our public Supabase `crests` bucket, mapped in `crests` and handed to every page by the root layout (`CrestProvider`). `TeamCrest`'s generated monogram is the instant placeholder and fallback. New teams sync hourly (`/api/cron/sync-crests`); unmatched names are listed in Admin → Matches. A wrong crest is worse than the monogram — matching refuses anything ambiguous.
 - **Planned, not yet wired up:** Redis (cache, rate limits, queues — e.g. live pool/leaderboard state, settlement job queues) and Cloudinary (media — avatars, room/match images, video). Add these when a concrete feature needs them, not preemptively; V1 scope ([08-v1-scope.md](docs/masterplan/08-v1-scope.md)) doesn't require either yet.
 
 ## Admin / Operations
