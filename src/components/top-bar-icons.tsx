@@ -7,9 +7,11 @@ import { formatUsdcCompact } from "@/lib/wallet/format";
 import { openQuickDeposit } from "@/lib/quick-deposit-store";
 import { useCurrentUser } from "./current-user-provider";
 import { openAuthModal } from "@/lib/auth-modal-store";
+import { useUnreadCount } from "@/lib/notifications";
 
 export function TopBarIcons({ walletBordered = false }: { walletBordered?: boolean }) {
   const currentUser = useCurrentUser();
+  const unread = useUnreadCount(currentUser?.id ?? null);
   const live = useLiveWalletBalance();
   // No wallet yet (or not read yet) is "—", never a made-up number — the
   // wallet page it links to offers the setup.
@@ -47,10 +49,18 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
 
       <Link
         href="/notifications"
-        aria-label="Notifications"
+        aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
         className="hover-link relative text-muted transition-colors"
       >
         <BellIcon />
+        {unread > 0 && (
+          <span
+            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold tabular-nums text-white ring-2 ring-background"
+            style={{ background: "var(--rival-blue)" }}
+          >
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
       </Link>
 
       {/* Desktop keeps the plain-text treatment (one less boxed element
