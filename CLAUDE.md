@@ -115,6 +115,10 @@ Two Claude Code skills apply to nearly everything built in this repo — invoke 
 - **Repo:** [github.com/alexshaw3065-hash/Rivaly.fun](https://github.com/alexshaw3065-hash/Rivaly.fun)
 - **Planned, not yet wired up:** Redis (cache, rate limits, queues — e.g. live pool/leaderboard state, settlement job queues) and Cloudinary (media — avatars, room/match images, video). Add these when a concrete feature needs them, not preemptively; V1 scope ([08-v1-scope.md](docs/masterplan/08-v1-scope.md)) doesn't require either yet.
 
+## Admin / Operations
+
+`/admin` (Rivaly Ops) is the internal system: dashboard, live activity, users, rooms, matches, finance, settlement, moderation, analytics, system health and settings. Access is server-checked against the `admins` table (owner / admin / moderator); non-admins get a 404. Every meaningful thing that happens is a structured row in `platform_events` (written by database triggers), every admin action is in `admin_audit` with a reason, and analytics are computed in SQL functions (`admin_overview`, `admin_daily`, `admin_retention`, `admin_funnel`, `admin_users`, `admin_rooms`, `admin_matches`). Admin screens reuse the app's own logic (e.g. `planSettlement`) — never a second copy. Feature flags in `feature_flags` are enforced by the app and database.
+
 ## Working Conventions
 
 - Before adding any feature or screen, check it against the Rivaly Test above and against [08-v1-scope.md](docs/masterplan/08-v1-scope.md); most things wait.

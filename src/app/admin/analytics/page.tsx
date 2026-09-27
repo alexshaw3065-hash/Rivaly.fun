@@ -1,0 +1,278 @@
+import { requireAdmin } from "@/lib/admin/guard";
+import { db, rpc } from "@/lib/admin/data";
+import { Bars, DataTable, Funnel, Kpi, KpiGrid, PageHeader, Section, Tabs, num, usd, type Column } from "@/components/admin/ui";
+
+// Why things are happening: growth, activation, engagement and retention,
+// rooms and predictions, revenue, the Arena, and the activation funnel.
+// Time series come from admin_daily; cohorts from admin_retention; the
+// funnel from admin_funnel — all in the database.
+
+const TABS = [
+  { id: "growth", label: "Acquisition & activation" },
+  { id: "engagement", label: "Engagement & retention" },
+  { id: "rooms", label: "Rooms & predictions" },
+  { id: "revenue", label: "Revenue" },
+  { id: "social", label: "Social / Arena" },
+  { id: "funnels", label: "Funnels" },
+];
+
+type Day = { day: string; signups: number; active: number; rooms: number; stakes: number; volume_cents: number; fees_cents: number; posts: number; messages: number; reactions: number; follows: number; payouts_cents: number };
+const short = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const series = (days: Day[], key: keyof Day) => days.map((d) => ({ label: short(d.day), value: Number(d[key]) }));
+const sumOf = (days: Day[], key: keyof Day) => days.reduce((s, d) => s + Number(d[key]), 0);
+
+export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<{ tab?: string; days?: string }> }) {
+  await requireAdmin();
+  const { tab = "growth", days: daysParam = "30" } = await searchParams;
+  const range = [7, 30, 90].includes(Number(daysParam)) ? Number(daysParam) : 30;
+  const days = await rpc<Day[]>("admin_daily", { p_days: range });
+
+  return (
+    <div>
+      <PageHeader
+        title="Analytics"
+        subtitle={
+          <>
+            Last {range} days ·{" "}
+            {[7, 30, 90].map((d) => (
+              <a key={d} href={`/admin/analytics?tab=${tab}&days=${d}`} className={`mr-2 ${d === range ? "text-foreground" : "underline"}`}>
+                {d}d
+              </a>
+            ))}
+          </>
+        }
+      />
+      <Tabs tabs={TABS} active={tab} base={`/admin/analytics?days=${range}`} />
+      {tab === "growth" && <Growth days={days} />}
+      {tab === "engagement" && <Engagement days={days} />}
+      {tab === "rooms" && <Rooms days={days} />}
+      {tab === "revenue" && <Revenue days={days} />}
+      {tab === "social" && <Social days={days} />}
+      {tab === "funnels" && <Funnels />}
+    </div>
+  );
+}
+
+function Chart({ title, data, format }: { title: string; data: { label: string; value: number }[]; format?: (v: number) => string }) {
+  return (
+    <div>
+      <p className="mb-2 text-[12px] text-muted">{title}</p>
+      <Bars data={data} format={format} />
+    </div>
+  );
+}
+
+async function Growth({ days }: { days: Day[] }) {
+  const f = await rpc<Record<string, number | null>>("admin_funnel");
+  const signups = sumOf(days, "signups");
+  return (
+    <>
+      <KpiGrid>
+        <Kpi label="New users" value={num(signups)} />
+        <Kpi label="Wallet ready" value={f.signed_up ? `${Math.round((Number(f.wallet) / Number(f.signed_up)) * 100)}%` : "—"} sub="of signups, last 90 days" />
+        <Kpi label="Made a first stake" value={f.signed_up ? `${Math.round((Number(f.first_stake) / Number(f.signed_up)) * 100)}%` : "—"} sub="activation" />
+        <Kpi label="Median time to first stake" value={f.median_hours_to_first_stake == null ? "—" : `${f.median_hours_to_first_stake}h`} />
+        <Kpi label="Hosted a room" value={num(f.hosted_a_room)} />
+        <Kpi label="Came back to stake again" value={num(f.second_stake)} />
+      </KpiGrid>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Chart title="New users per day" data={series(days, "signups")} />
+        <Chart title="Active users per day" data={series(days, "active")} />
+      </div>
+      <p className="mt-4 text-[12px] text-muted">
+        Acquisition source (where signups came from) isn&apos;t tracked yet — it needs referral/UTM capture at signup. Everything above is measured, not estimated.
+      </p>
+    </>
+  );
+}
+
+async function Engagement({ days }: { days: Day[] }) {
+  const [o, cohorts] = await Promise.all([rpc<Record<string, number>>("admin_overview"), rpc<{ cohort: string; size: number; week: number; retained: number }[]>("admin_retention", { p_weeks: 8 })]);
+  const dau = o.active_today;
+  const wau = o.active_7d;
+  const mau = o.active_30d;
+  const byCohort = new Map<string, { size: number; weeks: number[] }>();
+  for (const c of cohorts) {
+    const e = byCohort.get(c.cohort) ?? { size: c.size, weeks: [] };
+    e.weeks[c.week] = c.retained;
+    byCohort.set(c.cohort, e);
+  }
+  const maxWeeks = Math.max(0, ...[...byCohort.values()].map((c) => c.weeks.length));
+  return (
+    <>
+      <KpiGrid>
+        <Kpi label="Active today (DAU)" value={num(dau)} />
+        <Kpi label="Active this week (WAU)" value={num(wau)} />
+        <Kpi label="Active this month (MAU)" value={num(mau)} />
+        <Kpi label="Stickiness (DAU/MAU)" value={mau ? `${Math.round((dau / mau) * 100)}%` : "—"} />
+        <Kpi label="Stakes per active user" value={sumOf(days, "active") ? (sumOf(days, "stakes") / sumOf(days, "active")).toFixed(2) : "—"} sub="per active-day" />
+        <Kpi label="Chat per active user" value={sumOf(days, "active") ? (sumOf(days, "messages") / sumOf(days, "active")).toFixed(2) : "—"} sub="messages per active-day" />
+      </KpiGrid>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Chart title="Active users per day" data={series(days, "active")} />
+        <Chart title="Stakes per day" data={series(days, "stakes")} />
+      </div>
+      <Section title="Weekly retention" hint="Of each signup week, the share active in each week after.">
+        <div className="overflow-x-auto rounded-xl bg-surface ring-1 ring-border">
+          <table className="w-full border-collapse text-[12px]">
+            <thead>
+              <tr className="border-b border-border text-left text-muted">
+                <th className="px-3 py-2">Signup week</th>
+                <th className="px-3 py-2 text-right">People</th>
+                {Array.from({ length: maxWeeks }, (_, w) => (
+                  <th key={w} className="px-3 py-2 text-right">W{w}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...byCohort.entries()].map(([cohort, c]) => (
+                <tr key={cohort} className="border-b border-border last:border-0">
+                  <td className="px-3 py-2">{short(cohort)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{c.size}</td>
+                  {Array.from({ length: maxWeeks }, (_, w) => {
+                    const v = c.weeks[w];
+                    const pct = v == null || !c.size ? null : Math.round((v / c.size) * 100);
+                    return (
+                      <td key={w} className="px-3 py-2 text-right font-mono" style={pct != null ? { background: `color-mix(in srgb, var(--rival-blue) ${Math.min(pct, 100) * 0.5}%, transparent)` } : undefined}>
+                        {pct == null ? "" : `${pct}%`}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+              {byCohort.size === 0 && (
+                <tr>
+                  <td colSpan={2} className="px-3 py-6 text-center text-muted">
+                    No signups in the last 8 weeks.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    </>
+  );
+}
+
+async function Rooms({ days }: { days: Day[] }) {
+  const { data: rooms } = await db().from("rooms").select("id, prediction, market_type, visibility, participant_count, pool_total_cents, yes_total_cents, no_total_cents, status").limit(5000);
+  type R = { id: string; prediction: string; market_type: string; visibility: string; participant_count: number; pool_total_cents: number; yes_total_cents: number; no_total_cents: number; status: string };
+  const rs = (rooms ?? []) as R[];
+  const staked = rs.filter((r) => r.participant_count > 0);
+  const twoSided = staked.filter((r) => r.yes_total_cents > 0 && r.no_total_cents > 0).length;
+  const markets = new Map<string, number>();
+  for (const r of rs) markets.set(r.market_type ?? "custom", (markets.get(r.market_type ?? "custom") ?? 0) + 1);
+  const { data: entries } = await db().from("entries").select("side, amount_cents").limit(20000);
+  const es = (entries ?? []) as { side: string; amount_cents: number }[];
+  const buckets: [string, number, number][] = [["under $5", 0, 500], ["$5–$20", 500, 2000], ["$20–$50", 2000, 5000], ["$50–$200", 5000, 20000], ["$200+", 20000, Infinity]];
+  const top = [...rs].sort((a, b) => b.pool_total_cents - a.pool_total_cents).slice(0, 10);
+  return (
+    <>
+      <KpiGrid>
+        <Kpi label="Rooms (period)" value={num(sumOf(days, "rooms"))} />
+        <Kpi label="Two-sided rooms" value={staked.length ? `${Math.round((twoSided / staked.length) * 100)}%` : "—"} sub="someone on each side — the core loop working" />
+        <Kpi label="Avg people per room" value={staked.length ? (staked.reduce((s, r) => s + r.participant_count, 0) / staked.length).toFixed(1) : "—"} />
+        <Kpi label="Public · private" value={`${rs.filter((r) => r.visibility === "public").length} · ${rs.filter((r) => r.visibility === "private").length}`} />
+        <Kpi label="Stakes (period)" value={num(sumOf(days, "stakes"))} sub={usd(sumOf(days, "volume_cents"))} />
+        <Kpi label="YES · NO stakes" value={`${es.filter((e) => e.side === "yes").length} · ${es.filter((e) => e.side === "no").length}`} />
+      </KpiGrid>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Chart title="Rooms created per day" data={series(days, "rooms")} />
+        <Chart title="Volume staked per day" data={series(days, "volume_cents")} format={(v) => usd(v)} />
+      </div>
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <Section title="Market mix">
+          <Funnel steps={[...markets.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label: label.replaceAll("_", " "), value }))} />
+        </Section>
+        <Section title="Stake sizes">
+          <Funnel steps={buckets.map(([label, lo, hi]) => ({ label, value: es.filter((e) => e.amount_cents >= lo && e.amount_cents < hi).length }))} />
+        </Section>
+      </div>
+      <Section title="Biggest rooms">
+        <DataTable
+          columns={[
+            { label: "Room", cell: (r: R) => r.prediction },
+            { label: "People", cell: (r: R) => num(r.participant_count), align: "right" },
+            { label: "Pot", cell: (r: R) => usd(r.pool_total_cents), align: "right" },
+            { label: "Status", cell: (r: R) => r.status },
+          ] as Column<R>[]}
+          rows={top}
+          rowHref={(r) => `/admin/rooms/${r.id}`}
+        />
+      </Section>
+    </>
+  );
+}
+
+async function Revenue({ days }: { days: Day[] }) {
+  const o = await rpc<Record<string, number>>("admin_overview");
+  const volume = sumOf(days, "volume_cents");
+  const fees = sumOf(days, "fees_cents");
+  return (
+    <>
+      <KpiGrid>
+        <Kpi label="Fees (period)" value={usd(fees)} />
+        <Kpi label="Take rate" value={volume ? `${((fees / volume) * 100).toFixed(2)}%` : "—"} sub="fees ÷ volume staked" />
+        <Kpi label="Rivaly share (all time)" value={usd(o.fees_rivaly)} />
+        <Kpi label="Host share (all time)" value={usd(o.fees_host)} />
+        <Kpi label="Volume (period)" value={usd(volume, { compact: true })} />
+        <Kpi label="Paid to winners (period)" value={usd(sumOf(days, "payouts_cents"), { compact: true })} />
+      </KpiGrid>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Chart title="Fees per day" data={series(days, "fees_cents")} format={(v) => usd(v)} />
+        <Chart title="Paid to winners per day" data={series(days, "payouts_cents")} format={(v) => usd(v)} />
+      </div>
+      <p className="mt-4 text-[12px] text-muted">Revenue is only ever a share of winners&apos; profit — Rivaly never takes the other side of a stake.</p>
+    </>
+  );
+}
+
+async function Social({ days }: { days: Day[] }) {
+  return (
+    <>
+      <KpiGrid>
+        <Kpi label="Arena posts" value={num(sumOf(days, "posts"))} />
+        <Kpi label="Chat messages" value={num(sumOf(days, "messages"))} />
+        <Kpi label="Reactions" value={num(sumOf(days, "reactions"))} />
+        <Kpi label="Follows" value={num(sumOf(days, "follows"))} />
+        <Kpi label="Messages per room" value={sumOf(days, "rooms") ? (sumOf(days, "messages") / sumOf(days, "rooms")).toFixed(1) : "—"} />
+        <Kpi label="Posts per active user" value={sumOf(days, "active") ? (sumOf(days, "posts") / sumOf(days, "active")).toFixed(2) : "—"} />
+      </KpiGrid>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Chart title="Arena posts per day" data={series(days, "posts")} />
+        <Chart title="Chat messages per day" data={series(days, "messages")} />
+        <Chart title="Reactions per day" data={series(days, "reactions")} />
+        <Chart title="Follows per day" data={series(days, "follows")} />
+      </div>
+    </>
+  );
+}
+
+async function Funnels() {
+  const f = await rpc<Record<string, number | null>>("admin_funnel");
+  return (
+    <>
+      <Section title="Activation funnel · signups in the last 90 days">
+        <Funnel
+          steps={[
+            { label: "Signed up", value: Number(f.signed_up ?? 0) },
+            { label: "Wallet ready", value: Number(f.wallet ?? 0) },
+            { label: "First stake", value: Number(f.first_stake ?? 0) },
+            { label: "Joined someone else's room", value: Number(f.joined_someone_elses_room ?? 0) },
+            { label: "Staked again", value: Number(f.second_stake ?? 0) },
+          ]}
+        />
+      </Section>
+      <Section title="Creator & social funnel">
+        <Funnel
+          steps={[
+            { label: "Signed up", value: Number(f.signed_up ?? 0) },
+            { label: "Hosted a room", value: Number(f.hosted_a_room ?? 0) },
+            { label: "Posted in the Arena", value: Number(f.posted_in_arena ?? 0) },
+          ]}
+        />
+      </Section>
+    </>
+  );
+}
