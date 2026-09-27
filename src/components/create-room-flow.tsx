@@ -26,6 +26,7 @@ import { explorerTxUrl } from "@/lib/wallet/constants";
 import { useFeeSettings } from "@/lib/fees";
 import { HostEarnLine } from "./create-room/host-earn-line";
 import { LeagueMark } from "@/components/league-mark";
+import { siteUrl } from "@/lib/site";
 
 // How far ahead Create Room lists matches. Three weeks, so an international
 // break never leaves the Premier League off the list (a week wasn't enough:
@@ -674,7 +675,7 @@ function CreatedView({
   async function share() {
     // A challenge link opens the room straight on the other side for them.
     const other = side === "yes" ? "no" : "yes";
-    const url = withRef(`${window.location.origin}/rooms/${roomId}${vs ? `?side=${other}` : ""}`);
+    const url = withRef(siteUrl(`/rooms/${roomId}${vs ? `?side=${other}` : ""}`));
     const call = side === "yes" ? "YES" : "NO";
     const text = vs
       ? `@${vs} — ${claim}. I'm on ${call}. You take the other side. Code ${inviteCode}`

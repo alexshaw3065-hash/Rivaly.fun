@@ -8,6 +8,7 @@ import { openAuthModal } from "@/lib/auth-modal-store";
 import { useCurrentUser } from "./current-user-provider";
 import { RivalCharacter } from "./rival-character";
 import { BottomSheet } from "./bottom-sheet";
+import { siteUrl } from "@/lib/site";
 
 // Points only — no entry fee, no prize, ever (money would make it a
 // Tournament, which V1 leaves out). A win is 3 points; beating the room
@@ -101,7 +102,7 @@ function LeagueTable({ league, highlight = false, onLeft }: { league: League | n
     if (!league) return;
     const text = `Join my Rivaly league "${league.name}" — code ${league.code}`;
     try {
-      if (navigator.share) await navigator.share({ text, url: withRef(`${window.location.origin}/arena`) });
+      if (navigator.share) await navigator.share({ text, url: withRef(siteUrl("/arena")) });
       else {
         await navigator.clipboard.writeText(league.code);
         setCopied(true);

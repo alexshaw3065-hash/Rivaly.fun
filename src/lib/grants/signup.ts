@@ -36,7 +36,8 @@ export function welcomeConfigured(): boolean {
 
 function welcome(): { keypair: Keypair; connection: Connection } {
   if (cached) return cached;
-  const raw = process.env.WELCOME_SECRET_KEY?.trim();
+  // Forgives a pasted "WELCOME_SECRET_KEY=" prefix or trailing newline.
+  const raw = process.env.WELCOME_SECRET_KEY?.trim().replace(/^WELCOME_SECRET_KEY=/, "").trim();
   if (!raw) throw new Error("WELCOME_SECRET_KEY isn't set.");
   const bytes = raw.startsWith("[") ? Uint8Array.from(JSON.parse(raw) as number[]) : bs58.decode(raw);
   const keypair = Keypair.fromSecretKey(bytes);

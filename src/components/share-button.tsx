@@ -3,6 +3,7 @@
 import { withRef } from "@/lib/referral";
 import { useState } from "react";
 import { ShareIcon } from "./icons";
+import { siteUrl } from "@/lib/site";
 
 // Copies a shareable link to the clipboard — same pattern already used on
 // Profile (see ShareButton in profile-view.tsx), generalized to take an
@@ -17,7 +18,7 @@ export function ShareButton({ path, label = "item" }: { path: string; label?: st
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        const url = withRef(`${window.location.origin}${path}`);
+        const url = withRef(siteUrl(path));
         navigator.clipboard.writeText(url).then(() => {
           setCopied(true);
           window.setTimeout(() => setCopied(false), 1500);

@@ -9,6 +9,7 @@ import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { CrestProvider } from "@/components/crest-provider";
 import { getCrestMap } from "@/lib/crests/map";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,8 +45,11 @@ const cabinetGrotesk = localFont({
 });
 
 export const metadata: Metadata = {
+  // Absolute URLs in link previews (og:image etc.) always point at rivaly.fun.
+  metadataBase: new URL(SITE_URL),
   title: "Rivaly",
   description: "Back your football opinion. Predict against people, not the house.",
+  openGraph: { siteName: "Rivaly", url: SITE_URL },
 };
 
 // Dark is the brand default (see globals.css) — this only ever adds `.light`,

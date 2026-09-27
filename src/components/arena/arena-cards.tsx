@@ -13,6 +13,7 @@ import { BottomSheet } from "@/components/bottom-sheet";
 import { ReportReasons } from "@/components/report-reasons";
 import type { ReportReason } from "@/lib/report";
 import { LeagueMark } from "@/components/league-mark";
+import { siteUrl } from "@/lib/site";
 import {
   ARENA_EMOJI,
   ago,
@@ -533,7 +534,7 @@ function ReceiptCard({ item, actions }: { item: ReceiptItem; actions: CardAction
 function ShareLink({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
   async function share() {
-    const url = withRef(`${window.location.origin}/arena/p/${id}`);
+    const url = withRef(siteUrl(`/arena/p/${id}`));
     try {
       if (navigator.share) await navigator.share({ url });
       else {

@@ -2,6 +2,7 @@
 
 import { withRef } from "@/lib/referral";
 import { useState } from "react";
+import { siteUrl } from "@/lib/site";
 
 // Sends the match-story card (rooms/[roomId]/card) out: the phone's own share
 // sheet with the image attached where it can, a download where it can't.
@@ -19,7 +20,7 @@ export function ShareStoryButton({ roomId }: { roomId: string }) {
       if (!res.ok) throw new Error(String(res.status));
       const blob = await res.blob();
       const file = new File([blob], "rivaly-match-story.png", { type: "image/png" });
-      const url = withRef(`${window.location.origin}/rooms/${roomId}`);
+      const url = withRef(siteUrl(`/rooms/${roomId}`));
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "The match story", text: `How it really went — ${url}` });
       } else {

@@ -27,6 +27,7 @@ import { ProfileSettingsSheet } from "./profile-settings-sheet";
 import { HostLine } from "./profile/host-line";
 import { ProfileSocialsSheet } from "./profile-socials-sheet";
 import { RivalyScoreBadge } from "./rivaly-score-badge";
+import { siteUrl } from "@/lib/site";
 
 type ProfileTab = "position" | "replies" | "activity";
 
@@ -55,7 +56,7 @@ function IconButton({
 function ShareButton({ name }: { name: string }) {
   const [copied, setCopied] = useState(false);
   async function share() {
-    const url = withRef(window.location.href.split("?")[0]);
+    const url = withRef(siteUrl(window.location.pathname));
     try {
       if (navigator.share) {
         await navigator.share({ title: `${name} on Rivaly`, text: `${name}'s Rivaly card — think you can beat them?`, url });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCurrentUser } from "@/components/current-user-provider";
 import { openAuthModal } from "@/lib/auth-modal-store";
+import { siteUrl } from "@/lib/site";
 
 // The gift icon's destination. Rivaly doesn't do bonus/promo-driven
 // retention (see docs/masterplan/09-competitive-research.md#5.3 — "social
@@ -18,14 +19,14 @@ export default function InvitePage() {
 
   async function copy() {
     if (!path) return;
-    await navigator.clipboard?.writeText(withRef(`${window.location.origin}${path}`)).catch(() => undefined);
+    await navigator.clipboard?.writeText(withRef(siteUrl(path))).catch(() => undefined);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
   async function share() {
     if (!path) return;
-    const url = withRef(`${window.location.origin}${path}`);
+    const url = withRef(siteUrl(path));
     try {
       if (navigator.share) await navigator.share({ title: "Rivaly", text: "Think you know football better than me? Prove it on Rivaly.", url });
       else await copy();

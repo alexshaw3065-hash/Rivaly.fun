@@ -8,6 +8,7 @@ import { explorerTxUrl } from "@/lib/wallet/constants";
 import type { MyEntry } from "@/lib/supabase/entries";
 import { useCountUp } from "@/components/room-result";
 import { pct } from "@/lib/fees";
+import { siteUrl } from "@/lib/site";
 
 // The first time you open a room after it's decided, the result comes to
 // you instead of waiting below the stadium: what you won, the close call
@@ -126,7 +127,7 @@ function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; s
   const [copied, setCopied] = useState(false);
 
   async function share() {
-    const url = withRef(`${window.location.origin}${sharePath}`);
+    const url = withRef(siteUrl(sharePath));
     try {
       if (navigator.share) await navigator.share({ title: "Called it on Rivaly", url });
       else {

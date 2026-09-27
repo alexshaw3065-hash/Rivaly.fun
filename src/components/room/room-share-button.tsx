@@ -3,6 +3,7 @@ import { withRef } from "@/lib/referral";
 import { track } from "@/lib/analytics/track";
 
 import { useState } from "react";
+import { siteUrl } from "@/lib/site";
 
 // Sharing is gameplay: a room without opponents isn't a room. Opens the
 // phone's own share sheet (WhatsApp, X, DMs) with the call as a dare; falls
@@ -23,7 +24,7 @@ export function RoomShareButton({
 
   async function share() {
     track("room_shared", { native: Boolean(navigator.share) });
-    const url = withRef(`${window.location.origin}${path}`);
+    const url = withRef(siteUrl(path));
     const text = `“${claim}” — I've called it on Rivaly. Think I'm wrong? Prove it.`;
     if (navigator.share) {
       try {
