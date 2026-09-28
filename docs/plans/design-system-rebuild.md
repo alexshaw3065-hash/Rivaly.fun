@@ -8,7 +8,13 @@ off-grid 162, mono-label 37). **Phase 1 done** (2026-09-28): the kit in
 `src/components/ui/` — Button/ButtonLink, IconButton, Chip, SidePill, Tabs,
 Segmented, Card, SectionHeader, ListGroup/ListRow, Badge/LiveBadge, Skeleton,
 EmptyState, Amount (count-up), Sheet — previewed against today's markup at
-`/kit` (dev only). Next: Phase 2, the shell and instant navigation.
+`/kit` (dev only). **Phase 2 done** (2026-09-28): top bar, bottom tabs,
+sidebar, desktop header, menus and FABs on the tokens and kit; LIVE dot pulses
+(founder's call); `loading.tsx` for every main route (root fallback shaped like
+Home, plus rooms, room, create, arena, post, profile, search, wallet,
+notifications) so taps navigate instantly and links can prefetch; tapped tabs
+light up that frame (`useLinkStatus`). Drift 833 → 810. Next: Phase 3, the
+screen passes.
 
 Written 2026-09-27. Scope: polish the **existing** app — styling, type, colour,
 spacing, components, interactions, motion, responsiveness — so it feels like

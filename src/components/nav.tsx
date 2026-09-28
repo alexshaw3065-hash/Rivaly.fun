@@ -20,6 +20,7 @@ import { openArenaComposer } from "@/lib/arena/composer-store";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { ArenaComposerHost } from "./arena/arena-composer-host";
 import { useEffect } from "react";
+import { useLinkStatus } from "next/link";
 import { joinOnline } from "@/lib/online-presence";
 
 // V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
@@ -94,7 +95,7 @@ export function Nav({ children }: { children: ReactNode }) {
         return <ColosseumIcon size={23} />;
       case "me":
         return currentUser ? (
-          <span className="rounded-full" style={{ boxShadow: active ? "0 0 0 1.5px var(--foreground)" : "none" }}>
+          <span className={`rounded-full outline outline-[1.5px] outline-offset-0 ${active ? "outline-foreground" : "outline-transparent"}`}>
             <Avatar name={currentUser.displayName} size={22} imageUrl={currentUser.avatarUrl} />
           </span>
         ) : (
@@ -111,7 +112,7 @@ export function Nav({ children }: { children: ReactNode }) {
           a fixed sheet layered on top, not a route change — see
           mobile-search-overlay.tsx). */}
       <nav
-        className="mobile-topbar sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm md:hidden"
+        className="mobile-topbar sticky top-0 z-10 border-b border-line bg-background/95 backdrop-blur-sm md:hidden"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex items-center gap-3 py-4 pl-6 pr-4">
@@ -156,8 +157,7 @@ export function Nav({ children }: { children: ReactNode }) {
           type="button"
           onClick={() => (currentUser ? openArenaComposer() : openAuthModal({ next: "/arena" }))}
           aria-label="Post a take"
-          className="arena-fab fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
-          style={{ background: "var(--rival-blue)", boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)" }}
+          className="arena-fab fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-yes text-white shadow-fab transition-transform duration-100 ease-out active:scale-[0.94] md:hidden"
         >
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
             <path d="M4 18l1-4L14.5 4.5a2.1 2.1 0 0 1 3 3L8 17l-4 1Z" stroke="currentColor" strokeWidth="1.9" fill="none" strokeLinejoin="round" />
@@ -169,45 +169,34 @@ export function Nav({ children }: { children: ReactNode }) {
           href="/rooms/create"
           prefetch
           aria-label="Create room"
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium text-white transition-transform duration-150 ease-out active:scale-[0.94] md:hidden"
-          style={{
-            background: "var(--rival-blue)",
-            boxShadow: "0 6px 16px -4px rgba(61, 107, 255, 0.55)",
-          }}
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-yes text-white shadow-fab transition-transform duration-100 ease-out active:scale-[0.94] md:hidden"
         >
-          +
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
+            <path d="M11 4v14M4 11h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
         </Link>
       )}
 
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background/95 backdrop-blur-sm md:hidden"
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-background/95 backdrop-blur-sm md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="mx-auto flex max-w-5xl items-stretch justify-around">
           {tabs.map((tab) => {
             const active = isActive(tab.key, tab.href, pathname, searchOpen);
-            const body = (
-              <>
-                <span className="flex h-6 items-center justify-center">{icon(tab.key, active)}</span>
-                <span className="text-[11px] leading-none" style={{ fontWeight: active ? 600 : 500 }}>
-                  {tab.label}
-                </span>
-              </>
-            );
-            const className = "flex flex-1 flex-col items-center gap-1.5 pb-2.5 pt-2 transition-colors duration-150 active:opacity-70";
-            const style = { color: active ? "var(--foreground)" : "var(--muted)" };
+            const className = "flex flex-1 flex-col items-center pb-3 pt-2 active:opacity-70";
             // Search opens the overlay in place (mobile-search-overlay.tsx)
             // instead of navigating — that's what lets dismissing it drop
             // you back exactly where you were, on whatever page/tab you
             // were already looking at.
             return tab.key === "search" ? (
-              <button key={tab.key} type="button" onClick={openSearchOverlay} aria-current={active ? "page" : undefined} className={className} style={style}>
-                {body}
+              <button key={tab.key} type="button" onClick={openSearchOverlay} aria-current={active ? "page" : undefined} className={className}>
+                <TabBody active={active} icon={(on) => icon(tab.key, on)} label={tab.label} />
               </button>
             ) : (
-              <Link key={tab.key} href={tab.href} aria-current={active ? "page" : undefined} className={className} style={style}>
-                {body}
+              <Link key={tab.key} href={tab.href} aria-current={active ? "page" : undefined} className={className}>
+                <LinkTabBody active={active} icon={(on) => icon(tab.key, on)} label={tab.label} />
               </Link>
             );
           })}
@@ -215,4 +204,21 @@ export function Nav({ children }: { children: ReactNode }) {
       </nav>
     </>
   );
+}
+
+// One tab's icon + label. Active is white and semibold; the rest are grey.
+function TabBody({ active, icon, label }: { active: boolean; icon: (active: boolean) => ReactNode; label: string }) {
+  return (
+    <span className={`flex flex-col items-center gap-1.5 transition-colors duration-100 ${active ? "text-foreground" : "text-secondary"}`}>
+      <span className="flex h-6 items-center justify-center">{icon(active)}</span>
+      <span className={`text-micro leading-none ${active ? "font-semibold" : "font-medium"}`}>{label}</span>
+    </span>
+  );
+}
+
+// A tab you just tapped lights up that same frame, before the next page has
+// arrived, so the tap always answers at once (tap → response).
+function LinkTabBody(props: { active: boolean; icon: (active: boolean) => ReactNode; label: string }) {
+  const { pending } = useLinkStatus();
+  return <TabBody {...props} active={props.active || pending} />;
 }

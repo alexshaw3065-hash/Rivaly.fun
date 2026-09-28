@@ -51,19 +51,18 @@ export function MobileMoreMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-label="More options"
         aria-expanded={open}
-        className="flex shrink-0 items-center text-muted transition-colors hover:text-foreground"
+        className="flex shrink-0 items-center text-secondary transition-colors hover:text-foreground"
       >
         <MoreIcon />
       </button>
 
       {open && (
         <div
-          className="dropdown-panel absolute right-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
-          style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.45)" }}
+          className="dropdown-panel absolute right-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-card bg-surface shadow-pop"
         >
           <div className="p-3">
-            <div className="flex items-center justify-between rounded-lg border border-border bg-surface-elevated px-3 py-2.5">
-              <div className="flex items-center gap-2.5 text-sm text-foreground">
+            <div className="flex items-center justify-between rounded-control border border-line bg-surface-elevated px-3 py-3">
+              <div className="flex items-center gap-2 text-sm text-foreground">
                 <span style={{ color: isLight ? "var(--foreground)" : "var(--muted)", transition: "color 150ms ease" }}>
                   <SunIcon />
                 </span>
@@ -76,36 +75,36 @@ export function MobileMoreMenu() {
             </div>
           </div>
 
-          <div className="flex flex-col divide-y divide-border border-t border-border">
+          <div className="flex flex-col divide-y divide-line border-t border-line">
             {menuLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between px-4 py-3 text-sm text-foreground transition-colors hover:bg-surface-elevated"
+                className="flex items-center justify-between px-4 py-3 text-sm text-foreground transition-colors hover:bg-overlay-1"
               >
                 {link.label}
-                <span className="text-muted">→</span>
+                <span className="text-secondary">→</span>
               </Link>
             ))}
           </div>
 
           {currentUser && (
-            <div className="border-t border-border p-3">
+            <div className="border-t border-line p-3">
               <button
                 onClick={() => {
                   setOpen(false);
                   signOut();
                 }}
                 disabled={signingOut}
-                className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-danger-red transition-colors hover:bg-surface-elevated disabled:opacity-40"
+                className="w-full rounded-control px-3 py-3 text-left text-sm font-medium text-danger-red transition-colors hover:bg-overlay-1 disabled:opacity-40"
               >
                 {signingOut ? "Signing out…" : "Sign out"}
               </button>
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-3 border-t border-border py-2.5">
+          <div className="flex items-center justify-center gap-3 border-t border-line py-2">
             {SOCIALS.map(({ key, label, href }) => {
               const Icon = SOCIAL_ICONS[key];
               return (
@@ -116,7 +115,7 @@ export function MobileMoreMenu() {
                   rel="noopener noreferrer"
                   aria-label={`Rivaly on ${label}`}
                   onClick={() => setOpen(false)}
-                  className="flex h-11 w-11 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface-elevated hover:text-foreground active:opacity-70 [&>svg]:h-[22px] [&>svg]:w-[22px]"
+                  className="flex h-11 w-11 items-center justify-center rounded-control text-secondary transition-colors duration-150 hover:bg-overlay-1 hover:text-foreground active:opacity-70 [&>svg]:h-[22px] [&>svg]:w-[22px]"
                 >
                   <Icon />
                 </a>

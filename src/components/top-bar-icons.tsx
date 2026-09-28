@@ -8,6 +8,7 @@ import { openQuickDeposit } from "@/lib/quick-deposit-store";
 import { useCurrentUser } from "./current-user-provider";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { useUnreadCount } from "@/lib/notifications";
+import { Button } from "./ui/button";
 
 export function TopBarIcons({ walletBordered = false }: { walletBordered?: boolean }) {
   const currentUser = useCurrentUser();
@@ -27,22 +28,18 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
   if (!currentUser) {
     if (!walletBordered) return null;
     return (
-      <button
-        onClick={() => openAuthModal()}
-        className="rounded-full px-4 py-2 text-xs font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.96]"
-        style={{ background: "var(--rival-blue)" }}
-      >
+      <Button onClick={() => openAuthModal()} variant="primary" size="sm" className="rounded-full px-4">
         Sign up
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="flex items-center gap-2.5 md:gap-3.5">
+    <div className="flex items-center gap-3 md:gap-4">
       <Link
         href="/invite"
         aria-label="Invite rivals"
-        className="hover-link text-muted transition-colors"
+        className="hover-link text-secondary transition-colors"
       >
         <GiftIcon />
       </Link>
@@ -50,13 +47,12 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
       <Link
         href="/notifications"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
-        className="hover-link relative text-muted transition-colors"
+        className="hover-link relative text-secondary transition-colors"
       >
         <BellIcon />
         {unread > 0 && (
           <span
-            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold tabular-nums text-white ring-2 ring-background"
-            style={{ background: "var(--rival-blue)" }}
+            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-yes px-1 text-micro font-bold tabular-nums leading-none text-white ring-2 ring-background"
           >
             {unread > 9 ? "9+" : unread}
           </span>
@@ -74,14 +70,14 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
           sheet itself isn't rendered here — see quick-deposit-sheet.tsx's
           comment on why it's mounted at the Nav root instead. */}
       {walletBordered ? (
-        <div className="flex items-center gap-2 rounded-full border border-border bg-surface py-1 pl-2.5 pr-1">
-          <Link href="/wallet" className="font-mono text-xs font-medium text-foreground">
+        <div className="flex items-center gap-2 rounded-full bg-surface py-1 pl-3 pr-1 edge">
+          <Link href="/wallet" className="text-label font-semibold tabular-nums text-foreground">
             {balanceLabel}
           </Link>
           <button
             onClick={openQuickDeposit}
             aria-label="Deposit"
-            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-transform duration-150 ease-out active:scale-[0.88]"
+            className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-transform duration-100 ease-out before:absolute before:-inset-3 active:scale-[0.88]"
           >
             <span className="[&>svg]:h-2.5 [&>svg]:w-2.5">
               <PlusIcon />
@@ -89,7 +85,7 @@ export function TopBarIcons({ walletBordered = false }: { walletBordered?: boole
           </button>
         </div>
       ) : (
-        <Link href="/wallet" className="font-mono text-xs font-medium text-foreground">
+        <Link href="/wallet" className="text-label font-semibold tabular-nums text-foreground">
           {balanceLabel}
         </Link>
       )}

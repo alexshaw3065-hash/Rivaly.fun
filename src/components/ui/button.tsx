@@ -35,7 +35,11 @@ const SIZES: Record<ButtonSize, string> = {
 };
 
 export function buttonClasses({ variant = "secondary", size = "md", full = false, className = "" }: { variant?: ButtonVariant; size?: ButtonSize; full?: boolean; className?: string } = {}): string {
-  return [BASE, VARIANTS[variant], SIZES[size], full ? "w-full" : "", className].filter(Boolean).join(" ");
+  // A radius or side padding passed in replaces the default (two classes for
+  // the same property would fight over which wins).
+  const base = /\brounded-/.test(className) ? BASE.replace(" rounded-control", "") : BASE;
+  const sized = /\bpx-/.test(className) ? SIZES[size].replace(/\bpx-\d+\s?/, "") : SIZES[size];
+  return [base, VARIANTS[variant], sized, full ? "w-full" : "", className].filter(Boolean).join(" ");
 }
 
 function Spinner() {

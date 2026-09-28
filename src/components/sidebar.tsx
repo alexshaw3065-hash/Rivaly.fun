@@ -48,7 +48,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="sidebar-shell fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-border bg-background md:flex"
+      className="sidebar-shell fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-line bg-background md:flex"
       aria-label="Primary"
     >
       <Link href="/" className="flex shrink-0 items-center px-5 py-5">
@@ -74,11 +74,7 @@ export function Sidebar() {
               key={href}
               href={href}
               aria-label={label}
-              className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150"
-              style={{
-                color: active ? "var(--foreground)" : "var(--muted)",
-                background: active ? "var(--surface)" : "transparent",
-              }}
+              className={`flex h-10 items-center gap-3 rounded-control px-3 text-label transition-colors duration-100 ${active ? "bg-surface text-foreground" : "text-secondary hover:bg-overlay-1 hover:text-foreground"}`}
             >
               <span className="shrink-0">
                 {mark ? (
@@ -109,7 +105,7 @@ export function Sidebar() {
                 rel="noopener noreferrer"
                 aria-label={`Rivaly on ${label}`}
                 title={`Rivaly on ${label}`}
-                className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-surface hover:text-foreground [&>svg]:h-[18px] [&>svg]:w-[18px]"
+                className="flex h-9 w-9 items-center justify-center rounded-control text-secondary transition-colors duration-100 hover:bg-overlay-1 hover:text-foreground [&>svg]:h-[18px] [&>svg]:w-[18px]"
               >
                 <SocialIcon />
               </a>
@@ -122,12 +118,12 @@ export function Sidebar() {
         <button
           onClick={() => setSidebarCollapsed(!collapsed)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-muted transition-colors duration-150 hover:text-foreground"
+          className="flex h-10 w-full items-center gap-3 rounded-control px-3 text-secondary transition-colors duration-100 hover:text-foreground"
         >
           <span className="shrink-0" style={{ transform: collapsed ? "rotate(180deg)" : "none" }}>
             <ChevronIcon />
           </span>
-          {!collapsed && <span className="truncate text-sm font-medium">Collapse</span>}
+          {!collapsed && <span className="truncate text-label">Collapse</span>}
         </button>
       </div>
     </aside>

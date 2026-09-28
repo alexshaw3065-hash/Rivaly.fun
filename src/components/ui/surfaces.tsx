@@ -116,7 +116,9 @@ export function LiveBadge({ detail }: { detail?: ReactNode }) {
 
 /** A placeholder block shaped like the content it stands in for. */
 export function Skeleton({ className = "", style }: { className?: string; style?: CSSProperties }) {
-  return <span aria-hidden className={`skeleton block rounded-control bg-overlay-2 ${className}`} style={style} />;
+  // A radius passed in replaces the default one (two radius classes would fight).
+  const radius = /\brounded-/.test(className) ? "" : "rounded-control";
+  return <span aria-hidden className={`skeleton block bg-overlay-2 ${radius} ${className}`} style={style} />;
 }
 
 /** Nothing here yet — said once, with the one thing to do about it. */

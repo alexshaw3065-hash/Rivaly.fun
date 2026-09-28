@@ -46,13 +46,12 @@ export function DesktopAccountMenu({
 
       {open && (
         <div
-          className="dropdown-panel absolute right-0 top-full z-30 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
-          style={{ boxShadow: "0 12px 32px -8px rgba(0,0,0,0.45)" }}
+          className="dropdown-panel absolute right-0 top-full z-30 mt-2 w-52 overflow-hidden rounded-card bg-surface shadow-pop"
         >
           <Link
             href={`/profile/${username}`}
             onClick={() => setOpen(false)}
-            className="block px-4 py-3 text-sm text-foreground transition-colors hover:bg-surface-elevated"
+            className="block px-4 py-3 text-sm text-foreground transition-colors hover:bg-overlay-1"
           >
             Profile
           </Link>
@@ -62,7 +61,7 @@ export function DesktopAccountMenu({
               signOut();
             }}
             disabled={signingOut}
-            className="w-full border-t border-border px-4 py-3 text-left text-sm font-medium text-danger-red transition-colors hover:bg-surface-elevated disabled:opacity-40"
+            className="w-full border-t border-line px-4 py-3 text-left text-sm font-medium text-danger-red transition-colors hover:bg-overlay-1 disabled:opacity-40"
           >
             {signingOut ? "Signing out…" : "Sign out"}
           </button>
