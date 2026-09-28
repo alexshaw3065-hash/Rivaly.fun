@@ -50,7 +50,10 @@ export default async function Image({ params }: { params: Promise<{ roomId: stri
   const total = yes + no;
   const settled = room.status === "settled" || room.status === "refunded";
   const outcome = room.resolvedOutcome;
-  const call = room.prediction.length > 34 ? `${room.prediction.slice(0, 33)}…` : room.prediction;
+  // Calls run from "Over 3.5 goals" to "Seattle Sounders v Real Salt Lake ends
+  // in a draw": the size steps down so the whole call fits in three lines.
+  const call = room.prediction.length > 90 ? `${room.prediction.slice(0, 89)}…` : room.prediction;
+  const callSize = call.length <= 22 ? 92 : call.length <= 40 ? 76 : call.length <= 64 ? 62 : 52;
   const kickoff = new Date(match.kickoffAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
   const footer = settled
     ? outcome === "void" || room.status === "refunded" || yes === 0 || no === 0
@@ -72,8 +75,8 @@ export default async function Image({ params }: { params: Promise<{ roomId: stri
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 72 }}>
-          <div style={{ display: "flex", fontSize: call.length > 22 ? 72 : 92, fontWeight: 800, letterSpacing: -3, lineHeight: 1.02 }}>{call}?</div>
+        <div style={{ display: "flex", flexDirection: "column", marginTop: callSize >= 76 ? 64 : 44 }}>
+          <div style={{ display: "flex", fontSize: callSize, fontWeight: 800, letterSpacing: callSize >= 76 ? -3 : -2, lineHeight: 1.04 }}>{call}?</div>
           <div style={{ display: "flex", marginTop: 20, fontSize: 36, color: MUTED }}>
             {match.homeTeam} vs {match.awayTeam}
           </div>
