@@ -419,7 +419,7 @@ export function ProfileView({
 
       {isSelf && (
         <div className="mt-6">
-          <ProfilePnl hasPositions={positions.items.length > 0} />
+          <ProfilePnl />
         </div>
       )}
 
