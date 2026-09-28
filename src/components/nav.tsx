@@ -76,6 +76,20 @@ export function Nav({ children }: { children: ReactNode }) {
     joinOnline(onlineMe ? { id, username, name, avatar: avatar || null } : null);
   }, [onlineMe, pathname]);
 
+  // Scroll-edge for the top bar (globals.css): its hairline shows once the
+  // page has scrolled under it. One passive listener that only touches the
+  // DOM when the state actually flips.
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => {
+      const scrolled = window.scrollY > 4;
+      if (scrolled !== root.hasAttribute("data-scrolled")) root.toggleAttribute("data-scrolled", scrolled);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [pathname]);
+
   const tabs = [
     ...baseTabs,
     currentUser
