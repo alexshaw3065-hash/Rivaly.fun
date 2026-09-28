@@ -23,20 +23,20 @@ export function AchievementsIntroSheet({
           <span>💰</span>
           <span>⭐</span>
         </div>
-        <p className="text-sm text-muted">
+        <p className="text-body text-secondary">
           Unlock real badges for real activity — creating rooms, sharp predictions, growing your
           following, career winnings, and more.
         </p>
-        <div className="w-full rounded-lg border border-border bg-surface p-4 text-left">
-          <p className="text-sm font-medium text-foreground">A real, visible track record</p>
-          <p className="mt-1 text-sm text-muted">
+        <div className="w-full rounded-control border border-line bg-surface p-4 text-left">
+          <p className="text-body font-medium text-foreground">A real, visible track record</p>
+          <p className="mt-1 text-body text-secondary">
             Achievements show up right on your profile — other rivals see them before they accept
             your challenge.
           </p>
         </div>
         <button
           onClick={onGetStarted}
-          className="w-full rounded-md bg-foreground px-4 py-3 text-sm font-medium text-background active:scale-[0.97]"
+          className="w-full rounded-control bg-foreground px-4 py-3 text-body font-medium text-background active:scale-[0.97]"
           style={{ transition: "transform 150ms ease-out" }}
         >
           Get Started

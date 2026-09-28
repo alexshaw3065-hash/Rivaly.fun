@@ -13,10 +13,10 @@ const PREVIEW_COUNT = 6;
 function ProgressBar({ current, target }: { current: number; target: number }) {
   const pct = Math.min(100, Math.round((current / target) * 100));
   return (
-    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--border)" }}>
+    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--line)" }}>
       <div
         className="h-full rounded-full"
-        style={{ width: `${pct}%`, background: "var(--rival-blue)", transition: "width 200ms ease-out" }}
+        style={{ width: `${pct}%`, background: "var(--yes)", transition: "width 200ms ease-out" }}
       />
     </div>
   );
@@ -41,16 +41,16 @@ export function ProfileAchievements({ profile, isSelf, stats }: { profile: Profi
     <>
       <button
         onClick={() => setFullOpen(true)}
-        className="hover-link flex items-center gap-2 text-sm text-muted transition-colors"
+        className="hover-link flex items-center gap-2 text-body text-secondary transition-colors"
       >
         <div className="flex -space-x-1.5">
           {preview.map(({ achievement, unlocked }) => (
             <span
               key={achievement.id}
-              className="flex h-6 w-6 items-center justify-center rounded-full border text-xs"
+              className="flex h-6 w-6 items-center justify-center rounded-full border text-caption"
               style={{
-                borderColor: unlocked ? "var(--rival-blue)" : "var(--border)",
-                background: unlocked ? "var(--rival-blue-dim)" : "var(--surface-elevated)",
+                borderColor: unlocked ? "var(--yes)" : "var(--line)",
+                background: unlocked ? "var(--yes-tint)" : "var(--surface-elevated)",
                 opacity: unlocked ? 1 : 0.4,
               }}
             >
@@ -71,9 +71,9 @@ export function ProfileAchievements({ profile, isSelf, stats }: { profile: Profi
       <BottomSheet open={hasSeenIntro && fullOpen} onClose={() => setFullOpen(false)} title="Achievements">
         <div className="flex flex-col gap-6">
           {isSelf && (
-            <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface py-3">
+            <div className="flex items-center justify-center gap-2 rounded-control border border-line bg-surface py-3">
               <span className="text-lg">🔥</span>
-              <span className="text-sm font-medium text-foreground">
+              <span className="text-body font-medium text-foreground">
                 {streak} day{streak === 1 ? "" : "s"} streak
               </span>
             </div>
@@ -84,8 +84,8 @@ export function ProfileAchievements({ profile, isSelf, stats }: { profile: Profi
             return (
               <div key={category}>
                 <div className="flex items-baseline justify-between">
-                  <p className="font-display text-base font-semibold text-foreground">{category}</p>
-                  <p className="text-xs text-muted">
+                  <p className="font-display text-body-lg font-semibold text-foreground">{category}</p>
+                  <p className="text-caption text-secondary">
                     {categoryUnlocked} of {items.length}
                   </p>
                 </div>
@@ -95,19 +95,19 @@ export function ProfileAchievements({ profile, isSelf, stats }: { profile: Profi
                     return (
                       <div
                         key={achievement.id}
-                        className="flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center"
+                        className="flex flex-col items-center gap-1.5 rounded-control border p-3 text-center"
                         style={{
-                          borderColor: unlocked ? "var(--border-strong)" : "var(--border)",
+                          borderColor: unlocked ? "var(--line-strong)" : "var(--line)",
                           opacity: unlocked ? 1 : 0.5,
                         }}
                       >
                         <span className="text-xl">{achievement.icon}</span>
-                        <p className="text-xs font-medium text-foreground">{achievement.label}</p>
-                        <p className="text-[11px] text-muted">{achievement.description}</p>
+                        <p className="text-caption font-medium text-foreground">{achievement.label}</p>
+                        <p className="text-caption text-secondary">{achievement.description}</p>
                         {prog && (
                           <div className="w-full">
                             <ProgressBar current={prog.current} target={prog.target} />
-                            <p className="mt-1 text-[10px] text-muted">
+                            <p className="mt-1 text-micro text-secondary">
                               {prog.current.toLocaleString()}/{prog.target.toLocaleString()}
                             </p>
                           </div>

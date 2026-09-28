@@ -98,30 +98,30 @@ export function FollowListSheet({
 
   return (
     <BottomSheet open={initialTab !== null} onClose={onClose} title={name}>
-      <div className="mt-2 flex border-b border-border">
+      <div className="mt-2 flex border-b border-line">
         {(["followers", "following"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="-mb-px flex-1 border-b-2 pb-2.5 text-sm font-medium transition-colors"
-            style={{ borderColor: tab === t ? "var(--foreground)" : "transparent", color: tab === t ? "var(--foreground)" : "var(--muted)" }}
+            className="-mb-px flex-1 border-b-2 pb-3 text-body font-medium transition-colors"
+            style={{ borderColor: tab === t ? "var(--foreground)" : "transparent", color: tab === t ? "var(--foreground)" : "var(--text-secondary)" }}
           >
             {t === "followers" ? `Followers · ${counts.followers}` : `Following · ${counts.following}`}
           </button>
         ))}
       </div>
       <div className="mt-2 max-h-[55vh] overflow-y-auto">
-        {!list && <div className="h-24 animate-pulse rounded-xl bg-foreground/5" />}
+        {!list && <div className="h-24 skeleton rounded-card bg-foreground/5" />}
         {list?.length === 0 && (
-          <p className="py-10 text-center text-sm text-muted">{tab === "followers" ? "No followers yet." : "Not following anyone yet."}</p>
+          <p className="py-10 text-center text-body text-secondary">{tab === "followers" ? "No followers yet." : "Not following anyone yet."}</p>
         )}
         {list?.map((p) => (
-          <div key={p.id} className="flex items-center gap-3 py-2.5">
+          <div key={p.id} className="flex items-center gap-3 py-3">
             <Link href={`/profile/${p.username}`} onClick={onClose} className="flex min-w-0 flex-1 items-center gap-3">
               <RivalCharacter name={p.name} imageUrl={p.avatar} size={40} />
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-foreground">{p.name}</span>
-                <span className="block truncate text-xs text-muted">@{p.username}</span>
+                <span className="block truncate text-body font-semibold text-foreground">{p.name}</span>
+                <span className="block truncate text-caption text-secondary">@{p.username}</span>
               </span>
             </Link>
             {me && me.id !== p.id && mine && <FollowButton key={`${p.id}:${mine.has(p.id)}`} profileId={p.id} initialFollowing={mine.has(p.id)} />}

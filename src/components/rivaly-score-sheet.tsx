@@ -38,7 +38,7 @@ export function RivalyScoreSheet({ open, onClose, profile }: { open: boolean; on
     <BottomSheet open={open} onClose={onClose} title="Rivaly card">
       <div className="flex flex-col gap-5">
         <div className="relative mx-auto w-full max-w-[300px]" style={{ aspectRatio: "630 / 891" }}>
-          {!loaded && <div className="absolute inset-0 animate-pulse rounded-[28px] bg-foreground/10" />}
+          {!loaded && <div className="absolute inset-0 skeleton rounded-[28px] bg-foreground/10" />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={src}
@@ -48,11 +48,11 @@ export function RivalyScoreSheet({ open, onClose, profile }: { open: boolean; on
             style={{ opacity: loaded ? 1 : 0 }}
           />
         </div>
-        <p className="-mt-2 text-center text-xs text-muted">From settled public rooms only. Rated after 3.</p>
+        <p className="-mt-2 text-center text-caption text-secondary">From settled public rooms only. Rated after 3.</p>
         <button
           onClick={share}
           disabled={busy || !loaded}
-          className="rounded-full bg-foreground px-4 py-3 text-sm font-semibold text-background transition-transform duration-150 active:scale-[0.97] disabled:opacity-60"
+          className="rounded-full bg-foreground px-4 py-3 text-body font-semibold text-background transition-transform duration-150 active:scale-[0.97] disabled:opacity-60"
         >
           {busy ? "Preparing…" : "Share card"}
         </button>

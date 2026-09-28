@@ -19,36 +19,33 @@ export function ProfilePnl({ hasPositions = false }: { hasPositions?: boolean })
   const live = useLiveWalletBalance();
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-5">
-      <span
-        className="block truncate font-mono text-2xl font-semibold md:text-3xl"
-        style={{ color: live.isReal && live.hasLoaded ? "var(--foreground)" : "var(--muted)" }}
-      >
+    <div className="rounded-card bg-surface p-5 edge">
+      <span className={`block truncate text-title-1 font-display tabular-nums ${live.isReal && live.hasLoaded ? "text-foreground" : "text-secondary"}`}>
         {live.isReal && live.hasLoaded ? formatUsdc(live.usdcBalance) : "—"}
       </span>
-      <p className="mt-1 text-sm text-muted">USDC available to stake</p>
+      <p className="mt-1 text-body text-secondary">USDC available to stake</p>
 
       <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="mt-3 h-16 w-full" preserveAspectRatio="none">
         <path
           d={EMPTY_WAVE}
           fill="none"
-          stroke="var(--border-strong)"
+          stroke="var(--line-strong)"
           strokeWidth={2}
           strokeLinecap="round"
           strokeDasharray="4 5"
         />
       </svg>
 
-      <p className="-mt-1 text-center text-sm text-muted">{hasPositions ? "Your balance history draws in as rooms settle" : "No positions yet"}</p>
+      <p className="-mt-1 text-center text-body text-secondary">{hasPositions ? "Your balance history draws in as rooms settle" : "No positions yet"}</p>
 
-      <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-sm text-muted">
+      <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full text-label text-secondary edge-strong">
             $
           </span>
-          <span className="text-sm text-muted">Total cash</span>
+          <span className="text-body text-secondary">Total cash</span>
         </div>
-        <span className="font-mono text-sm font-medium text-foreground">
+        <span className="text-body font-semibold tabular-nums text-foreground">
           {live.isReal && live.hasLoaded ? `${formatUsdc(live.usdcBalance)} USDC` : "—"}
         </span>
       </div>

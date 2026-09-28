@@ -23,7 +23,7 @@ function Swatch({ color, active, onClick }: { color: string; active: boolean; on
       className="h-8 w-8 shrink-0 rounded-full active:scale-[0.94]"
       style={{
         background: color,
-        outline: active ? "2px solid var(--foreground)" : "1px solid var(--border-strong)",
+        outline: active ? "2px solid var(--foreground)" : "1px solid var(--line-strong)",
         outlineOffset: 2,
         transition: "transform 150ms ease-out",
       }}
@@ -159,7 +159,7 @@ export function ProfileEditSheet({
       headerAction={
         <button
           onClick={onClose}
-          className="text-sm font-medium text-rival-blue transition-colors hover:text-foreground"
+          className="text-body font-medium text-yes-ink transition-colors hover:text-foreground"
         >
           Save
         </button>
@@ -167,10 +167,10 @@ export function ProfileEditSheet({
     >
       <div className="flex flex-col gap-6">
         <div>
-          <div className="relative h-28 rounded-lg" style={{ background: bannerColor, transition: "background 150ms ease" }}>
+          <div className="relative h-28 rounded-control" style={{ background: bannerColor, transition: "background 150ms ease" }}>
             {(bannerPreview ?? bannerUrl) && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={bannerPreview ?? cloudinaryBannerUrl(bannerUrl!, 800)} alt="" className="absolute inset-0 h-full w-full rounded-lg object-cover" />
+              <img src={bannerPreview ?? cloudinaryBannerUrl(bannerUrl!, 800)} alt="" className="absolute inset-0 h-full w-full rounded-control object-cover" />
             )}
             {bannerProgress !== null && (
               <span className="absolute inset-x-3 bottom-2 h-1 overflow-hidden rounded-full bg-black/40">
@@ -180,7 +180,7 @@ export function ProfileEditSheet({
             <div className="absolute right-2 top-2 flex gap-1.5">
               <button
                 onClick={() => bannerInputRef.current?.click()}
-                className="rounded-full px-3 py-1 text-xs font-semibold text-white"
+                className="rounded-full px-3 py-1 text-caption font-semibold text-white"
                 style={{ background: "rgba(10,10,10,0.55)" }}
               >
                 {bannerUrl ? "Change cover" : "Add cover photo"}
@@ -223,12 +223,12 @@ export function ProfileEditSheet({
           </div>
 
           {bannerUrl && (
-            <button onClick={() => onBannerUrlChange(null)} className="hover-link mt-1.5 block w-full text-right text-xs text-muted transition-colors">
+            <button onClick={() => onBannerUrlChange(null)} className="hover-link mt-1.5 block w-full text-right text-caption text-secondary transition-colors">
               Remove cover photo
             </button>
           )}
           {editingBanner && !bannerUrl && (
-            <div className="enter-row mt-11 flex justify-center gap-2.5">
+            <div className="enter-row mt-11 flex justify-center gap-3">
               {BANNER_COLORS.map((c) => (
                 <Swatch key={c} color={c} active={c === bannerColor} onClick={() => onBannerColorChange(c)} />
               ))}
@@ -236,7 +236,7 @@ export function ProfileEditSheet({
           )}
           {editingAvatar && (
             <div className={`enter-row flex flex-col items-center gap-2 ${editingBanner ? "mt-3" : "mt-11"}`}>
-              <div className="flex justify-center gap-2.5">
+              <div className="flex justify-center gap-3">
                 {RING_COLORS.map((c) => (
                   <Swatch key={c} color={c} active={c === ringColor} onClick={() => onRingColorChange(c)} />
                 ))}
@@ -244,30 +244,30 @@ export function ProfileEditSheet({
               {avatarUrl && (
                 <button
                   onClick={() => onAvatarUrlChange(null)}
-                  className="hover-link text-xs text-muted transition-colors"
+                  className="hover-link text-caption text-secondary transition-colors"
                 >
                   Remove photo
                 </button>
               )}
             </div>
           )}
-          {uploadError && <p className="mt-2 text-center text-xs text-danger-red">{uploadError}</p>}
+          {uploadError && <p className="mt-2 text-center text-caption text-no-ink">{uploadError}</p>}
           {!editingBanner && !editingAvatar && !uploadError && <div className="mt-9" />}
         </div>
 
         <div>
-          <p className="text-xs text-muted">Display name</p>
+          <p className="text-caption text-secondary">Display name</p>
           <input
             value={displayName}
             onChange={(e) => onDisplayNameChange(e.target.value)}
-            className="mt-1.5 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-border-strong"
+            className="mt-1.5 w-full rounded-control border border-line bg-surface px-3 py-2 text-body text-foreground outline-none focus:border-line-strong"
           />
         </div>
 
         <div>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted">About you</p>
-            <p className="text-xs text-muted">
+            <p className="text-caption text-secondary">About you</p>
+            <p className="text-caption text-secondary">
               {bio.length}/{BIO_MAX}
             </p>
           </div>
@@ -277,26 +277,26 @@ export function ProfileEditSheet({
             placeholder="Add a bio..."
             rows={3}
             maxLength={BIO_MAX}
-            className="mt-1.5 w-full resize-none rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-border-strong"
+            className="mt-1.5 w-full resize-none rounded-control border border-line bg-surface px-3 py-2 text-body text-foreground outline-none focus:border-line-strong"
           />
         </div>
 
         <div>
-          <p className="mb-2 text-xs text-muted">Social links ({socialLinks.length} max 5)</p>
+          <p className="mb-2 text-caption text-secondary">Social links ({socialLinks.length} max 5)</p>
           <div className="flex flex-wrap gap-2">
             {socialLinks.map((link) => {
               const info = socialPlatformInfo(link.platform);
               return (
                 <span
                   key={link.platform}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-surface py-1.5 pl-3 pr-2 text-sm text-foreground"
+                  className="flex items-center gap-1.5 rounded-full border border-line bg-surface py-1.5 pl-3 pr-2 text-body text-foreground"
                 >
                   <info.Icon />
                   {link.handle}
                   <button
                     onClick={() => onSocialLinksChange(socialLinks.filter((l) => l.platform !== link.platform))}
                     aria-label={`Remove ${info.label}`}
-                    className="text-muted transition-colors hover:text-foreground"
+                    className="text-secondary transition-colors hover:text-foreground"
                   >
                     <XIcon />
                   </button>
@@ -306,7 +306,7 @@ export function ProfileEditSheet({
             {socialLinks.length < 5 && (
               <button
                 onClick={() => setSocialsOpen(true)}
-                className="rounded-full border border-dashed border-border-strong px-3 py-1.5 text-sm text-muted transition-colors hover:text-foreground"
+                className="rounded-full border border-dashed border-line-strong px-3 py-1.5 text-body text-secondary transition-colors hover:text-foreground"
               >
                 + Add social link
               </button>

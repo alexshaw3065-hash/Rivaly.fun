@@ -28,6 +28,7 @@ import { HostLine } from "./profile/host-line";
 import { ProfileSocialsSheet } from "./profile-socials-sheet";
 import { RivalyScoreBadge } from "./rivaly-score-badge";
 import { siteUrl } from "@/lib/site";
+import { Chip, Tabs } from "./ui/controls";
 
 type ProfileTab = "position" | "replies" | "activity";
 
@@ -125,7 +126,7 @@ function ProfileHeader({
     <div>
       {/* The header card: a cover (photo or colour) that fades into the card,
           the avatar sitting over its edge, one main action on the right. */}
-      <div className="overflow-hidden rounded-3xl bg-surface ring-1 ring-border">
+      <div className="overflow-hidden rounded-card bg-surface edge">
         <div className="relative h-44 md:h-60" style={{ background: bannerColor }}>
           {bannerUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -171,7 +172,7 @@ function ProfileHeader({
                 <button
                   type="button"
                   onClick={() => setEditOpen(true)}
-                  className="h-10 rounded-full px-5 text-sm font-semibold text-foreground ring-1 ring-border-strong transition-colors hover:bg-foreground/5"
+                  className="h-10 rounded-full px-5 text-body font-semibold text-foreground edge-strong transition-colors hover:bg-foreground/5"
                 >
                   Edit profile
                 </button>
@@ -180,7 +181,7 @@ function ProfileHeader({
                   <button
                     type="button"
                     onClick={() => setChallengeOpen(true)}
-                    className="h-10 rounded-full px-5 text-sm font-semibold text-foreground ring-1 ring-border-strong transition-colors hover:bg-foreground/5"
+                    className="h-10 rounded-full px-5 text-body font-semibold text-foreground edge-strong transition-colors hover:bg-foreground/5"
                   >
                     Challenge
                   </button>
@@ -190,9 +191,9 @@ function ProfileHeader({
             </div>
           </div>
 
-          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-foreground md:text-3xl">{displayName}</h1>
+          <h1 className="mt-3 text-title-1 font-display text-foreground">{displayName}</h1>
           {saveError && (
-            <p role="alert" className="text-xs font-semibold text-rival-red">
+            <p role="alert" className="text-caption font-semibold text-no-ink">
               {saveError}{" "}
               <button onClick={() => setEditOpen(true)} className="underline">
                 Try again
@@ -200,17 +201,17 @@ function ProfileHeader({
             </p>
           )}
           {bio ? (
-            <p className="mt-1 max-w-md text-[15px] text-foreground/80">{bio}</p>
+            <p className="mt-1 max-w-md text-body text-foreground/80">{bio}</p>
           ) : isSelf ? (
-            <button onClick={() => setEditOpen(true)} className="hover-link mt-1 text-sm text-muted transition-colors">
+            <button onClick={() => setEditOpen(true)} className="hover-link mt-1 text-body text-secondary transition-colors">
               + Add a bio
             </button>
           ) : null}
 
           {/* Details line: handle and card rating, when they joined, their links. */}
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-label text-secondary">
             <span className="flex items-center gap-1.5">
-              <span className="font-mono">@{profile.username}</span>
+              <span>@{profile.username}</span>
               <RivalyScoreBadge profile={{ ...profile, displayName }} />
             </span>
             <span className="flex items-center gap-1.5">
@@ -225,7 +226,7 @@ function ProfileHeader({
                 {socialLinks.map((link) => {
                   const info = socialPlatformInfo(link.platform);
                   const url = info.buildUrl?.(link.handle);
-                  const cls = "flex h-7 w-7 items-center justify-center rounded-full text-muted ring-1 ring-border transition-colors hover:text-foreground hover:ring-border-strong";
+                  const cls = "flex h-7 w-7 items-center justify-center rounded-full text-secondary edge transition-colors hover:text-foreground ";
                   return url ? (
                     <a key={link.platform} href={url} target="_blank" rel="noopener noreferrer" title={`${info.label}: ${link.handle}`} className={cls}>
                       <info.Icon />
@@ -240,7 +241,7 @@ function ProfileHeader({
                   <button
                     onClick={() => setSocialsOpen(true)}
                     aria-label="Add social link"
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-border-strong text-muted transition-colors hover:text-foreground"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-line-strong text-secondary transition-colors hover:text-foreground"
                   >
                     <PlusIcon />
                   </button>
@@ -249,7 +250,7 @@ function ProfileHeader({
             )}
           </div>
 
-          <div className="mt-3 flex gap-4 text-sm text-muted">
+          <div className="mt-3 flex gap-4 text-body text-secondary">
             <button type="button" onClick={() => setListTab("following")} className="hover:underline">
               <span className="font-semibold text-foreground">{profile.followingCount.toLocaleString()}</span> Following
             </button>
@@ -365,41 +366,39 @@ export function ProfileView({
 
       {!isSelf && <HeadToHead other={{ id: profile.id, name: profile.displayName, username: profile.username, avatarUrl: profile.avatarUrl }} />}
 
-      <div className="mt-6 grid grid-cols-3 gap-3 border-t border-border pt-6">
-        <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
-          <p className="truncate font-mono text-lg font-medium text-foreground md:text-2xl">{card ? `${card.wins}–${card.losses}` : "–"}</p>
-          <p className="mt-0.5 text-xs text-muted">Record</p>
+      <div className="mt-8 grid grid-cols-3 gap-3">
+        <div className="min-w-0 rounded-card bg-surface p-4 edge">
+          <p className="truncate text-title-3 font-display tabular-nums text-foreground md:text-title-2">{card ? `${card.wins}–${card.losses}` : "–"}</p>
+          <p className="mt-1 text-caption text-secondary">Record</p>
         </div>
-        <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
-          <p className="truncate font-mono text-lg font-medium text-foreground md:text-2xl">
+        <div className="min-w-0 rounded-card bg-surface p-4 edge">
+          <p className="truncate text-title-3 font-display tabular-nums text-foreground md:text-title-2">
             {card && card.played > 0 ? `${Math.round((card.wins / card.played) * 100)}%` : "–"}
           </p>
-          <p className="mt-0.5 text-xs text-muted">Accuracy</p>
+          <p className="mt-1 text-caption text-secondary">Accuracy</p>
         </div>
-        <div className="min-w-0 rounded-lg border border-border bg-surface p-4" title={card ? formatMoney(Math.abs(card.profit)) : undefined}>
+        <div className="min-w-0 rounded-card bg-surface p-4 edge" title={card ? formatMoney(Math.abs(card.profit)) : undefined}>
           <p
-            className="truncate font-mono text-lg font-medium md:text-2xl"
-            style={{ color: !card || card.profit === 0 ? "var(--foreground)" : card.profit > 0 ? "var(--rival-green)" : "var(--rival-red)" }}
+            className={`truncate text-title-3 font-display tabular-nums md:text-title-2 ${
+              !card || card.profit === 0 ? "text-foreground" : card.profit > 0 ? "text-money-ink" : "text-no-ink"
+            }`}
           >
             {card ? (card.profit === 0 ? "$0" : Math.abs(card.profit) >= 100_000 ? `${card.profit > 0 ? "+" : "−"}${formatMoneyCompact(Math.abs(card.profit))}` : formatSignedMoney(card.profit)) : "–"}
           </p>
-          <p className="mt-0.5 text-xs text-muted">Winnings</p>
+          <p className="mt-1 text-caption text-secondary">Winnings</p>
         </div>
       </div>
 
       {card && (
-        <div className="mt-3 flex items-center gap-3 text-[13px] text-muted">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-widest">Form</span>
+        <div className="mt-4 flex items-center gap-3 text-label text-secondary">
+          <span className="font-semibold">Form</span>
           <span className="flex gap-1.5">
             {Array.from({ length: 5 }, (_, i) => card.form[i] ?? null).map((r, i) => (
               <span
                 key={i}
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
-                style={
-                  r
-                    ? { background: r === "W" ? "var(--rival-green)" : "var(--rival-red)", color: "#fff" }
-                    : { boxShadow: "inset 0 0 0 1.5px var(--border)", color: "transparent" }
-                }
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-micro font-bold ${
+                  r ? `text-white ${r === "W" ? "bg-money" : "bg-no"}` : "text-transparent outline outline-[1.5px] -outline-offset-[1.5px] outline-line-strong"
+                }`}
                 aria-label={r === "W" ? "Win" : r === "L" ? "Loss" : "No result"}
               >
                 {r ?? ""}
@@ -429,44 +428,19 @@ export function ProfileView({
             to provably fit at a 375px viewport, verified against the
             row's real scrollWidth. Open/Closed lives underneath, only
             while Position is the open tab — not squeezed onto this row. */}
-        <div className="flex min-w-0 gap-3 border-b border-border">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className="-mb-px shrink-0 border-b-2 pb-2.5 text-[13px] font-medium transition-colors duration-150"
-              style={{
-                borderColor: tab === t.id ? "var(--foreground)" : "transparent",
-                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
-              }}
-            >
-              {t.label}
-              {t.count !== null && ` (${t.count})`}
-            </button>
-          ))}
-        </div>
+        <Tabs tabs={tabs.map((t) => ({ id: t.id, label: t.label, count: t.count ?? undefined }))} value={tab} onChange={setTab} />
 
         {tab === "position" && (
-          <div className="mt-4 flex gap-1">
+          <div className="mt-4 flex gap-2">
             {(["open", "closed"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setPositionFilter(f)}
-                className="rounded-full border px-3 py-1 text-xs capitalize active:scale-[0.97]"
-                style={{
-                  borderColor: positionFilter === f ? "var(--foreground)" : "var(--border)",
-                  color: positionFilter === f ? "var(--foreground)" : "var(--muted)",
-                  background: positionFilter === f ? "var(--surface-elevated)" : "transparent",
-                  transition: "transform 150ms ease-out, border-color 150ms ease, color 150ms ease",
-                }}
-              >
+              <Chip key={f} selected={positionFilter === f} className="capitalize" onClick={() => setPositionFilter(f)}>
                 {f}
-              </button>
+              </Chip>
             ))}
           </div>
         )}
 
-        <div className="mt-6">
+        <div className="mt-4">
           {tab === "position" && <ProfilePositions items={positions.items} isLoading={positions.isLoading} filter={positionFilter} />}
           {tab === "replies" && <ProfileReplies profileId={profile.id} />}
           {tab === "activity" && <ProfileActivity profileId={profile.id} />}

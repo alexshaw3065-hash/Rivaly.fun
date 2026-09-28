@@ -29,23 +29,23 @@ export function ChallengeSheet({ open, onClose, username, name }: { open: boolea
 
   return (
     <BottomSheet open={open} onClose={onClose} title={`Challenge ${name}`}>
-      <p className="-mt-1 text-center text-sm text-muted">Pick a match. Make your call. Send it to them.</p>
-      <div className="mt-4 flex max-h-[50vh] flex-col overflow-y-auto rounded-2xl ring-1 ring-border">
-        {isLoading && <div className="h-24 animate-pulse" />}
-        {!isLoading && upcoming.length === 0 && <p className="p-5 text-center text-sm text-muted">No upcoming matches right now.</p>}
+      <p className="-mt-1 text-center text-body text-secondary">Pick a match. Make your call. Send it to them.</p>
+      <div className="mt-4 flex max-h-[50vh] flex-col overflow-y-auto rounded-card edge">
+        {isLoading && <div className="h-24 skeleton" />}
+        {!isLoading && upcoming.length === 0 && <p className="p-5 text-center text-body text-secondary">No upcoming matches right now.</p>}
         {upcoming.map((m) => (
-          <button key={m.id} type="button" onClick={() => go(m.id)} className="flex items-center gap-3 border-b border-border px-4 py-3 text-left last:border-0 hover:bg-foreground/[0.03]">
+          <button key={m.id} type="button" onClick={() => go(m.id)} className="flex items-center gap-3 border-b border-line px-4 py-3 text-left last:border-0 hover:bg-foreground/[0.03]">
             <span className="flex -space-x-1.5">
               <TeamCrest name={m.homeTeam} size={24} />
               <TeamCrest name={m.awayTeam} size={24} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-foreground">
+              <span className="block truncate text-body font-semibold text-foreground">
                 {m.homeTeam} v {m.awayTeam}
               </span>
-              <span className="block truncate text-xs text-muted">{m.competition}</span>
+              <span className="block truncate text-caption text-secondary">{m.competition}</span>
             </span>
-            <span className="shrink-0 font-mono text-[11px] text-muted">
+            <span className="shrink-0 tabular-nums text-caption text-secondary">
               {new Date(m.kickoffAt).toLocaleString("en-GB", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
             </span>
           </button>

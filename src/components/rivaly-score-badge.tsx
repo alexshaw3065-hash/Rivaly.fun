@@ -19,14 +19,14 @@ export function RivalyScoreBadge({ profile }: { profile: Profile }) {
       live = false;
     };
   }, [profile.id]);
-  const color = card?.tier ? TIER_COLORS[card.tier] : "var(--muted)";
+  const color = card?.tier ? TIER_COLORS[card.tier] : "var(--text-secondary)";
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
         aria-label="View Rivaly card"
-        className="flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-xs font-semibold transition-transform duration-150 active:scale-[0.95]"
+        className="flex items-center gap-1 rounded-full border px-2 py-0.5 tabular-nums text-caption font-semibold transition-transform duration-150 active:scale-[0.95]"
         style={{ borderColor: color, color }}
       >
         {card?.rating ?? "NR"}

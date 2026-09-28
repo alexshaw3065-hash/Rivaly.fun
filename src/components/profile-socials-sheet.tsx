@@ -48,19 +48,19 @@ export function ProfileSocialsSheet({
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
             placeholder="@handle"
-            className="w-full rounded-md border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-border-strong"
+            className="w-full rounded-control border border-line bg-surface px-4 py-3 text-body text-foreground outline-none focus:border-line-strong"
           />
           <div className="flex gap-2">
             <button
               onClick={() => setPicked(null)}
-              className="flex-1 rounded-md border border-border-strong px-4 py-2.5 text-sm font-medium text-foreground active:scale-[0.97]"
+              className="flex-1 rounded-control border border-line-strong px-4 py-3 text-body font-medium text-foreground active:scale-[0.97]"
               style={{ transition: "transform 150ms ease-out" }}
             >
               Back
             </button>
             <button
               onClick={save}
-              className="flex-1 rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background active:scale-[0.97]"
+              className="flex-1 rounded-control bg-foreground px-4 py-3 text-body font-medium text-background active:scale-[0.97]"
               style={{ transition: "transform 150ms ease-out" }}
             >
               Save
@@ -68,20 +68,20 @@ export function ProfileSocialsSheet({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 gap-3">
           {available.map(({ platform, label, Icon }) => (
             <button
               key={platform}
               onClick={() => setPicked(platform)}
-              className="flex flex-col items-center gap-2 rounded-lg border border-border bg-surface p-3 active:scale-[0.97]"
+              className="flex flex-col items-center gap-2 rounded-control border border-line bg-surface p-3 active:scale-[0.97]"
               style={{ transition: "transform 150ms ease-out" }}
             >
               <Icon />
-              <span className="text-xs text-foreground">{label}</span>
+              <span className="text-caption text-foreground">{label}</span>
             </button>
           ))}
           {available.length === 0 && (
-            <p className="col-span-3 py-6 text-center text-sm text-muted">All platforms connected.</p>
+            <p className="col-span-3 py-6 text-center text-body text-secondary">All platforms connected.</p>
           )}
         </div>
       )}

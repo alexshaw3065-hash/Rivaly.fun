@@ -244,7 +244,10 @@
   --text-micro--letter-spacing: 0.02em;
   --text-micro--font-weight: 550;
 
-  /* Radii, named by what they're for: rounded-tag / -control / -card / -sheet */
+  /* Radii, named by what they're for: rounded-tag / -control / -card / -sheet.
+     Use the sheet radius with a side (rounded-t-sheet) or a breakpoint
+     (md:rounded-sheet): Tailwind reads a bare "rounded-sheet" as rounded-s
+     (start corners) + "heet" and emits nothing. */
   --radius-tag: 6px;
   --radius-control: 10px;
   --radius-card: 14px;

@@ -34,8 +34,8 @@ export default async function ProfilePage({
     return (
       <main className="mx-auto max-w-3xl px-4 py-16 text-center md:px-6">
         <p className="font-display text-xl font-semibold text-foreground">Rival not found</p>
-        <p className="mt-2 text-sm text-muted">@{username} doesn&rsquo;t exist.</p>
-        <Link href="/" className="mt-6 inline-block text-sm text-foreground hover:underline">
+        <p className="mt-2 text-body text-secondary">@{username} doesn&rsquo;t exist.</p>
+        <Link href="/" className="mt-6 inline-block text-body text-foreground hover:underline">
           ← Back home
         </Link>
       </main>

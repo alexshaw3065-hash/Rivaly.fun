@@ -19,19 +19,19 @@ export function ProfileActivity({ profileId }: { profileId: string }) {
     };
   }, [profileId]);
 
-  if (posts === null) return <div className="h-32 animate-pulse rounded-2xl bg-foreground/5" />;
-  if (posts.length === 0) return <p className="py-14 text-center text-sm text-muted">No takes yet.</p>;
+  if (posts === null) return <div className="h-32 skeleton rounded-card bg-foreground/5" />;
+  if (posts.length === 0) return <p className="py-14 text-center text-body text-secondary">No takes yet.</p>;
   return (
-    <div className="flex flex-col divide-y divide-border rounded-2xl bg-surface ring-1 ring-border">
+    <div className="flex flex-col divide-y divide-line rounded-card bg-surface edge">
       {posts.map((p) => (
-        <Link key={p.id} href={`/arena/p/${p.id}`} className="block px-4 py-3.5 transition-colors hover:bg-foreground/[0.02]">
-          {p.body && <p className="whitespace-pre-wrap break-words text-[15px] leading-snug text-foreground">{p.body}</p>}
+        <Link key={p.id} href={`/arena/p/${p.id}`} className="block px-4 py-4 transition-colors hover:bg-foreground/[0.02]">
+          {p.body && <p className="whitespace-pre-wrap break-words text-body leading-snug text-foreground">{p.body}</p>}
           {p.attachment && (
             <div className="mt-2">
               <Photo attachment={p.attachment} />
             </div>
           )}
-          <p className="mt-1 text-xs text-muted">{ago(p.at)}</p>
+          <p className="mt-1 text-caption text-secondary">{ago(p.at)}</p>
         </Link>
       ))}
     </div>

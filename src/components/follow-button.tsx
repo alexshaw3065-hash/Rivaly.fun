@@ -51,8 +51,7 @@ export function FollowButton({
       <button
         onClick={handleClick}
         disabled={pending}
-        className="h-10 rounded-full px-6 text-sm font-semibold transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-70"
-        style={following ? { background: "var(--foreground)", color: "var(--background)" } : { background: "var(--rival-blue)", color: "#fff" }}
+        className={`h-10 rounded-full px-6 text-label font-semibold transition-transform duration-100 ease-out active:scale-[0.97] disabled:opacity-70 ${following ? "bg-foreground text-background" : "bg-yes text-white"}`}
       >
         {following ? "Following" : "Follow"}
       </button>
@@ -63,12 +62,9 @@ export function FollowButton({
     <button
       onClick={handleClick}
       disabled={pending}
-      className={`rounded-md border transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-70 ${variant === "compact" ? "w-full py-1.5 text-xs font-semibold" : "px-4 py-2 text-sm font-medium"}`}
-      style={{
-        borderColor: following ? "var(--border)" : "var(--rival-blue)",
-        background: following ? "transparent" : "var(--rival-blue)",
-        color: following ? "var(--foreground)" : "#fff",
-      }}
+      className={`rounded-control font-semibold transition-transform duration-100 ease-out active:scale-[0.97] disabled:opacity-70 ${variant === "compact" ? "h-8 w-full text-caption" : "h-9 px-4 text-label"} ${
+        following ? "text-foreground edge-strong" : "bg-yes text-white"
+      }`}
     >
       {following ? "Following" : "Follow"}
     </button>

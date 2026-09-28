@@ -35,13 +35,13 @@ export function HostLine({ profileId, isSelf }: { profileId: string; isSelf: boo
 export function HostLineView({ pot, earnings, isSelf }: { pot: number; earnings: number | null; isSelf: boolean }) {
   const s = { pot, earnings };
   return (
-    <p className="mt-2 text-sm text-muted">
+    <p className="mt-2 text-body text-secondary">
       <span className="font-semibold text-foreground">{formatMoneyCompact(s.pot)}</span> staked in rooms {isSelf ? "you" : "they"} host
       {s.earnings !== null && s.earnings > 0 && (
         <>
           {" · "}
-          <span className="font-semibold text-rival-green">{formatMoneyCompact(s.earnings)}</span> earned hosting
-          {isSelf && <span className="text-xs"> (only you see this unless you show it in Settings)</span>}
+          <span className="font-semibold text-money-ink">{formatMoneyCompact(s.earnings)}</span> earned hosting
+          {isSelf && <span className="text-caption"> (only you see this unless you show it in Settings)</span>}
         </>
       )}
     </p>

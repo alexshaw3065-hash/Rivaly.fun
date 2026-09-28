@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchRoomsForProfile, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { RoomCard } from "./room-card";
+import { RoomCardShape } from "./loading-shapes";
 
 export type PositionFilter = "open" | "closed";
 
@@ -31,8 +32,14 @@ const isClosed = (status: string) => status === "settled" || status === "refunde
 export function ProfilePositions({ items, isLoading, filter }: { items: RoomWithMatch[]; isLoading: boolean; filter: PositionFilter }) {
   const rows = items.filter(({ room }) => (filter === "open" ? !isClosed(room.status) : isClosed(room.status)));
 
-  if (isLoading) return <p className="py-14 text-center text-sm text-muted">Loading…</p>;
-  if (rows.length === 0) return <p className="py-14 text-center text-sm text-muted">No {filter} positions yet.</p>;
+  if (isLoading)
+    return (
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2" aria-busy>
+        <RoomCardShape />
+        <RoomCardShape />
+      </div>
+    );
+  if (rows.length === 0) return <p className="py-12 text-center text-body text-secondary">No {filter} positions yet.</p>;
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       {rows.map(({ room, match }) => (

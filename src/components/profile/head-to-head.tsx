@@ -34,49 +34,48 @@ export function HeadToHead({ other, initial }: { other: { id: string; name: stri
   const leading = h.mine > h.theirs ? "you" : h.theirs > h.mine ? "them" : "level";
 
   return (
-    <section className="mt-6 rounded-2xl bg-surface p-4 ring-1 ring-border">
-      <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted">You vs {first}</p>
+    <section className="mt-6 rounded-card bg-surface p-4 edge">
+      <p className="text-label font-semibold text-secondary">You vs {first}</p>
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={36} />
-          <span className="truncate text-sm font-semibold text-foreground">You</span>
+          <span className="truncate text-body font-semibold text-foreground">You</span>
         </div>
         <div className="flex items-baseline gap-2 font-display text-4xl font-black tabular-nums">
-          <span style={{ color: leading === "you" ? "var(--rival-blue)" : "var(--foreground)" }}>{h.mine}</span>
-          <span className="text-2xl text-muted">–</span>
-          <span style={{ color: leading === "them" ? "var(--rival-red)" : "var(--foreground)" }}>{h.theirs}</span>
+          <span className={leading === "you" ? "text-yes-ink" : "text-foreground"}>{h.mine}</span>
+          <span className="text-2xl text-secondary">–</span>
+          <span className={leading === "them" ? "text-no-ink" : "text-foreground"}>{h.theirs}</span>
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <span className="truncate text-sm font-semibold text-foreground">{first}</span>
+          <span className="truncate text-body font-semibold text-foreground">{first}</span>
           <RivalCharacter name={other.name} imageUrl={other.avatarUrl} size={36} />
         </div>
       </div>
 
       {h.last ? (
-        <Link href={`/rooms/${h.last.roomId}`} className="mt-3 block rounded-xl px-3 py-2.5 text-[13px] ring-1 ring-border transition-colors hover:bg-foreground/[0.03]">
-          <span className="text-muted">Last meeting · {ago(h.last.at)}</span>
+        <Link href={`/rooms/${h.last.roomId}`} className="mt-3 block rounded-card px-3 py-3 text-label edge transition-colors hover:bg-foreground/[0.03]">
+          <span className="text-secondary">Last meeting · {ago(h.last.at)}</span>
           <span className="mt-0.5 block truncate font-semibold text-foreground">{h.last.prediction}</span>
-          <span className="font-bold" style={{ color: h.last.iWon ? "var(--rival-green)" : "var(--rival-red)" }}>
+          <span className={`font-bold ${h.last.iWon ? "text-money-ink" : "text-no-ink"}`}>
             {h.last.iWon ? "You won" : `${first} won`}
           </span>
-          <span className="text-muted"> · you were on {h.last.mySide.toUpperCase()}</span>
+          <span className="text-secondary"> · you were on {h.last.mySide.toUpperCase()}</span>
         </Link>
       ) : (
-        <p className="mt-3 text-[13px] text-muted">
+        <p className="mt-3 text-label text-secondary">
           {played === 0 && h.live === 0 ? `You haven't faced ${first} yet. Take the other side of one of their rooms — or start one.` : ""}
         </p>
       )}
 
       <div className="mt-3 flex items-center gap-3">
         {h.live > 0 && (
-          <span className="text-[13px] font-semibold text-rival-blue">
+          <span className="text-label font-semibold text-yes-ink">
             {h.live} {h.live === 1 ? "room" : "rooms"} live between you
           </span>
         )}
         <Link
           href={`/rooms/create?${h.rematchMatchId ? `matchId=${h.rematchMatchId}&` : ""}vs=${encodeURIComponent(other.username)}`}
-          className="ml-auto rounded-full px-4 py-2 text-sm font-bold text-white"
-          style={{ background: "var(--rival-blue)" }}
+          className="ml-auto flex h-10 items-center rounded-full bg-yes px-4 text-label font-bold text-white transition-transform duration-100 active:scale-[0.97]"
         >
           {played > 0 ? "Rematch" : "Challenge"}
         </Link>
