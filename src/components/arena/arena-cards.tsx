@@ -258,7 +258,7 @@ function Row({ face, children, onOpen, rowRef }: { face: React.ReactNode; childr
             }
           : undefined
       }
-      className={`flex gap-3 px-4 py-4 ${onOpen ? "cursor-pointer transition-colors hover:bg-foreground/[0.02]" : ""}`}
+      className={`flex gap-3 px-4 py-3 ${onOpen ? "cursor-pointer transition-colors hover:bg-foreground/[0.02]" : ""}`}
     >
       {face}
       <div className="min-w-0 flex-1">{children}</div>
@@ -567,7 +567,7 @@ function SettledCard({ item }: { item: SettledItem }) {
   const outcome = (item.room.outcome as Side) ?? "yes";
   const shown = item.winners.slice(0, 3);
   return (
-    <Link href={`/rooms/${item.room.id}`} className="block px-4 py-4 transition-colors hover:bg-foreground/[0.02]">
+    <Link href={`/rooms/${item.room.id}`} className="block px-4 py-3 transition-colors hover:bg-foreground/[0.02]">
       <p className="tabular-nums text-micro font-bold uppercase text-secondary">Room settled · {ago(item.at)}</p>
       <p className="mt-1 text-body font-semibold leading-snug text-foreground">{item.room.prediction}</p>
       <div className="mt-2 flex items-center gap-2">
@@ -592,7 +592,7 @@ function SettledCard({ item }: { item: SettledItem }) {
 
 function HotCard({ item }: { item: HotItem }) {
   return (
-    <Link href={`/rooms/${item.room.id}`} className="block px-4 py-4 transition-colors hover:bg-foreground/[0.02]">
+    <Link href={`/rooms/${item.room.id}`} className="block px-4 py-3 transition-colors hover:bg-foreground/[0.02]">
       <div className="flex items-center gap-2">
         <span className="tabular-nums text-micro font-bold uppercase text-yes-ink">Heating up</span>
         <span className="text-caption text-secondary">{item.recent} joined in the last 30 min</span>

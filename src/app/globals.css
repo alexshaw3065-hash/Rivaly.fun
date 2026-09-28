@@ -51,6 +51,9 @@
   /* Lines: alpha, so they read correctly on any surface. */
   --line: rgb(255 255 255 / 0.07);
   --line-strong: rgb(255 255 255 / 0.12);
+  /* Between posts in a feed (Arena): strong enough to end one post and start
+     the next at a glance, the way X's feed does. Feeds only — cards keep --line. */
+  --divider: rgb(255 255 255 / 0.16);
   /* The two sides + money, each with a tint (fill) and an ink (text on tint). */
   --yes: var(--rival-blue);
   --yes-tint: color-mix(in srgb, var(--rival-blue) 14%, transparent);
@@ -124,6 +127,7 @@
   --text-tertiary: #8b8b83;
   --line: rgb(0 0 0 / 0.08);
   --line-strong: rgb(0 0 0 / 0.14);
+  --divider: rgb(0 0 0 / 0.12);
   --yes-ink: #1f3fbf;
   --no-ink: #b91c1c;
   --money-ink: #0f7a44;
@@ -173,6 +177,7 @@
   --color-tertiary: var(--text-tertiary);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-divider: var(--divider);
   --color-yes: var(--yes);
   --color-yes-tint: var(--yes-tint);
   --color-yes-tint-strong: var(--yes-tint-strong);

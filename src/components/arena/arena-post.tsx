@@ -114,13 +114,13 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
         <h1 className="font-display text-lg font-bold text-foreground">Post</h1>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-card bg-surface edge">
+      <div className="-mx-4 mt-3 border-y border-divider md:mx-0 md:overflow-hidden md:rounded-card md:border">
         {post === undefined && <div className="h-40 skeleton" />}
         {post === null && <p className="px-4 py-14 text-center text-body text-secondary">This post isn&apos;t here any more.</p>}
         {post && (
           <>
             {post.parentId && (
-              <Link href={`/arena/p/${post.parentId}`} className="block border-b border-line px-4 py-3 text-label text-secondary hover:text-foreground">
+              <Link href={`/arena/p/${post.parentId}`} className="block border-b border-divider px-4 py-3 text-label text-secondary hover:text-foreground">
                 ↑ See the post this replies to
               </Link>
             )}
@@ -128,7 +128,7 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
             <button
               type="button"
               onClick={() => actions.onReply?.(post)}
-              className="flex w-full items-center gap-3 border-t border-line px-4 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
+              className="flex w-full items-center gap-3 border-t border-divider px-4 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
             >
               {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={32} /> : <span className="h-8 w-8 rounded-full bg-foreground/10" />}
               <span className="flex-1 text-body text-secondary">{me ? "Post your reply" : "Sign in to reply"}</span>
@@ -136,7 +136,7 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
                 Reply
               </span>
             </button>
-            <div className="divide-y divide-line border-t border-line">
+            <div className="divide-y divide-divider border-t border-divider">
               {replies === null && <div className="h-20 skeleton" />}
               {replies?.map((r) => (
                 <div key={r.id} className="chat-row-enter">

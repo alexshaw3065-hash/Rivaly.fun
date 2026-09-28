@@ -375,7 +375,7 @@ export function ArenaFeed() {
         </div>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-card bg-surface edge">
+      <div className="-mx-4 mt-4 border-y border-divider md:mx-0 md:overflow-hidden md:rounded-card md:border">
         {state === "loading" && <Skeleton />}
         {state === "error" && <p className="px-4 py-14 text-center text-body text-secondary">Couldn&apos;t load the Arena. Pull to refresh or try again in a moment.</p>}
         {state === "ready" && items.length === 0 && (
@@ -388,7 +388,7 @@ export function ArenaFeed() {
             </p>
           </div>
         )}
-        <div className="divide-y divide-line">
+        <div className="divide-y divide-divider">
           {items.map((item) => (
             <div key={`${item.kind}:${item.id}`} className="chat-row-enter">
               <ArenaCard item={item} actions={actions} />
@@ -431,7 +431,7 @@ function MatchChipButton({ active, onClick, children }: { active: boolean; onCli
 
 function Skeleton() {
   return (
-    <div className="divide-y divide-line">
+    <div className="divide-y divide-divider">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex gap-3 px-4 py-4">
           <span className="h-10 w-10 shrink-0 skeleton rounded-full bg-foreground/5" />
