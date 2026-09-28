@@ -32,6 +32,9 @@ async function withMatches(rows: RoomRow[]): Promise<RoomWithMatch[]> {
 const PUBLIC_LIMIT = 200;
 const CACHE_MS = 30_000;
 let publicCache: { at: number; promise: Promise<RoomWithMatch[]> } | null = null;
+// The last list that actually arrived. A screen opened again shows it at once
+// (no empty flash, no wait on a slow network) while a fresh read runs behind it.
+let publicLast: RoomWithMatch[] | null = null;
 
 /** Open and live public rooms, newest first. Cached briefly so a page with several room sections makes one read. */
 export function fetchPublicRooms(): Promise<RoomWithMatch[]> {
@@ -44,7 +47,9 @@ export function fetchPublicRooms(): Promise<RoomWithMatch[]> {
       .in("status", ["open", "live"])
       .order("created_at", { ascending: false })
       .limit(PUBLIC_LIMIT);
-    return withMatches((data ?? []) as RoomRow[]);
+    const rows = await withMatches((data ?? []) as RoomRow[]);
+    publicLast = rows;
+    return rows;
   })().catch(() => {
     publicCache = null; // don't keep serving a failure for the cache window
     return [] as RoomWithMatch[];
@@ -95,13 +100,14 @@ export async function fetchRoomsByIds(ids: string[]): Promise<RoomWithMatch[]> {
 }
 
 export function usePublicRooms(): { items: RoomWithMatch[]; isLoading: boolean } {
-  const [items, setItems] = useState<RoomWithMatch[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [items, setItems] = useState<RoomWithMatch[]>(() => publicLast ?? []);
+  const [isLoading, setIsLoading] = useState(() => publicLast === null);
   useEffect(() => {
     let cancelled = false;
     fetchPublicRooms().then((rows) => {
       if (cancelled) return;
-      setItems(rows);
+      // A failed read resolves to [] — keep what's on screen rather than blank it.
+      setItems(publicLast ?? rows);
       setIsLoading(false);
     });
     return () => {

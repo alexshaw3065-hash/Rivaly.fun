@@ -10,9 +10,17 @@ import { createClient } from "@/lib/supabase/client";
 // out), a new entry (a rival joined), or the match (score, status). Bursts
 // (a goal + its stat updates) collapse into one re-render. One timer covers
 // kickoff itself, since "stakes locked" happens at a time, not on a write.
-export function RoomLive({ roomId, matchId, kickoffAt }: { roomId: string; matchId: string; kickoffAt: string }) {
+//
+// `renderedAt` is when the server drew this page. Tabs are kept for 30s
+// (staleTimes in next.config.ts) so going back is instant; a room shown from
+// that cache catches up with one quiet refresh behind it.
+export function RoomLive({ roomId, matchId, kickoffAt, renderedAt }: { roomId: string; matchId: string; kickoffAt: string; renderedAt: number }) {
   const router = useRouter();
   const pending = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (Date.now() - renderedAt > 3000) router.refresh();
+  }, [renderedAt, router]);
 
   useEffect(() => {
     const refresh = () => {

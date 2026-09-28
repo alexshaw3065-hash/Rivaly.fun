@@ -74,6 +74,48 @@ export function preloadMatches(force = false): Promise<Match[]> {
   return pending;
 }
 
+// Live scores: ONE realtime channel for the whole app however many screens
+// read fixtures, and at most one re-read every 10s however often the feed
+// writes (a live NFL clock updates every few seconds — re-downloading 500
+// fixtures per update, per screen, burns data on a slow phone connection).
+const RELOAD_GAP_MS = 10_000;
+const listeners = new Set<() => void>();
+let liveChannel: { remove: () => void } | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+let lastReload = 0;
+
+function scheduleReload() {
+  if (reloadTimer) return;
+  reloadTimer = setTimeout(() => {
+    reloadTimer = null;
+    lastReload = Date.now();
+    void preloadMatches(true)
+      .then(() => listeners.forEach((l) => l()))
+      .catch(() => undefined);
+  }, Math.max(0, lastReload + RELOAD_GAP_MS - Date.now()));
+}
+
+function subscribeLive(listener: () => void): () => void {
+  listeners.add(listener);
+  if (!liveChannel) {
+    const supabase = createClient();
+    // A fresh name each time: the client hands back the SAME channel for a
+    // repeated name, and one still closing can't take a new listener.
+    const channel = supabase
+      .channel(`matches-live:${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, scheduleReload)
+      .subscribe();
+    liveChannel = { remove: () => void supabase.removeChannel(channel) };
+  }
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0 && liveChannel) {
+      liveChannel.remove();
+      liveChannel = null;
+    }
+  };
+}
+
 /** Real fixtures and scores. No fixtures means an empty list — never sample matches. */
 export function useRealMatches(): RealMatches {
   // Start from the shared cache when it's there — no loading flash.
@@ -98,26 +140,9 @@ export function useRealMatches(): RealMatches {
   }, [load]);
 
   // Live updates. The ingester writes one row per change and Supabase fans it
-  // out here, so a goal reaches every open client without anyone polling.
-  // Re-reading on change is cheaper to reason about than merging payloads,
-  // and setState inside a subscription callback is exactly what effects are
-  // for.
-  useEffect(() => {
-    const supabase = createClient();
-    // A unique name per hook instance: several surfaces (search, the create
-    // flow) can be mounted at once, and the client hands back the SAME
-    // channel for a repeated name — adding a listener to an already-
-    // subscribed channel throws.
-    const channel = supabase
-      .channel(`matches-live:${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
-        void load(true);
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [load]);
+  // out to the app's one shared channel (subscribeLive), which re-reads and
+  // tells every mounted reader.
+  useEffect(() => subscribeLive(() => setRows(cache?.rows ?? null)), []);
 
   return useMemo(() => ({ matches: [...(rows ?? [])].sort(forDisplay), isReal: rows !== null, isLoading: rows === null && isLoading }), [rows, isLoading]);
 }

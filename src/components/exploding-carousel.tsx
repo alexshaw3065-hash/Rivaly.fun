@@ -29,10 +29,13 @@ const nowMs = () => Date.now();
  */
 export function useExplodingSlides(): { slides: ExplodingSlide[]; isLoading: boolean } {
   const { items, isLoading } = usePublicRooms();
-  const { matches, isReal } = useRealMatches();
+  const { matches, isReal, isLoading: matchesLoading } = useRealMatches();
   return useMemo(() => {
     const hot: ExplodingSlide[] = [...items].sort(byHeat).slice(0, 6).map(({ room, match }) => ({ key: room.id, room, match }));
-    if (hot.length >= MIN_SLIDES || !isReal) return { slides: hot, isLoading };
+    if (hot.length >= MIN_SLIDES) return { slides: hot, isLoading };
+    // Too few rooms: the fixtures fill the rest, so it's still loading until
+    // they've landed too — otherwise "No rooms yet" flashes before them.
+    if (!isReal) return { slides: hot, isLoading: isLoading || matchesLoading };
     const hasRoom = new Set(items.map((i) => i.match.id));
     const soon = nowMs() + 60_000;
     const fixtures: ExplodingSlide[] = matches
@@ -41,7 +44,7 @@ export function useExplodingSlides(): { slides: ExplodingSlide[]; isLoading: boo
       .slice(0, MIN_SLIDES - hot.length)
       .map((m) => ({ key: `match-${m.id}`, match: m }));
     return { slides: [...hot, ...fixtures], isLoading };
-  }, [items, isLoading, matches, isReal]);
+  }, [items, isLoading, matches, isReal, matchesLoading]);
 }
 
 function Slide({ slide }: { slide: ExplodingSlide }) {

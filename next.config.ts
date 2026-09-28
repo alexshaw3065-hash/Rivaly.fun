@@ -12,6 +12,14 @@ function envValue(...names: string[]): string {
 }
 
 const nextConfig: NextConfig = {
+  // Keep pages you've just visited for 30s, like X keeps its tabs: switching
+  // back is instant instead of another round trip (seconds on a slow network).
+  // Live screens stay live over Realtime; a room shown from this cache
+  // refreshes itself once (room-live.tsx). Any action (join, post, sign-in)
+  // still refreshes as before.
+  experimental: {
+    staleTimes: { dynamic: 30 },
+  },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
   },

@@ -49,6 +49,11 @@ function decidedRecently(at: string): boolean {
   return Date.now() - +new Date(at) < 7 * 24 * 60 * 60_000;
 }
 
+/** When the server drew this page (the room refreshes itself if it's shown later from the tab cache). */
+function renderTime(): number {
+  return Date.now();
+}
+
 export default async function RoomPage({
   params,
   searchParams,
@@ -154,7 +159,7 @@ export default async function RoomPage({
   return (
     <main className="min-h-[100dvh]">
       {/* Realtime: re-renders only when the room, its entries or the match change. */}
-      {unfinished && <RoomLive roomId={room.id} matchId={room.matchId} kickoffAt={match.kickoffAt} />}
+      {unfinished && <RoomLive roomId={room.id} matchId={room.matchId} kickoffAt={match.kickoffAt} renderedAt={renderTime()} />}
 
       <div className="mx-auto max-w-5xl px-4 pb-10 md:px-6 md:pt-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_340px] md:gap-6">
