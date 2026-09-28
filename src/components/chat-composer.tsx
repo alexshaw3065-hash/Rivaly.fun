@@ -604,7 +604,7 @@ export function ChatComposer({
 
   return (
     <section
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface"
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-card bg-surface edge"
       onDragOver={(e) => {
         if ([...e.dataTransfer.items].some((i) => i.type.startsWith("image/"))) e.preventDefault();
       }}
@@ -615,13 +615,13 @@ export function ChatComposer({
         void sendPhoto(file);
       }}
     >
-      <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
+      <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-3">
         {matchId && matchTeams && <PressureTicker matchId={matchId} homeTeam={matchTeams.home} awayTeam={matchTeams.away} />}
-        <p className="font-display text-base font-bold text-foreground">The crowd</p>
-        <div className="flex items-center gap-3 font-mono text-[11px] text-muted">
+        <p className="text-body-lg font-display font-bold text-foreground">The crowd</p>
+        <div className="flex items-center gap-3 text-caption tabular-nums text-secondary">
           {watching > 0 && (
             <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-rival-green" />
+              <span className="h-1.5 w-1.5 rounded-full bg-money" />
               {watching} watching
             </span>
           )}
@@ -643,10 +643,10 @@ export function ChatComposer({
           setItems((cur) => cur.filter((x) => x.id !== m.id));
           void reportContent("message", m.id, reason);
         }}
-        empty={<p className="px-6 text-center text-sm text-muted">Quiet so far. Say something — the room&rsquo;s listening.</p>}
+        empty={<p className="px-6 text-center text-body text-secondary">Quiet so far. Say something — the room&rsquo;s listening.</p>}
       />
 
-      <div className="shrink-0 border-t border-border px-3 pb-3 pt-2">
+      <div className="shrink-0 border-t border-line px-3 pb-3 pt-2">
         {/* Trays: one-tap shouts (open by default — joining in shouldn't need
             typing), or emoji for your message. */}
         {tray === "quick" && (
@@ -656,7 +656,7 @@ export function ChatComposer({
                 key={q}
                 type="button"
                 onClick={() => quick(q)}
-                className="h-8 shrink-0 rounded-full bg-background px-3 text-[13px] text-foreground ring-1 ring-border transition-[transform,box-shadow] duration-150 ease-out hover:ring-border-strong active:scale-90"
+                className="h-8 shrink-0 rounded-full bg-background px-3 text-label text-foreground edge-strong transition-transform duration-100 ease-out active:scale-90"
               >
                 {q}
               </button>
@@ -672,8 +672,7 @@ export function ChatComposer({
                 role="tab"
                 aria-selected={tray === t}
                 onClick={() => setTray(t)}
-                className="h-7 rounded-full px-3 text-[12px] font-bold tracking-wide transition-colors duration-150"
-                style={{ background: tray === t ? "color-mix(in srgb, var(--foreground) 12%, transparent)" : "transparent", color: tray === t ? "var(--foreground)" : "var(--muted)" }}
+                className={`h-7 rounded-full px-3 text-caption font-bold transition-colors duration-100 ${tray === t ? "bg-overlay-3 text-foreground" : "text-secondary"}`}
               >
                 {t === "emoji" ? "Emoji" : "GIFs"}
               </button>
@@ -695,7 +694,7 @@ export function ChatComposer({
                   setDraft((d) => (d + e).slice(0, MAX_MESSAGE));
                   inputRef.current?.focus();
                 }}
-                className="flex h-9 items-center justify-center rounded-lg text-xl transition-transform duration-150 hover:bg-foreground/5 active:scale-90"
+                className="flex h-9 items-center justify-center rounded-control text-xl transition-transform duration-100 hover:bg-overlay-1 active:scale-90"
               >
                 {e}
               </button>
@@ -703,9 +702,9 @@ export function ChatComposer({
           </div>
         )}
 
-        {notice && <p className="mb-1.5 px-1 text-xs font-semibold text-rival-red [animation:fade-in-up_180ms_ease-out_both]">{notice}</p>}
+        {notice && <p className="mb-1.5 px-1 text-caption font-semibold text-no-ink [animation:fade-in-up_180ms_ease-out_both]">{notice}</p>}
         {Object.keys(typers).length > 0 && (
-          <p className="mb-1.5 flex items-center gap-2 px-1 text-xs text-muted [animation:fade-in-up_180ms_ease-out_both]" aria-live="polite">
+          <p className="mb-1.5 flex items-center gap-2 px-1 text-caption text-secondary [animation:fade-in-up_180ms_ease-out_both]" aria-live="polite">
             <span className="flex -space-x-1.5" aria-hidden>
               {Object.values(typers)
                 .slice(0, 3)
@@ -718,19 +717,19 @@ export function ChatComposer({
             <span className="min-w-0 truncate font-semibold text-foreground/80">{typingLabel(Object.values(typers).map((t) => t.name))}</span>
             <span className="flex shrink-0 gap-0.5" aria-hidden>
               {[0, 1, 2].map((i) => (
-                <span key={i} className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: `${i * 150}ms` }} />
+                <span key={i} className="typing-dot h-1 w-1 rounded-full bg-secondary" style={{ animationDelay: `${i * 150}ms` }} />
               ))}
             </span>
           </p>
         )}
-        <div className="overflow-hidden rounded-xl bg-background ring-1 ring-border transition-shadow duration-150 focus-within:ring-rival-blue">
+        <div className="overflow-hidden rounded-control border border-line-strong bg-background transition-colors duration-150 focus-within:border-yes">
           {replyTo && (
-            <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-[13px] [animation:fade-in-up_200ms_ease-out_both]">
-              <span className="text-muted">Replying to</span>
-              <span className="min-w-0 truncate font-semibold" style={{ color: replyTo.userId && sides[replyTo.userId] ? (sides[replyTo.userId] === "yes" ? "var(--rival-blue)" : "var(--rival-red)") : "var(--foreground)" }}>
+            <div className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-label [animation:fade-in-up_200ms_ease-out_both]">
+              <span className="text-secondary">Replying to</span>
+              <span className="min-w-0 truncate font-semibold" style={{ color: replyTo.userId && sides[replyTo.userId] ? (sides[replyTo.userId] === "yes" ? "var(--yes-ink)" : "var(--no-ink)") : "var(--foreground)" }}>
                 @{replyTo.authorName ?? "Rival"}
               </span>
-              <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted hover:text-foreground">
+              <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="relative ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-secondary before:absolute before:-inset-2 hover:text-foreground">
                 <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
                   <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                 </svg>
@@ -749,8 +748,7 @@ export function ChatComposer({
               onClick={() => setTray((t) => (t === "quick" ? null : "quick"))}
               aria-label="Quick shouts"
               aria-pressed={tray === "quick"}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,color,background-color] duration-150 active:scale-90"
-              style={{ color: tray === "quick" ? "var(--background)" : "var(--muted)", background: tray === "quick" ? "var(--foreground)" : "color-mix(in srgb, var(--foreground) 8%, transparent)" }}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,color,background-color] duration-100 active:scale-90 ${tray === "quick" ? "bg-foreground text-background" : "bg-overlay-2 text-secondary"}`}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="transition-transform duration-200" style={{ transform: tray === "quick" ? "rotate(45deg)" : undefined }}>
                 <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -760,7 +758,7 @@ export function ChatComposer({
               type="button"
               onClick={() => (currentUser ? fileRef.current?.click() : openAuthModal({ next: `/rooms/${roomId}` }))}
               aria-label="Send a photo"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:text-foreground active:scale-90"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-secondary transition-colors duration-100 hover:text-foreground active:scale-90"
             >
               <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
                 <rect x="2.5" y="4" width="15" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
@@ -804,15 +802,14 @@ export function ChatComposer({
               placeholder={currentUser ? (replyTo ? `Reply to @${replyTo.authorName ?? "Rival"}` : "Message the room") : "Sign in to talk…"}
               onFocus={() => !currentUser && openAuthModal({ next: `/rooms/${roomId}` })}
               maxLength={MAX_MESSAGE}
-              className="block min-h-11 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1.5 py-2.5 text-base leading-6 text-foreground placeholder:text-muted focus:outline-none"
+              className="block min-h-11 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1.5 py-2.5 text-body-lg leading-6 text-foreground placeholder:text-tertiary focus:outline-none"
             />
             <button
               type="button"
               onClick={() => setTray((t) => (t === "emoji" || t === "gif" ? null : "emoji"))}
               aria-label="Emoji and GIFs"
               aria-pressed={tray === "emoji" || tray === "gif"}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150"
-              style={{ color: tray === "emoji" || tray === "gif" ? "#f5c542" : "var(--muted)" }}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-100 ${tray === "emoji" || tray === "gif" ? "text-card-yellow" : "text-secondary"}`}
             >
               <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
                 <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
@@ -825,7 +822,7 @@ export function ChatComposer({
               <button
                 type="submit"
                 aria-label="Send"
-                className="enter-pop flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rival-blue text-white transition-[transform,opacity] duration-150 ease-out active:scale-90 disabled:opacity-50"
+                className="enter-pop flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yes text-white transition-[transform,opacity] duration-100 ease-out active:scale-90 disabled:opacity-50"
               >
                 <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden>
                   <path d="M3 9h11M9.5 4.5 14 9l-4.5 4.5" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -834,7 +831,7 @@ export function ChatComposer({
             )}
           </form>
           {draft.length > MAX_MESSAGE - 100 && (
-            <p className="px-4 pb-1 text-right text-[11px] font-semibold tabular-nums" style={{ color: draft.length >= MAX_MESSAGE ? "var(--rival-red, #e5484d)" : "var(--muted)" }}>
+            <p className={`px-4 pb-1 text-right text-caption font-semibold tabular-nums ${draft.length >= MAX_MESSAGE ? "text-no-ink" : "text-secondary"}`}>
               {MAX_MESSAGE - draft.length} left
             </p>
           )}

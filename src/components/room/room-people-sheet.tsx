@@ -54,14 +54,14 @@ export function RoomPeopleSheet({
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Drawer.Overlay className="fixed inset-0 z-50 bg-scrim" />
         <Drawer.Content
           aria-describedby={undefined}
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-[20px] border-t border-border bg-background outline-none"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-sheet bg-background shadow-sheet outline-none"
         >
-          <Drawer.Handle className="!mx-auto !mt-2.5 !mb-1 !h-1.5 !w-10 shrink-0 !rounded-full !bg-border-strong" />
+          <Drawer.Handle className="!mx-auto !mt-2 !mb-1 !h-1 !w-9 shrink-0 !rounded-full !bg-line-strong" />
           <div className="flex items-center justify-between px-4 pb-3 pt-2">
-            <Drawer.Title className="font-display text-lg font-bold text-foreground">In the room</Drawer.Title>
+            <Drawer.Title className="text-title-3 font-display text-foreground">In the room</Drawer.Title>
             <span className="flex items-center gap-2">
               {/* A few faces from the room, biggest stakes first */}
               <span aria-hidden className="flex -space-x-1.5">
@@ -74,13 +74,13 @@ export function RoomPeopleSheet({
                     </span>
                   ))}
               </span>
-              <span className="font-mono text-xs text-muted">
+              <span className="text-caption tabular-nums text-secondary">
                 {rivals.length} {rivals.length === 1 ? "rival" : "rivals"}
               </span>
             </span>
           </div>
 
-          <div role="tablist" aria-label="Side" className="mx-4 grid grid-cols-2 gap-1 rounded-xl bg-surface p-1">
+          <div role="tablist" aria-label="Side" className="mx-4 grid grid-cols-2 gap-1 rounded-control bg-surface p-1 edge">
             {(["yes", "no"] as const).map((s) => (
               <button
                 key={s}
@@ -88,15 +88,11 @@ export function RoomPeopleSheet({
                 type="button"
                 aria-selected={tab === s}
                 onClick={() => setTab(s)}
-                className="flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors duration-150"
-                style={{
-                  background: tab === s ? "var(--background)" : "transparent",
-                  color: tab === s ? SIDES[s].color : "var(--muted)",
-                  boxShadow: tab === s ? "0 1px 2px rgba(0,0,0,0.12)" : undefined,
-                }}
+                className={`flex h-10 items-center justify-center gap-2 rounded-tag text-label font-semibold transition-colors duration-100 ${tab === s ? "bg-surface-3" : "text-secondary"}`}
+                style={tab === s ? { color: SIDES[s].color } : undefined}
               >
                 <span className="font-display font-extrabold tracking-wide">{SIDES[s].label}</span>
-                <span className="font-mono text-xs tabular-nums">
+                <span className="text-caption tabular-nums">
                   {formatMoneyCompact(total(s))} · {bySide[s].length}
                 </span>
               </button>
@@ -104,23 +100,23 @@ export function RoomPeopleSheet({
           </div>
 
           <ul className="mt-2 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
-            {people.length === 0 && <li className="py-10 text-center text-sm text-muted">Nobody on {SIDES[tab].label} yet.</li>}
+            {people.length === 0 && <li className="py-10 text-center text-body text-secondary">Nobody on {SIDES[tab].label} yet.</li>}
             {people.map((p, i) => {
               const row = (
                 <>
-                  <span className="w-5 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted">{i + 1}</span>
+                  <span className="w-5 shrink-0 text-right text-caption tabular-nums text-tertiary">{i + 1}</span>
                   <RivalCharacter name={p.displayName} imageUrl={p.avatarUrl} size={36} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-foreground">{p.displayName}</span>
-                    {now > 0 && <span className="block font-mono text-[11px] text-muted">backed {ago(now, +new Date(p.createdAt))}</span>}
+                    <span className="block truncate text-body font-semibold text-foreground">{p.displayName}</span>
+                    {now > 0 && <span className="block text-caption text-secondary">backed {ago(now, +new Date(p.createdAt))}</span>}
                   </span>
-                  <span className="shrink-0 font-display text-sm font-bold tabular-nums text-foreground" title={formatMoney(p.amountCents)}>
+                  <span className="shrink-0 text-body font-display font-bold tabular-nums text-foreground" title={formatMoney(p.amountCents)}>
                     {formatMoneyCompact(p.amountCents)}
                   </span>
                 </>
               );
               return (
-                <li key={p.userId} className="border-b border-border last:border-0">
+                <li key={p.userId} className="border-b border-line last:border-0">
                   {p.username ? (
                     <Link href={`/profile/${p.username}`} className="flex items-center gap-3 py-3 transition-opacity duration-150 active:opacity-70">
                       {row}

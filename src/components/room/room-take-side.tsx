@@ -56,11 +56,11 @@ export function RoomTakeSide({
       {/* Phone: the stake sheet */}
       <Drawer.Root open={sheetSide !== null} onOpenChange={(open) => !open && setSheetSide(null)}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 md:hidden" />
-          <Drawer.Content aria-describedby={undefined} className="fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] rounded-t-[20px] border-t border-border bg-background outline-none md:hidden">
+          <Drawer.Overlay className="fixed inset-0 z-40 bg-scrim md:hidden" />
+          <Drawer.Content aria-describedby={undefined} className="fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] rounded-t-sheet bg-background shadow-sheet outline-none md:hidden">
             <Drawer.Title className="sr-only">Take a side</Drawer.Title>
-            <Drawer.Handle className="!mx-auto !mt-2.5 !mb-2 !h-1.5 !w-10 !rounded-full !bg-border-strong" />
-            <div className="max-h-[calc(92dvh-24px)] overflow-y-auto px-4 pb-8">{sheetSide && panel(sheetSide)}</div>
+            <Drawer.Handle className="!mx-auto !mt-2 !mb-3 !h-1 !w-9 !rounded-full !bg-line-strong" />
+            <div className="max-h-[calc(92dvh-24px)] overflow-y-auto px-4 pb-[max(env(safe-area-inset-bottom),24px)]">{sheetSide && panel(sheetSide)}</div>
           </Drawer.Content>
         </Drawer.Portal>
       </Drawer.Root>

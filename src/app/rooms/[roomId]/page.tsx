@@ -243,18 +243,18 @@ export default async function RoomPage({
           <aside className="flex flex-col gap-4 md:sticky md:top-[calc(var(--header-height)+16px)] md:self-start">
             {!outcome &&
               (stakesClosed ? (
-                <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
-                  <span aria-hidden className="mt-0.5 text-rival-blue">
+                <div className="flex items-start gap-3 rounded-card bg-surface p-4 edge">
+                  <span aria-hidden className="mt-0.5 text-yes-ink">
                     <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
                       <rect x="4.5" y="8.5" width="11" height="8" rx="1.8" stroke="currentColor" strokeWidth="1.4" />
                       <path d="M7 8.5V6.3a3 3 0 0 1 6 0v2.2" stroke="currentColor" strokeWidth="1.4" />
                     </svg>
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-body font-semibold text-foreground">
                       {match.status === "live" ? "Kicked off — stakes locked" : "Stakes closed"}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-1 text-caption text-secondary">
                       {myEntry ? `You're in with ${formatMoney(myEntry.amountCents)} on ${myEntry.side.toUpperCase()}. ` : ""}
                       Settles as soon as the result is certain.
                     </p>
@@ -263,7 +263,7 @@ export default async function RoomPage({
                         href={explorerTxUrl(myEntry.stakeTxSignature)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover-link mt-1 inline-block text-xs text-muted underline underline-offset-2"
+                        className="hover-link mt-1 inline-block text-caption text-secondary underline underline-offset-2"
                       >
                         Verify your stake on Solana ↗
                       </a>

@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatMoney } from "@/lib/mock-data";
 import { explorerTxUrl } from "@/lib/wallet/constants";
 import { pct } from "@/lib/fees";
 import type { MyEntry } from "@/lib/supabase/entries";
+import { ButtonLink } from "./ui/button";
 
 // The room's resolution, from the viewer's side. Per the emotion design: a
 // win is the one loud moment (green, the payout counting up) but premium,
@@ -31,12 +31,12 @@ export function useCountUp(target: number, ms = 900): number {
   return value;
 }
 
-const SIDE_COLOR = { yes: "var(--rival-blue)", no: "var(--rival-red)" } as const;
+const SIDE_COLOR = { yes: "var(--yes-ink)", no: "var(--no-ink)" } as const;
 
 function Receipt({ signature, label }: { signature: string | null; label: string }) {
   if (!signature) return null;
   return (
-    <a href={explorerTxUrl(signature)} target="_blank" rel="noopener noreferrer" className="hover-link text-xs text-muted underline underline-offset-2">
+    <a href={explorerTxUrl(signature)} target="_blank" rel="noopener noreferrer" className="hover-link text-caption text-secondary underline underline-offset-2">
       {label} ↗
     </a>
   );
@@ -65,9 +65,9 @@ export function RoomResult({
 
   if (refunded || outcome === "void") {
     return (
-      <div className="enter-pop rounded-lg border border-border-strong bg-surface p-4">
-        <p className="text-sm font-semibold text-foreground">Refunded</p>
-        <p className="mt-1 text-sm text-muted">
+      <div className="enter-pop rounded-card bg-surface p-4 edge">
+        <p className="text-body font-semibold text-foreground">Refunded</p>
+        <p className="mt-1 text-body text-secondary">
           {entry ? `Your ${formatMoney(entry.amountCents)} ${settled ? "is back in your wallet" : "is on its way back"}.` : "Every stake was returned."}
         </p>
         {entry && <Receipt signature={entry.payoutTxSignature} label="Verify the refund on Solana" />}
@@ -79,16 +79,16 @@ export function RoomResult({
   return (
     <div className="flex flex-col gap-3">
       {matchStillLive && (
-        <div className="enter-row flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-semibold text-white" style={{ background: winColor }}>
+        <div className={`enter-row flex items-center gap-2 rounded-control px-4 py-3 text-label font-semibold text-white ${outcome === "yes" ? "bg-yes" : "bg-no"}`}>
           <span aria-hidden>⚡</span> Decided early — {outcome === "yes" ? "YES" : "NO"} wins, paid while the match is still on
         </div>
       )}
 
       {entry && won ? (
-        <div className="enter-pop rounded-xl border p-5" style={{ borderColor: "var(--rival-green)", background: "var(--rival-green-dim)" }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-rival-green">You called it</p>
-          <p className="mt-1 font-display text-4xl font-bold tabular-nums text-foreground">{formatMoney(payout)}</p>
-          <p className="mt-1 text-sm text-muted">
+        <div className="enter-pop rounded-card bg-money-tint p-5 outline outline-1 -outline-offset-1 outline-money">
+          <p className="text-label font-semibold text-money-ink">You called it</p>
+          <p className="mt-1 text-display font-display tabular-nums text-foreground">{formatMoney(payout)}</p>
+          <p className="mt-2 text-body text-secondary">
             {settled ? "Paid to your wallet." : "On its way to your wallet…"} You staked {formatMoney(entry.amountCents)} on{" "}
             <span className="font-semibold" style={{ color: SIDE_COLOR[entry.side] }}>
               {entry.side.toUpperCase()}
@@ -101,30 +101,26 @@ export function RoomResult({
           </div>
         </div>
       ) : entry ? (
-        <div className="enter-pop rounded-lg border border-border-strong bg-surface p-4">
-          <p className="text-sm font-semibold text-foreground">
+        <div className="enter-pop rounded-card bg-surface p-4 edge">
+          <p className="text-body font-semibold text-foreground">
             <span style={{ color: winColor }}>{outcome.toUpperCase()}</span> took this one.
           </p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-body text-secondary">
             You backed {entry.side.toUpperCase()} with {formatMoney(entry.amountCents)}. Next match is yours.
           </p>
           <div className="mt-3 flex items-center gap-3">
-            <Link
-              href="/rooms/create"
-              className="inline-flex min-h-10 items-center rounded-md px-4 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-              style={{ background: "var(--rival-blue)" }}
-            >
+            <ButtonLink href="/rooms/create" variant="primary" size="md">
               Rematch →
-            </Link>
+            </ButtonLink>
             <Receipt signature={entry.stakeTxSignature} label="Your stake" />
           </div>
         </div>
       ) : (
-        <div className="enter-pop rounded-lg border border-border-strong bg-surface p-4">
-          <p className="text-sm font-semibold text-foreground">
+        <div className="enter-pop rounded-card bg-surface p-4 edge">
+          <p className="text-body font-semibold text-foreground">
             <span style={{ color: winColor }}>{outcome.toUpperCase()}</span> wins
           </p>
-          <p className="mt-1 text-sm text-muted">{settled ? "Winners have been paid." : "Paying the winners…"}</p>
+          <p className="mt-1 text-body text-secondary">{settled ? "Winners have been paid." : "Paying the winners…"}</p>
         </div>
       )}
     </div>

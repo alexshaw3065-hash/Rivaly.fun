@@ -1,7 +1,6 @@
 "use client";
 
 import { withRef } from "@/lib/referral";
-import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { formatMoney } from "@/lib/mock-data";
 import { explorerTxUrl } from "@/lib/wallet/constants";
@@ -10,6 +9,7 @@ import { useCountUp } from "@/components/room-result";
 import { pct } from "@/lib/fees";
 import { siteUrl } from "@/lib/site";
 import { haptic } from "@/lib/haptics";
+import { Button, ButtonLink } from "@/components/ui/button";
 
 // The first time you open a room after it's decided, the result comes to
 // you instead of waiting below the stadium: what you won, the close call
@@ -22,7 +22,7 @@ import { haptic } from "@/lib/haptics";
 // rematch, never a taunt; #9 FOMO — the "you missed this" line is a real
 // number from this room's pool, never an invented one.
 
-const SIDE_COLOR = { yes: "var(--rival-blue)", no: "var(--rival-red)" } as const;
+const SIDE_COLOR = { yes: "var(--yes-ink)", no: "var(--no-ink)" } as const;
 const EVENT = "rivaly-result-seen";
 const key = (roomId: string) => `rivaly-result-seen:${roomId}`;
 
@@ -109,10 +109,10 @@ export function RoomResultReveal({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label="Room result">
-      <div className="sheet-overlay absolute inset-0 bg-black/60" onClick={close} aria-hidden />
-      <div className="sheet-panel relative w-full max-w-md rounded-t-3xl bg-surface p-6 pb-8 ring-1 ring-border md:rounded-3xl md:pb-6">
-        <p className="text-[13px] text-muted">{claim}</p>
-        {score && <p className="mt-0.5 font-mono text-xs text-muted">{score}</p>}
+      <div className="sheet-overlay absolute inset-0 bg-scrim" onClick={close} aria-hidden />
+      <div className="sheet-panel relative w-full max-w-md rounded-t-sheet bg-surface p-6 pb-[max(env(safe-area-inset-bottom),32px)] shadow-sheet md:rounded-sheet md:pb-6">
+        <p className="text-label text-secondary">{claim}</p>
+        {score && <p className="mt-1 text-caption tabular-nums text-secondary">{score}</p>}
 
         {refunded || outcome === "void" ? (
           <Refund entry={entry} settled={settled} oneSided={outcome !== "void"} onClose={close} />
@@ -146,10 +146,10 @@ function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; s
 
   return (
     <>
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-rival-green">You called it</p>
-      <p className="mt-1 font-display text-6xl font-bold tabular-nums tracking-tight text-foreground">{formatMoney(payout)}</p>
-      <p className="mt-2 text-sm text-muted">
-        <span className="font-semibold text-rival-green">+{formatMoney(profit)}</span> on your {formatMoney(entry.amountCents)}{" "}
+      <p className="mt-5 text-label font-semibold text-money-ink">You called it</p>
+      <p className="mt-1 font-display text-6xl font-extrabold tabular-nums tracking-tight text-foreground">{formatMoney(payout)}</p>
+      <p className="mt-2 text-body text-secondary">
+        <span className="font-semibold tabular-nums text-money-ink">+{formatMoney(profit)}</span> on your {formatMoney(entry.amountCents)}{" "}
         <span className="font-semibold" style={{ color: SIDE_COLOR[entry.side] }}>
           {entry.side.toUpperCase()}
         </span>
@@ -157,22 +157,17 @@ function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; s
         {feeBps > 0 && <> After the {pct(feeBps)} fee on winnings.</>}
       </p>
       {entry.payoutTxSignature && (
-        <a href={explorerTxUrl(entry.payoutTxSignature)} target="_blank" rel="noopener noreferrer" className="hover-link mt-1 inline-block text-xs text-muted underline underline-offset-2">
+        <a href={explorerTxUrl(entry.payoutTxSignature)} target="_blank" rel="noopener noreferrer" className="hover-link mt-1 inline-block text-caption text-secondary underline underline-offset-2">
           Verify the payout on Solana ↗
         </a>
       )}
       <div className="mt-6 flex gap-2">
-        <button
-          type="button"
-          onClick={share}
-          className="h-11 flex-1 rounded-full text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-          style={{ background: "var(--rival-green)" }}
-        >
+        <Button variant="money" size="lg" className="flex-1" onClick={share}>
           {copied ? "Link copied" : "Share the win"}
-        </button>
-        <button type="button" onClick={onClose} className="h-11 rounded-full px-5 text-sm font-semibold text-foreground ring-1 ring-border-strong">
+        </Button>
+        <Button variant="secondary" size="lg" onClick={onClose}>
           Done
-        </button>
+        </Button>
       </div>
     </>
   );
@@ -181,24 +176,19 @@ function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; s
 function Loss({ entry, outcome, onClose }: { entry: MyEntry; outcome: "yes" | "no"; onClose: () => void }) {
   return (
     <>
-      <p className="mt-5 font-display text-3xl font-bold tracking-tight text-foreground">
+      <p className="mt-5 text-title-1 font-display text-foreground">
         <span style={{ color: SIDE_COLOR[outcome] }}>{outcome.toUpperCase()}</span> took this one.
       </p>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-body text-secondary">
         You backed {entry.side.toUpperCase()} with {formatMoney(entry.amountCents)}. Next match is yours.
       </p>
       <div className="mt-6 flex gap-2">
-        <Link
-          href="/rooms/create"
-          onClick={onClose}
-          className="flex h-11 flex-1 items-center justify-center rounded-full text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-          style={{ background: "var(--rival-blue)" }}
-        >
+        <ButtonLink href="/rooms/create" onClick={onClose} variant="primary" size="lg" className="flex-1">
           Rematch
-        </Link>
-        <button type="button" onClick={onClose} className="h-11 rounded-full px-5 text-sm font-semibold text-foreground ring-1 ring-border-strong">
+        </ButtonLink>
+        <Button variant="secondary" size="lg" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     </>
   );
@@ -207,18 +197,18 @@ function Loss({ entry, outcome, onClose }: { entry: MyEntry; outcome: "yes" | "n
 function Refund({ entry, settled, oneSided, onClose }: { entry: MyEntry | null; settled: boolean; oneSided: boolean; onClose: () => void }) {
   return (
     <>
-      <p className="mt-5 font-display text-3xl font-bold tracking-tight text-foreground">Refunded</p>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-5 text-title-1 font-display text-foreground">Refunded</p>
+      <p className="mt-2 text-body text-secondary">
         {entry ? `Your ${formatMoney(entry.amountCents)} ${settled ? "is back in your wallet" : "is on its way back to your wallet"}.` : "Every stake was returned."} {oneSided ? "Nobody backed the winning side, so every stake went back." : "This room couldn’t be decided, so nobody won or lost."}
       </p>
       {entry?.payoutTxSignature && (
-        <a href={explorerTxUrl(entry.payoutTxSignature)} target="_blank" rel="noopener noreferrer" className="hover-link mt-1 inline-block text-xs text-muted underline underline-offset-2">
+        <a href={explorerTxUrl(entry.payoutTxSignature)} target="_blank" rel="noopener noreferrer" className="hover-link mt-1 inline-block text-caption text-secondary underline underline-offset-2">
           Verify the refund on Solana ↗
         </a>
       )}
-      <button type="button" onClick={onClose} className="mt-6 h-11 w-full rounded-full text-sm font-semibold text-foreground ring-1 ring-border-strong">
+      <Button variant="secondary" size="lg" full className="mt-6" onClick={onClose}>
         Got it
-      </button>
+      </Button>
     </>
   );
 }
@@ -228,25 +218,20 @@ function Missed({ outcome, pool, winningCents, onClose }: { outcome: "yes" | "no
   const tenBecame = Math.floor((1000 * pool) / winningCents);
   return (
     <>
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">You missed this one</p>
-      <p className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground">
+      <p className="mt-5 text-label font-semibold text-secondary">You missed this one</p>
+      <p className="mt-1 text-title-1 font-display text-foreground">
         <span style={{ color: SIDE_COLOR[outcome] }}>{outcome.toUpperCase()}</span> backers split {formatMoney(pool)}.
       </p>
-      <p className="mt-2 text-sm text-muted">
-        Every $10 on {outcome.toUpperCase()} came back as <span className="font-semibold text-foreground">{formatMoney(tenBecame)}</span>.
+      <p className="mt-2 text-body text-secondary">
+        Every $10 on {outcome.toUpperCase()} came back as <span className="font-semibold tabular-nums text-foreground">{formatMoney(tenBecame)}</span>.
       </p>
       <div className="mt-6 flex gap-2">
-        <Link
-          href="/"
-          onClick={onClose}
-          className="flex h-11 flex-1 items-center justify-center rounded-full text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-          style={{ background: "var(--rival-blue)" }}
-        >
+        <ButtonLink href="/" onClick={onClose} variant="primary" size="lg" className="flex-1">
           Find the next room
-        </Link>
-        <button type="button" onClick={onClose} className="h-11 rounded-full px-5 text-sm font-semibold text-foreground ring-1 ring-border-strong">
+        </ButtonLink>
+        <Button variant="secondary" size="lg" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     </>
   );

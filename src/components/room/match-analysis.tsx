@@ -31,11 +31,11 @@ export function MatchAnalysis({ match, data, story, roomId }: { match: Match; da
   const finished = match.status === "finished";
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-surface" aria-label="Match story">
+    <section className="overflow-hidden rounded-card bg-surface edge" aria-label="Match story">
       {story && <Story story={story} codes={codes} fill={fill} focus={focus} onFocus={setFocus} />}
       <Chart data={data} fill={fill} codes={codes} focus={focus} />
       {story && finished && roomId && (
-        <div className="border-t border-border px-4 py-3">
+        <div className="border-t border-line px-4 py-3">
           <ShareStoryButton roomId={roomId} />
         </div>
       )}
@@ -65,19 +65,21 @@ function Story({
 
   return (
     <div className="px-4 pb-1 pt-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Match story</p>
+      <p className="flex items-center gap-2 text-caption text-secondary">
+        <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: fill[lead] }} />
+        Match story
+      </p>
       <p
         key={story.headline}
-        className="mt-1.5 border-l-[3px] pl-3 font-display text-[17px] font-bold leading-snug text-foreground [animation:fade-in-up_480ms_cubic-bezier(0.23,1,0.32,1)_both]"
-        style={{ borderColor: fill[lead] }}
+        className="mt-2 text-title-3 font-display text-foreground [animation:fade-in-up_480ms_cubic-bezier(0.23,1,0.32,1)_both]"
       >
         {story.headline}
       </p>
 
       {/* Share of the pressure */}
       <div className="mt-4 flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Pressure</span>
-        <div role="tablist" aria-label="Period" className="flex gap-0.5 rounded-lg bg-background p-0.5">
+        <span className="text-caption text-secondary">Pressure</span>
+        <div role="tablist" aria-label="Period" className="flex gap-0.5 rounded-control bg-background p-0.5">
           {(["Match", "1st", "2nd"] as const).map((label, i) => (
             <button
               key={label}
@@ -85,25 +87,24 @@ function Story({
               type="button"
               aria-selected={period === i}
               onClick={() => setPeriod(i as 0 | 1 | 2)}
-              className="h-6 rounded-md px-2 font-mono text-[10px] font-semibold uppercase tracking-wide transition-colors duration-150"
-              style={{ background: period === i ? "var(--surface-elevated, var(--surface))" : "transparent", color: period === i ? "var(--foreground)" : "var(--muted)" }}
+              className={`h-6 rounded-tag px-2 text-caption font-semibold transition-colors duration-100 ${period === i ? "bg-surface-elevated text-foreground" : "text-secondary"}`}
             >
               {label}
             </button>
           ))}
         </div>
       </div>
-      <div className="mt-2 flex items-center gap-2.5">
-        <span className="w-12 font-display text-lg font-extrabold tabular-nums" style={{ color: empty ? "var(--muted)" : undefined }}>
+      <div className="mt-2 flex items-center gap-3">
+        <span className={`w-12 text-title-3 font-display font-extrabold tabular-nums ${empty ? "text-secondary" : ""}`}>
           {share.home}%
         </span>
         <div className="flex h-2.5 flex-1 gap-[3px] overflow-hidden rounded-full">
-          <span className="h-full rounded-full transition-[width] duration-500 ease-out" style={{ width: empty ? "50%" : `${share.home}%`, background: empty ? "var(--border)" : fill.home, boxShadow: EDGE }} />
-          <span className="h-full flex-1 rounded-full" style={{ background: empty ? "var(--border)" : fill.away, boxShadow: EDGE }} />
+          <span className={`h-full rounded-full transition-[width] duration-500 ease-out ${EDGE}`} style={{ width: empty ? "50%" : `${share.home}%`, background: empty ? "var(--line-strong)" : fill.home }} />
+          <span className={`h-full flex-1 rounded-full ${EDGE}`} style={{ background: empty ? "var(--line-strong)" : fill.away }} />
         </div>
-        <span className="w-12 text-right font-display text-lg font-extrabold tabular-nums">{share.away}%</span>
+        <span className="w-12 text-right text-title-3 font-display font-extrabold tabular-nums">{share.away}%</span>
       </div>
-      <div className="mt-0.5 flex justify-between font-mono text-[10px] font-semibold text-muted">
+      <div className="mt-1 flex justify-between text-caption font-semibold text-secondary">
         <span>{codes.home}</span>
         <span>{codes.away}</span>
       </div>
@@ -119,11 +120,11 @@ function Story({
                 type="button"
                 aria-pressed={on}
                 onClick={() => onFocus(on ? null : b)}
-                className="enter-pop flex shrink-0 items-center gap-1.5 rounded-full py-1.5 pl-2 pr-3 text-xs font-semibold transition-[background-color,color,transform] duration-150 active:scale-95"
+                className="enter-pop flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-3 text-caption font-semibold outline outline-1 -outline-offset-1 transition-[background-color,color,transform] duration-100 active:scale-95"
                 style={{
                   background: on ? fill[b.side] : `color-mix(in srgb, ${fill[b.side]} 13%, transparent)`,
                   color: on ? inkOn(fill[b.side]) : "var(--foreground)",
-                  boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${fill[b.side]} ${on ? 100 : 38}%, transparent)`,
+                  outlineColor: `color-mix(in srgb, ${fill[b.side]} ${on ? 100 : 38}%, transparent)`,
                   transitionDelay: `${i * 40}ms`,
                 }}
               >
@@ -200,8 +201,8 @@ function Chart({ data, fill, codes, focus }: { data: Momentum; fill: Record<Side
   return (
     <div className="px-4 pb-3 pt-3">
       <div className="flex items-center justify-between pb-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Momentum</span>
-        <span className="flex items-center gap-3 text-[11px] font-semibold text-foreground">
+        <span className="text-caption text-secondary">Momentum</span>
+        <span className="flex items-center gap-3 text-caption font-semibold text-foreground">
           <Key colour={fill.home} label={codes.home} />
           <Key colour={fill.away} label={codes.away} />
         </span>
@@ -227,7 +228,7 @@ function Chart({ data, fill, codes, focus }: { data: Momentum; fill: Record<Side
               rx={2}
             />
           )}
-          <line x1={45 * step} x2={45 * step} y1={4} y2={H - 4} stroke="var(--border-strong)" strokeWidth={1} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
+          <line x1={45 * step} x2={45 * step} y1={4} y2={H - 4} stroke="var(--line-strong)" strokeWidth={1} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
           {data.bars.map((b) =>
             b.value === 0 ? null : (
               <rect
@@ -244,7 +245,7 @@ function Chart({ data, fill, codes, focus }: { data: Momentum; fill: Record<Side
               />
             ),
           )}
-          <line x1={0} x2={W} y1={MID} y2={MID} stroke="var(--border-strong)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          <line x1={0} x2={W} y1={MID} y2={MID} stroke="var(--line-strong)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         </svg>
 
         {data.marks.map((m, i) => (
@@ -259,7 +260,7 @@ function Chart({ data, fill, codes, focus }: { data: Momentum; fill: Record<Side
                 <path d="M7 4.2 9.6 6.1 8.6 9.1H5.4L4.4 6.1Z" fill="#111" />
               </svg>
             ) : (
-              <span className="block h-1.5 w-1.5 rounded-full" style={{ boxShadow: `inset 0 0 0 1.5px ${fill[m.side]}` }} />
+              <span className="block h-1.5 w-1.5 rounded-full border-[1.5px]" style={{ borderColor: fill[m.side] }} />
             )}
           </span>
         ))}
@@ -269,7 +270,7 @@ function Chart({ data, fill, codes, focus }: { data: Momentum; fill: Record<Side
           <>
             <span className="pointer-events-none absolute inset-y-0 w-px bg-foreground/50" style={{ left: `${((hover - 0.5) / domain) * 100}%` }} />
             <span
-              className="pointer-events-none absolute -top-7 whitespace-nowrap rounded-md bg-foreground px-1.5 py-0.5 font-mono text-[10px] font-semibold text-background"
+              className="pointer-events-none absolute -top-7 whitespace-nowrap rounded-tag bg-foreground px-1.5 py-0.5 text-caption font-semibold tabular-nums text-background"
               style={{ left: `${((hover - 0.5) / domain) * 100}%`, transform: `translateX(${hover < domain * 0.15 ? "0" : hover > domain * 0.85 ? "-100%" : "-50%"})` }}
             >
               {hover}&rsquo; · {hoverText}
@@ -278,7 +279,7 @@ function Chart({ data, fill, codes, focus }: { data: Momentum; fill: Record<Side
         )}
       </div>
 
-      <div className="flex justify-between pt-1 font-mono text-[10px] tabular-nums text-muted">
+      <div className="flex justify-between pt-1 text-caption tabular-nums text-tertiary">
         <span>0&rsquo;</span>
         <span>45&rsquo;</span>
         <span>{domain}&rsquo;</span>
@@ -290,10 +291,10 @@ function Chart({ data, fill, codes, focus }: { data: Momentum; fill: Record<Side
 function Key({ colour, label }: { colour: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-[3px]" style={{ background: colour, boxShadow: EDGE }} />
+      <span className={`h-2 w-2 rounded-sm ${EDGE}`} style={{ background: colour }} />
       {label}
     </span>
   );
 }
 
-const EDGE = "inset 0 0 0 1px color-mix(in srgb, var(--foreground) 14%, transparent)";
+const EDGE = "ring-1 ring-inset ring-foreground/15";

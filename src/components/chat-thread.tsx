@@ -196,7 +196,7 @@ export function ChatThread({
         <button
           type="button"
           onClick={jump}
-          className="absolute inset-x-2 top-2 z-10 flex h-8 items-center justify-between rounded-lg bg-rival-blue px-3 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.3)] [animation:fade-in-up_280ms_cubic-bezier(0.23,1,0.32,1)_both]"
+          className="absolute inset-x-2 top-2 z-10 flex h-8 items-center justify-between rounded-control bg-yes px-3 text-label font-semibold text-white shadow-pop [animation:fade-in-up_280ms_cubic-bezier(0.23,1,0.32,1)_both]"
         >
           <span>
             {unseen} new {unseen === 1 ? "message" : "messages"}
@@ -213,7 +213,7 @@ export function ChatThread({
       <div ref={scroller} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-1">
         {hasEarlier && (
           <div className="flex justify-center py-2">
-            <button type="button" onClick={loadEarlier} disabled={loadingEarlier} className="rounded-full px-3 py-1 text-xs font-semibold text-muted ring-1 ring-border transition-colors hover:text-foreground disabled:opacity-60">
+            <button type="button" onClick={loadEarlier} disabled={loadingEarlier} className="rounded-full px-3 py-1 text-caption font-semibold text-secondary edge-strong transition-colors hover:text-foreground disabled:opacity-60">
               {loadingEarlier ? "Loading…" : "Load earlier messages"}
             </button>
           </div>
@@ -252,16 +252,16 @@ export function ChatThread({
       {/* Press-and-hold on a phone: react, reply, copy */}
       <Drawer.Root open={sheetFor !== null} onOpenChange={(o) => !o && setSheetFor(null)}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-50 bg-black/60" />
+          <Drawer.Overlay className="fixed inset-0 z-50 bg-scrim" />
           <Drawer.Content
             aria-describedby={undefined}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-[20px] border-t border-border bg-background px-4 pb-[max(env(safe-area-inset-bottom),16px)] outline-none"
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-sheet bg-background px-4 pb-[max(env(safe-area-inset-bottom),16px)] shadow-sheet outline-none"
           >
-            <Drawer.Handle className="!mx-auto !mt-2.5 !mb-3 !h-1.5 !w-10 !rounded-full !bg-border-strong" />
+            <Drawer.Handle className="!mx-auto !mt-2 !mb-3 !h-1 !w-9 !rounded-full !bg-line-strong" />
             <Drawer.Title className="sr-only">{reporting ? "Report message" : "Message actions"}</Drawer.Title>
             {sheetFor && reporting && (
               <>
-                <p className="mb-3 text-center font-display text-lg font-semibold text-foreground">Report message</p>
+                <p className="mb-3 text-center text-title-3 font-display text-foreground">Report message</p>
                 <ReportReasons
                   onPick={(reason) => {
                     onReport?.(sheetFor, reason);
@@ -272,7 +272,7 @@ export function ChatThread({
             )}
             {sheetFor && !reporting && (
               <>
-                <p className="mb-3 line-clamp-2 rounded-xl bg-surface px-3 py-2 text-sm text-foreground/80">
+                <p className="mb-3 line-clamp-2 rounded-control bg-surface px-3 py-2 text-label text-foreground/80">
                   <span className="font-semibold text-foreground">{sheetFor.authorName}</span> {summary(sheetFor)}
                 </p>
                 <div className="grid grid-cols-5 gap-2">
@@ -286,7 +286,7 @@ export function ChatThread({
                           onReact?.(sheetFor.id, e);
                           setSheetFor(null);
                         }}
-                        className="flex h-12 items-center justify-center rounded-xl text-2xl transition-transform duration-150 active:scale-90"
+                        className="flex h-12 items-center justify-center rounded-control text-2xl transition-transform duration-100 active:scale-90"
                         style={{ background: mine ? "color-mix(in srgb, var(--rival-blue) 22%, var(--surface))" : "var(--surface)" }}
                       >
                         {e}
@@ -294,7 +294,7 @@ export function ChatThread({
                     );
                   })}
                 </div>
-                <div className="mt-3 flex flex-col overflow-hidden rounded-xl bg-surface">
+                <div className="mt-3 flex flex-col overflow-hidden rounded-card bg-surface edge">
                   <SheetAction
                     label="Reply"
                     icon={<ReplyIcon />}
@@ -341,8 +341,8 @@ export function ChatThread({
 
 function SheetAction({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex h-12 items-center gap-3 border-b border-border px-4 text-left text-[15px] font-semibold text-foreground last:border-0 active:bg-foreground/5">
-      <span className="text-muted">{icon}</span>
+    <button type="button" onClick={onClick} className="press-row flex h-12 items-center gap-3 border-b border-line px-4 text-left text-body font-semibold text-foreground last:border-0">
+      <span className="text-secondary">{icon}</span>
       {label}
     </button>
   );
@@ -359,9 +359,9 @@ function ReplyIcon() {
 function DayDivider({ label }: { label: string }) {
   return (
     <div className="my-3 flex items-center gap-2 px-1" role="separator">
-      <span className="h-px flex-1 bg-border" />
-      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{label}</span>
-      <span className="h-px flex-1 bg-border" />
+      <span className="h-px flex-1 bg-line" />
+      <span className="text-micro uppercase text-tertiary">{label}</span>
+      <span className="h-px flex-1 bg-line" />
     </div>
   );
 }
@@ -377,16 +377,16 @@ function SystemLine({ message }: { message: DisplayChatMessage }) {
   const big = moment.tone === "goal" || moment.tone.startsWith("takeover");
   return (
     <div
-      className={`chat-row-enter my-1.5 flex items-center gap-3 rounded-lg px-2 ${big ? "py-2.5" : "py-1"}`}
-      style={big ? { background: `color-mix(in srgb, ${tone.color} 10%, transparent)`, boxShadow: `inset 3px 0 0 ${tone.color}` } : undefined}
+      className={`chat-row-enter my-1 flex items-center gap-3 rounded-control px-2 ${big ? "py-3" : "py-1"}`}
+      style={big ? { background: `color-mix(in srgb, ${tone.color} 12%, transparent)` } : undefined}
     >
-      <span className="flex w-10 shrink-0 justify-center text-sm" style={{ color: tone.color }} aria-hidden>
+      <span className="flex w-10 shrink-0 justify-center text-label" style={{ color: tone.color }} aria-hidden>
         {icon}
       </span>
-      <span className={`min-w-0 flex-1 text-[13px] ${big ? "font-bold" : "font-medium"}`} style={{ color: big ? tone.color : "var(--foreground)" }}>
+      <span className={`min-w-0 flex-1 text-label ${big ? "font-bold" : "font-medium"}`} style={{ color: big ? tone.color : "var(--foreground)" }}>
         {label}
       </span>
-      <span className="shrink-0 font-mono text-[10px] text-muted">{time(message.createdAt)}</span>
+      <span className="shrink-0 text-caption tabular-nums text-tertiary">{time(message.createdAt)}</span>
     </div>
   );
 }
@@ -439,7 +439,7 @@ function MessageRow({
   const body = (
     <>
       {message.attachment && <Photo attachment={message.attachment} />}
-      {message.body && <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.4] text-foreground/90">{message.body}</p>}
+      {message.body && <p className="whitespace-pre-wrap break-words text-body text-foreground/90">{message.body}</p>}
       {reactionList.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
           {reactionList.map(([emoji, users]) => {
@@ -449,15 +449,13 @@ function MessageRow({
                 key={emoji}
                 type="button"
                 onClick={() => onReact?.(message.id, emoji)}
-                className="enter-pop flex h-6 items-center gap-1 rounded-lg px-1.5 text-[13px] transition-transform duration-150 active:scale-90"
-                style={{
-                  background: mine ? "color-mix(in srgb, var(--rival-blue) 18%, transparent)" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
-                  boxShadow: `inset 0 0 0 1px ${mine ? "var(--rival-blue)" : "transparent"}`,
-                }}
+                className={`enter-pop flex h-6 items-center gap-1 rounded-tag px-1.5 text-label outline outline-1 -outline-offset-1 transition-transform duration-100 active:scale-90 ${
+                  mine ? "bg-yes-tint outline-yes" : "bg-overlay-1 outline-transparent"
+                }`}
                 aria-label={`${emoji} ${users.length}${mine ? ", you reacted" : ""}`}
               >
                 <span>{emoji}</span>
-                <span className="font-mono text-[11px] font-semibold tabular-nums" style={{ color: mine ? "var(--rival-blue)" : "var(--muted)" }}>
+                <span className={`text-caption font-semibold tabular-nums ${mine ? "text-yes-ink" : "text-secondary"}`}>
                   {users.length}
                 </span>
               </button>
@@ -480,10 +478,10 @@ function MessageRow({
         onOpenSheet();
       }}
       className={`chat-row-enter group relative rounded-md px-1 transition-colors duration-300 hover:bg-foreground/[0.03] ${head ? "mt-2.5 py-1" : "py-0.5"}`}
-      style={flashing ? { background: "color-mix(in srgb, var(--rival-blue) 14%, transparent)" } : undefined}
+      style={flashing ? { background: "var(--yes-tint)" } : undefined}
     >
       {/* Desktop: quick reactions and Reply on hover */}
-      <div className="pointer-events-none absolute -top-3 right-2 z-10 hidden items-center gap-0.5 rounded-lg bg-surface-elevated p-0.5 opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.35)] ring-1 ring-border transition-opacity duration-100 group-hover:pointer-events-auto group-hover:opacity-100 md:flex">
+      <div className="pointer-events-none absolute -top-3 right-2 z-10 hidden items-center gap-0.5 rounded-control bg-surface-elevated p-0.5 opacity-0 shadow-pop transition-opacity duration-100 group-hover:pointer-events-auto group-hover:opacity-100 md:flex">
         {QUICK_REACT.map((e) => (
           <button key={e} type="button" onClick={() => onReact?.(message.id, e)} className="flex h-7 w-7 items-center justify-center rounded-md text-sm hover:bg-foreground/10" aria-label={`React ${e}`}>
             {e}
@@ -511,13 +509,13 @@ function MessageRow({
               {quoted ? (
                 <button type="button" onClick={() => onJumpToQuoted(quoted.id)} className="flex min-w-0 items-center gap-1.5 text-left">
                   <RivalCharacter name={quoted.authorName ?? "Rival"} imageUrl={quoted.authorAvatarUrl} size={16} />
-                  <span className="shrink-0 text-[13px] font-semibold" style={{ color: quotedSide ? SIDE_COLOR[quotedSide] : "var(--foreground)" }}>
+                  <span className="shrink-0 text-label font-semibold" style={{ color: quotedSide ? SIDE_COLOR[quotedSide] : "var(--foreground)" }}>
                     @{quoted.authorName ?? "Rival"}
                   </span>
-                  <span className="truncate text-[13px] text-muted">{summary(quoted)}</span>
+                  <span className="truncate text-label text-secondary">{summary(quoted)}</span>
                 </button>
               ) : (
-                <span className="text-[13px] italic text-muted">Original message not loaded</span>
+                <span className="text-label italic text-secondary">Original message not loaded</span>
               )}
             </div>
           )}
@@ -527,7 +525,7 @@ function MessageRow({
               <RivalCharacter name={name} imageUrl={message.authorAvatarUrl} size={40} />
               {side && typeof stake === "number" && (
                 <span
-                  className="relative -mt-2 rounded-full px-1.5 py-px font-mono text-[10px] font-bold tabular-nums leading-tight ring-2 ring-surface"
+                  className="relative -mt-2 rounded-full px-1.5 py-px text-micro font-bold tabular-nums leading-tight ring-2 ring-surface"
                   style={{ color, background: SIDE_DIM[side] }}
                   title={`Backed ${side.toUpperCase()}`}
                 >
@@ -537,17 +535,17 @@ function MessageRow({
             </div>
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-x-1.5 leading-tight">
-                <span className="text-[15px] font-bold" style={{ color }}>
+                <span className="text-body font-bold" style={{ color }}>
                   {self ? "You" : name}
                 </span>
                 {side ? (
-                  <span className="rounded px-1 py-px font-mono text-[9px] font-bold text-white" style={{ background: color }}>
+                  <span className={`rounded-tag px-1 py-px text-micro font-bold leading-tight text-white ${side === "yes" ? "bg-yes" : "bg-no"}`}>
                     {side.toUpperCase()}
                   </span>
                 ) : (
-                  <span className="rounded px-1 py-px font-mono text-[9px] font-bold text-muted ring-1 ring-border">WATCHING</span>
+                  <span className="rounded-tag px-1 py-px text-micro font-bold leading-tight text-tertiary edge-strong">WATCHING</span>
                 )}
-                <span className="font-mono text-[10px] text-muted">{time(message.createdAt)}</span>
+                <span className="text-caption tabular-nums text-tertiary">{time(message.createdAt)}</span>
               </p>
               <div className="mt-0.5">{body}</div>
             </div>
@@ -555,7 +553,7 @@ function MessageRow({
         </>
       ) : (
         <div className="flex gap-3">
-          <span className="w-10 shrink-0 pt-1 text-right font-mono text-[9px] text-transparent group-hover:text-muted">{time(message.createdAt)}</span>
+          <span className="w-10 shrink-0 pt-1 text-right text-micro tabular-nums text-transparent group-hover:text-tertiary">{time(message.createdAt)}</span>
           <div className="min-w-0 flex-1">{body}</div>
         </div>
       )}
@@ -595,7 +593,7 @@ function Gif({ attachment: a }: { attachment: ChatAttachment }) {
     return () => io.disconnect();
   }, [src]);
   return (
-    <span className="relative mb-1 mt-0.5 block overflow-hidden rounded-xl bg-foreground/5" style={{ width: w, height: h, maxWidth: "100%" }}>
+    <span className="relative mb-1 mt-0.5 block overflow-hidden rounded-card bg-overlay-1" style={{ width: w, height: h, maxWidth: "100%" }}>
       {safeLqip(a.lqip) && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={safeLqip(a.lqip)} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
@@ -617,7 +615,7 @@ function Still({ attachment: a }: { attachment: ChatAttachment }) {
       <button
         type="button"
         onClick={() => a.ref && !a.expired && setOpen(true)}
-        className="relative mb-1 mt-0.5 block overflow-hidden rounded-xl bg-foreground/5 ring-1 ring-border"
+        className="relative mb-1 mt-0.5 block overflow-hidden rounded-card bg-overlay-1 edge"
         style={{ width: w, height: h, maxWidth: "100%" }}
         aria-label={a.expired ? "Photo expired" : "Open photo"}
       >
@@ -638,7 +636,7 @@ function Still({ attachment: a }: { attachment: ChatAttachment }) {
           />
         )}
         {a.expired && (
-          <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-[13px] font-semibold text-white">Photo expired</span>
+          <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-label font-semibold text-white">Photo expired</span>
         )}
         {uploading && (
           <span className="absolute inset-0 flex items-center justify-center bg-black/25">
@@ -689,7 +687,7 @@ function PhotoViewer({ src, onClose }: { src: string; onClose: () => void }) {
         <a
           href={src.replace("/upload/", "/upload/fl_attachment/")}
           onClick={(e) => e.stopPropagation()}
-          className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
+          className="rounded-full bg-white/15 px-4 py-2 text-label font-semibold text-white backdrop-blur-sm"
         >
           Save
         </a>

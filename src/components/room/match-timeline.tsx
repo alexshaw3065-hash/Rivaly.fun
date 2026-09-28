@@ -7,6 +7,7 @@ import { eventFromRow, liveMinute, minuteLabel, scoreAtMinute, type TimelineData
 import { setReplay } from "@/lib/replay-store";
 import type { Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
+import { Badge } from "../ui/surfaces";
 
 // The match on one slim strip attached to the bottom of the stadium: every
 // goal, card, VAR call and whistle on a rail from kick-off to full time, with
@@ -220,17 +221,17 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
   return (
     <section
       ref={wrap}
-      className="-mx-4 rounded-b-3xl px-4 pb-3 pt-2.5 md:mx-0 md:rounded-b-2xl"
+      className="-mx-4 rounded-b-sheet px-4 pb-3 pt-3 md:mx-0"
       style={{ background: "color-mix(in srgb, var(--st-pitch-2) 22%, #050806)" }}
       aria-label="Match timeline"
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={togglePlay}
           disabled={!started}
           aria-label={playing ? "Pause replay" : "Replay the match"}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#0a0a0a] transition-[transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
+          className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black transition-[transform,opacity] duration-100 before:absolute before:-inset-1.5 active:scale-90 disabled:opacity-25"
         >
           {playing ? (
             <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
@@ -243,7 +244,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             </svg>
           )}
         </button>
-        <span className="font-mono text-[10px] text-white/55">{data.sport === "nfl" ? "Q1" : "0’"}</span>
+        <span className="text-caption tabular-nums text-white/55">{data.sport === "nfl" ? "Q1" : "0’"}</span>
 
         {/* The track */}
         <div
@@ -260,7 +261,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
           onPointerUp={() => (dragging.current = false)}
           onPointerCancel={() => (dragging.current = false)}
           onKeyDown={onKey}
-          className="relative h-10 min-w-0 flex-1 cursor-pointer touch-pan-y select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-rival-blue"
+          className="relative h-10 min-w-0 flex-1 cursor-pointer touch-pan-y select-none rounded-tag outline-none focus-visible:ring-2 focus-visible:ring-yes"
         >
           {/* The room's pulse, faint behind the rail */}
           <div className="absolute inset-x-0 bottom-0.5 flex h-3 items-end gap-px" aria-hidden>
@@ -316,7 +317,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             <div className="pointer-events-none absolute inset-y-0 w-0" style={{ left: pct(head) }} aria-hidden>
               <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#050806] bg-white" />
               {showMinute && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded bg-white px-1 font-mono text-[9px] font-bold tabular-nums text-[#0a0a0a]">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-tag bg-white px-1 text-micro font-bold tabular-nums text-black">
                   {minuteLabel(data.sport, head)}
                 </span>
               )}
@@ -326,7 +327,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
           {picked && <MomentCard event={picked} left={(picked.minute / data.domain) * 100} home={match.homeTeam} away={match.awayTeam} sport={data.sport} />}
         </div>
 
-        <span className="font-mono text-[10px] text-white/55">{data.sport === "nfl" ? (data.domain > 60 ? "OT" : "Q4") : `${Math.round(data.domain)}’`}</span>
+        <span className="text-caption tabular-nums text-white/55">{data.sport === "nfl" ? (data.domain > 60 ? "OT" : "Q4") : `${Math.round(data.domain)}’`}</span>
         {live && !following && (
           <button
             type="button"
@@ -335,9 +336,9 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
               setFollowing(true);
             }}
             aria-label="Back to live"
-            className="flex h-6 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 font-mono text-[9px] font-bold uppercase tracking-wider text-[#ff6b6b] transition-transform active:scale-95"
+            className="flex h-6 shrink-0 items-center rounded-full bg-white/10 px-2 transition-transform active:scale-95"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#ff6b6b]" /> Live
+            <Badge tone="live">Live</Badge>
           </button>
         )}
       </div>
@@ -374,16 +375,16 @@ function MomentMark({ kind, ring, sport = "soccer" }: { kind: TimelineEvent["kin
     );
   if (kind === "var" || kind === "var-end")
     return (
-      <span className="flex h-[22px] items-center rounded-md px-1 font-mono text-[8px] font-bold tracking-wide text-white" style={{ background: TONE.var }}>
+      <span className="flex h-[22px] items-center rounded-tag px-1 text-micro font-bold text-white" style={{ background: TONE.var }}>
         VAR
       </span>
     );
   if (kind === "penalty")
-    return <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full border border-border-strong bg-background font-mono text-[10px] font-bold text-foreground">P</span>;
+    return <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full border border-line-strong bg-background text-micro font-bold text-foreground">P</span>;
   // Whistles: kick-off, half-time, full time — a quiet notch on the rail.
   return (
     <span className="flex h-[22px] w-[14px] items-center justify-center">
-      <span className="h-3 w-3 rounded-full border-2 border-muted bg-background" />
+      <span className="h-3 w-3 rounded-full border-2 border-secondary bg-background" />
     </span>
   );
 }
@@ -397,7 +398,7 @@ function MomentCard({ event, left, home, away, sport }: { event: TimelineEvent; 
       data-moment
       role="dialog"
       aria-label={event.title}
-      className="enter-pop absolute top-[calc(100%+6px)] z-30 w-56 rounded-xl border border-border-strong bg-surface-elevated p-3 text-left shadow-xl"
+      className="enter-pop absolute top-[calc(100%+6px)] z-30 w-56 rounded-card bg-surface-elevated p-3 text-left shadow-pop"
       style={{
         left: `${left}%`,
         transform: anchor === "center" ? "translateX(-50%)" : anchor === "right" ? "translateX(-92%)" : "translateX(-8%)",
@@ -405,19 +406,19 @@ function MomentCard({ event, left, home, away, sport }: { event: TimelineEvent; 
     >
       <div className="flex items-center gap-2">
         <MomentMark kind={event.kind} sport={sport} />
-        <p className="min-w-0 flex-1 truncate font-display text-sm font-bold text-foreground">
+        <p className="min-w-0 flex-1 truncate text-label font-display font-bold text-foreground">
           {event.title}
           {event.player && <span className="font-semibold text-foreground/80"> · {event.player}</span>}
         </p>
-        <span className="font-mono text-xs font-semibold text-muted">{event.clock ?? `${Math.floor(event.minute)}’`}</span>
+        <span className="text-caption font-semibold tabular-nums text-secondary">{event.clock ?? `${Math.floor(event.minute)}’`}</span>
       </div>
-      {event.detail && <p className="mt-1.5 text-xs text-foreground/85">{event.detail}</p>}
+      {event.detail && <p className="mt-2 text-caption text-foreground/85">{event.detail}</p>}
       {team && (
-        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+        <p className="mt-2 flex items-center gap-1.5 text-caption text-secondary">
           <TeamCrest name={team} size={14} /> {team}
         </p>
       )}
-      <p className="mt-2 border-t border-border pt-2 text-xs text-muted">
+      <p className="mt-2 border-t border-line pt-2 text-caption text-secondary">
         {event.reactions === null
           ? "💬 Just happened — the room's reacting"
           : event.reactions === 0

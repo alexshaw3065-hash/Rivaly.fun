@@ -207,8 +207,7 @@ export function RoomTabs({
       <div
         role="tablist"
         aria-label="Room"
-        className="no-scrollbar flex gap-1 overflow-x-auto rounded-full p-1 ring-1 ring-border transition-[box-shadow,background-color] duration-200"
-        style={stuck ? FLOAT : { background: "var(--surface)" }}
+        className={`no-scrollbar flex gap-1 overflow-x-auto rounded-full p-1 transition-[box-shadow,background-color] duration-200 ${stuck ? FLOAT : "bg-surface edge"}`}
       >
         {TABS.filter((t) => t.id !== "lineup" || lineups !== undefined).map((t) =>
           t.id === "chat" ? (
@@ -220,17 +219,14 @@ export function RoomTabs({
               type="button"
               aria-selected={tab === "chat"}
               onClick={() => choose("chat")}
-              className="relative flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] md:text-sm"
-              style={{
-                background: tab === "chat" ? "var(--foreground)" : "color-mix(in srgb, var(--rival-green) 12%, transparent)",
-                color: tab === "chat" ? "var(--background)" : "var(--foreground)",
-                boxShadow: tab === "chat" ? "0 1px 3px rgba(0,0,0,0.25)" : "inset 0 0 0 1px color-mix(in srgb, var(--rival-green) 35%, transparent)",
-              }}
+              className={`relative flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-label font-bold transition-[background-color,color,transform] duration-100 active:scale-[0.97] ${
+                tab === "chat" ? "bg-foreground text-background" : "text-foreground hover:bg-overlay-1"
+              }`}
             >
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-rival-green" />
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-money" />
               Chat
               {unread > 0 && tab !== "chat" && (
-                <span key={unread} className="enter-pop flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rival-green px-1 font-mono text-[10px] font-bold tabular-nums text-black">
+                <span key={unread} className="enter-pop flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-money px-1 text-micro font-bold tabular-nums leading-none text-black">
                   {unread > 99 ? "99+" : unread}
                 </span>
               )}
@@ -242,12 +238,9 @@ export function RoomTabs({
               type="button"
               aria-selected={tab === t.id}
               onClick={() => choose(t.id)}
-              className="h-9 flex-1 shrink-0 rounded-full px-2.5 text-[13px] font-semibold transition-[background-color,color] duration-150 md:px-3 md:text-sm"
-              style={{
-                background: tab === t.id ? "var(--background)" : "transparent",
-                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
-                boxShadow: tab === t.id ? "0 1px 2px rgba(0,0,0,0.12)" : undefined,
-              }}
+              className={`h-9 flex-1 shrink-0 rounded-full px-3 text-label font-semibold transition-[background-color,color] duration-100 ${
+                tab === t.id ? "bg-surface-3 text-foreground" : "text-secondary hover:text-foreground"
+              }`}
             >
               {t.label}
             </button>
@@ -284,14 +277,9 @@ export function RoomTabs({
   );
 }
 
-// A floating capsule: frosted surface, a tight shadow, the page visible
-// around it.
-const FLOAT = {
-  background: "color-mix(in srgb, var(--surface) 86%, transparent)",
-  backdropFilter: "blur(14px) saturate(1.2)",
-  WebkitBackdropFilter: "blur(14px) saturate(1.2)",
-  boxShadow: "0 8px 24px -10px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.2)",
-} as const;
+// A floating capsule: frosted surface and the one floating-layer shadow,
+// the page visible around it.
+const FLOAT = "bg-surface/85 backdrop-blur-md backdrop-saturate-150 shadow-pop";
 
 // The score while you're down in the tabs: both sides, the score (or the
 // kick-off time), and the live minute. Tap it to go back up to the stadium.
@@ -306,23 +294,22 @@ function MiniScoreboard({ match, minute }: { match: Match; minute: number | null
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Back to the stadium"
-      className="flex h-9 w-fit max-w-full items-center gap-2 rounded-full pl-3 pr-3.5 ring-1 ring-border transition-transform duration-150 [animation:fade-in-up_260ms_cubic-bezier(0.23,1,0.32,1)_both] active:scale-[0.97]"
-      style={FLOAT}
+      className={`flex h-9 w-fit max-w-full items-center gap-2 rounded-full px-3 transition-transform duration-100 [animation:fade-in-up_260ms_cubic-bezier(0.23,1,0.32,1)_both] active:scale-[0.97] ${FLOAT}`}
     >
       <span className="flex items-center gap-1.5">
         <TeamCrest name={match.homeTeam} size={20} />
-        <span className="text-[13px] font-bold text-foreground">{home.code}</span>
+        <span className="text-label font-bold text-foreground">{home.code}</span>
       </span>
-      <span className="shrink-0 px-0.5 font-display text-base font-extrabold tabular-nums text-foreground">
+      <span className="shrink-0 px-0.5 text-body-lg font-display font-extrabold tabular-nums text-foreground">
         {started ? `${match.homeScore ?? 0} – ${match.awayScore ?? 0}` : "vs"}
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="text-[13px] font-bold text-foreground">{away.code}</span>
+        <span className="text-label font-bold text-foreground">{away.code}</span>
         <TeamCrest name={match.awayTeam} size={20} />
       </span>
-      <span className="h-4 w-px bg-border" aria-hidden />
+      <span className="h-4 w-px bg-line-strong" aria-hidden />
       <span className="flex items-center">
-        <span className="shrink-0 font-mono text-[11px] font-semibold text-muted">
+        <span className="shrink-0 text-caption font-semibold tabular-nums text-secondary">
           {live ? (
             <span className="flex items-center gap-1.5">
               <LiveBadge />
@@ -346,7 +333,7 @@ function JumpPill({ count, alert, up, onJump }: { count: number; alert: { text: 
     <button
       type="button"
       onClick={onJump}
-      className="fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 mx-auto flex h-10 w-fit max-w-[min(92vw,360px)] items-center gap-2 rounded-full bg-foreground pl-3 pr-2 text-[13px] font-semibold text-background shadow-[0_4px_14px_rgba(0,0,0,0.3)] transition-transform duration-150 [animation:fade-in-up_360ms_cubic-bezier(0.23,1,0.32,1)_both] active:scale-95 md:bottom-6"
+      className="fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 mx-auto flex h-10 w-fit max-w-[min(92vw,360px)] items-center gap-2 rounded-full bg-foreground pl-3 pr-2 text-label font-semibold text-background shadow-pop transition-transform duration-100 [animation:fade-in-up_360ms_cubic-bezier(0.23,1,0.32,1)_both] active:scale-95 md:bottom-6"
       aria-label={`${count} new in the chat, jump to it`}
     >
       <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className={up ? "rotate-180" : ""}>
@@ -360,7 +347,7 @@ function JumpPill({ count, alert, up, onJump }: { count: number; alert: { text: 
       ) : (
         <span>New in the chat</span>
       )}
-      <span key={count} className="enter-pop flex h-6 min-w-6 items-center justify-center rounded-full bg-rival-green px-1.5 font-mono text-[11px] font-bold tabular-nums text-black">
+      <span key={count} className="enter-pop flex h-6 min-w-6 items-center justify-center rounded-full bg-money px-1.5 text-caption font-bold tabular-nums text-black">
         {count > 99 ? "99+" : count}
       </span>
     </button>
@@ -374,49 +361,49 @@ function StatsPanel({ match, rows }: { match: Match; rows: StatRow[] }) {
   const away = teamIdentity(match.awayTeam);
   const fills = teamFills(match);
   return (
-    <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+    <div className="rounded-card bg-surface px-4 py-3 edge">
       <div className="flex items-center justify-between pb-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+        <span className="flex items-center gap-1.5 text-caption font-semibold text-foreground">
           <TeamCrest name={match.homeTeam} size={18} /> {home.code}
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Team stats</span>
-        <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+        <span className="text-caption text-secondary">Team stats</span>
+        <span className="flex items-center gap-1.5 text-caption font-semibold text-foreground">
           {away.code} <TeamCrest name={match.awayTeam} size={18} />
         </span>
       </div>
-      <ul className="divide-y divide-border">
+      <ul className="divide-y divide-line">
         {rows.map((r) => {
           const total = r.home + r.away;
           const homePct = total ? (r.home / total) * 100 : 50;
           return (
-            <li key={r.key} className="py-2.5">
+            <li key={r.key} className="py-3">
               <div className="grid grid-cols-[48px_1fr_48px] items-center">
                 <Value value={r.home} pct={r.pct} lead={r.home > r.away} color={fills.home.fill} ink={fills.home.ink} align="left" />
-                <span className="text-center text-sm text-foreground">{r.label}</span>
+                <span className="text-center text-label text-foreground">{r.label}</span>
                 <Value value={r.away} pct={r.pct} lead={r.away > r.home} color={fills.away.fill} ink={fills.away.ink} align="right" />
               </div>
-              <div className="mt-1.5 flex h-1 gap-0.5 overflow-hidden rounded-full">
-                <span className="h-full rounded-full" style={{ width: `${homePct}%`, background: total ? fills.home.fill : "var(--border)", boxShadow: EDGE }} />
-                <span className="h-full flex-1 rounded-full" style={{ background: total ? fills.away.fill : "var(--border)", boxShadow: EDGE }} />
+              <div className="mt-2 flex h-1 gap-0.5 overflow-hidden rounded-full">
+                <span className={`h-full rounded-full ${EDGE}`} style={{ width: `${homePct}%`, background: total ? fills.home.fill : "var(--line-strong)" }} />
+                <span className={`h-full flex-1 rounded-full ${EDGE}`} style={{ background: total ? fills.away.fill : "var(--line-strong)" }} />
               </div>
             </li>
           );
         })}
       </ul>
-      <p className="pt-2 text-center text-[10px] text-muted">From the official match feed</p>
+      <p className="pt-2 text-center text-caption text-tertiary">From the official match feed</p>
     </div>
   );
 }
 
 // A hairline so a white kit still reads on a light surface.
-const EDGE = "inset 0 0 0 1px color-mix(in srgb, var(--foreground) 14%, transparent)";
+const EDGE = "ring-1 ring-inset ring-foreground/15";
 
 function Value({ value, pct, lead, color, ink, align }: { value: number; pct?: boolean; lead: boolean; color: string; ink: string; align: "left" | "right" }) {
   return (
     <span className={`flex ${align === "left" ? "justify-start" : "justify-end"}`}>
       <span
-        className="min-w-7 rounded-full px-2 py-0.5 text-center font-mono text-sm font-bold tabular-nums"
-        style={lead ? { background: color, color: ink, boxShadow: EDGE } : { color: "var(--foreground)" }}
+        className={`min-w-7 rounded-full px-2 py-0.5 text-center text-label font-bold tabular-nums ${lead ? EDGE : "text-foreground"}`}
+        style={lead ? { background: color, color: ink } : undefined}
       >
         {value}
         {pct && "%"}
@@ -441,27 +428,27 @@ function ActivityPanel({ items }: { items: ActivityItem[] }) {
   if (all.length === 0) return <Empty text="Nothing yet." />;
 
   return (
-    <ul className="rounded-2xl border border-border bg-surface px-4 py-1">
+    <ul className="rounded-card bg-surface px-4 py-1 edge">
       {all.map((it) => (
-        <li key={it.id} className="flex items-center gap-3 border-b border-border py-3 last:border-0">
+        <li key={it.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
           <ActivityIcon item={it} />
-          <p className="min-w-0 flex-1 text-sm text-foreground">
+          <p className="min-w-0 flex-1 text-body text-foreground">
             <ActivityText item={it} />
           </p>
-          <span className="shrink-0 font-mono text-[11px] text-muted">{ago(now, it.at)}</span>
+          <span className="shrink-0 text-caption tabular-nums text-tertiary">{ago(now, it.at)}</span>
         </li>
       ))}
     </ul>
   );
 }
 
-const SIDE_COLOR = { yes: "var(--rival-blue)", no: "var(--rival-red)" } as const;
+const SIDE_COLOR = { yes: "var(--yes-ink)", no: "var(--no-ink)" } as const;
 
 function ActivityIcon({ item }: { item: ActivityItem | { kind: "takeover"; side: "yes" | "no" } }) {
   if ((item.kind === "joined" || item.kind === "created") && "name" in item && item.name)
     return <RivalCharacter name={item.name} imageUrl={item.avatarUrl ?? null} size={28} />;
   const glyph = item.kind === "takeover" ? "🏟" : item.kind === "locked" ? "🔒" : item.kind === "result" ? "🏁" : "•";
-  return <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] bg-background text-sm">{glyph}</span>;
+  return <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control bg-background text-label">{glyph}</span>;
 }
 
 function ActivityText({ item }: { item: ActivityItem | { kind: "takeover"; side: "yes" | "no" } }) {
@@ -497,11 +484,11 @@ function ActivityText({ item }: { item: ActivityItem | { kind: "takeover"; side:
 
 function OverviewPanel({ facts }: { facts: OverviewFact[] }) {
   return (
-    <dl className="rounded-2xl border border-border bg-surface px-4 py-1">
+    <dl className="rounded-card bg-surface px-4 py-1 edge">
       {facts.map((f) => (
-        <div key={f.label} className="flex items-baseline justify-between gap-4 border-b border-border py-3 last:border-0">
-          <dt className="text-sm text-muted">{f.label}</dt>
-          <dd className="text-right text-sm font-medium text-foreground">{f.value}</dd>
+        <div key={f.label} className="flex items-baseline justify-between gap-4 border-b border-line py-3 last:border-0">
+          <dt className="text-body text-secondary">{f.label}</dt>
+          <dd className="text-right text-body font-medium text-foreground">{f.value}</dd>
         </div>
       ))}
     </dl>
@@ -509,7 +496,7 @@ function OverviewPanel({ facts }: { facts: OverviewFact[] }) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <p className="rounded-2xl border border-border bg-surface px-4 py-8 text-center text-sm text-muted">{text}</p>;
+  return <p className="rounded-card bg-surface px-4 py-8 text-center text-body text-secondary edge">{text}</p>;
 }
 
 function ago(now: number, at: number): string {

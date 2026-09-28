@@ -27,8 +27,8 @@ export function RoomArenaCta({ room, mySide, canQuote }: { room: RoomRef; mySide
   const openAbout = useOpenAbout();
   if (!mySide && !canQuote) return null;
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 ring-1 ring-border">
-      <p className="min-w-0 flex-1 text-sm text-muted">
+    <div className="flex items-center gap-3 rounded-card bg-surface px-4 py-3 edge">
+      <p className="min-w-0 flex-1 text-body text-secondary">
         {mySide ? (
           <>
             You&rsquo;re on <span className="font-bold uppercase" style={{ color: COLOR[mySide] }}>{mySide}</span>. Say it in the Arena.
@@ -40,8 +40,7 @@ export function RoomArenaCta({ room, mySide, canQuote }: { room: RoomRef; mySide
       <button
         type="button"
         onClick={() => openAbout({ ...room, side: mySide })}
-        className="h-9 shrink-0 rounded-full px-4 text-sm font-bold text-white transition-transform duration-150 active:scale-95"
-        style={{ background: mySide ? COLOR[mySide] : "var(--rival-blue)" }}
+        className={`h-9 shrink-0 rounded-full px-4 text-label font-bold text-white transition-transform duration-100 active:scale-95 ${mySide === "no" ? "bg-no" : "bg-yes"}`}
       >
         {mySide ? `Call it · ${mySide.toUpperCase()}` : "Share to Arena"}
       </button>
@@ -62,7 +61,7 @@ export function ArenaQuoteButton({ room }: { room: RoomRef }) {
       }}
       aria-label="Share to the Arena"
       title="Share to the Arena"
-      className="shrink-0 p-0.5 text-muted transition-[transform,color] duration-150 hover:text-foreground active:scale-90"
+      className="relative shrink-0 p-0.5 text-secondary transition-[transform,color] duration-100 before:absolute before:-inset-2 hover:text-foreground active:scale-90"
     >
       <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden>
         <path d="M3.5 5.5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3a2 2 0 0 1-2-2v-6Z" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" />

@@ -16,10 +16,12 @@ import { explorerTxUrl } from "@/lib/wallet/constants";
 import { CallItPrompt } from "./arena/call-it-prompt";
 import { estimateWin, pct } from "@/lib/fees";
 import { haptic } from "@/lib/haptics";
+import { SidePill } from "./ui/controls";
+import { Button } from "./ui/button";
 
 const SIDE = {
-  yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
-  no: { label: "NO", color: "var(--rival-red)", dim: "var(--rival-red-dim)" },
+  yes: { label: "YES", color: "var(--yes)", ink: "text-yes-ink", ring: "outline-yes" },
+  no: { label: "NO", color: "var(--no)", ink: "text-no-ink", ring: "outline-no" },
 } as const;
 
 const SUGGESTED_STAKE_CENTS = 10_00;
@@ -68,12 +70,12 @@ export function JoinPanel({
 
   if (entered) {
     return (
-      <div className="enter-pop rounded-lg border bg-surface p-4" style={{ borderColor: SIDE[entered.side].color }}>
-        <p className="text-sm font-semibold text-foreground">
-          You&rsquo;re in — backing <span style={{ color: SIDE[entered.side].color }}>{SIDE[entered.side].label}</span>
+      <div className={`enter-pop rounded-card bg-surface p-4 outline outline-1 -outline-offset-1 ${SIDE[entered.side].ring}`}>
+        <p className="text-body font-semibold text-foreground">
+          You&rsquo;re in — backing <span className={SIDE[entered.side].ink}>{SIDE[entered.side].label}</span>
           {entered.cents !== null && <> with {formatMoney(entered.cents)}</>}
         </p>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-caption text-secondary">
           Locked in escrow. Win and you split the pool with everyone on your side.
         </p>
         {entered.signature && (
@@ -81,7 +83,7 @@ export function JoinPanel({
             href={explorerTxUrl(entered.signature)}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover-link mt-1.5 inline-block text-xs text-muted underline underline-offset-2"
+            className="hover-link mt-2 inline-block text-caption text-secondary underline underline-offset-2"
           >
             Verify your stake on Solana ↗
           </a>
@@ -129,31 +131,13 @@ export function JoinPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4">
+    <div className="flex flex-col gap-4 rounded-card bg-surface p-4 edge">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">Take a side</p>
+        <p className="text-label font-semibold text-secondary">Take a side</p>
         <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Side">
-          {(["yes", "no"] as const).map((s) => {
-            const active = side === s;
-            return (
-              <button
-                key={s}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setSide(s)}
-                className="min-h-12 rounded-md border font-display text-base font-bold tracking-wide transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97]"
-                style={{
-                  borderColor: active ? SIDE[s].color : "var(--border)",
-                  color: active ? SIDE[s].color : "var(--muted)",
-                  background: active ? SIDE[s].dim : "transparent",
-                  boxShadow: active ? `inset 0 0 0 1px ${SIDE[s].color}` : "none",
-                }}
-              >
-                {SIDE[s].label}
-              </button>
-            );
-          })}
+          {(["yes", "no"] as const).map((s) => (
+            <SidePill key={s} side={s} selected={side === s} onClick={() => setSide(s)} />
+          ))}
         </div>
       </div>
 
@@ -167,7 +151,7 @@ export function JoinPanel({
       />
 
       {error && (
-        <p role="alert" className="text-xs text-danger-red">
+        <p role="alert" className="text-caption text-no-ink">
           {error}
         </p>
       )}
@@ -181,17 +165,12 @@ export function JoinPanel({
           >
             {blocker?.label ? blocker.label : problem ? "Join" : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}
           </StakeButton>
-          {blocker?.hint && <p className="-mt-2 text-center text-xs text-muted">{blocker.hint}</p>}
+          {blocker?.hint && <p className="-mt-2 text-center text-caption text-secondary">{blocker.hint}</p>}
         </>
       ) : (
-        <button
-          type="button"
-          onClick={submit}
-          className="min-h-12 w-full rounded-md text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.98]"
-          style={{ background: accent }}
-        >
+        <Button variant={side} size="cta" onClick={submit}>
           Sign in to join
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -211,11 +190,11 @@ function WinLine({
   const win = estimateWin({ stakeCents, side, ...pool });
   const totalBps = pool.feeBps + pool.hostFeeBps;
   if (!win) {
-    return <p className="-mt-1 text-xs text-muted">Nobody&rsquo;s on the other side yet — if nobody joins it, you get your stake back.</p>;
+    return <p className="-mt-1 text-caption text-secondary">Nobody&rsquo;s on the other side yet — if nobody joins it, you get your stake back.</p>;
   }
   return (
-    <p className="-mt-1 text-xs text-muted">
-      If {SIDE[side].label} wins right now: <span className="font-semibold text-foreground">{formatMoney(win.payoutCents)}</span>
+    <p className="-mt-1 text-caption text-secondary">
+      If {SIDE[side].label} wins right now: <span className="font-semibold tabular-nums text-foreground">{formatMoney(win.payoutCents)}</span>
       {totalBps > 0 && win.feeCents > 0 && <> · after a {pct(totalBps)} fee on winnings ({formatMoney(win.feeCents)})</>}
     </p>
   );

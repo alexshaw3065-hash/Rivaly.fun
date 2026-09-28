@@ -77,8 +77,8 @@ export function PressureTicker({ matchId, homeTeam, awayTeam }: { matchId: strin
     <div
       role="status"
       aria-live="polite"
-      className={`absolute inset-0 z-10 flex items-center gap-3 overflow-hidden rounded-t-2xl pl-4 pr-2 ${leaving ? "ticker-out" : "ticker-in"}`}
-      style={{ background: `color-mix(in srgb, ${id.primary} 22%, var(--surface))`, boxShadow: `inset 3px 0 0 ${id.primary}` }}
+      className={`absolute inset-0 z-10 flex items-center gap-3 overflow-hidden rounded-t-card pl-4 pr-2 ${leaving ? "ticker-out" : "ticker-in"}`}
+      style={{ background: `color-mix(in srgb, ${id.primary} 22%, var(--surface))` }}
     >
       <button
         type="button"
@@ -91,10 +91,10 @@ export function PressureTicker({ matchId, homeTeam, awayTeam }: { matchId: strin
       >
         <TeamCrest name={team} size={24} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-bold text-foreground">
+          <span className="block truncate text-label font-bold text-foreground">
             {id.code} {line}
           </span>
-          <span className="block truncate font-mono text-[11px] text-foreground/70">
+          <span className="block truncate text-caption tabular-nums text-foreground/70">
             {shown.attacks} dangerous attacks · {shown.minute}&rsquo;
           </span>
         </span>
@@ -103,12 +103,11 @@ export function PressureTicker({ matchId, homeTeam, awayTeam }: { matchId: strin
           {Array.from({ length: 5 }, (_, i) => (
             <span
               key={i}
-              className="heat-seg w-[5px] rounded-[2px]"
+              className="heat-seg w-[5px] rounded-sm ring-1 ring-inset ring-foreground/10"
               style={{
                 height: `${40 + i * 15}%`,
                 background: i < segments ? id.primary : "color-mix(in srgb, var(--foreground) 14%, transparent)",
                 animationDelay: `${120 + i * 70}ms`,
-                boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent)",
               }}
             />
           ))}

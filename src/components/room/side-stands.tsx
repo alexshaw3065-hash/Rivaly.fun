@@ -9,10 +9,11 @@ import { AnimatedMoney } from "../animated-money";
 import { RivalCharacter } from "../rival-character";
 import { RoomShareButton } from "./room-share-button";
 import { RoomPeopleSheet } from "./room-people-sheet";
+import { Button } from "../ui/button";
 
 const SIDES = {
-  yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
-  no: { label: "NO", color: "var(--rival-red)", dim: "var(--rival-red-dim)" },
+  yes: { label: "YES", ink: "text-yes-ink", box: "bg-yes/8", edge: "outline-yes/25", won: "outline-yes" },
+  no: { label: "NO", ink: "text-no-ink", box: "bg-no/8", edge: "outline-no/25", won: "outline-no" },
 } as const;
 
 const FACES = 3;
@@ -57,7 +58,7 @@ export function SideStands({
   const [sheetSide, setSheetSide] = useState<EntrySide | null>(null);
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
+    <section className="rounded-card bg-surface p-4 edge">
       {/* Side · ring · side */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         {(["yes", "no"] as const).map((side, i) => {
@@ -65,14 +66,14 @@ export function SideStands({
           const lost = decided !== null && decided !== side;
           const stats = (
             <div key={side} className={`min-w-0 transition-opacity duration-300 ${i === 1 ? "order-3 text-right" : ""}`} style={{ opacity: lost ? 0.45 : 1 }}>
-              <p className="font-display text-base font-extrabold tracking-wide" style={{ color: s.color }}>
+              <p className={`text-body-lg font-display font-extrabold tracking-wide ${s.ink}`}>
                 {s.label}
-                {decided === side && <span className="ml-1 text-xs">✓</span>}
+                {decided === side && <span className="ml-1 text-caption">✓</span>}
               </p>
-              <p className="mt-0.5 truncate font-display text-lg font-bold tabular-nums text-foreground" title={formatMoney(cents[side])}>
+              <p className="mt-1 truncate text-title-3 font-display tabular-nums text-foreground" title={formatMoney(cents[side])}>
                 {formatMoneyCompact(cents[side])}
               </p>
-              <p className="font-mono text-[11px] text-muted">
+              <p className="text-caption tabular-nums text-secondary">
                 {pct[side]}% · {bySide[side].length} in
               </p>
             </div>
@@ -87,14 +88,11 @@ export function SideStands({
         {(["yes", "no"] as const).map((side) => {
           const s = SIDES[side];
           const people = bySide[side];
-          const frame = {
-            background: `color-mix(in srgb, ${s.color} 7%, transparent)`,
-            boxShadow: `inset 0 0 0 ${decided === side ? 1.5 : 1}px color-mix(in srgb, ${s.color} ${decided === side ? 100 : 24}%, transparent)`,
-          };
+          const frame = `rounded-control outline -outline-offset-1 ${s.box} ${decided === side ? `outline-[1.5px] ${s.won}` : `outline-1 ${s.edge}`}`;
           if (people.length === 0)
             return (
-              <div key={side} className="flex min-h-[72px] items-center justify-center rounded-xl px-2.5 py-2" style={frame}>
-                {open ? <RoomShareButton path={sharePath} claim={claim} tone={side} /> : <span className="text-xs text-muted">Nobody</span>}
+              <div key={side} className={`flex min-h-[72px] items-center justify-center px-3 py-2 ${frame}`}>
+                {open ? <RoomShareButton path={sharePath} claim={claim} tone={side} /> : <span className="text-caption text-secondary">Nobody</span>}
               </div>
             );
           return (
@@ -103,24 +101,20 @@ export function SideStands({
               type="button"
               onClick={() => setSheetSide(side)}
               aria-label={`Everyone on ${s.label} — ${people.length} ${people.length === 1 ? "rival" : "rivals"}`}
-              className="flex min-h-[72px] items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-left transition-transform duration-150 ease-out active:scale-[0.98]"
-              style={frame}
+              className={`flex min-h-[72px] items-center gap-1.5 px-3 py-3 text-left transition-transform duration-100 ease-out active:scale-[0.98] ${frame}`}
             >
               {people.slice(0, FACES).map((p) => (
                 <span key={p.userId} className="enter-pop flex w-[34px] shrink-0 flex-col items-center gap-1" title={`${p.displayName} · ${formatMoney(p.amountCents)}`}>
                   <RivalCharacter name={p.displayName} imageUrl={p.avatarUrl} size={32} />
-                  <span className="max-w-full truncate text-[11px] font-semibold tabular-nums text-foreground/80">{formatMoneyCompact(p.amountCents)}</span>
+                  <span className="max-w-full truncate text-micro font-semibold tabular-nums text-foreground/80">{formatMoneyCompact(p.amountCents)}</span>
                 </span>
               ))}
               {people.length > FACES && (
                 <span className="flex w-[34px] shrink-0 flex-col items-center gap-1">
-                  <span
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold tabular-nums"
-                    style={{ color: s.color, boxShadow: `inset 0 0 0 1.5px color-mix(in srgb, ${s.color} 55%, transparent)` }}
-                  >
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-full text-micro font-bold tabular-nums outline outline-[1.5px] -outline-offset-[1.5px] ${s.ink} ${s.edge}`}>
                     +{people.length - FACES}
                   </span>
-                  <span className="text-[11px] text-transparent" aria-hidden>
+                  <span className="text-micro text-transparent" aria-hidden>
                     ·
                   </span>
                 </span>
@@ -135,25 +129,27 @@ export function SideStands({
       {open && !mySide && (
         <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
           {(["yes", "no"] as const).map((side) => (
-            <button
+            <Button
               key={side}
-              type="button"
+              variant={side}
+              size="lg"
+              className="font-display font-extrabold tracking-wide"
               onClick={() => openStakeSheet(side)}
-              className="flex h-11 items-center justify-center gap-1.5 rounded-xl font-display text-sm font-extrabold tracking-wide text-white transition-transform duration-150 ease-out active:scale-[0.96]"
-              style={{ background: SIDES[side].color }}
+              leading={
+                <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden>
+                  <path d="M7 2.5v9M2.5 7h9" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" />
+                </svg>
+              }
             >
-              <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden>
-                <path d="M7 2.5v9M2.5 7h9" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" />
-              </svg>
               Back {SIDES[side].label}
-            </button>
+            </Button>
           ))}
         </div>
       )}
       {mySide && (
-        <p className="mt-3 text-center text-xs text-muted">
+        <p className="mt-3 text-center text-caption text-secondary">
           You&rsquo;re on{" "}
-          <span className="font-bold" style={{ color: SIDES[mySide].color }}>
+          <span className={`font-bold ${SIDES[mySide].ink}`}>
             {SIDES[mySide].label}
           </span>
           {myStakeCents !== null && <> · {formatMoney(myStakeCents)}</>}
@@ -176,7 +172,7 @@ function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; p
     <div className="order-2 relative flex items-center justify-center" style={{ width: size, height: size }}>
       {/* Starts at 12 o'clock and runs counter-clockwise, so YES fills the left half beside its numbers. */}
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "scaleX(-1) rotate(-90deg)" }} aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line-strong)" strokeWidth={stroke} />
         {yesShare !== null && (
           <>
             <circle
@@ -184,7 +180,7 @@ function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; p
               cy={size / 2}
               r={r}
               fill="none"
-              stroke="var(--rival-blue)"
+              stroke="var(--yes)"
               strokeWidth={stroke}
               strokeLinecap="butt"
               strokeDasharray={`${yesLen} ${c}`}
@@ -196,7 +192,7 @@ function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; p
               cy={size / 2}
               r={r}
               fill="none"
-              stroke="var(--rival-red)"
+              stroke="var(--no)"
               strokeWidth={stroke}
               strokeLinecap="butt"
               strokeDasharray={`${noLen} ${c}`}
@@ -207,8 +203,8 @@ function PoolRing({ yesShare, poolCents, decided }: { yesShare: number | null; p
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Pool</span>
-        <span className="font-display text-2xl font-bold tabular-nums text-foreground">
+        <span className="text-caption text-secondary">Pool</span>
+        <span className="text-title-1 font-display tabular-nums text-foreground">
           <AnimatedMoney cents={poolCents} />
         </span>
       </div>

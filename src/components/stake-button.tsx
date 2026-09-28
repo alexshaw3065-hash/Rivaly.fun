@@ -40,7 +40,7 @@ export function StakeButton({
       onClick={onClick}
       disabled={disabled || phase !== "idle"}
       aria-live="polite"
-      className="relative flex min-h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-md px-6 text-sm font-semibold text-white transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] disabled:cursor-default"
+      className="relative flex h-14 w-full items-center justify-center gap-2 overflow-hidden rounded-control px-5 text-body-lg font-semibold text-white transition-[transform,opacity] duration-100 ease-out active:scale-[0.97] disabled:cursor-default"
       style={{ background: color, opacity: disabled && phase === "idle" ? 0.4 : 1 }}
     >
       {step && (
@@ -66,7 +66,7 @@ export function StakeButton({
       {phase === "done" && (
         <span
           aria-hidden
-          className="coin-rise pointer-events-none absolute left-1/2 top-1/2 -ml-2.5 -mt-2.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
+          className="coin-rise pointer-events-none absolute left-1/2 top-1/2 -ml-2.5 -mt-2.5 flex h-5 w-5 items-center justify-center rounded-full text-micro font-bold"
           style={{ background: "#2775CA", color: "#fff", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,0.55)" }}
         >
           $

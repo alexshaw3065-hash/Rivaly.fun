@@ -44,8 +44,7 @@ export function RoomShareButton({
       <button
         type="button"
         onClick={() => void share()}
-        className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold transition-transform duration-150 active:scale-95"
-        style={{ color: tone === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}
+        className={`flex w-full items-center justify-center gap-1.5 text-caption font-semibold transition-transform duration-100 active:scale-95 ${tone === "yes" ? "text-yes-ink" : "text-no-ink"}`}
       >
         <ShareGlyph />
         {copied ? "Link copied" : "Empty — challenge a rival"}
@@ -58,7 +57,7 @@ export function RoomShareButton({
       <button
         type="button"
         onClick={() => void share()}
-        className="inline-flex min-h-10 items-center gap-2 rounded-full bg-rival-blue px-4 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+        className="inline-flex h-10 items-center gap-2 rounded-full bg-yes px-4 text-label font-semibold text-white transition-transform duration-100 ease-out active:scale-[0.97]"
       >
         <ShareGlyph />
         {copied ? "Link copied" : label}
@@ -71,8 +70,7 @@ export function RoomShareButton({
       type="button"
       onClick={() => void share()}
       aria-label={copied ? "Link copied" : "Share room"}
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm transition-[color,transform] duration-150 active:scale-90"
-      style={{ color: copied ? "#7c9bff" : "#fff" }}
+      className={`relative flex h-9 w-9 items-center justify-center rounded-full bg-black/70 ring-1 ring-white/20 backdrop-blur-sm transition-[color,transform] duration-100 before:absolute before:-inset-1 active:scale-90 ${copied ? "text-yes-ink" : "text-white"}`}
     >
       {copied ? (
         <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
