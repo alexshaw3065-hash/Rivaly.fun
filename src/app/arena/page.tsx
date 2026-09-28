@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { ArenaFeed } from "@/components/arena-feed";
 import { ArenaLeagues } from "@/components/arena-leagues";
 import { ArenaLeaderboard } from "@/components/arena-leaderboard";
+import { Tabs } from "@/components/ui/controls";
 
 type ArenaTab = "feed" | "leagues" | "leaderboard";
 
@@ -36,23 +37,9 @@ export default function ArenaPage({ searchParams }: { searchParams: Promise<{ ta
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
-      <div className="flex gap-6 border-b border-border">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className="-mb-px shrink-0 border-b-2 pb-2.5 text-sm font-medium transition-colors duration-150"
-            style={{
-              borderColor: tab === t.id ? "var(--foreground)" : "transparent",
-              color: tab === t.id ? "var(--foreground)" : "var(--muted)",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={tabs} value={tab} onChange={setTab} />
 
-      <div className="mt-8">
+      <div className="mt-6">
         {tab === "feed" && <ArenaFeed />}
         {tab === "leagues" && <ArenaLeagues />}
         {tab === "leaderboard" && <ArenaLeaderboard />}

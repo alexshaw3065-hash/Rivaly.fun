@@ -45,9 +45,9 @@ export function ArenaComposerHost({ save = savePost, loadRooms }: { save?: typeo
       <ArenaComposer key={key} open={open} preset={preset} onOpenChange={(o) => !o && closeArenaComposer()} onPost={post} loadRooms={loadRooms} />
       {toast && (
         <div className="fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 md:bottom-8" role="status">
-          <div className="flex items-center gap-3 rounded-full bg-surface-elevated py-2 pl-4 pr-2 text-sm text-foreground shadow-[0_10px_30px_-10px_rgba(0,0,0,0.7)] ring-1 ring-border [animation:fade-in-up_200ms_ease-out_both]">
+          <div className="flex items-center gap-3 rounded-full bg-surface-elevated py-2 pl-4 pr-2 text-body text-foreground shadow-pop edge [animation:fade-in-up_200ms_ease-out_both]">
             {toast.text}
-            <Link href={toast.href} className="rounded-full px-3 py-1 text-[13px] font-bold text-white" style={{ background: "var(--rival-blue)" }}>
+            <Link href={toast.href} className="rounded-full px-3 py-1 text-label font-bold text-white" style={{ background: "var(--yes)" }}>
               See it
             </Link>
           </div>

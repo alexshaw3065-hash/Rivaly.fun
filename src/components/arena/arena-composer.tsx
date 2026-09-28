@@ -165,36 +165,36 @@ export function ArenaComposer({
     <Drawer.Root open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92dvh] max-w-xl flex-col rounded-t-3xl bg-surface outline-none ring-1 ring-border">
-          <Drawer.Handle className="!mx-auto !mt-2.5 !mb-1 !h-1.5 !w-10 !rounded-full !bg-border-strong" />
+        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92dvh] max-w-xl flex-col rounded-t-3xl bg-surface outline-none edge">
+          <Drawer.Handle className="!mx-auto !mt-3 !mb-1 !h-1.5 !w-10 !rounded-full !bg-border-strong" />
           <Drawer.Title className="sr-only">Post a take</Drawer.Title>
           <div className="flex items-center justify-between px-4 pb-2 pt-1">
-            <button type="button" onClick={() => onOpenChange(false)} className="text-[15px] text-muted">
+            <button type="button" onClick={() => onOpenChange(false)} className="text-body text-secondary">
               Cancel
             </button>
             <button
               type="button"
               onClick={submit}
               disabled={!canPost}
-              className="rounded-full px-5 py-2 text-[15px] font-bold text-white transition-opacity disabled:opacity-40"
-              style={{ background: "var(--rival-blue)" }}
+              className="rounded-full px-5 py-2 text-body font-bold text-white transition-opacity disabled:opacity-40"
+              style={{ background: "var(--yes)" }}
             >
               {uploading ? "Uploading…" : replyTo ? "Reply" : "Post"}
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
             {replyTo && (
-              <div className="mb-2 border-l-2 border-border pl-3">
-                <p className="text-[13px] text-muted">
-                  Replying to <span className="font-semibold text-rival-blue">{replyTo.username ? `@${replyTo.username}` : replyTo.name}</span>
+              <div className="mb-2 rounded-control bg-overlay-1 px-3 py-2">
+                <p className="text-label text-secondary">
+                  Replying to <span className="font-semibold text-yes-ink">{replyTo.username ? `@${replyTo.username}` : replyTo.name}</span>
                 </p>
-                {replyTo.body && <p className="mt-0.5 line-clamp-2 text-[13px] text-muted">{replyTo.body}</p>}
+                {replyTo.body && <p className="mt-0.5 line-clamp-2 text-label text-secondary">{replyTo.body}</p>}
               </div>
             )}
             {answering && moment && (
-              <div className="mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] ring-1 ring-border">
+              <div className="mb-2 flex items-center gap-2 rounded-card px-3 py-2 text-label edge">
                 <span className="font-bold uppercase text-foreground">{answering.title}</span>
-                <span className="truncate text-muted">
+                <span className="truncate text-secondary">
                   {moment.match.home} {moment.payload.home ?? ""}–{moment.payload.away ?? ""} {moment.match.away}
                 </span>
               </div>
@@ -214,16 +214,16 @@ export function ArenaComposer({
               rows={3}
               autoFocus
               placeholder={replyTo ? "Post your reply" : call?.side ? `Why ${call.side.toUpperCase()}? Say it now, get the receipt later.` : call ? "Who's taking this on?" : moment ? "Your take on this…" : "What's your call?"}
-              className="w-full resize-none bg-transparent text-[17px] leading-snug text-foreground placeholder:text-muted focus:outline-none"
+              className="w-full resize-none bg-transparent text-body-lg leading-snug text-foreground placeholder:text-secondary focus:outline-none"
             />
-            {body.length > MAX - 60 && <p className="text-right font-mono text-[11px] text-muted">{MAX - body.length} left</p>}
+            {body.length > MAX - 60 && <p className="text-right tabular-nums text-caption text-secondary">{MAX - body.length} left</p>}
             {attachment && (
               <div className="relative mt-2 inline-block">
                 {attachment.type === "gif" ? (
-                  <video src={attachment.url} autoPlay muted loop playsInline className="max-h-56 rounded-xl" />
+                  <video src={attachment.url} autoPlay muted loop playsInline className="max-h-56 rounded-card" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={attachment.local ?? attachment.lqip} alt="" className="max-h-56 rounded-xl" />
+                  <img src={attachment.local ?? attachment.lqip} alt="" className="max-h-56 rounded-card" />
                 )}
                 {uploading && (
                   <span className="absolute inset-x-2 bottom-2 h-1 overflow-hidden rounded-full bg-black/40">
@@ -248,7 +248,7 @@ export function ArenaComposer({
               <div className="mt-2 flex flex-wrap gap-2">
                 {call && (
                   <Chip onClear={() => setCall(null)}>
-                    <span className="font-bold uppercase" style={{ color: call.side === "yes" ? "var(--rival-blue)" : call.side === "no" ? "var(--rival-red)" : "var(--muted)" }}>
+                    <span className="font-bold uppercase" style={{ color: call.side === "yes" ? "var(--yes)" : call.side === "no" ? "var(--no)" : "var(--text-secondary)" }}>
                       {call.side ?? "Room"}
                     </span>{" "}
                     {call.prediction}
@@ -261,10 +261,10 @@ export function ArenaComposer({
                 )}
               </div>
             )}
-            {error && <p className="mt-2 text-[13px] font-semibold text-rival-red">{error}</p>}
+            {error && <p className="mt-2 text-label font-semibold text-no-ink">{error}</p>}
             {hasSuggestions && suggestions && (
               <div className="mt-3">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted">About</p>
+                <p className="text-caption font-bold uppercase text-secondary">About</p>
                 <div className="no-scrollbar -mx-4 mt-1.5 flex gap-2 overflow-x-auto px-4 pb-1">
                   {suggestions.match && (
                     <Suggestion onClick={() => setMatchId(suggestions.match!.id)}>
@@ -274,7 +274,7 @@ export function ArenaComposer({
                   )}
                   {suggestions.calls.map((r) => (
                     <Suggestion key={r.id} onClick={() => setCall(r)}>
-                      <span className="font-bold uppercase" style={{ color: r.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}>
+                      <span className="font-bold uppercase" style={{ color: r.side === "yes" ? "var(--yes)" : "var(--no)" }}>
                         Call {r.side}
                       </span>
                       <span className="max-w-[12rem] truncate">{r.prediction}</span>
@@ -282,7 +282,7 @@ export function ArenaComposer({
                   ))}
                   {suggestions.quote && (
                     <Suggestion onClick={() => setCall(suggestions.quote)}>
-                      <span className="font-bold uppercase text-muted">Quote</span>
+                      <span className="font-bold uppercase text-secondary">Quote</span>
                       <span className="max-w-[12rem] truncate">{suggestions.quote.prediction}</span>
                     </Suggestion>
                   )}
@@ -296,8 +296,8 @@ export function ArenaComposer({
               </div>
             )}
             {panel === "match" && (
-              <div className="mt-3 flex max-h-60 flex-col overflow-y-auto rounded-xl ring-1 ring-border">
-                {pickable.length === 0 && <p className="p-4 text-sm text-muted">No matches in the next few days.</p>}
+              <div className="mt-3 flex max-h-60 flex-col overflow-y-auto rounded-card edge">
+                {pickable.length === 0 && <p className="p-4 text-body text-secondary">No matches in the next few days.</p>}
                 {pickable.map((m) => (
                   <button
                     key={m.id}
@@ -306,13 +306,13 @@ export function ArenaComposer({
                       setMatchId(m.id);
                       setPanel(null);
                     }}
-                    className="flex items-center gap-2 border-b border-border px-3 py-2.5 text-left text-[14px] last:border-0 hover:bg-foreground/5"
+                    className="flex items-center gap-2 border-b border-line px-3 py-3 text-left text-body last:border-0 hover:bg-foreground/5"
                   >
                     <TeamCrest name={m.homeTeam} size={18} />
                     <span className="min-w-0 flex-1 truncate text-foreground">
                       {m.homeTeam} v {m.awayTeam}
                     </span>
-                    <span className="shrink-0 font-mono text-[11px] text-muted">
+                    <span className="shrink-0 tabular-nums text-caption text-secondary">
                       {m.status === "live" ? "LIVE" : new Date(m.kickoffAt).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </button>
@@ -320,9 +320,9 @@ export function ArenaComposer({
               </div>
             )}
             {panel === "call" && (
-              <div className="mt-3 max-h-72 overflow-y-auto rounded-xl ring-1 ring-border">
+              <div className="mt-3 max-h-72 overflow-y-auto rounded-card edge">
                 {rooms === null ? (
-                  <p className="p-4 text-sm text-muted">Loading rooms…</p>
+                  <p className="p-4 text-body text-secondary">Loading rooms…</p>
                 ) : (
                   <>
                     <RoomGroup
@@ -348,7 +348,7 @@ export function ArenaComposer({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1 border-t border-border px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
+          <div className="flex items-center gap-1 border-t border-line px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
             <Tool label="Photo" onClick={() => fileRef.current?.click()}>
               <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
                 <rect x="2.5" y="4" width="15" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
@@ -357,7 +357,7 @@ export function ArenaComposer({
               </svg>
             </Tool>
             <Tool label="GIF" active={panel === "gif"} onClick={() => setPanel((p) => (p === "gif" ? null : "gif"))}>
-              <span className="rounded border-[1.6px] border-current px-1 text-[10px] font-black leading-[14px]">GIF</span>
+              <span className="rounded border-[1.6px] border-current px-1 text-micro font-black leading-[14px]">GIF</span>
             </Tool>
             {!moment && !replyTo && (
               <Tool label="Tag a match" active={panel === "match"} onClick={() => setPanel((p) => (p === "match" ? null : "match"))}>
@@ -369,7 +369,7 @@ export function ArenaComposer({
             )}
             {!moment && !replyTo && (
               <Tool label="Attach a room" active={panel === "call"} onClick={() => setPanel((p) => (p === "call" ? null : "call"))}>
-                <span className="text-[13px] font-bold">Room</span>
+                <span className="text-label font-bold">Room</span>
               </Tool>
             )}
             <input
@@ -398,7 +398,7 @@ function Tool({ label, active, onClick, children }: { label: string; active?: bo
       aria-label={label}
       aria-pressed={active}
       className="flex h-10 min-w-10 items-center justify-center rounded-full px-2 transition-colors"
-      style={{ color: active ? "var(--rival-blue)" : "var(--muted)", background: active ? "color-mix(in srgb, var(--rival-blue) 12%, transparent)" : "transparent" }}
+      style={{ color: active ? "var(--yes)" : "var(--text-secondary)", background: active ? "color-mix(in srgb, var(--yes) 12%, transparent)" : "transparent" }}
     >
       {children}
     </button>
@@ -407,9 +407,9 @@ function Tool({ label, active, onClick, children }: { label: string; active?: bo
 
 function Chip({ children, onClear }: { children: React.ReactNode; onClear: () => void }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full py-1 pl-2.5 pr-1 text-[13px] text-foreground ring-1 ring-border">
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full py-1 pl-3 pr-1 text-label text-foreground edge">
       <span className="flex min-w-0 items-center gap-1 truncate">{children}</span>
-      <button type="button" onClick={onClear} aria-label="Remove" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted hover:bg-foreground/10">
+      <button type="button" onClick={onClear} aria-label="Remove" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-secondary hover:bg-foreground/10">
         ×
       </button>
     </span>
@@ -418,18 +418,18 @@ function Chip({ children, onClear }: { children: React.ReactNode; onClear: () =>
 
 function RoomGroup({ title, hint, rooms, onPick }: { title: string; hint: string; rooms: AttachedRoom[]; onPick: (r: AttachedRoom) => void }) {
   return (
-    <div className="border-b border-border last:border-0">
-      <p className="px-3 pt-3 text-[11px] font-bold uppercase tracking-wider text-muted">{title}</p>
-      <p className="px-3 pb-2 text-[12px] text-muted">{hint}</p>
+    <div className="border-b border-line last:border-0">
+      <p className="px-3 pt-3 text-caption font-bold uppercase text-secondary">{title}</p>
+      <p className="px-3 pb-2 text-caption text-secondary">{hint}</p>
       {rooms.map((r) => (
         <button
           key={r.id}
           type="button"
           onClick={() => onPick(r)}
-          className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-[14px] hover:bg-foreground/5"
+          className="flex w-full items-center gap-2 border-t border-line px-3 py-3 text-left text-body hover:bg-foreground/5"
         >
           {r.side && (
-            <span className="shrink-0 font-bold uppercase" style={{ color: r.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}>
+            <span className="shrink-0 font-bold uppercase" style={{ color: r.side === "yes" ? "var(--yes)" : "var(--no)" }}>
               {r.side}
             </span>
           )}
@@ -445,7 +445,7 @@ function Suggestion({ onClick, children }: { onClick: () => void; children: Reac
     <button
       type="button"
       onClick={onClick}
-      className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] text-foreground ring-1 ring-border transition-colors hover:ring-border-strong active:scale-95"
+      className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-label text-foreground edge transition-colors  active:scale-95"
     >
       {children}
     </button>

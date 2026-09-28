@@ -289,21 +289,21 @@ export function ArenaFeed() {
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-border">
+      <div className="flex items-center justify-between border-b border-line">
         <div className="flex gap-5">
           {(["global", "following"] as const).map((s) => (
             <button
               key={s}
               onClick={() => (s === "following" && !me ? openAuthModal({ next: "/arena" }) : setScope(s))}
-              className="-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors duration-150"
-              style={{ borderColor: scope === s ? "var(--foreground)" : "transparent", color: scope === s ? "var(--foreground)" : "var(--muted)" }}
+              className="-mb-px border-b-2 pb-3 text-body font-medium transition-colors duration-150"
+              style={{ borderColor: scope === s ? "var(--foreground)" : "transparent", color: scope === s ? "var(--foreground)" : "var(--text-secondary)" }}
             >
               {s === "global" ? "Global" : "Following"}
             </button>
           ))}
         </div>
         {here.count >= PRESENCE_MIN && (
-          <div className="flex items-center gap-2 pb-2.5 text-[13px] text-muted" aria-live="polite">
+          <div className="flex items-center gap-2 pb-3 text-label text-secondary" aria-live="polite">
             <span className="flex -space-x-1.5">
               {here.faces.slice(0, 3).map((f, i) => (
                 <span key={i} className="rounded-full ring-2 ring-background">
@@ -330,18 +330,18 @@ export function ArenaFeed() {
                 {m.homeTeam} v {m.awayTeam}
               </span>
               {m.status === "live" ? (
-                <span className="font-mono text-[11px] font-bold tabular-nums text-rival-green">
+                <span className="tabular-nums text-caption font-bold  text-money-ink">
                   {m.homeScore ?? 0}–{m.awayScore ?? 0}
                 </span>
               ) : (
-                <span className="font-mono text-[11px] text-muted">{new Date(m.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="tabular-nums text-caption text-secondary">{new Date(m.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
               )}
             </MatchChipButton>
           ))}
         </div>
       )}
       {filtered === undefined && matchId && (
-        <button type="button" onClick={() => setMatchId(null)} className="mt-3 text-[13px] text-muted underline">
+        <button type="button" onClick={() => setMatchId(null)} className="mt-3 text-label text-secondary underline">
           Showing one match · show everything
         </button>
       )}
@@ -351,44 +351,44 @@ export function ArenaFeed() {
       <button
         type="button"
         onClick={() => openComposer(null)}
-        className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-left ring-1 ring-border transition-colors hover:ring-border-strong"
+        className="mt-4 flex w-full items-center gap-3 rounded-card bg-surface px-4 py-3 text-left edge transition-colors "
       >
         {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={32} /> : <span className="h-8 w-8 rounded-full bg-foreground/10" />}
-        <span className="flex-1 text-[15px] text-muted">{me ? "What's your call?" : "Sign in to post your call"}</span>
-        <span className="rounded-full px-3.5 py-1.5 text-[13px] font-bold text-white" style={{ background: "var(--rival-blue)" }}>
+        <span className="flex-1 text-body text-secondary">{me ? "What's your call?" : "Sign in to post your call"}</span>
+        <span className="rounded-full px-4 py-1.5 text-label font-bold text-white" style={{ background: "var(--yes)" }}>
           Post
         </span>
       </button>
 
-      {notice && <p className={`mt-3 text-center text-[13px] font-semibold ${notice.tone === "error" ? "text-rival-red" : "text-muted"}`}>{notice.text}</p>}
+      {notice && <p className={`mt-3 text-center text-label font-semibold ${notice.tone === "error" ? "text-no-ink" : "text-secondary"}`}>{notice.text}</p>}
 
       {fresh.length > 0 && (
         <div className="sticky top-[calc(72px+env(safe-area-inset-top))] z-10 mt-3 flex justify-center md:top-[88px]">
           <button
             type="button"
             onClick={showFresh}
-            className="rounded-full px-4 py-2 text-[13px] font-bold text-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.6)] [animation:fade-in-up_200ms_ease-out_both]"
-            style={{ background: "var(--rival-blue)" }}
+            className="rounded-full px-4 py-2 text-label font-bold text-white shadow-pop [animation:fade-in-up_200ms_ease-out_both]"
+            style={{ background: "var(--yes)" }}
           >
             ↑ {newItemsLabel(fresh)}
           </button>
         </div>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+      <div className="mt-4 overflow-hidden rounded-card bg-surface edge">
         {state === "loading" && <Skeleton />}
-        {state === "error" && <p className="px-4 py-14 text-center text-sm text-muted">Couldn&apos;t load the Arena. Pull to refresh or try again in a moment.</p>}
+        {state === "error" && <p className="px-4 py-14 text-center text-body text-secondary">Couldn&apos;t load the Arena. Pull to refresh or try again in a moment.</p>}
         {state === "ready" && items.length === 0 && (
           <div className="px-6 py-14 text-center">
             <p className="font-display text-lg font-bold text-foreground">{scope === "following" ? "Your circle is quiet" : "Quiet for now"}</p>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-body text-secondary">
               {scope === "following"
                 ? "Follow a few rivals and their calls, stakes and wins land here."
                 : "When matches kick off, every goal lands here. Be the first to make a call."}
             </p>
           </div>
         )}
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-line">
           {items.map((item) => (
             <div key={`${item.kind}:${item.id}`} className="chat-row-enter">
               <ArenaCard item={item} actions={actions} />
@@ -397,15 +397,15 @@ export function ArenaFeed() {
         </div>
         {!done && state === "ready" && items.length > 0 && (
           <div ref={sentinel} className="flex justify-center py-6">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--border-strong)", borderTopColor: "transparent" }} aria-label="Loading more" />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--line-strong)", borderTopColor: "transparent" }} aria-label="Loading more" />
           </div>
         )}
       </div>
 
       {done && items.length > 0 && (
         <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <p className="text-sm text-muted">You&rsquo;re caught up.</p>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="rounded-full px-4 py-2 text-sm text-foreground ring-1 ring-border-strong">
+          <p className="text-body text-secondary">You&rsquo;re caught up.</p>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="rounded-full px-4 py-2 text-body text-foreground edge-strong">
             Back to top ↑
           </button>
         </div>
@@ -422,12 +422,7 @@ function MatchChipButton({ active, onClick, children }: { active: boolean; onCli
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] transition-colors duration-150"
-      style={{
-        background: active ? "var(--foreground)" : "var(--surface)",
-        color: active ? "var(--background)" : "var(--foreground)",
-        boxShadow: active ? "none" : "inset 0 0 0 1px var(--border)",
-      }}
+      className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-label transition-[transform,background-color,color] duration-100 active:scale-[0.97] ${active ? "bg-foreground text-background" : "bg-surface text-foreground edge"}`}
     >
       {children}
     </button>
@@ -436,13 +431,13 @@ function MatchChipButton({ active, onClick, children }: { active: boolean; onCli
 
 function Skeleton() {
   return (
-    <div className="divide-y divide-border">
+    <div className="divide-y divide-line">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex gap-3 px-4 py-4">
-          <span className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-foreground/5" />
+          <span className="h-10 w-10 shrink-0 skeleton rounded-full bg-foreground/5" />
           <div className="flex-1 space-y-2">
-            <span className="block h-3 w-1/3 animate-pulse rounded bg-foreground/5" />
-            <span className="block h-3 w-4/5 animate-pulse rounded bg-foreground/5" />
+            <span className="block h-3 w-1/3 skeleton rounded bg-foreground/5" />
+            <span className="block h-3 w-4/5 skeleton rounded bg-foreground/5" />
           </div>
         </div>
       ))}

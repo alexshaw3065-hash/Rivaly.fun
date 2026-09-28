@@ -76,17 +76,17 @@ export function ArenaRivals() {
   return (
     <section className="mt-4" aria-label="Rivals">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-[13px] font-semibold text-foreground">Rivals</h2>
+        <h2 className="text-label font-semibold text-foreground">Rivals</h2>
         {onlineCount > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-muted">
+          <span className="flex items-center gap-1.5 text-caption text-secondary">
             <span className="h-1.5 w-1.5 rounded-full bg-rival-green" aria-hidden />
             {onlineCount} online
           </span>
         )}
       </div>
-      <div className="no-scrollbar -mx-4 mt-2 flex gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+      <div className="no-scrollbar -mx-4 mt-2 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
         {people.map((p) => (
-          <div key={p.id} className="flex w-[132px] shrink-0 flex-col items-center gap-2 rounded-xl border border-border bg-surface px-3 pb-3 pt-3.5 text-center">
+          <div key={p.id} className="flex w-[132px] shrink-0 flex-col items-center gap-2 rounded-card border border-line bg-surface px-3 pb-3 pt-4 text-center">
             <Link href={`/profile/${p.username}`} className="flex w-full min-w-0 flex-col items-center gap-1.5">
               <span className="relative">
                 <RivalCharacter name={p.username} imageUrl={p.avatar} size={44} />
@@ -94,14 +94,14 @@ export function ArenaRivals() {
                   <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-rival-green ring-2 ring-surface" aria-label="Online now" />
                 )}
               </span>
-              <span className="w-full truncate text-[13px] font-semibold text-foreground">{p.name}</span>
-              <span className="-mt-1 w-full truncate font-mono text-[11px] text-muted">@{p.username}</span>
+              <span className="w-full truncate text-label font-semibold text-foreground">{p.name}</span>
+              <span className="-mt-1 w-full truncate tabular-nums text-caption text-secondary">@{p.username}</span>
             </Link>
-            <span className="w-full truncate text-[11px] text-muted">{p.reason}</span>
+            <span className="w-full truncate text-caption text-secondary">{p.reason}</span>
             {p.online && me ? (
               <Link
                 href={`/rooms/create?vs=${encodeURIComponent(p.username)}`}
-                className="w-full rounded-md bg-rival-blue py-1.5 text-xs font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+                className="w-full rounded-control bg-yes py-1.5 text-caption font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
               >
                 Challenge
               </Link>

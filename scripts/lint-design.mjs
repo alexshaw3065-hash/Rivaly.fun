@@ -22,7 +22,7 @@ const showFiles = process.argv.includes("--files");
 // Rendered as images on the server (next/og): no CSS variables there, so
 // literal colours are the only option. The dev-only /kit preview copies
 // today's markup on purpose, to compare it with the kit.
-const EXEMPT = [/[\\/]app[\\/]kit[\\/]/, /[\\/]card[\\/]route\.tsx$/, /opengraph-image\.tsx$/, /twitter-image\.tsx$/, /icon\.tsx$/];
+const EXEMPT = [/[\\/]app[\\/]kit[\\/]/, /[\\/]card[\\/]route\.tsx$/, /opengraph-image\.tsx$/, /twitter-image\.tsx$/, /icon\.tsx$/, /-card-image\.tsx$/];
 
 const RULES = [
   {

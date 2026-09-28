@@ -74,12 +74,7 @@ export function ArenaLeaderboard({ load = fetchLeaderboard }: { /** Swappable fo
             <button
               key={m.id}
               onClick={() => setMetric(m.id)}
-              className="h-9 shrink-0 rounded-full px-4 text-sm transition-colors duration-150"
-              style={{
-                background: metric === m.id ? "var(--foreground)" : "transparent",
-                color: metric === m.id ? "var(--background)" : "var(--muted)",
-                boxShadow: metric === m.id ? "none" : "inset 0 0 0 1px var(--border)",
-              }}
+              className={`h-9 shrink-0 rounded-full px-4 text-label transition-[transform,background-color,color] duration-100 active:scale-[0.97] ${metric === m.id ? "bg-foreground text-background" : "text-secondary edge-strong hover:text-foreground"}`}
             >
               {m.label}
             </button>
@@ -88,21 +83,21 @@ export function ArenaLeaderboard({ load = fetchLeaderboard }: { /** Swappable fo
         {metric !== "streak" && <PeriodPicker value={period} onChange={setPeriod} />}
       </div>
 
-      {failed && <p className="py-14 text-center text-sm text-muted">Couldn&apos;t load the leaderboard — try again in a moment.</p>}
-      {!failed && rows === null && <div className="mt-8 h-48 animate-pulse rounded-2xl bg-foreground/5" />}
+      {failed && <p className="py-14 text-center text-body text-secondary">Couldn&apos;t load the leaderboard — try again in a moment.</p>}
+      {!failed && rows === null && <div className="mt-8 h-48 skeleton rounded-card bg-foreground/5" />}
       {!failed && rows !== null && board.length === 0 && (
-        <div className="mt-6 rounded-2xl px-6 py-12 text-center ring-1 ring-border">
+        <div className="mt-6 rounded-card px-6 py-12 text-center edge">
           <p className="font-display text-lg font-bold text-foreground">
             {metric === "streak" ? "No streaks yet" : period === "all" ? "The board is empty — for now" : `Nothing settled ${periodLabel.toLowerCase()} yet`}
           </p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+          <p className="mx-auto mt-1 max-w-sm text-body text-secondary">
             {metric === "accuracy"
               ? "Accuracy shows once someone has 3 settled rooms."
               : metric === "streak"
                 ? "Streaks show from 2 wins in a row."
                 : "It fills in as rooms settle. Every number here is a real result."}
           </p>
-          <Link href="/rooms" className="mt-4 inline-block rounded-full px-4 py-2 text-sm font-bold text-white" style={{ background: "var(--rival-blue)" }}>
+          <Link href="/rooms" className="mt-4 inline-block rounded-full px-4 py-2 text-body font-bold text-white" style={{ background: "var(--yes)" }}>
             Find a room
           </Link>
         </div>
@@ -115,7 +110,7 @@ export function ArenaLeaderboard({ load = fetchLeaderboard }: { /** Swappable fo
       )}
 
       {rest.length > 0 && (
-        <div className="mt-6 flex flex-col divide-y divide-border rounded-2xl bg-surface ring-1 ring-border">
+        <div className="mt-6 flex flex-col divide-y divide-line rounded-card bg-surface edge">
           {rest.map((r) => (
             <BoardRow key={r.userId} row={r} value={show(metric, r.value)} />
           ))}
@@ -125,18 +120,18 @@ export function ArenaLeaderboard({ load = fetchLeaderboard }: { /** Swappable fo
       {/* Your place, always in view — even from outside the top 50. */}
       {me && rows !== null && (
         <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-10 px-4 md:bottom-6 md:left-[var(--sidebar-width)]">
-          <div className="mx-auto flex max-w-5xl items-center gap-3 rounded-2xl bg-surface-elevated px-4 py-3 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.7)] ring-1 ring-border-strong">
+          <div className="mx-auto flex max-w-5xl items-center gap-3 rounded-card bg-surface-elevated px-4 py-3 shadow-pop edge-strong">
             {mine ? (
               <>
-                <span className="w-9 shrink-0 font-mono text-sm font-bold text-foreground">#{mine.rank}</span>
+                <span className="w-9 shrink-0 tabular-nums text-body font-bold text-foreground">#{mine.rank}</span>
                 <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={28} />
-                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">You</p>
-                <span className="shrink-0 font-mono text-sm font-bold text-foreground">{show(metric, mine.value)}</span>
+                <p className="min-w-0 flex-1 truncate text-body font-semibold text-foreground">You</p>
+                <span className="shrink-0 tabular-nums text-body font-bold text-foreground">{show(metric, mine.value)}</span>
               </>
             ) : (
               <>
                 <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={28} />
-                <p className="min-w-0 flex-1 text-sm text-muted">
+                <p className="min-w-0 flex-1 text-body text-secondary">
                   {metric === "accuracy" ? "You're on the board after 3 settled rooms." : metric === "streak" ? "Win 2 in a row to get a streak." : "You're not on the board yet — settle a room to get ranked."}
                 </p>
               </>
@@ -164,7 +159,7 @@ function PeriodPicker({ value, onChange }: { value: LeaderPeriod; onChange: (p: 
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-9 items-center gap-1.5 rounded-full px-4 text-sm text-muted ring-1 ring-border transition-colors hover:text-foreground"
+        className="flex h-9 items-center gap-1.5 rounded-full px-4 text-body text-secondary edge transition-colors hover:text-foreground"
       >
         {PERIODS.find((p) => p.id === value)!.label}
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="transition-transform duration-150" style={{ transform: open ? "rotate(180deg)" : undefined }}>
@@ -172,7 +167,7 @@ function PeriodPicker({ value, onChange }: { value: LeaderPeriod; onChange: (p: 
         </svg>
       </button>
       {open && (
-        <ul role="listbox" className="absolute right-0 top-11 z-20 min-w-40 overflow-hidden rounded-2xl bg-surface-elevated py-1 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.7)] ring-1 ring-border [animation:fade-in-up_140ms_ease-out_both]">
+        <ul role="listbox" className="absolute right-0 top-11 z-20 min-w-40 overflow-hidden rounded-card bg-surface-elevated py-1 shadow-pop edge [animation:fade-in-up_140ms_ease-out_both]">
           {PERIODS.map((p) => (
             <li key={p.id}>
               <button
@@ -183,8 +178,8 @@ function PeriodPicker({ value, onChange }: { value: LeaderPeriod; onChange: (p: 
                   onChange(p.id);
                   setOpen(false);
                 }}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-foreground/5"
-                style={{ color: p.id === value ? "var(--foreground)" : "var(--muted)" }}
+                className="flex w-full items-center justify-between px-4 py-3 text-left text-body transition-colors hover:bg-foreground/5"
+                style={{ color: p.id === value ? "var(--foreground)" : "var(--text-secondary)" }}
               >
                 {p.label}
                 {p.id === value && (
@@ -208,13 +203,13 @@ function BoardRow({ row, value }: { row: LeaderRow; value: string }) {
       className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-elevated"
       style={row.isMe ? { background: "var(--surface-elevated)" } : undefined}
     >
-      <span className="w-6 shrink-0 font-mono text-xs text-muted">{row.rank}</span>
+      <span className="w-6 shrink-0 tabular-nums text-caption text-secondary">{row.rank}</span>
       <RivalCharacter name={row.name} imageUrl={row.avatar} size={28} />
-      <p className="flex min-w-0 flex-1 items-center gap-2 text-sm text-foreground">
+      <p className="flex min-w-0 flex-1 items-center gap-2 text-body text-foreground">
         <span className="truncate">{row.isMe ? "You" : row.name}</span>
-        {row.following && <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rival-blue ring-1 ring-rival-blue/40">Following</span>}
+        {row.following && <span className="shrink-0 rounded-full px-1.5 py-0.5 text-micro font-semibold uppercase text-yes-ink ring-1 ring-yes/40">Following</span>}
       </p>
-      <span className="shrink-0 font-mono text-sm font-medium text-foreground">{value}</span>
+      <span className="shrink-0 tabular-nums text-body font-medium text-foreground">{value}</span>
     </Link>
   );
 }
@@ -228,16 +223,16 @@ function PodiumSpot({ rank, row, value }: { rank: 1 | 2 | 3; row: LeaderRow; val
         {rank === 1 && <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xl">👑</span>}
         <RivalCharacter name={row.name} imageUrl={row.avatar} size={rank === 1 ? 52 : 44} />
       </div>
-      <p className="flex max-w-full items-center gap-1 truncate text-xs font-medium text-foreground">
+      <p className="flex max-w-full items-center gap-1 truncate text-caption font-medium text-foreground">
         <span className="truncate">{row.isMe ? "You" : row.name}</span>
       </p>
-      {row.following && <span className="-mt-1 text-[9px] font-semibold uppercase tracking-wide text-rival-blue">Following</span>}
-      <p className="font-mono text-[11px] text-muted">{value}</p>
+      {row.following && <span className="-mt-1 text-micro font-semibold uppercase text-yes-ink">Following</span>}
+      <p className="tabular-nums text-caption text-secondary">{value}</p>
       <div
-        className="flex w-full items-start justify-center rounded-t-md pt-1.5"
-        style={{ height: PODIUM_HEIGHT[rank], background: rank === 1 ? "var(--rival-blue-dim)" : "var(--surface-elevated)", border: "1px solid var(--border)", borderBottom: "none" }}
+        className={`flex w-full items-start justify-center rounded-t-control pt-2 ${rank === 1 ? "bg-yes-tint" : "bg-surface-elevated"}`}
+        style={{ height: PODIUM_HEIGHT[rank] }}
       >
-        <span className="font-mono text-lg font-bold" style={{ color: rank === 1 ? "var(--rival-blue)" : "var(--muted)" }}>
+        <span className={`text-title-3 font-display tabular-nums ${rank === 1 ? "text-yes-ink" : "text-secondary"}`}>
           {rank}
         </span>
       </div>

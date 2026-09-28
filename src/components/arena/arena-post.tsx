@@ -114,13 +114,13 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
         <h1 className="font-display text-lg font-bold text-foreground">Post</h1>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
-        {post === undefined && <div className="h-40 animate-pulse" />}
-        {post === null && <p className="px-4 py-14 text-center text-sm text-muted">This post isn&apos;t here any more.</p>}
+      <div className="mt-3 overflow-hidden rounded-card bg-surface edge">
+        {post === undefined && <div className="h-40 skeleton" />}
+        {post === null && <p className="px-4 py-14 text-center text-body text-secondary">This post isn&apos;t here any more.</p>}
         {post && (
           <>
             {post.parentId && (
-              <Link href={`/arena/p/${post.parentId}`} className="block border-b border-border px-4 py-2.5 text-[13px] text-muted hover:text-foreground">
+              <Link href={`/arena/p/${post.parentId}`} className="block border-b border-line px-4 py-3 text-label text-secondary hover:text-foreground">
                 ↑ See the post this replies to
               </Link>
             )}
@@ -128,22 +128,22 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
             <button
               type="button"
               onClick={() => actions.onReply?.(post)}
-              className="flex w-full items-center gap-3 border-t border-border px-4 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
+              className="flex w-full items-center gap-3 border-t border-line px-4 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
             >
               {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={32} /> : <span className="h-8 w-8 rounded-full bg-foreground/10" />}
-              <span className="flex-1 text-[15px] text-muted">{me ? "Post your reply" : "Sign in to reply"}</span>
-              <span className="rounded-full px-4 py-1.5 text-[13px] font-bold text-white" style={{ background: "var(--rival-blue)" }}>
+              <span className="flex-1 text-body text-secondary">{me ? "Post your reply" : "Sign in to reply"}</span>
+              <span className="rounded-full px-4 py-1.5 text-label font-bold text-white" style={{ background: "var(--yes)" }}>
                 Reply
               </span>
             </button>
-            <div className="divide-y divide-border border-t border-border">
-              {replies === null && <div className="h-20 animate-pulse" />}
+            <div className="divide-y divide-line border-t border-line">
+              {replies === null && <div className="h-20 skeleton" />}
               {replies?.map((r) => (
                 <div key={r.id} className="chat-row-enter">
                   <PostCard item={r} actions={actions} variant="reply" replyingTo={handle(post)} />
                 </div>
               ))}
-              {replies?.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted">No replies yet. Start it.</p>}
+              {replies?.length === 0 && <p className="px-4 py-8 text-center text-body text-secondary">No replies yet. Start it.</p>}
             </div>
           </>
         )}
