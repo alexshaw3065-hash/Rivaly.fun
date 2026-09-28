@@ -1,7 +1,7 @@
 "use client";
 import { track } from "@/lib/analytics/track";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EntrySide } from "@/lib/types";
 import { formatMoney } from "@/lib/mock-data";
@@ -68,6 +68,23 @@ export function JoinPanel({
   const { stake, phase, blocker, reconnect } = useStake();
   const pending = phase !== "idle";
 
+  // Tapped while the wallet is still arriving (the sign-in kit loads in the
+  // background): hold the tap and carry it out the moment the wallet is ready,
+  // so nobody has to tap twice. Deferred a tick — submit() sets state.
+  const [queued, setQueued] = useState(false);
+  const submitRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    submitRef.current = submit;
+  });
+  useEffect(() => {
+    if (!queued || blocker?.busy) return;
+    const t = window.setTimeout(() => {
+      setQueued(false);
+      submitRef.current();
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [queued, blocker]);
+
   if (entered) {
     return (
       <div className={`enter-pop rounded-card bg-surface p-4 outline outline-1 -outline-offset-1 ${SIDE[entered.side].ring}`}>
@@ -105,8 +122,12 @@ export function JoinPanel({
       openAuthModal({ next: comeBackTo });
       return;
     }
+    if (blocker?.busy) {
+      setQueued(true);
+      return;
+    }
     if (blocker) {
-      if (!blocker.busy) void reconnect(comeBackTo);
+      void reconnect(comeBackTo);
       return;
     }
     if (problem || short || pending) return;
@@ -160,7 +181,7 @@ export function JoinPanel({
           <StakeButton
             phase={phase}
             onClick={submit}
-            disabled={blocker?.busy || (!blocker && (Boolean(problem) || short))}
+            disabled={queued || (!blocker && (Boolean(problem) || short))}
             color={accent}
           >
             {blocker?.label ? blocker.label : problem ? "Join" : `Join with ${formatMoney(stakeCents)} on ${SIDE[side].label}`}

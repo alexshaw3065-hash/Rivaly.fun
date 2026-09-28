@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Transaction } from "@solana/web3.js";
-import { isSolanaWallet } from "@dynamic-labs/solana";
 import { prepareStake, submitStake, type StakeRequest, type SubmitResult } from "@/app/rooms/actions";
 import { useWallet } from "@/lib/wallet/wallet-context";
 
@@ -68,7 +66,7 @@ export function useStake() {
   const stake = useCallback(
     async (req: StakeRequest): Promise<SubmitResult> => {
       if (busy.current) return { ok: false, error: "A stake is already on its way." };
-      if (!signingWallet || !isSolanaWallet(signingWallet)) {
+      if (!signingWallet || !signingWallet.isSolana) {
         return { ok: false, error: walletBlocker(status, address, connectedAddress)?.hint || "Reconnect your wallet to stake." };
       }
       busy.current = true;
@@ -83,7 +81,8 @@ export function useStake() {
         setPhase("confirm");
         let signedBase64: string;
         try {
-          const signer = await signingWallet.getSigner();
+          // Solana's transaction code loads only when someone actually stakes.
+          const [{ Transaction }, signer] = await Promise.all([import("@solana/web3.js"), signingWallet.getSigner()]);
           const signed = await signer.signTransaction(Transaction.from(fromBase64(prep.transactionBase64)));
           signedBase64 = toBase64(signed.serialize({ requireAllSignatures: false, verifySignatures: false }));
         } catch {

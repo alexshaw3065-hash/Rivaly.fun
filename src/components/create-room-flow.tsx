@@ -121,6 +121,20 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
   const [result, setResult] = useState<{ roomId: string; inviteCode: string; signature: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { stake, phase, walletReady, blocker, reconnect } = useStake();
+
+  // Tapped while the wallet is still arriving (the sign-in kit loads in the
+  // background): hold the tap and carry it out the moment the wallet is ready,
+  // so nobody has to tap twice. Deferred a tick — submit() sets state.
+  const [queued, setQueued] = useState(false);
+  const submitRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!queued || blocker?.busy) return;
+    const t = window.setTimeout(() => {
+      setQueued(false);
+      submitRef.current();
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [queued, blocker]);
   const pending = phase !== "idle";
   const advanceTimer = useRef<number | undefined>(undefined);
 
@@ -197,10 +211,14 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
       openAuthModal({ next: `/rooms/create?resume=1${vs ? `&vs=${vs}` : ""}` });
       return;
     }
+    if (blocker?.busy) {
+      setQueued(true);
+      return;
+    }
     if (blocker) {
       // Signed in, but the wallet can't sign here yet — reconnect it and
       // come straight back to this stake, draft intact.
-      if (blocker.busy || !match || !pick) return;
+      if (!match || !pick) return;
       saveDraft({ matchId: match.id, pick, fullTime, halfTime, settings, side, stakeDollars });
       void reconnect(`/rooms/create?resume=1${vs ? `&vs=${vs}` : ""}`);
       return;
@@ -242,6 +260,10 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
       }
     })();
   }
+
+  useEffect(() => {
+    submitRef.current = submit;
+  });
 
   // The "room is created the moment they're back" half of sign-in-at-the-end:
   // once the restored draft, the session and the balance are all in, fire
@@ -429,7 +451,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
             <StakeButton
               phase={phase}
               onClick={submit}
-              disabled={currentUser ? (blocker ? Boolean(blocker.busy) : !ready) : Boolean(stakeProblem || limits.error)}
+              disabled={currentUser ? (blocker ? queued : !ready) : Boolean(stakeProblem || limits.error)}
               color={sideColor}
             >
               {currentUser && blocker?.label

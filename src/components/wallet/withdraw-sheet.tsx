@@ -52,7 +52,7 @@ export function WithdrawSheet({
   userId: string;
   onSuccess: () => void;
 }) {
-  const { signingWallet, usdcBalance, solBalance, hasLoaded } = useWallet();
+  const { signingWallet, usdcBalance, solBalance, hasLoaded, status } = useWallet();
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [sending, setSending] = useState(false);
@@ -166,7 +166,11 @@ export function WithdrawSheet({
           )}
           {!signingWallet && (
             <p className="text-caption text-secondary">
-              Your wallet needs to reconnect before it can sign. Sign out and back in, then try again.
+              {status === "loading"
+                ? "Getting your wallet ready… this can take a few seconds on a slow connection."
+                : status === "unavailable"
+                  ? "Your wallet didn't load — check your connection and reopen this."
+                  : "Your wallet needs to reconnect before it can sign. Sign out and back in, then try again."}
             </p>
           )}
           {error && <p className="text-caption text-no-ink">{error}</p>}

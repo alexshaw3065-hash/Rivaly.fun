@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { dynamic, requestDynamic } from "@/lib/wallet/dynamic-bridge";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrentUser } from "@/components/current-user-provider";
 import { beginSignOut, finishDynamicLogout } from "@/lib/sign-out-state";
@@ -23,7 +23,6 @@ import { beginSignOut, finishDynamicLogout } from "@/lib/sign-out-state";
 //      next page load because the flag stays set.
 export function useSignOut() {
   const router = useRouter();
-  const { handleLogOut } = useDynamicContext();
   const currentUser = useCurrentUser();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -31,6 +30,8 @@ export function useSignOut() {
     if (signingOut) return;
     setSigningOut(true);
     beginSignOut(currentUser?.id ?? null);
+    // The wallet logout below needs the sign-in kit; start it now if it hasn't arrived.
+    requestDynamic();
 
     const supabase = createClient();
     const { data } = await supabase.auth.getSession(); // local read
@@ -42,7 +43,9 @@ export function useSignOut() {
     setSigningOut(false);
 
     if (accessToken) revokeThisSession(accessToken);
-    void finishDynamicLogout(handleLogOut);
+    // Waits for the kit if it's still loading; the flag keeps the sign-out
+    // safe (and retried on the next load) until the wallet logout confirms.
+    void finishDynamicLogout(dynamic.logOut);
   }
 
   return { signOut, signingOut };

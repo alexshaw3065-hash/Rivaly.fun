@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "3001"],
       "port": 3001
+    },
+    {
+      "name": "rivaly-app-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "--port", "3002"],
+      "port": 3002
     }
   ]
 }

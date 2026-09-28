@@ -2,15 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  getAuthToken,
-  useDynamicContext,
-  useIsLoggedIn,
-  useRefreshAuth,
-  useRefreshUser,
-  useUserWallets,
-} from "@dynamic-labs/sdk-react-core";
-import { isSolanaWallet } from "@dynamic-labs/solana";
+import { dynamic, requestDynamic, useDynamicState, whenDynamicReady, type BridgeWallet } from "./dynamic-bridge";
 import { syncWalletAddress } from "@/app/auth/wallet-sync-action";
 import { openAuthModal } from "@/lib/auth-modal-store";
 import { createClient } from "@/lib/supabase/client";
@@ -19,12 +11,9 @@ import { readBalancesAt } from "./balances";
 import { PUBLIC_RPC_URL } from "./solana-rpc";
 import { watchWallet } from "./watch-wallet";
 
-// Derived from the hook rather than imported from
-// @dynamic-labs/wallet-connector-core directly: the SDK resolves its own
-// Wallet<WalletConnector> through an internal path, so the separately
-// imported type isn't assignable to it. Taking the hook's own element type
-// keeps these exactly in sync through SDK upgrades.
-export type UserWallet = ReturnType<typeof useUserWallets>[number];
+// A wallet as the app sees it — published by the Dynamic runtime through the
+// bridge (dynamic-bridge.ts), so nothing here imports Dynamic's SDK.
+export type UserWallet = BridgeWallet;
 
 export interface WalletState {
   /** This account has a saved wallet address (balance can be read). */
@@ -49,8 +38,9 @@ export interface WalletState {
    * expired — the wallet login timed out while this page was open. Rivaly
    *   never signs anyone out mid-use: the stake button keeps its normal label
    *   and a tap is a quick sign-in that comes straight back to the stake;
-   * unavailable — Dynamic's script never loaded (blocked, offline). Offered
-   *   as a retry instead of an endless "getting ready".
+   * unavailable — the sign-in/wallet kit couldn't load (blocked, offline, or
+   *   still nothing after a minute). Offered as a retry instead of an endless
+   *   "getting ready".
    */
   status: "signed_out" | "loading" | "ready" | "no_wallet" | "mismatch" | "expired" | "unavailable";
   connectedAddress: string | null;
@@ -90,10 +80,10 @@ async function readBalances(address: string): Promise<{ usdc: number; sol: numbe
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const profile = useCurrentUser();
   const address = profile?.dynamicWalletAddress ?? null;
-  const wallets = useUserWallets();
-  const { sdkHasLoaded, handleLogOut } = useDynamicContext();
-  const dynamicLoggedIn = useIsLoggedIn();
-  const refreshUser = useRefreshUser();
+  const dyn = useDynamicState();
+  const wallets = dyn.wallets;
+  const sdkHasLoaded = dyn.load === "ready";
+  const dynamicLoggedIn = dyn.loggedIn;
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
   const [walletTimedOut, setWalletTimedOut] = useState(false);
@@ -101,9 +91,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // The Solana wallet Dynamic has for this user right now (embedded or
   // Phantom etc.). Dynamic builds this list from its own logged-in user.
-  const dynamicSolAddress = wallets.find((w) => isSolanaWallet(w))?.address ?? null;
+  const dynamicSolAddress = wallets.find((w) => w.isSolana)?.address ?? null;
 
-  const refreshAuth = useRefreshAuth();
   // True once Dynamic has been logged in at any point on this page load.
   // (State adjusted during render — React's pattern for deriving from a
   // changing value; it only ever flips false → true once.)
@@ -146,13 +135,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const active = document.visibilityState === "visible" && now - lastActivity < 5 * 60_000;
       if (!active || now - lastRenew < 30 * 60_000) return;
       lastRenew = now;
-      void refreshAuth().catch(() => undefined);
+      void dynamic.refreshAuth().catch(() => undefined);
     }, 60_000);
     return () => {
       window.clearInterval(id);
       events.forEach((e) => window.removeEventListener(e, onActivity));
     };
-  }, [profile, dynamicLoggedIn, refreshAuth]);
+  }, [profile, dynamicLoggedIn]);
 
   // Save a missing wallet address the moment Dynamic's wallet exists. A fresh
   // signup's embedded wallet is created a beat after login, so the address
@@ -167,8 +156,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     void (async () => {
       setSyncing(true);
       try {
-        await refreshUser().catch(() => undefined);
-        const res = await syncWalletAddress(getAuthToken());
+        await dynamic.refreshUser().catch(() => undefined);
+        const res = await syncWalletAddress(dynamic.getAuthToken());
         if (res.filled && !cancelled) router.refresh();
       } finally {
         if (!cancelled) setSyncing(false);
@@ -177,16 +166,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [profile, address, dynamicLoggedIn, dynamicSolAddress, refreshUser, router]);
+  }, [profile, address, dynamicLoggedIn, dynamicSolAddress, router]);
 
-  // Dynamic's script normally loads in a second or two; if it never does,
-  // say so and offer a retry rather than "getting ready" forever.
+  // The kit loads in the background (it's big — tens of seconds on a slow
+  // phone connection is normal). Only a real failure, or still nothing a
+  // minute after it started, reads as "unavailable" with a retry.
   const [sdkSlow, setSdkSlow] = useState(false);
   useEffect(() => {
-    if (!profile || sdkHasLoaded) return;
-    const id = window.setTimeout(() => setSdkSlow(true), 12000);
+    if (!profile || dyn.load !== "loading") return;
+    const id = window.setTimeout(() => setSdkSlow(true), 60_000);
     return () => window.clearTimeout(id);
-  }, [profile, sdkHasLoaded]);
+  }, [profile, dyn.load]);
+  const sdkUnavailable = dyn.load === "failed" || (sdkSlow && !sdkHasLoaded);
 
   // Waiting on wallet creation shouldn't spin forever if it never comes.
   // (No address yet means nothing to watch either.)
@@ -277,9 +268,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const connectedAddress = dynamicSolAddress;
   const status: WalletState["status"] = !profile
     ? "signed_out"
-    : signingWallet && isSolanaWallet(signingWallet)
+    : signingWallet && signingWallet.isSolana
       ? "ready"
-      : !sdkHasLoaded && sdkSlow
+      : sdkUnavailable
         ? "unavailable"
         : sdkHasLoaded && !dynamicLoggedIn && wasLoggedIn
         ? "expired"
@@ -298,15 +289,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // returns to `next`.
   const reconnect = useCallback(
     async (next: string) => {
-      // Dynamic never loaded: nothing to sign in with yet — reload into `next`.
+      // The kit may still be on its way (or failed): ask for it and wait; if it
+      // never comes, reload into `next` so a fresh page can try again.
       if (!sdkHasLoaded) {
-        window.location.assign(next);
-        return;
+        requestDynamic();
+        try {
+          await whenDynamicReady();
+        } catch {
+          window.location.assign(next);
+          return;
+        }
       }
-      if (dynamicLoggedIn) await handleLogOut().catch(() => undefined);
+      if (dynamicLoggedIn) await dynamic.logOut().catch(() => undefined);
       openAuthModal({ next });
     },
-    [sdkHasLoaded, dynamicLoggedIn, handleLogOut],
+    [sdkHasLoaded, dynamicLoggedIn],
   );
 
   const value = useMemo<WalletState>(
