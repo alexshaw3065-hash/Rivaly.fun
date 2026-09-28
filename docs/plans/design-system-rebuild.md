@@ -13,14 +13,21 @@ sidebar, desktop header, menus and FABs on the tokens and kit; LIVE dot pulses
 (founder's call); `loading.tsx` for every main route (root fallback shaped like
 Home, plus rooms, room, create, arena, post, profile, search, wallet,
 notifications) so taps navigate instantly and links can prefetch; tapped tabs
-light up that frame (`useLinkStatus`). Drift 833 → 810. **Phase 3 in progress**
-(2026-09-28): done — Home, Room, Create, Arena (+ X-style feed dividers,
-`--divider`), Search, Profile, Wallet, Notifications, username step, shared
-BottomSheet. Left — Admin (light touch: tokens only, same mechanical pass),
-screenshot checks of signed-in views (own profile, wallet, notifications,
-sheets), then Phase 4. Drift now 360. Gotcha: never use a bare
-`rounded-sheet` (Tailwind emits nothing) — use `rounded-t-sheet` /
-`md:rounded-sheet`.
+light up that frame (`useLinkStatus`). Drift 833 → 810. **Phase 3 done**
+(2026-09-28): Home, Room, Create, Arena (+ X-style feed dividers,
+`--divider`), Search, Profile, Wallet, Notifications, username step, the
+shared BottomSheet, Admin (light touch — mono kept for ids/addresses/hashes)
+and every remaining page. **Phase 4 done** except the on-device checklist
+(§8): the global reduced-motion rule covers every animation, the carousel is
+timer-paced under reduced motion (its bar can't pace it there), long
+durations are only on progress/data motion, hover is mouse-only (Tailwind
+v4), keyboard focus ring from Phase 0. Stadium and lineup artwork exempt from
+the drift check. **Drift 833 → 54**, every remaining item deliberate:
+timeline marker art, `global-error` (renders without the app's CSS),
+theme-color metas, card-tier and user-chosen ring colours, the USDC coin,
+the chat box's 44px padding, admin's live-stream code label. Gotcha: never
+use a bare `rounded-sheet` (Tailwind reads it as `rounded-s` + "heet" and
+emits nothing) — use `rounded-card`, `rounded-t-sheet` or `md:rounded-sheet`.
 
 Written 2026-09-27. Scope: polish the **existing** app — styling, type, colour,
 spacing, components, interactions, motion, responsiveness — so it feels like
@@ -340,3 +347,24 @@ rolled back.
 Sticky hover, tap delay, safe areas, keyboard behaviour and haptics only show
 on a real phone. Each phase ends with a short checklist for you to run on
 your device; I verify everything else in the preview.
+
+**On-device checklist (run on rivaly.fun, iPhone and Android, signed in):**
+1. Tap each bottom tab: it lights up the instant you touch it, and the page
+   outline appears straight away (no blank pause).
+2. Home bar and bottom tabs sit clear of the notch and the home bar; nothing
+   hides under them. Same for the + button and the stake sheet's button.
+3. Tap a search box or the chat box: the page doesn't zoom in.
+4. Open a room, pick YES/NO, change the stake, tap the $5–$100 chips: every
+   tap answers at once, the stake button is 56px and full width.
+5. Drag a sheet (league filter, stake sheet, search) down: it follows your
+   finger and a flick closes it.
+6. Android: a small buzz on creating a room / a goal; a success buzz on a
+   win reveal. (iPhone Safari has no vibration — nothing is expected.)
+7. Scroll the Arena feed: a clear line between every post, edge to edge.
+8. Turn on Reduce Motion (iOS Settings → Accessibility → Motion): the LIVE
+   ring stops, skeletons stop breathing, the carousel starts paused and, if
+   played, moves every 7s instead of flicking.
+9. Switch to light mode (⋮ menu → Theme): text, lines and cards all read.
+10. Your own profile, wallet (deposit/withdraw sheets), notifications and
+    the "room created" screen look like the rest (I couldn't sign in to
+    check these).

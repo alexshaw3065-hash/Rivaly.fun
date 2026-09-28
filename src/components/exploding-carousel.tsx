@@ -123,6 +123,18 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
 
   const running = playing && !held && !hidden && count > 1;
 
+  // Reduced motion shrinks every animation to ~0ms, so the bar's end can't
+  // pace the slides there (they'd flip every frame once Play is pressed):
+  // a plain timer moves them on at the normal pace instead.
+  useEffect(() => {
+    if (!running || !reduced.current) return;
+    const t = window.setTimeout(() => {
+      setCycle((c) => c + 1);
+      goTo((index + 1) % count);
+    }, SLIDE_MS);
+    return () => window.clearTimeout(t);
+  }, [running, index, count, cycle, goTo]);
+
   // One hot room is just the card — no peeking, no controls.
   if (count === 1) return <Slide slide={items[0]} />;
 
@@ -164,6 +176,7 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
                       animationPlayState: running ? "running" : "paused",
                     }}
                     onAnimationEnd={() => {
+                      if (reduced.current) return;
                       setCycle((c) => c + 1);
                       goTo((index + 1) % count);
                     }}
