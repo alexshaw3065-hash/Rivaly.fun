@@ -31,7 +31,7 @@ export function SearchResultsList({
   const trimmed = query.trim();
 
   return (
-    <div className={compact ? "flex flex-col gap-6" : "flex flex-col gap-10"}>
+    <div className={compact ? "flex flex-col gap-6" : "flex flex-col gap-8"}>
       {/* "N results for X" + a bookmark for the search itself — not a
           result, the query. Saving a topic you don't already have a
           curated shortcut for (see mock-data.ts's searchTopics) still
@@ -39,24 +39,24 @@ export function SearchResultsList({
           so an ad-hoc save of e.g. "live" can never collide with the
           curated "Live now" topic, which uses the bare id "live". */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted">
+        <p className="text-body text-secondary">
           {resultCount} result{resultCount === 1 ? "" : "s"} for &ldquo;{trimmed}&rdquo;
         </p>
         <BookmarkButton type="topic" id={`q:${trimmed}`} label={`"${trimmed}"`} />
       </div>
 
       {!hasResults ? (
-        <p className="text-sm text-muted">No results for &ldquo;{trimmed}&rdquo;.</p>
+        <p className="text-body text-secondary">No results for &ldquo;{trimmed}&rdquo;.</p>
       ) : (
         <>
           {rooms.length > 0 && (
             <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Rooms</p>
+              <p className="text-label font-semibold text-secondary">Rooms</p>
               <div
                 className={
                   compact
                     ? "mt-3 flex flex-col gap-2"
-                    : "mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    : "mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
                 }
               >
                 {rooms.slice(0, cap).map(({ room, match }) => (
@@ -67,7 +67,7 @@ export function SearchResultsList({
           )}
           {matches.length > 0 && (
             <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Matches</p>
+              <p className="text-label font-semibold text-secondary">Matches</p>
               <div
                 className={
                   compact
@@ -83,7 +83,7 @@ export function SearchResultsList({
           )}
           {people.length > 0 && (
             <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">People</p>
+              <p className="text-label font-semibold text-secondary">People</p>
               <div className="mt-3 flex flex-col gap-2">
                 {people.slice(0, cap).map((p) => (
                   <PersonRow key={p.id} profile={p} />

@@ -11,6 +11,8 @@ import { fetchRoomsByIds, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { RoomCard } from "@/components/room-card";
 import { MatchChip } from "@/components/match-chip";
 import { BookmarkButton } from "@/components/bookmark-button";
+import { Card, EmptyState } from "@/components/ui/surfaces";
+import { ButtonLink } from "@/components/ui/button";
 
 export default function WishlistPage() {
   const savedItems = useSavedItems();
@@ -74,33 +76,33 @@ export default function WishlistPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12 md:px-6">
-      <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Wishlist</h1>
-      <p className="mt-1 text-sm text-muted">Rooms, matches, and topics you&rsquo;ve bookmarked to come back to.</p>
+      <h1 className="text-title-1 font-display text-foreground">Wishlist</h1>
+      <p className="mt-2 text-body text-secondary">Rooms, matches, and topics you&rsquo;ve bookmarked to come back to.</p>
 
       {!hasAnything ? (
-        <div className="mt-10 rounded-lg border border-border bg-surface p-8 text-center">
-          <p className="text-sm text-muted">
-            Nothing saved yet. Tap the bookmark on any room, match, or search topic to add it here.
-          </p>
-          <Link
-            href="/"
-            className="mt-4 inline-block rounded-md border border-border-strong px-4 py-2 text-sm font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
-          >
-            Browse rooms →
-          </Link>
-        </div>
+        <Card padded={false} className="mt-8">
+          <EmptyState
+            title="Nothing saved yet"
+            body="Tap the bookmark on any room, match, or search topic to add it here."
+            action={
+              <ButtonLink href="/" variant="secondary" size="md">
+                Browse rooms →
+              </ButtonLink>
+            }
+          />
+        </Card>
       ) : (
-        <div className="mt-8 flex flex-col gap-10">
+        <div className="mt-8 flex flex-col gap-8">
           {savedTopics.length > 0 && (
             <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Discussions</p>
+              <p className="text-label font-semibold text-secondary">Discussions</p>
               <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
                 {savedTopics.map((topic) => (
                   <div
                     key={topic.id}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-border py-1.5 pl-3.5 pr-2"
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full pl-3 pr-2 edge-strong"
                   >
-                    <Link href="/search" className="text-sm text-foreground">
+                    <Link href="/search" className="text-label text-foreground">
                       {topic.label}
                     </Link>
                     <BookmarkButton type="topic" id={topic.id} label={topic.label} />
@@ -112,8 +114,8 @@ export default function WishlistPage() {
 
           {savedRooms.length > 0 && (
             <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Rooms</p>
-              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <p className="text-label font-semibold text-secondary">Rooms</p>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {savedRooms.map(({ room, match }) => (
                   <RoomCard key={room.id} room={room} match={match} />
                 ))}
@@ -123,7 +125,7 @@ export default function WishlistPage() {
 
           {savedMatches.length > 0 && (
             <section>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Matches</p>
+              <p className="text-label font-semibold text-secondary">Matches</p>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {savedMatches.map((match) => (
                   <MatchChip key={match.id} match={match} />

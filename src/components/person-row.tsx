@@ -6,14 +6,14 @@ export function PersonRow({ profile }: { profile: Profile }) {
   return (
     <Link
       href={`/profile/${profile.username}`}
-      className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 transition-colors duration-150 hover:border-border-strong"
+      className="flex min-h-14 items-center gap-3 rounded-card bg-surface px-4 py-3 edge transition-colors duration-100 hover:bg-surface-elevated"
     >
-      <Avatar name={profile.displayName} size={36} />
+      <Avatar name={profile.displayName} size={40} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{profile.displayName}</p>
-        <p className="truncate font-mono text-xs text-muted">@{profile.username}</p>
+        <p className="truncate text-body font-semibold text-foreground">{profile.displayName}</p>
+        <p className="truncate text-caption text-secondary">@{profile.username}</p>
       </div>
-      <p className="shrink-0 font-mono text-xs text-muted">
+      <p className="shrink-0 text-caption tabular-nums text-secondary">
         {Math.round(profile.predictionAccuracy * 100)}% acc.
       </p>
     </Link>

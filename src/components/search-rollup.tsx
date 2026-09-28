@@ -106,30 +106,30 @@ export function SearchRollup({
         {recents.length > 0 && (
           <section>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Recents</p>
+              <p className="text-label font-semibold text-secondary">Recents</p>
               <button
                 onClick={() => clearRecentSearches()}
-                className="hover-link text-xs text-muted transition-colors"
+                className="hover-link text-label text-secondary transition-colors"
               >
                 Clear all
               </button>
             </div>
             <div className="mt-3 flex flex-col">
               {recents.slice(0, 5).map((term) => (
-                <div key={term} className="flex items-center gap-3 py-2">
-                  <span className="shrink-0 text-muted">
+                <div key={term} className="flex min-h-11 items-center gap-3">
+                  <span className="shrink-0 text-secondary">
                     <SearchIcon />
                   </span>
                   <button
                     onClick={() => onSelectRecent(term)}
-                    className="min-w-0 flex-1 truncate text-left text-sm text-foreground"
+                    className="min-w-0 flex-1 truncate text-left text-body text-foreground"
                   >
                     {term}
                   </button>
                   <button
                     onClick={() => removeRecentSearch(term)}
                     aria-label={`Remove "${term}" from recents`}
-                    className="hover-link shrink-0 text-muted transition-colors"
+                    className="hover-link flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-secondary transition-colors"
                   >
                     ✕
                   </button>
@@ -141,18 +141,18 @@ export function SearchRollup({
 
         {trending.length > 0 && (
           <section>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">Trending</p>
+            <p className="text-label font-semibold text-secondary">Trending</p>
             <div className="mt-3 flex flex-col">
               {trending.map((term) => (
                 <button
                   key={term}
                   onClick={() => onSelectRecent(term)}
-                  className="flex items-center gap-3 py-2 text-left"
+                  className="flex min-h-11 items-center gap-3 text-left"
                 >
-                  <span className="shrink-0 text-muted">
+                  <span className="shrink-0 text-secondary">
                     <TrendingIcon />
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">{term}</span>
+                  <span className="min-w-0 flex-1 truncate text-body text-foreground">{term}</span>
                 </button>
               ))}
             </div>
@@ -167,23 +167,23 @@ export function SearchRollup({
       {recents.length > 0 && (
         <section>
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Recents</p>
+            <p className="text-label font-semibold text-secondary">Recents</p>
             <button
               onClick={() => clearRecentSearches()}
-              className="hover-link text-xs text-muted transition-colors"
+              className="hover-link text-label text-secondary transition-colors"
             >
               Clear all
             </button>
           </div>
           <div className="mt-3 flex flex-col">
             {recents.map((term) => (
-              <div key={term} className="flex items-center gap-3 py-2">
-                <span className="shrink-0 text-muted">
+              <div key={term} className="flex min-h-11 items-center gap-3">
+                <span className="shrink-0 text-secondary">
                   <SearchIcon />
                 </span>
                 <button
                   onClick={() => onSelectRecent(term)}
-                  className="min-w-0 flex-1 truncate text-left text-sm text-foreground"
+                  className="min-w-0 flex-1 truncate text-left text-body text-foreground"
                 >
                   {term}
                 </button>
@@ -193,7 +193,7 @@ export function SearchRollup({
                 <button
                   onClick={() => removeRecentSearch(term)}
                   aria-label={`Remove "${term}" from recents`}
-                  className="hover-link shrink-0 text-muted transition-colors"
+                  className="hover-link flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-secondary transition-colors"
                 >
                   ✕
                 </button>
@@ -204,7 +204,7 @@ export function SearchRollup({
       )}
 
       <section>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Browse</p>
+        <p className="text-label font-semibold text-secondary">Browse</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {filters.map((f) => {
             const Icon = FILTER_ICONS[f.id];
@@ -212,7 +212,7 @@ export function SearchRollup({
               <button
                 key={f.id}
                 onClick={() => onSelectTab(f.id)}
-                className="flex h-10 items-center gap-2 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-foreground transition-[transform,border-color,background-color] duration-150 ease-out hover:border-border-strong active:scale-[0.96]"
+                className="flex h-10 items-center gap-2 rounded-full bg-surface px-4 text-label font-semibold text-foreground edge transition-[transform,background-color] duration-100 ease-out hover:bg-surface-elevated active:scale-[0.97]"
               >
                 {/* Monochrome, like Polymarket's own chips — the glyph shapes do the telling. */}
                 {Icon && (
@@ -229,20 +229,20 @@ export function SearchRollup({
 
       {topics.length > 0 && (
         <section>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Topics</p>
+          <p className="text-label font-semibold text-secondary">Topics</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {topics.map(({ topic, count, sample, live }) => (
               <button
                 key={topic.id}
                 onClick={() => onSelectTopic(topic)}
-                className="flex h-14 min-w-0 items-center gap-2.5 rounded-xl border border-border bg-surface px-2.5 text-left transition-[transform,border-color] duration-150 ease-out hover:border-border-strong active:scale-[0.97]"
+                className="flex h-14 min-w-0 items-center gap-3 rounded-card bg-surface px-3 text-left edge transition-[transform,background-color] duration-100 ease-out hover:bg-surface-elevated active:scale-[0.97]"
               >
                 {live ? (
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-rival-red-dim text-rival-red [&_svg]:h-5 [&_svg]:w-5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-no-tint text-no-ink [&_svg]:h-5 [&_svg]:w-5">
                     <LiveIcon />
                   </span>
                 ) : (
-                  <span className="relative h-9 w-9 shrink-0 rounded-[10px] bg-background">
+                  <span className="relative h-9 w-9 shrink-0 rounded-control bg-background">
                     {sample && (
                       <>
                         <span className="absolute left-0.5 top-0.5">
@@ -256,8 +256,8 @@ export function SearchRollup({
                   </span>
                 )}
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold text-foreground">{topic.label}</span>
-                  <span className="block truncate text-xs text-muted">
+                  <span className="block truncate text-label font-semibold text-foreground">{topic.label}</span>
+                  <span className="block truncate text-caption text-secondary">
                     {count} {live ? "live" : count === 1 ? "game" : "games"}
                   </span>
                 </span>

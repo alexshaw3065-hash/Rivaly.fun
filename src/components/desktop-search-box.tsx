@@ -70,14 +70,8 @@ export function DesktopSearchBox() {
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
-      <div
-        className="flex w-full items-center gap-2.5 rounded-full border bg-surface px-4 py-2.5 text-sm"
-        style={{
-          borderColor: open ? "var(--border-strong)" : "var(--border)",
-          transition: "border-color 150ms ease",
-        }}
-      >
-        <span className="shrink-0 text-muted">
+      <div className={`flex h-10 w-full items-center gap-2 rounded-full border bg-surface px-4 text-body transition-colors duration-150 ${open ? "border-yes" : "border-line-strong"}`}>
+        <span className="shrink-0 text-secondary">
           <SearchIcon />
         </span>
         <input
@@ -92,20 +86,17 @@ export function DesktopSearchBox() {
             }
           }}
           placeholder="Search rooms, matches, people…"
-          className="min-w-0 flex-1 bg-transparent text-foreground placeholder:text-muted focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-foreground placeholder:text-tertiary focus:outline-none"
         />
         {!query && (
-          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted">
+          <span className="shrink-0 rounded-tag px-1.5 py-0.5 text-micro font-semibold text-tertiary edge-strong">
             /
           </span>
         )}
       </div>
 
       {open && (
-        <div
-          className="enter-pop absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-surface-elevated p-4"
-          style={{ boxShadow: "0 16px 40px -12px rgba(0, 0, 0, 0.5)" }}
-        >
+        <div className="enter-pop absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[70vh] overflow-y-auto rounded-card bg-surface-elevated p-4 shadow-pop">
           {!q ? (
             <SearchRollup
               compact
