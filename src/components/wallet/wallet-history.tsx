@@ -28,16 +28,16 @@ export function WalletHistory() {
 
   if (!history.isReal) {
     return (
-      <div className="mt-4 rounded-lg border border-border bg-surface p-6 text-center">
-        <p className="text-sm text-muted">Your history shows up here as soon as your wallet is ready.</p>
+      <div className="mt-4 rounded-control border border-line bg-surface p-6 text-center">
+        <p className="text-body text-secondary">Your history shows up here as soon as your wallet is ready.</p>
       </div>
     );
   }
 
   if (history.transactions.length === 0) {
     return (
-      <div className="mt-4 rounded-lg border border-border bg-surface p-6 text-center">
-        <p className="text-sm text-muted">
+      <div className="mt-4 rounded-control border border-line bg-surface p-6 text-center">
+        <p className="text-body text-secondary">
           Nothing here yet. Every deposit and withdrawal shows up with a link to verify it on-chain.
         </p>
       </div>
@@ -45,7 +45,7 @@ export function WalletHistory() {
   }
 
   return (
-    <div className="mt-4 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+    <div className="mt-4 flex flex-col divide-y divide-line rounded-control border border-line bg-surface">
       {history.transactions.map((tx) => {
         const positive = tx.type === "deposit";
         const amount = tx.amountMicros / 10 ** USDC_DECIMALS;
@@ -55,16 +55,16 @@ export function WalletHistory() {
             href={explorerTxUrl(tx.txSignature)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between px-4 py-3.5 hover:bg-surface-elevated"
+            className="flex items-center justify-between px-4 py-4 hover:bg-surface-elevated"
             style={{ transition: "background-color 150ms ease" }}
           >
             <div className="min-w-0">
-              <p className="text-sm text-foreground">{historyLabel(positive, tx.counterpartyAddress)}</p>
-              <p className="mt-0.5 truncate font-mono text-xs text-muted">{formatDate(tx.createdAt)}</p>
+              <p className="text-body text-foreground">{historyLabel(positive, tx.counterpartyAddress)}</p>
+              <p className="mt-0.5 truncate tabular-nums text-caption text-secondary">{formatDate(tx.createdAt)}</p>
             </div>
             <p
-              className="shrink-0 font-mono text-sm font-medium"
-              style={{ color: positive ? "var(--rival-green)" : "var(--foreground)" }}
+              className="shrink-0 tabular-nums text-body font-medium"
+              style={{ color: positive ? "var(--money)" : "var(--foreground)" }}
             >
               {positive ? "+" : "−"}
               {formatUsdc(amount)}

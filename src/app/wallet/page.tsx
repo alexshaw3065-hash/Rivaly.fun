@@ -11,7 +11,7 @@ export default function WalletPage() {
       <WalletActions />
       <HostingEarnings />
       <div className="mt-10">
-        <p className="font-display text-xl font-semibold text-foreground">Transaction history</p>
+        <p className="text-title-3 font-display text-foreground">Transaction history</p>
         <WalletHistory />
       </div>
     </main>

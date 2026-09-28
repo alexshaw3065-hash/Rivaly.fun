@@ -61,31 +61,31 @@ export default function NotificationsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 md:px-6 md:py-12">
-      <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Notifications</h1>
+      <h1 className="text-title-1 font-display text-foreground">Notifications</h1>
 
       {!me ? (
         <Empty title="Sign in to see yours" body="Stakes in your rooms, calls against you, kickoffs and results land here.">
           <button
             type="button"
             onClick={() => openAuthModal({ next: "/notifications" })}
-            className="mt-5 inline-flex h-10 items-center rounded-full px-5 text-sm font-semibold text-white"
-            style={{ background: "var(--rival-blue)" }}
+            className="mt-5 inline-flex h-10 items-center rounded-full px-5 text-body font-semibold text-white"
+            style={{ background: "var(--yes)" }}
           >
             Sign in
           </button>
         </Empty>
       ) : error ? (
         <Empty title="Couldn't load them" body="Check your connection and try again.">
-          <button type="button" onClick={() => void load()} className="mt-5 h-10 rounded-full px-5 text-sm font-semibold text-foreground ring-1 ring-border-strong">
+          <button type="button" onClick={() => void load()} className="mt-5 h-10 rounded-full px-5 text-body font-semibold text-foreground edge-strong">
             Try again
           </button>
         </Empty>
       ) : items === null ? (
-        <div className="mt-7 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+        <div className="mt-7 overflow-hidden rounded-card bg-surface edge">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex gap-3 border-b border-border px-4 py-4 last:border-0">
-              <span className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-foreground/5" />
-              <span className="mt-1 h-3 w-2/3 animate-pulse rounded bg-foreground/5" />
+            <div key={i} className="flex gap-3 border-b border-line px-4 py-4 last:border-0">
+              <span className="h-10 w-10 shrink-0 skeleton rounded-full bg-foreground/5" />
+              <span className="mt-1 h-3 w-2/3 skeleton rounded bg-foreground/5" />
             </div>
           ))}
         </div>
@@ -93,8 +93,8 @@ export default function NotificationsPage() {
         <Empty title="Nothing yet" body="When someone joins your room, fades your call or replies to you, it lands here.">
           <Link
             href="/rooms/create"
-            className="mt-5 inline-flex h-10 items-center rounded-full px-5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-            style={{ background: "var(--rival-blue)" }}
+            className="mt-5 inline-flex h-10 items-center rounded-full px-5 text-body font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+            style={{ background: "var(--yes)" }}
           >
             Start a room
           </Link>
@@ -103,8 +103,8 @@ export default function NotificationsPage() {
         <>
           {groupByDay(items).map((g) => (
             <section key={g.label} className="mt-7">
-              <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted">{g.label}</p>
-              <div className="mt-2 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+              <p className="px-1 text-label font-semibold text-secondary">{g.label}</p>
+              <div className="mt-2 overflow-hidden rounded-card bg-surface edge">
                 {g.items.map((n) => (
                   <NotificationRow key={n.id} n={n} view={describe(n)} />
                 ))}
@@ -113,7 +113,7 @@ export default function NotificationsPage() {
           ))}
           {!done && (
             <div className="flex justify-center py-6">
-              <button type="button" onClick={() => void more()} className="h-10 rounded-full px-5 text-sm text-foreground ring-1 ring-border-strong">
+              <button type="button" onClick={() => void more()} className="h-10 rounded-full px-5 text-body text-foreground edge-strong">
                 Older
               </button>
             </div>
@@ -126,9 +126,9 @@ export default function NotificationsPage() {
 
 function Empty({ title, body, children }: { title: string; body: string; children?: React.ReactNode }) {
   return (
-    <div className="mt-7 rounded-2xl bg-surface px-6 py-14 text-center ring-1 ring-border">
-      <p className="font-display text-lg font-bold text-foreground">{title}</p>
-      <p className="mx-auto mt-1 max-w-sm text-sm text-muted">{body}</p>
+    <div className="mt-7 rounded-card bg-surface px-6 py-14 text-center edge">
+      <p className="text-title-3 font-display text-foreground">{title}</p>
+      <p className="mx-auto mt-1 max-w-sm text-body text-secondary">{body}</p>
       {children}
     </div>
   );

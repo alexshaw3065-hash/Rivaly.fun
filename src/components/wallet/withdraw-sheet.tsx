@@ -116,18 +116,18 @@ export function WithdrawSheet({
     <BottomSheet open={open} onClose={handleClose} title="Withdraw">
       {signature ? (
         <div className="flex flex-col items-center gap-3 text-center">
-          <p className="text-sm text-foreground">Sent {formatUsdc(amountNum)} USDC.</p>
+          <p className="text-body text-foreground">Sent {formatUsdc(amountNum)} USDC.</p>
           <a
             href={explorerTxUrl(signature)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-muted underline hover:text-foreground"
+            className="text-body text-secondary underline hover:text-foreground"
           >
             View on Solana Explorer
           </a>
           <button
             onClick={handleClose}
-            className="mt-2 rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background active:scale-[0.97]"
+            className="mt-2 rounded-control bg-foreground px-4 py-3 text-body font-medium text-background active:scale-[0.97]"
             style={{ transition: "transform 150ms ease-out" }}
           >
             Done
@@ -139,7 +139,7 @@ export function WithdrawSheet({
             value={toAddress}
             onChange={(e) => setToAddress(e.target.value.trim())}
             placeholder="Destination Solana address"
-            className="w-full rounded-md border border-border bg-surface px-3.5 py-2.5 font-mono text-sm text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
+            className="w-full rounded-control border border-line bg-surface px-4 py-3 tabular-nums text-body text-foreground placeholder:text-secondary focus:border-line-strong focus:outline-none"
             style={{ transition: "border-color 150ms ease" }}
           />
           <div>
@@ -150,31 +150,31 @@ export function WithdrawSheet({
               min="0"
               step="0.01"
               placeholder="Amount in USDC"
-              className="w-full rounded-md border border-border bg-surface px-3.5 py-2.5 font-mono text-base text-foreground placeholder:text-muted focus:border-border-strong focus:outline-none"
+              className="w-full rounded-control border border-line bg-surface px-4 py-3 tabular-nums text-body-lg text-foreground placeholder:text-secondary focus:border-line-strong focus:outline-none"
               style={{ transition: "border-color 150ms ease" }}
             />
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-caption text-secondary">
               Available: {hasLoaded ? `${formatUsdc(usdcBalance)} USDC` : "checking…"}
             </p>
           </div>
 
           {needsSol && (
-            <p className="text-xs text-muted">
+            <p className="text-caption text-secondary">
               Solana charges a small network fee in SOL, and this wallet has none yet — send a little
               SOL to your deposit address first, or this transfer will fail.
             </p>
           )}
           {!signingWallet && (
-            <p className="text-xs text-muted">
+            <p className="text-caption text-secondary">
               Your wallet needs to reconnect before it can sign. Sign out and back in, then try again.
             </p>
           )}
-          {error && <p className="text-xs text-danger-red">{error}</p>}
+          {error && <p className="text-caption text-no-ink">{error}</p>}
 
           <button
             onClick={submit}
             disabled={!canSubmit}
-            className="rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background active:scale-[0.97] disabled:opacity-40"
+            className="rounded-control bg-foreground px-4 py-3 text-body font-medium text-background active:scale-[0.97] disabled:opacity-40"
             style={{ transition: "transform 150ms ease-out" }}
           >
             {sending ? "Sending…" : "Confirm withdrawal"}

@@ -11,7 +11,7 @@ export function WalletSetupButton({ next, centered = false }: { next: string; ce
   if (status === "ready" || status === "signed_out") return null;
   if (status === "loading") {
     return (
-      <p role="status" className={`text-sm text-muted ${centered ? "text-center" : ""}`}>
+      <p role="status" className={`text-body text-secondary ${centered ? "text-center" : ""}`}>
         Getting your wallet ready…
       </p>
     );
@@ -22,8 +22,8 @@ export function WalletSetupButton({ next, centered = false }: { next: string; ce
       <button
         type="button"
         onClick={() => void reconnect(next)}
-        className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-        style={{ background: "var(--rival-blue)" }}
+        className="rounded-control px-5 py-3 text-body font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+        style={{ background: "var(--yes)" }}
       >
         {status === "no_wallet"
           ? "Sign in again to finish your wallet"
@@ -33,7 +33,7 @@ export function WalletSetupButton({ next, centered = false }: { next: string; ce
               ? "Retry"
               : "Sign in with this wallet"}
       </button>
-      <p className="text-xs text-muted">
+      <p className="text-caption text-secondary">
         {status === "no_wallet"
           ? "Your wallet didn't finish setting up — one sign-in completes it."
           : status === "expired"

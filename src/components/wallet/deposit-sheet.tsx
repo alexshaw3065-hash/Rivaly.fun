@@ -55,7 +55,7 @@ export function DepositSheet({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <BottomSheet open={open} onClose={onClose} title="Deposit">
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-muted">
+        <p className="text-body text-secondary">
           Send USDC on Solana to your Rivaly wallet address. It shows up here the moment it confirms
           on-chain — no waiting on Rivaly to process anything.
         </p>
@@ -63,21 +63,21 @@ export function DepositSheet({ open, onClose }: { open: boolean; onClose: () => 
         {address ? (
           <>
             <div className="flex justify-center">
-              <div className="rounded-xl bg-white p-3">
+              <div className="rounded-card bg-white p-3">
                 <AddressQr value={address} />
               </div>
             </div>
-            <div className="rounded-md border border-border bg-surface-elevated px-3.5 py-3">
-              <p className="break-all font-mono text-sm text-foreground">{address}</p>
+            <div className="rounded-control border border-line bg-surface-elevated px-4 py-3">
+              <p className="break-all tabular-nums text-body text-foreground">{address}</p>
             </div>
             <button
               onClick={copyAddress}
-              className="rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background active:scale-[0.97]"
+              className="rounded-control bg-foreground px-4 py-3 text-body font-medium text-background active:scale-[0.97]"
               style={{ transition: "transform 150ms ease-out" }}
             >
               {copied ? "Copied" : "Copy address"}
             </button>
-            <p className="text-xs text-muted">
+            <p className="text-caption text-secondary">
               Testing on Solana Devnet — get free test USDC from{" "}
               <a
                 href="https://faucet.circle.com"
@@ -96,7 +96,7 @@ export function DepositSheet({ open, onClose }: { open: boolean; onClose: () => 
           // at the last sign-in. Each login re-checks and fills it in (see
           // dynamic-actions.ts), so signing out and back in is the actual
           // fix rather than waiting.
-          <p className="text-sm text-muted">
+          <p className="text-body text-secondary">
             Your wallet isn&apos;t ready yet. Sign out and back in — that finishes setting it up.
           </p>
         )}

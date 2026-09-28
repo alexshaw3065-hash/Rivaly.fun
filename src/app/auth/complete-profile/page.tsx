@@ -61,18 +61,12 @@ export default function CompleteProfilePage() {
 
   return (
     <main className="mx-auto flex min-h-[80vh] max-w-sm flex-col justify-center px-4 py-16 md:px-6">
-      <h1 className="font-display text-2xl font-bold text-foreground">One more thing.</h1>
-      <p className="mt-1.5 text-sm text-muted">Pick the username other rivals will see you as.</p>
+      <h1 className="text-title-1 font-display text-foreground">One more thing.</h1>
+      <p className="mt-1.5 text-body text-secondary">Pick the username other rivals will see you as.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-1.5">
-        <div
-          className="flex w-full items-center rounded-md border bg-surface px-4 py-3 focus-within:border-border-strong"
-          style={{
-            borderColor: showFormatHint ? "var(--danger-red)" : "var(--border)",
-            transition: "border-color 150ms ease",
-          }}
-        >
-          <span className="font-mono text-base text-muted">@</span>
+        <div className={`flex h-12 w-full items-center rounded-control border bg-surface px-4 transition-colors duration-150 ${showFormatHint ? "border-no" : "border-line-strong focus-within:border-yes"}`}>
+          <span className="tabular-nums text-body-lg text-secondary">@</span>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value.toLowerCase())}
@@ -80,33 +74,33 @@ export default function CompleteProfilePage() {
             placeholder="username"
             autoComplete="username"
             autoFocus
-            className="w-full bg-transparent font-mono text-base text-foreground placeholder:text-muted focus:outline-none"
+            className="w-full bg-transparent tabular-nums text-body-lg text-foreground placeholder:text-tertiary focus:outline-none"
           />
           {/* Live checkmark, not just an error after the fact — the same
               rule either way, just surfaced the moment it's satisfied
               instead of only the moment it isn't. */}
           {isValidFormat && (
-            <span aria-hidden className="text-rival-green">
+            <span aria-hidden className="text-money-ink">
               ✓
             </span>
           )}
         </div>
 
-        <p className={`min-h-[1.25rem] px-0.5 text-xs ${showFormatHint ? "text-danger-red" : "text-muted"}`}>
+        <p className={`min-h-[1.25rem] px-0.5 text-caption ${showFormatHint ? "text-no-ink" : "text-secondary"}`}>
           {showFormatHint
             ? "3-20 characters: lowercase letters, numbers, underscores only."
             : "This is how other rivals will find and challenge you."}
         </p>
 
-        {error && <p className="text-sm text-danger-red">{error}</p>}
+        {error && <p className="text-body text-no-ink">{error}</p>}
         <button
           type="submit"
           disabled={busy || !isValidFormat}
-          className="mt-2 w-full rounded-md bg-foreground py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
+          className="mt-2 h-12 w-full rounded-control bg-foreground text-body-lg font-semibold text-background transition-transform duration-100 ease-out active:scale-[0.97] disabled:opacity-40"
         >
           {busy ? "Saving…" : "Continue"}
         </button>
-        <p className="mt-3 text-center text-xs text-muted">
+        <p className="mt-3 text-center text-caption text-secondary">
           By continuing you agree to Rivaly&apos;s{" "}
           <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-foreground">
             Terms and Conditions

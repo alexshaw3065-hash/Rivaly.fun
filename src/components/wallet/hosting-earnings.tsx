@@ -110,9 +110,9 @@ export function HostingEarnings() {
   if (data.earned.length === 0 && data.live.length === 0) {
     if (!fees.live || fees.hostBps <= 0) return null;
     return (
-      <p className="mt-6 text-sm text-muted">
+      <p className="mt-6 text-body text-secondary">
         Host a room and earn {pct(fees.hostBps)} of its winnings, whichever side wins.{" "}
-        <Link href="/rooms/create" className="font-medium text-rival-blue">
+        <Link href="/rooms/create" className="font-medium text-yes-ink">
           Start one →
         </Link>
       </p>
@@ -146,75 +146,75 @@ export function HostingList({
   return (
     <div className="mt-10">
       <div className="flex items-baseline justify-between">
-        <p className="font-display text-xl font-semibold text-foreground">Hosting</p>
-        <p className="text-xs text-muted">only you see this</p>
+        <p className="text-title-3 font-display text-foreground">Hosting</p>
+        <p className="text-caption text-secondary">only you see this</p>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+      <div className="mt-4 overflow-hidden rounded-card bg-surface edge">
         {live.length > 0 && (
-          <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+          <div className="flex items-center justify-between border-b border-line px-4 py-4">
             <div>
-              <p className="text-xs text-muted">Pending · {live.length} live room{live.length === 1 ? "" : "s"}</p>
-              <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-foreground">{range(pending.min, pending.max)}</p>
+              <p className="text-caption text-secondary">Pending · {live.length} live room{live.length === 1 ? "" : "s"}</p>
+              <p className="mt-1 text-title-3 font-display tabular-nums text-foreground">{range(pending.min, pending.max)}</p>
             </div>
-            <p className="max-w-[45%] text-right text-xs text-muted">Grows as people join. Lands in Claimable when each room settles.</p>
+            <p className="max-w-[45%] text-right text-caption text-secondary">Grows as people join. Lands in Claimable when each room settles.</p>
           </div>
         )}
         <div className="flex items-center justify-between gap-4 px-4 py-4">
           <div>
-            <p className="text-xs text-muted">Claimable</p>
-            <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-rival-green">{formatMoney(claimable)}</p>
-            {inFlight > 0 && <p className="mt-0.5 text-xs text-muted">{formatMoney(inFlight)} on its way to your wallet</p>}
+            <p className="text-caption text-secondary">Claimable</p>
+            <p className="mt-1 text-title-1 font-display tabular-nums text-money-ink">{formatMoney(claimable)}</p>
+            {inFlight > 0 && <p className="mt-0.5 text-caption text-secondary">{formatMoney(inFlight)} on its way to your wallet</p>}
           </div>
           <div className="flex flex-col items-end gap-1">
             <button
               type="button"
               onClick={onClaim}
               disabled={!canClaim}
-              className="h-11 rounded-full px-6 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
-              style={{ background: "var(--rival-green)" }}
+              className="h-11 rounded-full px-6 text-body font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
+              style={{ background: "var(--money)" }}
             >
               {claim.state === "claiming" ? "Claiming…" : "Claim"}
             </button>
-            {claimable < MIN_CLAIM && claim.state !== "done" && <p className="text-[11px] text-muted">$1 minimum</p>}
+            {claimable < MIN_CLAIM && claim.state !== "done" && <p className="text-caption text-secondary">$1 minimum</p>}
           </div>
         </div>
         {claim.state === "done" && (
-          <p className="border-t border-border px-4 py-3 text-sm text-foreground">
+          <p className="border-t border-line px-4 py-3 text-body text-foreground">
             {formatMoney(claim.cents)} sent to your wallet.{" "}
-            <a href={explorerTxUrl(claim.signature)} target="_blank" rel="noopener noreferrer" className="text-muted underline underline-offset-2">
+            <a href={explorerTxUrl(claim.signature)} target="_blank" rel="noopener noreferrer" className="text-secondary underline underline-offset-2">
               Verify on Solana ↗
             </a>
           </p>
         )}
-        {claim.state === "error" && <p className="border-t border-border px-4 py-3 text-sm text-rival-red">{claim.message}</p>}
+        {claim.state === "error" && <p className="border-t border-line px-4 py-3 text-body text-no-ink">{claim.message}</p>}
       </div>
 
       {(live.length > 0 || earned.length > 0) && (
-        <div className="mt-3 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+        <div className="mt-3 flex flex-col divide-y divide-line rounded-control border border-line bg-surface">
           {live.map((r) => (
-            <Link key={`live-${r.roomId}`} href={`/rooms/${r.roomId}`} className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <Link key={`live-${r.roomId}`} href={`/rooms/${r.roomId}`} className="flex items-center justify-between gap-3 px-4 py-4">
               <div className="min-w-0">
-                <p className="truncate text-sm text-foreground">{r.prediction}</p>
-                <p className="text-xs text-muted">Live · depends on who wins</p>
+                <p className="truncate text-body text-foreground">{r.prediction}</p>
+                <p className="text-caption text-secondary">Live · depends on who wins</p>
               </div>
-              <p className="shrink-0 font-mono text-sm text-foreground">{range(r.min, r.max)}</p>
+              <p className="shrink-0 tabular-nums text-body text-foreground">{range(r.min, r.max)}</p>
             </Link>
           ))}
           {earned.map((r) => (
-            <div key={r.roomId} className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <div key={r.roomId} className="flex items-center justify-between gap-3 px-4 py-4">
               <Link href={`/rooms/${r.roomId}`} className="min-w-0">
-                <p className="truncate text-sm text-foreground">{r.prediction}</p>
-                <p className="text-xs text-muted">{new Date(r.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+                <p className="truncate text-body text-foreground">{r.prediction}</p>
+                <p className="text-caption text-secondary">{new Date(r.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
               </Link>
               <div className="shrink-0 text-right">
-                <p className="font-mono text-sm font-semibold text-rival-green">+{formatMoney(r.cents)}</p>
+                <p className="tabular-nums text-body font-semibold text-money-ink">+{formatMoney(r.cents)}</p>
                 {r.status === "claimed" && r.signature ? (
-                  <a href={explorerTxUrl(r.signature)} target="_blank" rel="noopener noreferrer" className="hover-link text-xs text-muted underline underline-offset-2">
+                  <a href={explorerTxUrl(r.signature)} target="_blank" rel="noopener noreferrer" className="hover-link text-caption text-secondary underline underline-offset-2">
                     Claimed ↗
                   </a>
                 ) : (
-                  <p className="text-xs text-muted">{r.status === "claiming" ? "Claiming…" : "Claimable"}</p>
+                  <p className="text-caption text-secondary">{r.status === "claiming" ? "Claiming…" : "Claimable"}</p>
                 )}
               </div>
             </div>

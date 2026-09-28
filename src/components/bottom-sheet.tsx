@@ -38,15 +38,11 @@ export function BottomSheet({
 
   return (
     <div className="fixed inset-0 z-20 flex items-end justify-center">
-      <div
-        className="sheet-overlay absolute inset-0 bg-black/50"
-        onClick={onClose}
-        aria-hidden
-      />
-      <div className="sheet-panel relative w-full max-w-lg rounded-t-2xl border-t border-border bg-surface p-5 pb-8">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ background: "var(--border-strong)" }} />
+      <div className="sheet-overlay absolute inset-0 bg-scrim" onClick={onClose} aria-hidden />
+      <div className="sheet-panel relative max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-sheet bg-surface p-5 pb-[max(env(safe-area-inset-bottom),24px)] shadow-sheet">
+        <div className="mx-auto -mt-3 mb-4 h-1 w-9 rounded-full bg-line-strong" />
         <div className="relative flex items-center justify-center">
-          <h2 className="font-display text-lg font-semibold text-foreground">{title}</h2>
+          <h2 className="text-title-3 font-display text-foreground">{title}</h2>
           {headerAction && <div className="absolute right-0">{headerAction}</div>}
         </div>
         <div className="mt-5">{children}</div>
