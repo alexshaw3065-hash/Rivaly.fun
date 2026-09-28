@@ -9,7 +9,9 @@ import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { CrestProvider } from "@/components/crest-provider";
 import { getCrestMap } from "@/lib/crests/map";
-import { SITE_URL } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
+import { OG_BASE, TWITTER_BASE } from "@/lib/seo";
+import { JsonLd, SITE_GRAPH } from "@/components/seo/json-ld";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -58,12 +60,26 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0a",
 };
 
+// Search and link-preview defaults. Pages add their own title (shown as
+// "Title · Rivaly"), description and canonical URL — never here, or every
+// page would inherit the home page's canonical. Search Console / Bing
+// ownership tags come from env vars the founder sets in Vercel.
 export const metadata: Metadata = {
   // Absolute URLs in link previews (og:image etc.) always point at rivaly.fun.
   metadataBase: new URL(SITE_URL),
-  title: "Rivaly",
-  description: "Back your football opinion. Predict against people, not the house.",
-  openGraph: { siteName: "Rivaly", url: SITE_URL },
+  title: { default: SITE_TITLE, template: "%s · Rivaly" },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  category: "sports",
+  // No title/url here: a page's own title and canonical fill them (pageMeta in
+  // lib/seo.ts), and anything set here would be inherited by every page.
+  openGraph: OG_BASE,
+  twitter: TWITTER_BASE,
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
+  },
 };
 
 // Dark is the brand default (see globals.css) — this only ever adds `.light`,
@@ -86,6 +102,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {/* Badges come from our Supabase CDN — open the connection before the first one is needed. */}
         {crests.base && <link rel="preconnect" href={new URL(crests.base).origin} />}
+        <JsonLd data={SITE_GRAPH} />
       </head>
       {/* Deliberately NOT display:flex. Nav's sidebar/header/bottom-bar are
           all fixed or sticky positioned (never flex siblings of the page

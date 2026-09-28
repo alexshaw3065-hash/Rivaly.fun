@@ -1,3 +1,11 @@
+import { pageMeta } from "@/lib/seo";
+
+export const metadata = pageMeta({
+  title: "Terms of Use",
+  description: "Rivaly's terms of use: what Rivaly is, eligibility, how funds and escrow work, settlement and disputes.",
+  path: "/terms",
+});
+
 // Genuine early-stage terms, not filler — but explicitly labeled as a
 // pre-launch draft so it isn't read as a finished legal document. Should
 // be reviewed by an actual lawyer before Rivaly takes real deposits.

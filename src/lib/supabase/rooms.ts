@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Room } from "@/lib/types";
 import {
@@ -11,14 +12,15 @@ import {
 export type { RoomWithTotals };
 export { splitPctFromTotals } from "@/lib/supabase/room-mapper";
 
-export async function getRoomById(id: string): Promise<RoomWithTotals | undefined> {
+// Memoised per request: a page and its metadata ask for the same row once.
+export const getRoomById = cache(async function getRoomById(id: string): Promise<RoomWithTotals | undefined> {
   if (!ROOM_UUID_RE.test(id)) return undefined;
 
   const supabase = await createClient();
   const { data } = await supabase.from("rooms").select(ROOM_COLUMNS).eq("id", id).maybeSingle();
   if (!data) return undefined;
   return mapRoomRow(data as RoomRow);
-}
+});
 
 /** A room opened by its invite code — works for private rooms the viewer isn't in yet. */
 export async function getRoomByInviteCode(code: string): Promise<RoomWithTotals | undefined> {

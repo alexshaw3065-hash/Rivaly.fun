@@ -43,6 +43,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Not for static files or the crawler files (robots.txt, sitemap.xml,
+    // manifest, the IndexNow key) — nobody's signed in to those.
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt)$).*)",
   ],
 };

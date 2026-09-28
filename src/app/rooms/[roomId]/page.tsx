@@ -29,6 +29,10 @@ import { explorerTxUrl } from "@/lib/wallet/constants";
 import { abbreviateClaim, teamIdentity } from "@/lib/team-identity";
 import type { EntrySide } from "@/lib/types";
 import { newNflClock } from "@/lib/nfl-clock";
+import type { Metadata } from "next";
+import { pageMeta, roomJsonLd, roomSummary } from "@/lib/seo";
+import { siteUrl } from "@/lib/site";
+import { JsonLd } from "@/components/seo/json-ld";
 
 // The heart of the product: a digital viewing centre, not a form. Per
 // docs/masterplan/07-product-blueprint.md#45-room and the 2026-09-24 room
@@ -52,6 +56,29 @@ function decidedRecently(at: string): boolean {
 /** When the server drew this page (the room refreshes itself if it's shown later from the tab cache). */
 function renderTime(): number {
   return Date.now();
+}
+
+// What a search result or shared link says about the room. Private rooms (and
+// anything opened with an invite code) are never indexed; the share image is
+// opengraph-image.tsx next to this file.
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ roomId: string }>;
+  searchParams: Promise<{ code?: string }>;
+}): Promise<Metadata> {
+  const { roomId } = await params;
+  const { code } = await searchParams;
+  let room = await getRoomById(roomId);
+  if (!room && code) {
+    const byCode = await getRoomByInviteCode(code);
+    if (byCode?.id === roomId) room = byCode;
+  }
+  const match = room ? await getMatchById(room.matchId) : undefined;
+  if (!room || !match) return { title: "Room not found", robots: { index: false } };
+  const { title, description } = roomSummary(room, match);
+  return pageMeta({ title, description, path: `/rooms/${room.id}`, noindex: room.visibility !== "public" || Boolean(code) });
 }
 
 export default async function RoomPage({
@@ -158,6 +185,7 @@ export default async function RoomPage({
 
   return (
     <main className="min-h-[100dvh]">
+      {room.visibility === "public" && <JsonLd data={roomJsonLd(room, match, siteUrl(`/rooms/${room.id}`))} />}
       {/* Realtime: re-renders only when the room, its entries or the match change. */}
       {unfinished && <RoomLive roomId={room.id} matchId={room.matchId} kickoffAt={match.kickoffAt} renderedAt={renderTime()} />}
 

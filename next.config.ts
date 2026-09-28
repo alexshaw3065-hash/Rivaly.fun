@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
   experimental: {
     staleTimes: { dynamic: 30 },
   },
+  // Personal and utility screens stay out of search results: they're either
+  // someone's own account or a form, never an answer to a search. Crawlers
+  // may still follow their links (robots.ts only blocks the machinery).
+  async headers() {
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, follow" }];
+    return ["/wallet", "/notifications", "/wishlist", "/rooms/create", "/login", "/signup", "/invite", "/kit", "/auth/:path*", "/admin/:path*"].map(
+      (source) => ({ source, headers: noindex }),
+    );
+  },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
   },

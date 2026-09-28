@@ -1,3 +1,11 @@
+import { pageMeta } from "@/lib/seo";
+
+export const metadata = pageMeta({
+  title: "Support",
+  description: "Answers about your Rivaly wallet, escrow, how rooms settle, refunds for postponed matches, and why Rivaly never bets against you.",
+  path: "/support",
+});
+
 // Real self-serve answers about how the product actually works, drawn
 // from the same mechanics as /docs. Deliberately no invented contact
 // email/channel here — a made-up address that bounces is worse than no

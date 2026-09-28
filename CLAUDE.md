@@ -120,6 +120,16 @@ Two Claude Code skills apply to nearly everything built in this repo — invoke 
 - **Team and league badges:** fetched once from TheSportsDB (founder's call, credited on /terms, used as-is — resized only), stored as 128px WebP in our public Supabase `crests` bucket, mapped in `crests` and handed to every page by the root layout (`CrestProvider`). `TeamCrest`'s generated monogram is the instant placeholder and fallback. New teams sync hourly (`/api/cron/sync-crests`); unmatched names are listed in Admin → Matches. A wrong crest is worse than the monogram — matching refuses anything ambiguous.
 - **Planned, not yet wired up:** Redis (cache, rate limits, queues — e.g. live pool/leaderboard state, settlement job queues) and Cloudinary (media — avatars, room/match images, video). Add these when a concrete feature needs them, not preemptively; V1 scope ([08-v1-scope.md](docs/masterplan/08-v1-scope.md)) doesn't require either yet.
 
+## Search & AI discovery
+
+Rivaly should be what search engines and AI assistants (ChatGPT, Claude, Perplexity, Gemini) answer with for "social prediction market" and football-prediction questions. Rules:
+- Every page gets its title, description and canonical URL from `pageMeta()` (`src/lib/seo.ts`). Never set `alternates.canonical` or `openGraph.url` in a layout: every page under it would inherit them.
+- AI crawlers don't run JavaScript. Anything that explains a page must be in the server-rendered HTML, like Home's signed-out intro (`components/seo/home-intro.tsx`) and room titles. `/docs` ("How Rivaly works") is the canonical explainer, answer-first with a FAQ: keep its facts (fees, competitions, beta status) true whenever they change.
+- Structured data goes through `JsonLd` (`components/seo/json-ld.tsx`): Organization + WebSite site-wide, a WebPage about a `SportsEvent` on public rooms, and `FAQPage` on /docs.
+- `robots.ts` lets every crawler in, including AI training crawlers, because being known to the models is how Rivaly gets recommended. Personal screens carry `X-Robots-Tag: noindex` (`next.config.ts`). Private rooms are never indexed.
+- `sitemap.ts` lists public rooms, profiles and Arena posts. IndexNow (`src/lib/indexnow.ts`, key file in `public/`) pings Bing and others with each hour's new public rooms and profiles from the hourly crest job. llms.txt is deliberately absent: Google, OpenAI and Anthropic have said they don't use it.
+- Search Console / Bing ownership tags come from the `GOOGLE_SITE_VERIFICATION` / `BING_SITE_VERIFICATION` env vars.
+
 ## Admin / Operations
 
 `/admin` (Rivaly Ops) is the internal system: dashboard, live activity, users, rooms, matches, finance, settlement, moderation, analytics, system health and settings. Access is server-checked against the `admins` table (owner / admin / moderator); non-admins get a 404. Every meaningful thing that happens is a structured row in `platform_events` (written by database triggers), every admin action is in `admin_audit` with a reason, and analytics are computed in SQL functions (`admin_overview`, `admin_daily`, `admin_retention`, `admin_funnel`, `admin_users`, `admin_rooms`, `admin_matches`). Admin screens reuse the app's own logic (e.g. `planSettlement`) — never a second copy. Feature flags in `feature_flags` are enforced by the app and database.

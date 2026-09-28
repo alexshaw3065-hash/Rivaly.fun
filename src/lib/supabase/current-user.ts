@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
@@ -48,8 +49,12 @@ export function mapProfileRow(row: ProfileRow): Profile {
 const PROFILE_COLUMNS =
   "id, username, display_name, avatar_url, bio, social_links, follower_count, following_count, rooms_created_count, prediction_accuracy, total_winnings_cents, created_at, dynamic_wallet_address, banner_color, ring_color, banner_url";
 
-/** Server-only. The signed-in user's own real profile, or null if signed out. */
-export async function getCurrentProfile(): Promise<Profile | null> {
+/**
+ * Server-only. The signed-in user's own real profile, or null if signed out.
+ * Memoised per request, so the root layout and a page can both ask without a
+ * second auth round trip.
+ */
+export const getCurrentProfile = cache(async function getCurrentProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -64,6 +69,6 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   if (!data) return null;
 
   return mapProfileRow(data as ProfileRow);
-}
+});
 
 export { PROFILE_COLUMNS };

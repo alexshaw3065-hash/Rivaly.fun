@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import { getProfileByUsername, currentUserFollows } from "@/lib/supabase/profiles";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { ProfileView } from "@/components/profile-view";
@@ -12,11 +13,11 @@ import { ProfileView } from "@/components/profile-view";
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username } = await params;
   const profile = await getProfileByUsername(username);
-  if (!profile) return { title: "Rivaly" };
+  if (!profile) return { title: "Rival not found", robots: { index: false } };
   const name = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(profile.displayName) ? `@${profile.username}` : profile.displayName;
   const title = `${name} (@${profile.username}) on Rivaly`;
   const description = profile.bio?.slice(0, 160) || `${name}'s Rivaly card — their record, form and calls. Think you can beat them?`;
-  return { title, description, openGraph: { title, description }, twitter: { card: "summary_large_image", title, description } };
+  return pageMeta({ title, description, path: `/profile/${encodeURIComponent(profile.username)}`, absoluteTitle: true });
 }
 
 export default async function ProfilePage({

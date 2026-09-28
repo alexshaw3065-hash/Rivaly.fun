@@ -1,4 +1,9 @@
 import { SearchBody } from "@/components/search-body";
+import { pageMeta } from "@/lib/seo";
+
+// Results pages aren't useful as search results themselves; the rooms and
+// profiles they link to are indexed on their own.
+export const metadata = pageMeta({ title: "Search", description: "Search Rivaly for rooms, matches and rivals.", path: "/search", noindex: true });
 
 // Desktop's real Search experience, and mobile's fallback for a direct
 // visit/refresh (normal mobile use never lands here — the bottom tab's

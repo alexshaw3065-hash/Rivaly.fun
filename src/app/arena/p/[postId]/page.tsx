@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import { ArenaPost } from "@/components/arena/arena-post";
 
 // A post's own page — what a shared receipt or take links to.
 export async function generateMetadata({ params }: { params: Promise<{ postId: string }> }): Promise<Metadata> {
   const { postId } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(postId)) return { title: "Rivaly" };
+  if (!/^[0-9a-f-]{36}$/i.test(postId)) return { title: "Post not found", robots: { index: false } };
   const supabase = await createClient();
   const { data } = await supabase
     .from("posts")
@@ -13,13 +14,14 @@ export async function generateMetadata({ params }: { params: Promise<{ postId: s
     .eq("id", postId)
     .maybeSingle();
   const row = data as unknown as { body: string; author: { display_name: string } | null } | null;
-  if (!row) return { title: "Rivaly" };
+  if (!row) return { title: "Post not found", robots: { index: false } };
   const who = row.author?.display_name ?? "A rival";
-  return {
+  return pageMeta({
     title: `${who} on Rivaly`,
     description: row.body.slice(0, 160) || `${who} made a call on Rivaly.`,
-    openGraph: { title: `${who} on Rivaly`, description: row.body.slice(0, 160) },
-  };
+    path: `/arena/p/${postId}`,
+    absoluteTitle: true,
+  });
 }
 
 export default async function ArenaPostPage({ params }: { params: Promise<{ postId: string }> }) {
