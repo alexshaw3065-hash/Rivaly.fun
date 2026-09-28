@@ -5,7 +5,7 @@ import { openAuthModal } from "@/lib/auth-modal-store";
 import { openArenaComposer, type ComposerRoom } from "@/lib/arena/composer-store";
 import type { Side } from "@/lib/arena/model";
 
-const COLOR: Record<Side, string> = { yes: "var(--rival-blue)", no: "var(--rival-red)" };
+const COLOR: Record<Side, string> = { yes: "var(--yes)", no: "var(--no)" };
 
 function useOpenAbout() {
   const me = useCurrentUser();

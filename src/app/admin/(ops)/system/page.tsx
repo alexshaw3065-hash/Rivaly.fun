@@ -37,18 +37,18 @@ async function Health() {
   const bad = checks.filter((c) => !c.ok).length;
   return (
     <>
-      <p className="mb-4 text-[14px]" style={{ color: bad ? "var(--rival-red)" : "var(--rival-green)" }}>
+      <p className="mb-4 text-body" style={{ color: bad ? "var(--no)" : "var(--money)" }}>
         {bad ? `${bad} of ${checks.length} checks failing` : `All ${checks.length} checks passing`}
       </p>
-      <div className="rounded-xl bg-surface ring-1 ring-border">
+      <div className="rounded-card bg-surface edge">
         {checks.map((c) => (
-          <div key={c.name} className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3 last:border-0">
+          <div key={c.name} className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3 last:border-0">
             <div className="min-w-0">
-              <p className="text-[14px] text-foreground">{c.name}</p>
-              <p className="mt-0.5 break-words text-[12px] text-muted">{c.detail}</p>
+              <p className="text-body text-foreground">{c.name}</p>
+              <p className="mt-0.5 break-words text-caption text-secondary">{c.detail}</p>
             </div>
             <div className="flex items-center gap-3">
-              {c.ms != null && <span className="font-mono text-[11px] text-muted">{c.ms}ms</span>}
+              {c.ms != null && <span className="font-mono text-caption text-secondary">{c.ms}ms</span>}
               <StatePill state={c.ok ? "ok" : "failed"} label={c.ok ? "ok" : "failing"} />
             </div>
           </div>
@@ -68,11 +68,11 @@ async function Providers() {
       <Section title="TxLINE — Premier League, NFL (push stream)">
         <KpiGrid>
           <Kpi label="Stream" value={w ? (w.connected ? "Connected" : "Disconnected") : "Worker unreachable"} tone={w?.connected ? "good" : "bad"} />
-          <Kpi label="Last event" value={<span className="text-[15px]">{when(w?.lastEventAt)}</span>} />
+          <Kpi label="Last event" value={<span className="text-body">{when(w?.lastEventAt)}</span>} />
           <Kpi label="Messages · applied" value={`${num(w?.messages)} · ${num(w?.applied)}`} />
           <Kpi label="Reconnects" value={num(w?.reconnects)} />
-          <Kpi label="Worker up since" value={<span className="text-[15px]">{when(w?.startedAt)}</span>} />
-          <Kpi label="Last stream error" value={<span className="text-[12px]">{w?.lastError ?? "none"}</span>} tone={w?.lastError ? "warn" : "neutral"} />
+          <Kpi label="Worker up since" value={<span className="text-body">{when(w?.startedAt)}</span>} />
+          <Kpi label="Last stream error" value={<span className="text-caption">{w?.lastError ?? "none"}</span>} tone={w?.lastError ? "warn" : "neutral"} />
         </KpiGrid>
       </Section>
       <Section title="Big Balls — UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS (polled, 500 calls/day)">
@@ -80,16 +80,16 @@ async function Providers() {
           <Kpi label="Status" value={bb?.on ? "Running" : "Off"} tone={bb?.on ? "good" : "bad"} />
           <Kpi label="Calls today" value={`${num(bb?.callsToday)}/500`} tone={(bb?.callsToday ?? 0) > 400 ? "warn" : "neutral"} sub="resets 00:00 UTC; 30 held back for confirmations" />
           <Kpi label="Next poll" value={bb?.nextPollInS != null ? `${bb.nextPollInS}s` : "—"} sub="60s live · 45s late · stretched if the day runs short" />
-          <Kpi label="Last live poll" value={<span className="text-[15px]">{when(bb?.lastPollAt)}</span>} sub={bb?.lastPoll ? `${bb.lastPoll.polled} matches · ${bb.lastPoll.goals} goals · ${bb.lastPoll.confirmedFinals} finals` : "no live rooms"} />
-          <Kpi label="Last fixtures pull" value={<span className="text-[15px]">{when(bb?.lastFixturesAt)}</span>} sub={bb?.lastFixtures ? `${bb.lastFixtures.leagues} leagues · ${num(bb.lastFixtures.fetched)} matches` : undefined} />
-          <Kpi label="Last error" value={<span className="text-[12px]">{bb?.lastError ?? "none"}</span>} tone={bb?.lastError ? "warn" : "neutral"} />
+          <Kpi label="Last live poll" value={<span className="text-body">{when(bb?.lastPollAt)}</span>} sub={bb?.lastPoll ? `${bb.lastPoll.polled} matches · ${bb.lastPoll.goals} goals · ${bb.lastPoll.confirmedFinals} finals` : "no live rooms"} />
+          <Kpi label="Last fixtures pull" value={<span className="text-body">{when(bb?.lastFixturesAt)}</span>} sub={bb?.lastFixtures ? `${bb.lastFixtures.leagues} leagues · ${num(bb.lastFixtures.fetched)} matches` : undefined} />
+          <Kpi label="Last error" value={<span className="text-caption">{bb?.lastError ?? "none"}</span>} tone={bb?.lastError ? "warn" : "neutral"} />
         </KpiGrid>
       </Section>
       <Section title="Competitions">
         <DataTable
           columns={[
             { label: "Competition", cell: (c: C) => c.name },
-            { label: "Provider", cell: (c: C) => <span className="text-muted">{c.provider}{c.provider_code ? ` · ${c.provider_code}` : ""}</span> },
+            { label: "Provider", cell: (c: C) => <span className="text-secondary">{c.provider}{c.provider_code ? ` · ${c.provider_code}` : ""}</span> },
             { label: "Fixtures", cell: (c: C) => <StatePill state={c.enabled ? "ok" : "cancelled"} label={c.enabled ? "syncing" : "off"} /> },
             { label: "In Create Room", cell: (c: C) => <StatePill state={c.scores_available ? "ok" : "cancelled"} label={c.scores_available ? "offered" : "hidden"} /> },
           ] as Column<C>[]}
@@ -113,11 +113,11 @@ async function Jobs() {
   for (const r of runs) if (!latest.has(r.job)) latest.set(r.job, r);
   const failed24 = runs.filter(failedInLastDay).length;
   const cols: Column<J>[] = [
-    { label: "Job", cell: (r) => <span className="font-mono text-[12px]">{r.job}</span> },
-    { label: "Started", cell: (r) => <span className="font-mono text-[12px] text-muted">{when(r.started_at, "full")}</span> },
+    { label: "Job", cell: (r) => <span className="font-mono text-caption">{r.job}</span> },
+    { label: "Started", cell: (r) => <span className="font-mono text-caption text-secondary">{when(r.started_at, "full")}</span> },
     { label: "Took", cell: (r) => (typeof r.detail?.ms === "number" ? `${r.detail.ms}ms` : "—"), align: "right" },
     { label: "Result", cell: (r) => <StatePill state={r.ok === null ? "pending" : r.ok ? "ok" : "failed"} label={r.ok === null ? "running" : r.ok ? "ok" : "failed"} /> },
-    { label: "Detail", cell: (r) => <span className="line-clamp-2 max-w-lg break-all font-mono text-[11px] text-muted">{JSON.stringify(r.detail).slice(0, 240)}</span> },
+    { label: "Detail", cell: (r) => <span className="line-clamp-2 max-w-lg break-all font-mono text-caption text-secondary">{JSON.stringify(r.detail).slice(0, 240)}</span> },
   ];
   return (
     <>
@@ -127,7 +127,7 @@ async function Jobs() {
         ))}
         <Kpi label="Failures (24h)" value={num(failed24)} tone={failed24 ? "bad" : "good"} />
       </KpiGrid>
-      <p className="mt-3 text-[12px] text-muted">
+      <p className="mt-3 text-caption text-secondary">
         Settlement runs every minute (Render worker → /api/cron/settle). Big Balls fixtures every 6h; live polls are logged only when they called the API. Runs older than 14 days are pruned.
       </p>
       <div className="mt-4">
@@ -147,12 +147,12 @@ async function Audit() {
   const { data } = await db().from("admin_audit").select("id, at, action, target_type, target_id, reason, before, after, admin:profiles!admin_audit_admin_id_fkey(username)").order("at", { ascending: false }).limit(300);
   type A = { id: string; at: string; action: string; target_type: string; target_id: string | null; reason: string | null; before: unknown; after: unknown; admin: { username: string } | null };
   const cols: Column<A>[] = [
-    { label: "When", cell: (r) => <span className="font-mono text-[12px] text-muted">{when(r.at, "full")}</span> },
+    { label: "When", cell: (r) => <span className="font-mono text-caption text-secondary">{when(r.at, "full")}</span> },
     { label: "Admin", cell: (r) => `@${r.admin?.username ?? "?"}` },
     { label: "Action", cell: (r) => r.action.replaceAll("_", " ") },
-    { label: "Target", cell: (r) => <span className="text-muted">{r.target_type}{r.target_id ? ` · ${r.target_id.slice(0, 8)}` : ""}</span> },
-    { label: "Reason", cell: (r) => <span className="text-[12px] text-muted">{r.reason ?? "—"}</span> },
-    { label: "Change", cell: (r) => <span className="line-clamp-2 max-w-md break-all font-mono text-[11px] text-muted">{r.after ? JSON.stringify(r.after).slice(0, 200) : "—"}</span> },
+    { label: "Target", cell: (r) => <span className="text-secondary">{r.target_type}{r.target_id ? ` · ${r.target_id.slice(0, 8)}` : ""}</span> },
+    { label: "Reason", cell: (r) => <span className="text-caption text-secondary">{r.reason ?? "—"}</span> },
+    { label: "Change", cell: (r) => <span className="line-clamp-2 max-w-md break-all font-mono text-caption text-secondary">{r.after ? JSON.stringify(r.after).slice(0, 200) : "—"}</span> },
   ];
   return <DataTable columns={cols} rows={(data ?? []) as unknown as A[]} empty="No admin actions yet." />;
 }

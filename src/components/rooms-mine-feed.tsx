@@ -19,11 +19,11 @@ function CompletedRoomCard({ item, result }: { item: RoomWithMatch; result: MyRe
   return (
     <div className="flex flex-col gap-2">
       {result && result.isWinner !== null && (
-        <p className="text-xs font-medium" style={{ color: result.isWinner ? "var(--rival-green)" : "var(--muted)" }}>
+        <p className="text-caption font-medium" style={{ color: result.isWinner ? "var(--money)" : "var(--text-secondary)" }}>
           {result.isWinner ? `Won ${formatSignedMoney(result.netCents)}` : "Didn't hit"}
         </p>
       )}
-      {item.room.status === "refunded" && <p className="text-xs font-medium text-muted">Refunded</p>}
+      {item.room.status === "refunded" && <p className="text-caption font-medium text-secondary">Refunded</p>}
       <RoomCard room={item.room} match={item.match} />
     </div>
   );
@@ -79,7 +79,7 @@ export function RoomsMineFeed() {
     return <EmptyRooms title="Your rooms live here" body="Sign in, then create a room or join one — it'll show up here." />;
   }
   const mine = data?.userId === currentUser.id ? data : null;
-  if (!mine) return <p className="text-sm text-muted">Loading…</p>;
+  if (!mine) return <p className="text-body text-secondary">Loading…</p>;
 
   const activeCreated = mine.created.filter((i) => !isDone(i.room.status));
   const activeJoined = mine.joined.filter((i) => !isDone(i.room.status));
@@ -100,10 +100,10 @@ export function RoomsMineFeed() {
           <button
             key={s}
             onClick={() => setSub(s)}
-            className="-mb-px border-b-2 pb-2 text-sm font-medium capitalize transition-colors duration-150"
+            className="-mb-px border-b-2 pb-2 text-body font-medium capitalize transition-colors duration-150"
             style={{
               borderColor: sub === s ? "var(--foreground)" : "transparent",
-              color: sub === s ? "var(--foreground)" : "var(--muted)",
+              color: sub === s ? "var(--foreground)" : "var(--text-secondary)",
             }}
           >
             {s}
@@ -122,7 +122,7 @@ export function RoomsMineFeed() {
           )}
         </div>
       ) : (
-        <p className="mt-6 text-sm text-muted">{emptyCopy[sub]}</p>
+        <p className="mt-6 text-body text-secondary">{emptyCopy[sub]}</p>
       )}
     </div>
   );

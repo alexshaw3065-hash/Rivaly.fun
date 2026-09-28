@@ -13,8 +13,8 @@ import { RivalCharacter } from "../rival-character";
 // their money rather than a count (engagement mechanism #5, social identity).
 
 const SIDES = {
-  yes: { label: "YES", color: "var(--rival-blue)" },
-  no: { label: "NO", color: "var(--rival-red)" },
+  yes: { label: "YES", color: "var(--yes)" },
+  no: { label: "NO", color: "var(--no)" },
 } as const;
 
 export function RoomPeopleSheet({
@@ -91,7 +91,7 @@ export function RoomPeopleSheet({
                 className={`flex h-10 items-center justify-center gap-2 rounded-tag text-label font-semibold transition-colors duration-100 ${tab === s ? "bg-surface-3" : "text-secondary"}`}
                 style={tab === s ? { color: SIDES[s].color } : undefined}
               >
-                <span className="font-display font-extrabold tracking-wide">{SIDES[s].label}</span>
+                <span className="font-display font-extrabold">{SIDES[s].label}</span>
                 <span className="text-caption tabular-nums">
                   {formatMoneyCompact(total(s))} · {bySide[s].length}
                 </span>

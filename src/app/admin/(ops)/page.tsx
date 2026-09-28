@@ -86,24 +86,24 @@ export default async function AdminDashboard() {
       <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="mb-2 text-[12px] text-muted">New users · 30 days</p>
+            <p className="mb-2 text-caption text-secondary">New users · 30 days</p>
             <Bars data={days.map((d) => ({ label: short(d.day), value: d.signups }))} />
           </div>
           <div>
-            <p className="mb-2 text-[12px] text-muted">Active users · 30 days</p>
+            <p className="mb-2 text-caption text-secondary">Active users · 30 days</p>
             <Bars data={days.map((d) => ({ label: short(d.day), value: d.active }))} format={(v) => `${num(v)} active-days`} />
           </div>
           <div>
-            <p className="mb-2 text-[12px] text-muted">Volume staked · 30 days</p>
+            <p className="mb-2 text-caption text-secondary">Volume staked · 30 days</p>
             <Bars data={days.map((d) => ({ label: short(d.day), value: d.volume_cents }))} format={(v) => usd(v)} />
           </div>
           <div>
-            <p className="mb-2 text-[12px] text-muted">Rooms created · 30 days</p>
+            <p className="mb-2 text-caption text-secondary">Rooms created · 30 days</p>
             <Bars data={days.map((d) => ({ label: short(d.day), value: d.rooms }))} />
           </div>
         </div>
         <div>
-          <p className="mb-2 text-[12px] text-muted">Live platform</p>
+          <p className="mb-2 text-caption text-secondary">Live platform</p>
           <LiveStream initial={initial} limit={40} compact />
         </div>
       </div>

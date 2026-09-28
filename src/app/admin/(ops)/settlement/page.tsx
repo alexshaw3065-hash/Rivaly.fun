@@ -71,8 +71,8 @@ export default async function SettlementPage({ searchParams }: { searchParams: P
 const roomCols = (extra: Column<Room>[]): Column<Room>[] => [
   { label: "Room", cell: (r) => <span className="font-medium">{r.prediction}</span> },
   { label: "State", cell: (r) => <StatePill state={r.state} /> },
-  { label: "Match", cell: (r) => <span className="text-muted">{r.home_team ? `${r.home_team} v ${r.away_team}` : "—"}</span> },
-  { label: "Kickoff", cell: (r) => <span className="text-muted">{when(r.kickoff_at)}</span> },
+  { label: "Match", cell: (r) => <span className="text-secondary">{r.home_team ? `${r.home_team} v ${r.away_team}` : "—"}</span> },
+  { label: "Kickoff", cell: (r) => <span className="text-secondary">{when(r.kickoff_at)}</span> },
   { label: "Pot", cell: (r) => usd(r.pool_cents), align: "right" },
   { label: "People", cell: (r) => num(r.participants), align: "right" },
   ...extra,
@@ -93,7 +93,7 @@ async function Queue() {
       </KpiGrid>
       <div className="mt-6">
         <DataTable
-          columns={roomCols([{ label: "Waiting for", cell: (r) => <span className="text-[12px] text-muted">{waitingFor(r)}</span> }, { label: "Data", cell: (r) => <span className="text-[12px] text-muted">{r.provider}</span> }])}
+          columns={roomCols([{ label: "Waiting for", cell: (r) => <span className="text-caption text-secondary">{waitingFor(r)}</span> }, { label: "Data", cell: (r) => <span className="text-caption text-secondary">{r.provider}</span> }])}
           rows={rows}
           rowHref={(r) => `/admin/rooms/${r.id}`}
           empty="Nothing in the queue. Rooms appear here from kickoff until they're paid."
@@ -121,7 +121,7 @@ async function History() {
         <Kpi label="Paid through" value={usd(settled.reduce((s, r) => s + Number(r.pool_cents), 0))} />
       </KpiGrid>
       <div className="mt-6">
-        <DataTable columns={roomCols([{ label: "Result", cell: (r) => r.resolved_outcome?.toUpperCase() ?? "—" }, { label: "Closed", cell: (r) => <span className="text-muted">{when(r.settled_at)}</span> }])} rows={rows} rowHref={(r) => `/admin/rooms/${r.id}`} empty="No rooms have settled yet." />
+        <DataTable columns={roomCols([{ label: "Result", cell: (r) => r.resolved_outcome?.toUpperCase() ?? "—" }, { label: "Closed", cell: (r) => <span className="text-secondary">{when(r.settled_at)}</span> }])} rows={rows} rowHref={(r) => `/admin/rooms/${r.id}`} empty="No rooms have settled yet." />
       </div>
     </>
   );
@@ -133,7 +133,7 @@ async function Failed() {
   return (
     <>
       <Section title="Stuck rooms" hint="No result a day after kickoff. Open one to see its match data, then re-run settlement or void & refund.">
-        <DataTable columns={roomCols([{ label: "Data", cell: (r) => <span className="text-[12px] text-muted">{r.provider}</span> }])} rows={stuck} rowHref={(r) => `/admin/rooms/${r.id}`} empty="No stuck rooms." />
+        <DataTable columns={roomCols([{ label: "Data", cell: (r) => <span className="text-caption text-secondary">{r.provider}</span> }])} rows={stuck} rowHref={(r) => `/admin/rooms/${r.id}`} empty="No stuck rooms." />
       </Section>
       <Section title="Settlement & claim failures">
         <LiveStream initial={events.map((e) => ({ id: e.id, at: e.at, type: e.type, status: e.status, ...describeEvent(e, ctx) }))} limit={100} />
@@ -156,12 +156,12 @@ function TrustFlow() {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {steps.map(([title, body]) => (
-        <div key={title} className="rounded-xl bg-surface p-4 ring-1 ring-border">
-          <p className="text-[14px] font-semibold text-foreground">{title}</p>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{body}</p>
+        <div key={title} className="rounded-card bg-surface p-4 edge">
+          <p className="text-body font-semibold text-foreground">{title}</p>
+          <p className="mt-1.5 text-label leading-relaxed text-secondary">{body}</p>
         </div>
       ))}
-      <p className="text-[12px] text-muted md:col-span-2">
+      <p className="text-caption text-secondary md:col-span-2">
         Code: <span className="font-mono">src/lib/settlement/resolve.ts</span> (rules), <span className="font-mono">settle.ts</span> (payouts),{" "}
         <span className="font-mono">src/lib/bigballs/logic.ts</span> (confirmation). <Link href="/admin/rooms?state=stuck" className="underline">See stuck rooms</Link>
       </p>

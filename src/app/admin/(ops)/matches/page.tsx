@@ -63,12 +63,12 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
 
   const columns: Column<Row>[] = [
     { label: "Match", cell: (r) => <span className="font-medium">{r.home_team} v {r.away_team}</span> },
-    { label: "Competition", cell: (r) => <span className="text-muted">{r.competition}</span> },
-    { label: "Kickoff", cell: (r) => <span className="text-muted">{when(r.kickoff_at)}</span> },
+    { label: "Competition", cell: (r) => <span className="text-secondary">{r.competition}</span> },
+    { label: "Kickoff", cell: (r) => <span className="text-secondary">{when(r.kickoff_at)}</span> },
     { label: "Status", cell: (r) => <StatePill state={r.status} /> },
     { label: "Score", cell: (r) => (r.home_score == null ? "—" : `${r.home_score}–${r.away_score}`), align: "right" },
-    { label: "Provider", cell: (r) => <span className="text-[12px] text-muted">{r.provider}</span> },
-    { label: "Last update", cell: (r) => <span className="text-muted">{when(r.updated_at)}</span> },
+    { label: "Provider", cell: (r) => <span className="text-caption text-secondary">{r.provider}</span> },
+    { label: "Last update", cell: (r) => <span className="text-secondary">{when(r.updated_at)}</span> },
     { label: "Verification", cell: (r) => { const v = verification(r); return <StatePill state={v.state} label={v.label} />; } },
     { label: "Rooms", cell: (r) => (r.rooms ? <Link href={`/admin/rooms?q=${encodeURIComponent(r.home_team)}`} className="underline">{r.rooms} ({r.open_rooms} open)</Link> : "—"), align: "right" },
     { label: "Money on it", cell: (r) => usd(r.pool_cents), align: "right" },
@@ -84,12 +84,12 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
           <Kpi label="TxLINE records applied" value={num(worker?.applied)} sub={`${num(worker?.reconnects)} reconnects`} />
           <Kpi label="Big Balls" value={bb?.on ? (bb.lastError ? "Errors" : "Running") : "Off"} tone={bb?.on && !bb.lastError ? "good" : "bad"} sub="UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS" href="/admin/system?tab=providers" />
           <Kpi label="Big Balls calls today" value={`${num(bb?.callsToday)}/500`} tone={(bb?.callsToday ?? 0) > 400 ? "warn" : "neutral"} sub={bb?.nextPollInS ? `next poll in ${bb.nextPollInS}s` : undefined} />
-          <Kpi label="Last fixtures pull" value={<span className="text-[15px]">{when(bb?.lastFixturesAt)}</span>} sub={bb?.lastFixtures ? `${bb.lastFixtures.leagues} leagues · ${num(bb.lastFixtures.fetched)} matches` : undefined} />
+          <Kpi label="Last fixtures pull" value={<span className="text-body">{when(bb?.lastFixturesAt)}</span>} sub={bb?.lastFixtures ? `${bb.lastFixtures.leagues} leagues · ${num(bb.lastFixtures.fetched)} matches` : undefined} />
           <Kpi label="Goals from last poll" value={num(bb?.lastPoll?.goals)} sub={bb?.lastPoll ? `${bb.lastPoll.polled} matches · ${bb.lastPoll.confirmedFinals} finals confirmed` : "no live rooms"} />
         </KpiGrid>
       </Section>
       <Section title="Badges" hint="Real team and league badges from TheSportsDB, synced hourly. A name with no certain match keeps its monogram — fix the feed name or leave it.">
-        <p className="mb-3 text-[13px] text-muted">
+        <p className="mb-3 text-label text-secondary">
           {num(crestStats.teams)} team badges · {num(crestStats.leagues)} league badges · {num(crestStats.misses.length)} without a match
         </p>
         {crestStats.misses.length > 0 && (
@@ -97,10 +97,10 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
             columns={
               [
                 { label: "Name", cell: (m: Miss) => m.name },
-                { label: "Kind", cell: (m: Miss) => <span className="text-muted">{m.kind}</span> },
-                { label: "Why", cell: (m: Miss) => <span className="text-muted">{m.reason}</span> },
+                { label: "Kind", cell: (m: Miss) => <span className="text-secondary">{m.kind}</span> },
+                { label: "Why", cell: (m: Miss) => <span className="text-secondary">{m.reason}</span> },
                 { label: "Tries", cell: (m: Miss) => num(m.attempts), align: "right" },
-                { label: "Last tried", cell: (m: Miss) => <span className="text-muted">{when(m.tried_at)}</span> },
+                { label: "Last tried", cell: (m: Miss) => <span className="text-secondary">{when(m.tried_at)}</span> },
               ] as Column<Miss>[]
             }
             rows={crestStats.misses}
@@ -110,7 +110,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
       </Section>
       <div className="no-scrollbar mb-4 flex gap-1 overflow-x-auto">
         {VIEWS.map(([id, label]) => (
-          <Link key={id} href={`/admin/matches?view=${id}`} className="shrink-0 rounded-md px-2.5 py-1 text-[12px]" style={view === id ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--muted)" }}>
+          <Link key={id} href={`/admin/matches?view=${id}`} className="shrink-0 rounded-control px-3 py-1 text-caption" style={view === id ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--text-secondary)" }}>
             {label}
           </Link>
         ))}

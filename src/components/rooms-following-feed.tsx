@@ -28,10 +28,10 @@ function RoomWithByline({ item, profile }: { item: RoomWithMatch; profile: Bylin
     <div className="flex flex-col gap-2">
       <Link
         href={`/profile/${profile.username}`}
-        className="hover-link flex items-center gap-2 text-muted transition-colors"
+        className="hover-link flex items-center gap-2 text-secondary transition-colors"
       >
         <Avatar name={profile.displayName} size={20} imageUrl={profile.avatarUrl} />
-        <span className="text-xs font-medium">{profile.displayName}</span>
+        <span className="text-caption font-medium">{profile.displayName}</span>
       </Link>
       <RoomCard room={item.room} match={item.match} />
     </div>
@@ -50,17 +50,17 @@ function SubTabInfo() {
         onClick={() => setOpen((v) => !v)}
         aria-label="What do Created and Joined mean?"
         title="Created: rooms started by people you follow. Joined: rooms they've entered."
-        className="text-muted transition-colors hover:text-foreground"
+        className="text-secondary transition-colors hover:text-foreground"
       >
         <InfoIcon />
       </button>
       {open && (
-        <div className="enter-pop absolute right-0 top-full z-10 mt-2 w-64 rounded-lg border border-border bg-surface-elevated p-3 shadow-lg">
-          <p className="text-xs text-muted">
+        <div className="enter-pop absolute right-0 top-full z-10 mt-2 w-64 rounded-card bg-surface-elevated p-3 shadow-pop">
+          <p className="text-caption text-secondary">
             <span className="font-medium text-foreground">Created</span> — rooms started by people you
             follow.
           </p>
-          <p className="mt-1.5 text-xs text-muted">
+          <p className="mt-1.5 text-caption text-secondary">
             <span className="font-medium text-foreground">Joined</span> — rooms they&rsquo;ve entered.
           </p>
         </div>
@@ -118,12 +118,12 @@ export function RoomsFollowingFeed() {
   const joined = current?.joined ?? [];
   const hasAnything = created.length > 0 || joined.length > 0;
 
-  if (viewer && !current) return <p className="text-sm text-muted">Loading…</p>;
+  if (viewer && !current) return <p className="text-body text-secondary">Loading…</p>;
 
   if (!hasAnything) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-8 text-center">
-        <p className="text-sm text-muted">
+      <div className="rounded-control border border-line bg-surface p-8 text-center">
+        <p className="text-body text-secondary">
           {viewer
             ? "Nobody you follow has an active room right now. Follow a few more rivals to fill this up."
             : "Sign in and follow a few rivals to see their rooms here."}
@@ -140,10 +140,10 @@ export function RoomsFollowingFeed() {
             <button
               key={s}
               onClick={() => setSub(s)}
-              className="-mb-px border-b-2 pb-2 text-sm font-medium capitalize transition-colors duration-150"
+              className="-mb-px border-b-2 pb-2 text-body font-medium capitalize transition-colors duration-150"
               style={{
                 borderColor: sub === s ? "var(--foreground)" : "transparent",
-                color: sub === s ? "var(--foreground)" : "var(--muted)",
+                color: sub === s ? "var(--foreground)" : "var(--text-secondary)",
               }}
             >
               {s}
@@ -161,7 +161,7 @@ export function RoomsFollowingFeed() {
             ))}
           </div>
         ) : (
-          <p className="mt-6 text-sm text-muted">Nobody you follow has created a room right now.</p>
+          <p className="mt-6 text-body text-secondary">Nobody you follow has created a room right now.</p>
         )
       ) : joined.length > 0 ? (
         <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -170,7 +170,7 @@ export function RoomsFollowingFeed() {
           ))}
         </div>
       ) : (
-        <p className="mt-6 text-sm text-muted">Nobody you follow has joined a room right now.</p>
+        <p className="mt-6 text-body text-secondary">Nobody you follow has joined a room right now.</p>
       )}
     </div>
   );

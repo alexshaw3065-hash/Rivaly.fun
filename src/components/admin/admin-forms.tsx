@@ -9,12 +9,12 @@ import type { ActionResult } from "@/app/admin/actions";
 
 function Result({ r }: { r: ActionResult | null }) {
   if (!r) return null;
-  return <p className={`mt-2 text-[12px] ${r.ok ? "text-rival-green" : "text-rival-red"}`}>{r.ok ? r.message ?? "Done." : r.error}</p>;
+  return <p className={`mt-2 text-caption ${r.ok ? "text-money-ink" : "text-no-ink"}`}>{r.ok ? r.message ?? "Done." : r.error}</p>;
 }
 
-const input = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-[13px] text-foreground outline-none focus:border-border-strong";
+const input = "w-full rounded-control border border-line bg-background px-3 py-1.5 text-label text-foreground outline-none focus:border-line-strong";
 const btn = (danger?: boolean) =>
-  `h-8 rounded-md px-3 text-[12px] font-semibold transition-opacity disabled:opacity-40 ${danger ? "bg-[var(--rival-red)] text-white" : "bg-foreground text-background"}`;
+  `h-8 rounded-control px-3 text-caption font-semibold transition-opacity disabled:opacity-40 ${danger ? "bg-[var(--no)] text-white" : "bg-foreground text-background"}`;
 
 /** A button that opens a reason box, then runs the action. `confirmWord` requires typing it. */
 export function ActionButton({
@@ -50,8 +50,8 @@ export function ActionButton({
     );
   }
   return (
-    <div className="rounded-lg border border-border bg-background p-3">
-      {help && <p className="mb-2 text-[12px] text-muted">{help}</p>}
+    <div className="rounded-control border border-line bg-background p-3">
+      {help && <p className="mb-2 text-caption text-secondary">{help}</p>}
       {reason && <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Reason (saved to the audit log)" rows={2} className={input} />}
       {confirmWord && (
         <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={`Type ${confirmWord} to confirm`} className={`${input} mt-2`} />
@@ -75,7 +75,7 @@ export function ActionButton({
         >
           {pending ? "Working…" : label}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="h-8 rounded-md px-3 text-[12px] text-muted">
+        <button type="button" onClick={() => setOpen(false)} className="h-8 rounded-control px-3 text-caption text-secondary">
           Cancel
         </button>
       </div>
@@ -88,7 +88,7 @@ export function SuspendForm({ action }: { action: (days: number, reason: string)
   const [days, setDays] = useState("7");
   return (
     <div className="flex flex-col gap-2">
-      <label className="flex items-center gap-2 text-[12px] text-muted">
+      <label className="flex items-center gap-2 text-caption text-secondary">
         Days
         <input value={days} onChange={(e) => setDays(e.target.value.replace(/\D/g, ""))} className={`${input} w-20`} inputMode="numeric" />
       </label>
@@ -151,21 +151,21 @@ export function SmallAction({ label, action }: { label: string; action: () => Pr
   const [pending, start] = useTransition();
   return (
     <span>
-      <button type="button" disabled={pending} onClick={() => start(async () => setResult(await action()))} className="text-[12px] text-muted underline hover:text-foreground disabled:opacity-40">
+      <button type="button" disabled={pending} onClick={() => start(async () => setResult(await action()))} className="text-caption text-secondary underline hover:text-foreground disabled:opacity-40">
         {pending ? "…" : label}
       </button>
-      {result && !result.ok && <span className="ml-2 text-[12px] text-rival-red">{result.error}</span>}
+      {result && !result.ok && <span className="ml-2 text-caption text-no-ink">{result.error}</span>}
     </span>
   );
 }
 
 export function FlagSwitch({ label, description, enabled, action }: { label: string; description: string; enabled: boolean; action: (on: boolean, reason: string) => Promise<ActionResult> }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3 last:border-0">
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3 last:border-0">
       <div className="min-w-0">
-        <p className="font-mono text-[13px] text-foreground">{label}</p>
-        <p className="mt-0.5 text-[12px] text-muted">{description}</p>
-        <p className="mt-1 text-[12px]" style={{ color: enabled ? "var(--rival-red)" : "var(--muted)" }}>
+        <p className="font-mono text-label text-foreground">{label}</p>
+        <p className="mt-0.5 text-caption text-secondary">{description}</p>
+        <p className="mt-1 text-caption" style={{ color: enabled ? "var(--no)" : "var(--text-secondary)" }}>
           {enabled ? "ON — in effect now" : "Off"}
         </p>
       </div>
@@ -187,21 +187,21 @@ export function FeesForm({
   const [wallet, setWallet] = useState(initial.wallet);
   const toBps = (s: string) => Math.round(Number(s) * 100);
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-surface p-4 ring-1 ring-border">
-      <label className="flex items-center gap-2 text-[13px] text-foreground">
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-4 edge">
+      <label className="flex items-center gap-2 text-label text-foreground">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> Fees on for new rooms
       </label>
       <div className="grid grid-cols-2 gap-3">
-        <label className="text-[12px] text-muted">
+        <label className="text-caption text-secondary">
           Rivaly % of winners&apos; profit
           <input value={rivaly} onChange={(e) => setRivaly(e.target.value)} className={`${input} mt-1`} inputMode="decimal" />
         </label>
-        <label className="text-[12px] text-muted">
+        <label className="text-caption text-secondary">
           Host % of winners&apos; profit
           <input value={host} onChange={(e) => setHost(e.target.value)} className={`${input} mt-1`} inputMode="decimal" />
         </label>
       </div>
-      <label className="text-[12px] text-muted">
+      <label className="text-caption text-secondary">
         Rivaly fee wallet (public address — never a private key)
         <input value={wallet} onChange={(e) => setWallet(e.target.value)} className={`${input} mt-1 font-mono`} />
       </label>
@@ -213,8 +213,8 @@ export function FeesForm({
 export function LimitsForm({ initialDollars, action }: { initialDollars: string; action: (v: { maxStakeDollars: string; reason: string }) => Promise<ActionResult> }) {
   const [max, setMax] = useState(initialDollars);
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-surface p-4 ring-1 ring-border">
-      <label className="text-[12px] text-muted">
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-4 edge">
+      <label className="text-caption text-secondary">
         Largest single stake, in dollars (empty = no cap)
         <input value={max} onChange={(e) => setMax(e.target.value)} className={`${input} mt-1`} inputMode="decimal" />
       </label>
@@ -234,16 +234,16 @@ export function SignupGrantForm({
   const [dollars, setDollars] = useState(initial.dollars);
   const [cap, setCap] = useState(initial.dailyCapDollars);
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-surface p-4 ring-1 ring-border">
-      <label className="flex items-center gap-2 text-[13px] text-foreground">
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-4 edge">
+      <label className="flex items-center gap-2 text-label text-foreground">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> Give new accounts a starting balance
       </label>
       <div className="grid grid-cols-2 gap-3">
-        <label className="text-[12px] text-muted">
+        <label className="text-caption text-secondary">
           Per account ($)
           <input value={dollars} onChange={(e) => setDollars(e.target.value)} className={`${input} mt-1`} inputMode="decimal" />
         </label>
-        <label className="text-[12px] text-muted">
+        <label className="text-caption text-secondary">
           Daily total cap ($)
           <input value={cap} onChange={(e) => setCap(e.target.value)} className={`${input} mt-1`} inputMode="decimal" />
         </label>
@@ -259,12 +259,12 @@ export function AddAdminForm({ action }: { action: (username: string, role: "adm
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, start] = useTransition();
   return (
-    <div className="flex flex-wrap items-end gap-2 rounded-xl bg-surface p-4 ring-1 ring-border">
-      <label className="text-[12px] text-muted">
+    <div className="flex flex-wrap items-end gap-2 rounded-card bg-surface p-4 edge">
+      <label className="text-caption text-secondary">
         Username
         <input value={username} onChange={(e) => setUsername(e.target.value)} className={`${input} mt-1 w-48`} placeholder="@username" />
       </label>
-      <label className="text-[12px] text-muted">
+      <label className="text-caption text-secondary">
         Role
         <select value={role} onChange={(e) => setRole(e.target.value as typeof role)} className={`${input} mt-1`}>
           <option value="moderator">moderator</option>
@@ -288,7 +288,7 @@ function DatasetChecks({ options, value, onChange }: { options: DatasetOption[];
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1.5">
       {options.map((d) => (
-        <label key={d.id} className="flex items-center gap-1.5 text-[12px] text-foreground">
+        <label key={d.id} className="flex items-center gap-1.5 text-caption text-foreground">
           <input type="checkbox" checked={value.includes(d.id)} onChange={(e) => onChange(e.target.checked ? [...value, d.id] : value.filter((x) => x !== d.id))} />
           {d.title}
         </label>
@@ -305,11 +305,11 @@ export function PartnerForm({ options, action }: { options: DatasetOption[]; act
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, start] = useTransition();
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-surface p-4 ring-1 ring-border">
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-4 edge">
       <div className="grid gap-3 sm:grid-cols-3">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Partner name" className={input} />
         <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact (email or person)" className={input} />
-        <label className="flex items-center gap-2 text-[12px] text-muted">
+        <label className="flex items-center gap-2 text-caption text-secondary">
           Requests / min
           <input value={rate} onChange={(e) => setRate(e.target.value.replace(/\D/g, ""))} className={`${input} w-24`} inputMode="numeric" />
         </label>
@@ -356,11 +356,11 @@ export function PartnerEdit({
     <div className="flex flex-col gap-2">
       <DatasetChecks options={options} value={datasets} onChange={setDatasets} />
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-[12px] text-muted">
+        <label className="flex items-center gap-2 text-caption text-secondary">
           Requests / min
           <input value={rate} onChange={(e) => setRate(e.target.value.replace(/\D/g, ""))} className={`${input} w-20`} inputMode="numeric" />
         </label>
-        <label className="flex items-center gap-1.5 text-[12px] text-foreground">
+        <label className="flex items-center gap-1.5 text-caption text-foreground">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Active
         </label>
         <button type="button" disabled={pending} onClick={() => start(async () => setResult(await action({ datasets, ratePerMin: Number(rate), active })))} className={btn()}>
@@ -379,9 +379,9 @@ export function IssueKeyButton({ action }: { action: () => Promise<{ ok: true; k
   const [pending, start] = useTransition();
   if (key) {
     return (
-      <div className="rounded-lg border border-[var(--rival-green)] bg-background p-3">
-        <p className="text-[12px] text-rival-green">New key — copy it now. It won&apos;t be shown again (only its hash is stored).</p>
-        <code className="mt-2 block break-all font-mono text-[12px] text-foreground">{key}</code>
+      <div className="rounded-control border border-[var(--money)] bg-background p-3">
+        <p className="text-caption text-money-ink">New key — copy it now. It won&apos;t be shown again (only its hash is stored).</p>
+        <code className="mt-2 block break-all font-mono text-caption text-foreground">{key}</code>
         <button
           type="button"
           onClick={() => {
@@ -411,7 +411,7 @@ export function IssueKeyButton({ action }: { action: () => Promise<{ ok: true; k
       >
         {pending ? "Issuing…" : "Issue API key"}
       </button>
-      {error && <p className="mt-1 text-[12px] text-rival-red">{error}</p>}
+      {error && <p className="mt-1 text-caption text-no-ink">{error}</p>}
     </div>
   );
 }
@@ -419,8 +419,8 @@ export function IssueKeyButton({ action }: { action: () => Promise<{ ok: true; k
 export function MinGroupForm({ initial, action }: { initial: number; action: (n: number, reason: string) => Promise<ActionResult> }) {
   const [n, setN] = useState(String(initial));
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-surface p-4 ring-1 ring-border">
-      <label className="flex items-center gap-2 text-[12px] text-muted">
+    <div className="flex flex-col gap-2 rounded-card bg-surface p-4 edge">
+      <label className="flex items-center gap-2 text-caption text-secondary">
         Smallest group a dataset may describe
         <input value={n} onChange={(e) => setN(e.target.value.replace(/\D/g, ""))} className={`${input} w-20`} inputMode="numeric" /> people
       </label>

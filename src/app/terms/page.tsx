@@ -4,17 +4,17 @@
 export default function TermsPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-16 md:px-6">
-      <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">Legal</p>
+      <p className="tabular-nums text-caption uppercase text-yes-ink">Legal</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">Terms of Use</h1>
-      <p className="mt-3 text-sm text-muted">
+      <p className="mt-3 text-body text-secondary">
         Pre-launch draft, last updated August 2026. This covers how Rivaly works today and will be
         formalized before real deposits go live.
       </p>
 
       <div className="mt-10 flex flex-col gap-7">
         <section>
-          <h2 className="font-display text-base font-semibold text-foreground">1. What Rivaly is</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-body-lg font-semibold text-foreground">1. What Rivaly is</h2>
+          <p className="mt-2 text-body text-secondary">
             Rivaly is a peer-to-peer social prediction platform for football. Users predict against
             each other in rooms they create or join — Rivaly is not a party to any prediction, does
             not set odds, and never takes the opposite side of a user&rsquo;s position. Rivaly&rsquo;s
@@ -24,8 +24,8 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="font-display text-base font-semibold text-foreground">2. Eligibility</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-body-lg font-semibold text-foreground">2. Eligibility</h2>
+          <p className="mt-2 text-body text-secondary">
             You must be old enough to enter binding agreements and to participate in real-money
             prediction activity under the laws that apply to you, and responsible for confirming
             that using Rivaly is lawful where you live.
@@ -33,8 +33,8 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="font-display text-base font-semibold text-foreground">3. Funds and escrow</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-body-lg font-semibold text-foreground">3. Funds and escrow</h2>
+          <p className="mt-2 text-body text-secondary">
             Stakes move into escrow when you join a room and are held there, unaltered, until the
             room settles. Your Wallet always shows what&rsquo;s available, pending, and in escrow.
             Rivaly does not lend, invest, or otherwise use held funds.
@@ -42,8 +42,8 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="font-display text-base font-semibold text-foreground">4. Settlement and disputes</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-body-lg font-semibold text-foreground">4. Settlement and disputes</h2>
+          <p className="mt-2 text-body text-secondary">
             Every room discloses its resolution source before anyone can join. Rooms settle against
             that source once the match concludes. If a match is postponed, abandoned, or otherwise
             can&rsquo;t be fairly resolved, entries are refunded in full.
@@ -51,24 +51,24 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="font-display text-base font-semibold text-foreground">5. Conduct</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-body-lg font-semibold text-foreground">5. Conduct</h2>
+          <p className="mt-2 text-body text-secondary">
             No manipulating outcomes, colluding across entries, or using Rivaly for anything other
             than genuine prediction between real rivals.
           </p>
         </section>
 
         <section>
-          <h2 className="font-display text-base font-semibold text-foreground">6. Changes</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-body-lg font-semibold text-foreground">6. Changes</h2>
+          <p className="mt-2 text-body text-secondary">
             These terms will change as Rivaly moves from pre-launch to a live product. Material
             changes will be surfaced in-app, not silently applied.
           </p>
         </section>
 
         <section>
-          <h2 className="font-display text-base font-semibold text-foreground">7. Team and league badges</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-body-lg font-semibold text-foreground">7. Team and league badges</h2>
+          <p className="mt-2 text-body text-secondary">
             Team and league badges are sourced from{" "}
             <a href="https://www.thesportsdb.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
               TheSportsDB

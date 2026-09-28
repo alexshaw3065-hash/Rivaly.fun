@@ -60,7 +60,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 function Chart({ title, data, format }: { title: string; data: { label: string; value: number }[]; format?: (v: number) => string }) {
   return (
     <div>
-      <p className="mb-2 text-[12px] text-muted">{title}</p>
+      <p className="mb-2 text-caption text-secondary">{title}</p>
       <Bars data={data} format={format} />
     </div>
   );
@@ -83,7 +83,7 @@ async function Growth({ days }: { days: Day[] }) {
         <Chart title="New users per day" data={series(days, "signups")} />
         <Chart title="Active users per day" data={series(days, "active")} />
       </div>
-      <p className="mt-4 text-[12px] text-muted">
+      <p className="mt-4 text-caption text-secondary">
         Acquisition source (where signups came from) isn&apos;t tracked yet — it needs referral/UTM capture at signup. Everything above is measured, not estimated.
       </p>
     </>
@@ -117,10 +117,10 @@ async function Engagement({ days }: { days: Day[] }) {
         <Chart title="Stakes per day" data={series(days, "stakes")} />
       </div>
       <Section title="Weekly retention" hint="Of each signup week, the share active in each week after.">
-        <div className="overflow-x-auto rounded-xl bg-surface ring-1 ring-border">
-          <table className="w-full border-collapse text-[12px]">
+        <div className="overflow-x-auto rounded-card bg-surface edge">
+          <table className="w-full border-collapse text-caption">
             <thead>
-              <tr className="border-b border-border text-left text-muted">
+              <tr className="border-b border-line text-left text-secondary">
                 <th className="px-3 py-2">Signup week</th>
                 <th className="px-3 py-2 text-right">People</th>
                 {Array.from({ length: maxWeeks }, (_, w) => (
@@ -130,14 +130,14 @@ async function Engagement({ days }: { days: Day[] }) {
             </thead>
             <tbody>
               {[...byCohort.entries()].map(([cohort, c]) => (
-                <tr key={cohort} className="border-b border-border last:border-0">
+                <tr key={cohort} className="border-b border-line last:border-0">
                   <td className="px-3 py-2">{short(cohort)}</td>
                   <td className="px-3 py-2 text-right font-mono">{c.size}</td>
                   {Array.from({ length: maxWeeks }, (_, w) => {
                     const v = c.weeks[w];
                     const pct = v == null || !c.size ? null : Math.round((v / c.size) * 100);
                     return (
-                      <td key={w} className="px-3 py-2 text-right font-mono" style={pct != null ? { background: `color-mix(in srgb, var(--rival-blue) ${Math.min(pct, 100) * 0.5}%, transparent)` } : undefined}>
+                      <td key={w} className="px-3 py-2 text-right font-mono" style={pct != null ? { background: `color-mix(in srgb, var(--yes) ${Math.min(pct, 100) * 0.5}%, transparent)` } : undefined}>
                         {pct == null ? "" : `${pct}%`}
                       </td>
                     );
@@ -146,7 +146,7 @@ async function Engagement({ days }: { days: Day[] }) {
               ))}
               {byCohort.size === 0 && (
                 <tr>
-                  <td colSpan={2} className="px-3 py-6 text-center text-muted">
+                  <td colSpan={2} className="px-3 py-6 text-center text-secondary">
                     No signups in the last 8 weeks.
                   </td>
                 </tr>
@@ -227,7 +227,7 @@ async function Revenue({ days }: { days: Day[] }) {
         <Chart title="Fees per day" data={series(days, "fees_cents")} format={(v) => usd(v)} />
         <Chart title="Paid to winners per day" data={series(days, "payouts_cents")} format={(v) => usd(v)} />
       </div>
-      <p className="mt-4 text-[12px] text-muted">Revenue is only ever a share of winners&apos; profit — Rivaly never takes the other side of a stake.</p>
+      <p className="mt-4 text-caption text-secondary">Revenue is only ever a share of winners&apos; profit — Rivaly never takes the other side of a stake.</p>
     </>
   );
 }
@@ -288,14 +288,14 @@ type Top = { label: string; visitors: number; total: number };
 function TopList({ title, rows, unit = "views" }: { title: string; rows: Top[]; unit?: string }) {
   const max = Math.max(1, ...rows.map((r) => r.total));
   return (
-    <div className="rounded-xl bg-surface p-4 ring-1 ring-border">
-      <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted">{title}</p>
-      {rows.length === 0 && <p className="py-4 text-[12px] text-muted">No data yet.</p>}
+    <div className="rounded-card bg-surface p-4 edge">
+      <p className="mb-2 text-caption font-semibold uppercase text-secondary">{title}</p>
+      {rows.length === 0 && <p className="py-4 text-caption text-secondary">No data yet.</p>}
       {rows.map((r) => (
-        <div key={r.label} className="relative mb-1 flex items-center justify-between overflow-hidden rounded px-2 py-1 text-[12px]">
-          <span className="absolute inset-y-0 left-0 rounded" style={{ width: `${(r.total / max) * 100}%`, background: "color-mix(in srgb, var(--rival-blue) 14%, transparent)" }} aria-hidden />
+        <div key={r.label} className="relative mb-1 flex items-center justify-between overflow-hidden rounded px-2 py-1 text-caption">
+          <span className="absolute inset-y-0 left-0 rounded" style={{ width: `${(r.total / max) * 100}%`, background: "color-mix(in srgb, var(--yes) 14%, transparent)" }} aria-hidden />
           <span className="relative truncate text-foreground">{r.label}</span>
-          <span className="relative shrink-0 font-mono text-muted">
+          <span className="relative shrink-0 font-mono text-secondary">
             {num(r.visitors)} visitors · {num(r.total)} {unit}
           </span>
         </div>
@@ -358,7 +358,7 @@ async function Traffic({ range }: { range: number }) {
           }
           rows={acq}
         />
-        <p className="mt-2 text-[12px] text-muted">
+        <p className="mt-2 text-caption text-secondary">
           Tag links with ?utm_source=…&amp;utm_campaign=… (or ?ref=…) and every signup from them is attributed here. Accounts made before tracking began show as “before tracking”.
         </p>
       </Section>

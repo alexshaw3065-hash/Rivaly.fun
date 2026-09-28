@@ -55,13 +55,13 @@ export function JoinPrivateRoomButton() {
         aria-label="Join private room"
         title="Join private room"
         className="shrink-0 p-1 transition-opacity duration-150 hover:opacity-80 active:scale-[0.9]"
-        style={{ color: "var(--rival-blue)" }}
+        style={{ color: "var(--yes)" }}
       >
         <KeyIcon />
       </button>
 
       <BottomSheet open={open} onClose={close} title="Join private room">
-        <p className="text-center text-sm text-muted">
+        <p className="text-center text-body text-secondary">
           Enter the invite code a rival shared with you.
         </p>
         <form onSubmit={submit} className="mt-5 flex flex-col gap-3">
@@ -73,14 +73,14 @@ export function JoinPrivateRoomButton() {
             }}
             placeholder="RIVAL-XXXX"
             autoCapitalize="characters"
-            className="w-full rounded-md border border-border bg-surface-elevated px-4 py-3 text-center font-mono text-base uppercase tracking-wider text-foreground placeholder:text-muted placeholder:normal-case focus:border-border-strong focus:outline-none"
+            className="w-full rounded-control border border-line bg-surface-elevated px-4 py-3 text-center tabular-nums text-body-lg uppercase text-foreground placeholder:text-secondary placeholder:normal-case focus:border-line-strong focus:outline-none"
             style={{ transition: "border-color 150ms ease" }}
           />
-          {error && <p className="text-center text-sm text-danger-red">{error}</p>}
+          {error && <p className="text-center text-body text-no-ink">{error}</p>}
           <button
             type="submit"
             disabled={!code.trim() || looking}
-            className="w-full rounded-md bg-foreground py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
+            className="w-full rounded-control bg-foreground py-3 text-body font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
           >
             {looking ? "Finding room…" : "Join room"}
           </button>

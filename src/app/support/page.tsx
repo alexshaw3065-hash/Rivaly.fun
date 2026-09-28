@@ -28,20 +28,20 @@ const faqs = [
 export default function SupportPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-16 md:px-6">
-      <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">Support</p>
+      <p className="tabular-nums text-caption uppercase text-yes-ink">Support</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">
         Common questions
       </h1>
-      <p className="mt-3 text-sm text-muted">
+      <p className="mt-3 text-body text-secondary">
         A direct support channel is coming soon. In the meantime, here&rsquo;s what most questions
         turn out to be.
       </p>
 
-      <div className="mt-10 flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+      <div className="mt-10 flex flex-col divide-y divide-line rounded-control border border-line bg-surface">
         {faqs.map((item) => (
           <div key={item.q} className="px-5 py-4">
-            <p className="text-sm font-medium text-foreground">{item.q}</p>
-            <p className="mt-1.5 text-sm text-muted">{item.a}</p>
+            <p className="text-body font-medium text-foreground">{item.q}</p>
+            <p className="mt-1.5 text-body text-secondary">{item.a}</p>
           </div>
         ))}
       </div>

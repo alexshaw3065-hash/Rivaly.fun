@@ -289,18 +289,18 @@ function DynamicAuthBridge({ children }: { children: React.ReactNode }) {
           on top of something, not a new screen you've navigated to. */}
       {bridging && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface-elevated px-10 py-8 shadow-2xl">
+          <div className="flex flex-col items-center gap-4 rounded-card bg-surface-elevated px-10 py-8 shadow-pop">
             <div style={{ animation: "live-pulse 1.6s ease-in-out infinite" }}>
               <RivalyWordmark />
             </div>
-            <p key={phraseIndex} className="stagger-in font-display text-sm text-muted" role="status">
+            <p key={phraseIndex} className="stagger-in font-display text-body text-secondary" role="status">
               {BRIDGING_PHRASES[phraseIndex]}
             </p>
           </div>
         </div>
       )}
       {bridgeError && !bridging && (
-        <div className="fixed inset-x-0 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-50 mx-auto w-fit rounded-md border border-border bg-surface px-4 py-2.5 text-sm text-danger-red shadow-lg">
+        <div className="fixed inset-x-0 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-50 mx-auto w-fit rounded-control bg-surface px-4 py-3 text-body text-no-ink shadow-pop">
           {bridgeError}
         </div>
       )}

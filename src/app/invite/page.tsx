@@ -37,32 +37,32 @@ export default function InvitePage() {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-16 text-center md:px-6">
-      <p className="font-mono text-[11px] uppercase tracking-wider text-rival-blue">Invite</p>
+      <p className="tabular-nums text-caption uppercase text-yes-ink">Invite</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">Find your rival.</h1>
-      <p className="mt-3 text-sm text-muted">
+      <p className="mt-3 text-body text-secondary">
         A room without opponents isn&rsquo;t a room. Send your link — whoever disagrees with you joins on the other side.
       </p>
 
       {me && path ? (
         <>
           <div className="mt-8 flex items-center justify-center gap-2">
-            <code className="max-w-full truncate rounded-md border border-border bg-surface px-4 py-2.5 font-mono text-sm text-foreground">rivaly.fun{path}</code>
+            <code className="max-w-full truncate rounded-control border border-line bg-surface px-4 py-3 font-mono text-body text-foreground">rivaly.fun{path}</code>
             <button
               onClick={copy}
-              className="shrink-0 rounded-md border border-border-strong px-4 py-2.5 text-sm font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
+              className="shrink-0 rounded-control border border-line-strong px-4 py-3 text-body font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
             >
               {copied ? "Copied" : "Copy link"}
             </button>
           </div>
-          <button onClick={share} className="mt-4 rounded-full px-6 py-3 text-sm font-bold text-white" style={{ background: "var(--rival-blue)" }}>
+          <button onClick={share} className="mt-4 rounded-full px-6 py-3 text-body font-bold text-white" style={{ background: "var(--yes)" }}>
             Share your profile
           </button>
-          <p className="mt-6 text-xs text-muted">
+          <p className="mt-6 text-caption text-secondary">
             Or share a room — every room has its own link. <Link href="/rooms" className="underline">Find one</Link>
           </p>
         </>
       ) : (
-        <button onClick={() => openAuthModal({ next: "/invite" })} className="mt-8 rounded-full px-6 py-3 text-sm font-bold text-white" style={{ background: "var(--rival-blue)" }}>
+        <button onClick={() => openAuthModal({ next: "/invite" })} className="mt-8 rounded-full px-6 py-3 text-body font-bold text-white" style={{ background: "var(--yes)" }}>
           Sign in to get your link
         </button>
       )}

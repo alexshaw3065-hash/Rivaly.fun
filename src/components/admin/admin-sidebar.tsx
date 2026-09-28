@@ -101,7 +101,7 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
     <nav className="flex flex-col gap-5 px-3 pb-10 pt-4">
       {NAV.map((g) => (
         <div key={g.group}>
-          <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">{g.group}</p>
+          <p className="px-2 pb-1.5 text-caption font-semibold uppercase text-secondary">{g.group}</p>
           {g.items.map((it) => {
             const on = isActive(it.href, pathname, search);
             return (
@@ -109,8 +109,8 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
                 key={it.href}
                 href={it.href}
                 onClick={() => setOpen(false)}
-                className="block rounded-md px-2 py-1.5 text-[13px] transition-colors"
-                style={on ? { background: "var(--surface-elevated)", color: "var(--foreground)", fontWeight: 600 } : { color: "var(--muted)" }}
+                className="block rounded-control px-2 py-1.5 text-label transition-colors"
+                style={on ? { background: "var(--surface-elevated)", color: "var(--foreground)", fontWeight: 600 } : { color: "var(--text-secondary)" }}
               >
                 {it.label}
               </Link>
@@ -123,14 +123,14 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur-sm lg:pl-[248px]">
+      <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-line bg-background/95 px-4 backdrop-blur-sm lg:pl-[248px]">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setOpen((v) => !v)} className="text-[13px] text-muted lg:hidden" aria-label="Menu">
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-label text-secondary lg:hidden" aria-label="Menu">
             Menu
           </button>
-          <span className="font-display text-[15px] font-bold tracking-tight text-foreground lg:hidden">Rivaly Ops</span>
+          <span className="font-display text-body font-bold tracking-tight text-foreground lg:hidden">Rivaly Ops</span>
         </div>
-        <div className="flex items-center gap-4 text-[12px] text-muted">
+        <div className="flex items-center gap-4 text-caption text-secondary">
           <span>
             {name} · <span className="text-foreground">{role}</span>
           </span>
@@ -142,9 +142,9 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
           </form>
         </div>
       </header>
-      <aside className="fixed bottom-0 left-0 top-0 z-40 hidden w-[232px] overflow-y-auto border-r border-border bg-surface lg:block">
-        <div className="flex h-12 items-center border-b border-border px-5">
-          <span className="font-display text-[15px] font-bold tracking-tight text-foreground">Rivaly Ops</span>
+      <aside className="fixed bottom-0 left-0 top-0 z-40 hidden w-[232px] overflow-y-auto border-r border-line bg-surface lg:block">
+        <div className="flex h-12 items-center border-b border-line px-5">
+          <span className="font-display text-body font-bold tracking-tight text-foreground">Rivaly Ops</span>
         </div>
         {nav}
       </aside>

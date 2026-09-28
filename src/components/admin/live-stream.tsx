@@ -12,11 +12,11 @@ import { EVENT_GROUPS, type EventTone } from "@/lib/admin/events";
 // A slow poll backs Realtime up.
 
 const TONE: Record<EventTone, string> = {
-  neutral: "var(--border-strong)",
-  money: "var(--rival-blue)",
-  good: "var(--rival-green)",
+  neutral: "var(--line-strong)",
+  money: "var(--yes)",
+  good: "var(--money)",
   warn: "#f5a524",
-  bad: "var(--rival-red)",
+  bad: "var(--no)",
   admin: "#a855f7",
 };
 
@@ -68,10 +68,10 @@ export function LiveStream({ initial, limit = 60, filterable = false, compact = 
   }, [refresh, paused]);
 
   return (
-    <div className="rounded-xl bg-surface ring-1 ring-border">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-        <p className="flex items-center gap-2 text-[12px] text-muted">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: paused ? "var(--border-strong)" : "var(--rival-green)" }} aria-hidden />
+    <div className="rounded-card bg-surface edge">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
+        <p className="flex items-center gap-2 text-caption text-secondary">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: paused ? "var(--line-strong)" : "var(--money)" }} aria-hidden />
           {paused ? "Paused" : "Live"}
         </p>
         <div className="flex flex-wrap items-center gap-1">
@@ -81,29 +81,29 @@ export function LiveStream({ initial, limit = 60, filterable = false, compact = 
                 key={g ?? "all"}
                 type="button"
                 onClick={() => setGroup(g)}
-                className="rounded-md px-2 py-1 text-[12px] transition-colors"
-                style={group === g ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--muted)" }}
+                className="rounded-control px-2 py-1 text-caption transition-colors"
+                style={group === g ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--text-secondary)" }}
               >
                 {g ?? "All"}
               </button>
             ))}
-          <button type="button" onClick={() => setPaused((p) => !p)} className="ml-1 rounded-md px-2 py-1 text-[12px] text-muted hover:text-foreground">
+          <button type="button" onClick={() => setPaused((p) => !p)} className="ml-1 rounded-control px-2 py-1 text-caption text-secondary hover:text-foreground">
             {paused ? "Resume" : "Pause"}
           </button>
         </div>
       </div>
       {items.length === 0 ? (
-        <p className="px-4 py-10 text-center text-[13px] text-muted">Nothing yet.</p>
+        <p className="px-4 py-10 text-center text-label text-secondary">Nothing yet.</p>
       ) : (
         <ol className={compact ? "max-h-[460px] overflow-y-auto" : ""}>
           {items.map((i) => (
             <li
               key={i.id}
-              className="flex items-start gap-3 border-b border-border px-4 py-2 text-[13px] last:border-0"
-              style={fresh.has(i.id) ? { background: "color-mix(in srgb, var(--rival-blue) 8%, transparent)", transition: "background 1.5s ease" } : { transition: "background 1.5s ease" }}
+              className="flex items-start gap-3 border-b border-line px-4 py-2 text-label last:border-0"
+              style={fresh.has(i.id) ? { background: "color-mix(in srgb, var(--yes) 8%, transparent)", transition: "background 1.5s ease" } : { transition: "background 1.5s ease" }}
             >
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: TONE[i.tone] }} aria-hidden />
-              <span className="w-[74px] shrink-0 font-mono text-[11px] leading-5 text-muted">{clock(i.at)}</span>
+              <span className="w-[74px] shrink-0 font-mono text-caption leading-5 text-secondary">{clock(i.at)}</span>
               <span className="min-w-0 flex-1 leading-5 text-foreground">
                 {i.href ? (
                   <Link href={i.href} className="hover:underline">
@@ -113,7 +113,7 @@ export function LiveStream({ initial, limit = 60, filterable = false, compact = 
                   i.text
                 )}
               </span>
-              <span className="hidden shrink-0 font-mono text-[10px] uppercase leading-5 tracking-wide text-muted sm:inline">{i.type}</span>
+              <span className="hidden shrink-0 font-mono text-micro uppercase leading-5 text-secondary sm:inline">{i.type}</span>
             </li>
           ))}
         </ol>

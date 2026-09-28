@@ -279,7 +279,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
   }
 
   const initialMatchMissing = !isLoading && matchId !== null && !match;
-  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-red)";
+  const sideColor = side === "yes" ? "var(--yes)" : "var(--no)";
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-6 pt-5 md:px-6 md:pt-8">
@@ -696,7 +696,7 @@ function CreatedView({
       </a>
 
       <div className="enter-row mt-6 flex items-center gap-2">
-        <code className="flex h-12 flex-1 items-center rounded-control bg-surface px-4 font-mono text-body font-semibold tracking-wider text-foreground edge">
+        <code className="flex h-12 flex-1 items-center rounded-control bg-surface px-4 font-mono text-body font-semibold text-foreground edge">
           {inviteCode}
         </code>
         <Button variant="secondary" size="lg" onClick={() => navigator.clipboard.writeText(inviteCode).then(() => flash("code"))}>

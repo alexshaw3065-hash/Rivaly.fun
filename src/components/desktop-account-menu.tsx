@@ -61,7 +61,7 @@ export function DesktopAccountMenu({
               signOut();
             }}
             disabled={signingOut}
-            className="w-full border-t border-line px-4 py-3 text-left text-sm font-medium text-danger-red transition-colors hover:bg-overlay-1 disabled:opacity-40"
+            className="w-full border-t border-line px-4 py-3 text-left text-sm font-medium text-no-ink transition-colors hover:bg-overlay-1 disabled:opacity-40"
           >
             {signingOut ? "Signing out…" : "Sign out"}
           </button>

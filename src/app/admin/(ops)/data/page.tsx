@@ -52,36 +52,36 @@ async function Catalog() {
   const results = await Promise.all(DATASETS.map(async (d) => ({ d, rows: await d.run(admin, { limit: 500 }).catch(() => [] as Record<string, unknown>[]) })));
   return (
     <>
-      <p className="mb-4 text-[13px] text-muted">
+      <p className="mb-4 text-label text-secondary">
         Every dataset leaves out any group smaller than <span className="text-foreground">{s?.data_min_group ?? 5} people</span>, and none contains names, usernames, wallets or messages. Rows appear here as Rivaly grows past that threshold per match or team.
       </p>
       <div className="flex flex-col gap-6">
         {results.map(({ d, rows }) => (
-          <div key={d.id} className="rounded-xl bg-surface p-4 ring-1 ring-border">
+          <div key={d.id} className="rounded-card bg-surface p-4 edge">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="max-w-2xl">
-                <p className="text-[15px] font-semibold text-foreground">
-                  {d.title} <span className="ml-1 font-mono text-[11px] text-muted">{d.id}</span>
+                <p className="text-body font-semibold text-foreground">
+                  {d.title} <span className="ml-1 font-mono text-caption text-secondary">{d.id}</span>
                 </p>
-                <p className="mt-1 text-[13px] text-muted">{d.summary}</p>
-                <p className="mt-1 text-[12px] text-muted">
+                <p className="mt-1 text-label text-secondary">{d.summary}</p>
+                <p className="mt-1 text-caption text-secondary">
                   Buyers: <span className="text-foreground">{d.buyers}</span>
                 </p>
               </div>
               <div className="text-right">
                 <p className="font-mono text-lg font-semibold text-foreground">{num(rows.length)}</p>
-                <p className="text-[11px] text-muted">rows available now</p>
-                <a href={`/admin/export/dataset-${d.id}`} className="mt-1 inline-block text-[12px] text-muted underline">
+                <p className="text-caption text-secondary">rows available now</p>
+                <a href={`/admin/export/dataset-${d.id}`} className="mt-1 inline-block text-caption text-secondary underline">
                   Download CSV
                 </a>
               </div>
             </div>
             <details className="mt-3">
-              <summary className="cursor-pointer text-[12px] text-muted">Columns & preview</summary>
-              <div className="mt-2 grid gap-1 text-[12px] sm:grid-cols-2">
+              <summary className="cursor-pointer text-caption text-secondary">Columns & preview</summary>
+              <div className="mt-2 grid gap-1 text-caption sm:grid-cols-2">
                 {d.columns.map((c) => (
                   <p key={c.name}>
-                    <span className="font-mono text-foreground">{c.name}</span> <span className="text-muted">· {c.type} · {c.description}</span>
+                    <span className="font-mono text-foreground">{c.name}</span> <span className="text-secondary">· {c.type} · {c.description}</span>
                   </p>
                 ))}
               </div>
@@ -111,23 +111,23 @@ function Exports() {
   ];
   return (
     <>
-      <p className="mb-4 text-[12px] text-muted">
+      <p className="mb-4 text-caption text-secondary">
         Date-ranged exports cover the last 30 days unless you add <span className="font-mono">?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</span> to the link.
       </p>
-      <div className="rounded-xl bg-surface ring-1 ring-border">
+      <div className="rounded-card bg-surface edge">
         {internal.map(([id, title, body]) => (
-          <div key={id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-0">
+          <div key={id} className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 last:border-0">
             <div>
-              <p className="text-[14px] text-foreground">{title}</p>
-              <p className="text-[12px] text-muted">{body}</p>
+              <p className="text-body text-foreground">{title}</p>
+              <p className="text-caption text-secondary">{body}</p>
             </div>
-            <a href={`/admin/export/${id}`} className="h-8 rounded-md bg-foreground px-3 pt-1.5 text-[12px] font-semibold text-background">
+            <a href={`/admin/export/${id}`} className="h-8 rounded-control bg-foreground px-3 pt-1.5 text-caption font-semibold text-background">
               Download CSV
             </a>
           </div>
         ))}
       </div>
-      <p className="mt-3 text-[12px] text-muted">Internal exports contain personal data (user ids, wallets) — for Rivaly&apos;s own use only, never for partners. Every export is recorded in the audit log.</p>
+      <p className="mt-3 text-caption text-secondary">Internal exports contain personal data (user ids, wallets) — for Rivaly&apos;s own use only, never for partners. Every export is recorded in the audit log.</p>
     </>
   );
 }
@@ -156,18 +156,18 @@ async function Partners({ owner }: { owner: boolean }) {
           </Section>
         </div>
       )}
-      {((partners ?? []) as P[]).length === 0 && <p className="rounded-xl bg-surface px-4 py-10 text-center text-[13px] text-muted ring-1 ring-border">No partners yet.</p>}
+      {((partners ?? []) as P[]).length === 0 && <p className="rounded-card bg-surface px-4 py-10 text-center text-label text-secondary edge">No partners yet.</p>}
       <div className="flex flex-col gap-4">
         {((partners ?? []) as P[]).map((p) => {
           const u = use(p.id);
           const mine = ((keys ?? []) as K[]).filter((k) => k.partner_id === p.id);
           return (
-            <div key={p.id} className="rounded-xl bg-surface p-4 ring-1 ring-border">
+            <div key={p.id} className="rounded-card bg-surface p-4 edge">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-[15px] font-semibold text-foreground">
+                <p className="text-body font-semibold text-foreground">
                   {p.name} <StatePill state={p.active ? "ok" : "cancelled"} label={p.active ? "active" : "paused"} />
                 </p>
-                <p className="text-[12px] text-muted">
+                <p className="text-caption text-secondary">
                   {p.contact ?? "no contact"} · since {when(p.created_at)} · 30d: {num(u.length)} calls, {num(u.reduce((s, x) => s + x.rows, 0))} rows
                 </p>
               </div>
@@ -176,14 +176,14 @@ async function Partners({ owner }: { owner: boolean }) {
                   <PartnerEdit options={options} initial={{ datasets: p.datasets, ratePerMin: p.rate_per_min, active: p.active }} action={updatePartner.bind(null, p.id)} />
                 </div>
               ) : (
-                <p className="mt-2 text-[12px] text-muted">Licensed: {p.datasets.join(", ") || "nothing yet"} · {p.rate_per_min}/min</p>
+                <p className="mt-2 text-caption text-secondary">Licensed: {p.datasets.join(", ") || "nothing yet"} · {p.rate_per_min}/min</p>
               )}
-              <div className="mt-4 border-t border-border pt-3">
-                <p className="mb-2 text-[12px] text-muted">API keys</p>
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="mb-2 text-caption text-secondary">API keys</p>
                 {mine.map((k) => (
-                  <p key={k.id} className="text-[12px]" style={{ opacity: k.revoked_at ? 0.5 : 1 }}>
-                    <span className="font-mono text-foreground">{k.prefix}…</span> <span className="text-muted">· issued {when(k.created_at)} · last used {when(k.last_used_at)}</span>
-                    {k.revoked_at ? <span className="text-muted"> · revoked</span> : owner ? <> · <SmallAction label="revoke" action={revokeKey.bind(null, k.id)} /></> : null}
+                  <p key={k.id} className="text-caption" style={{ opacity: k.revoked_at ? 0.5 : 1 }}>
+                    <span className="font-mono text-foreground">{k.prefix}…</span> <span className="text-secondary">· issued {when(k.created_at)} · last used {when(k.last_used_at)}</span>
+                    {k.revoked_at ? <span className="text-secondary"> · revoked</span> : owner ? <> · <SmallAction label="revoke" action={revokeKey.bind(null, k.id)} /></> : null}
                   </p>
                 ))}
                 {owner && (
@@ -232,7 +232,7 @@ async function Usage() {
         <DataTable
           columns={[
             { label: "Partner", cell: (r: (typeof summary)[number]) => r.partner },
-            { label: "Dataset", cell: (r: (typeof summary)[number]) => <span className="font-mono text-[12px]">{r.dataset}</span> },
+            { label: "Dataset", cell: (r: (typeof summary)[number]) => <span className="font-mono text-caption">{r.dataset}</span> },
             { label: "Calls", cell: (r: (typeof summary)[number]) => num(r.calls), align: "right" },
             { label: "Rows", cell: (r: (typeof summary)[number]) => num(r.rows), align: "right" },
             { label: "Errors", cell: (r: (typeof summary)[number]) => num(r.errors), align: "right" },
@@ -249,7 +249,7 @@ function Docs() {
   const example = `curl -H "Authorization: Bearer rvl_live_…" \\
   "https://<your-domain>/api/data/v1/match_sentiment?competition=Premier%20League&from=2026-10-01&to=2026-10-31"`;
   return (
-    <div className="max-w-3xl text-[13px] leading-relaxed text-muted">
+    <div className="max-w-3xl text-label leading-relaxed text-secondary">
       <p className="text-foreground">Hand this to a partner along with their key.</p>
       <Section title="Authentication">
         <p>Every request sends <span className="font-mono text-foreground">Authorization: Bearer rvl_live_…</span>. Keys are issued per partner in Partners &amp; keys, shown once, and can be revoked instantly.</p>
@@ -260,7 +260,7 @@ function Docs() {
           <br />
           <span className="font-mono text-foreground">GET /api/data/v1/{"{dataset}"}</span> — the rows. Parameters: <span className="font-mono">competition, from, to, match_id, limit</span> (as listed per dataset), <span className="font-mono">format=json|csv</span>.
         </p>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-background p-3 font-mono text-[12px] text-foreground">{example}</pre>
+        <pre className="mt-3 overflow-x-auto rounded-control bg-background p-3 font-mono text-caption text-foreground">{example}</pre>
       </Section>
       <Section title="Response">
         <p>
@@ -273,7 +273,7 @@ function Docs() {
       <Section title="Privacy">
         <p>All data is aggregated. No row describes fewer than the configured minimum number of people; no names, usernames, wallets, emails or message text are ever included. Rivaly&apos;s privacy policy must describe this use before selling.</p>
       </Section>
-      <p className="text-[12px]">Available datasets: {DATASETS.map((d) => d.id).join(", ")}.</p>
+      <p className="text-caption">Available datasets: {DATASETS.map((d) => d.id).join(", ")}.</p>
     </div>
   );
 }

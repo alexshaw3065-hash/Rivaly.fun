@@ -55,17 +55,17 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
   const columns: Column<Row>[] = [
     { label: "Room", cell: (r) => <span className="font-medium">{r.prediction}</span> },
     { label: "State", cell: (r) => <StatePill state={r.state} /> },
-    { label: "Match", cell: (r) => <span className="text-muted">{r.home_team ? `${r.home_team} v ${r.away_team}` : "—"}</span> },
-    { label: "Kickoff", cell: (r) => <span className="text-muted">{when(r.kickoff_at)}</span> },
-    { label: "Host", cell: (r) => <Link href={`/admin/users/${r.creator_id}`} className="text-muted hover:underline">@{r.creator_username ?? "?"}</Link> },
+    { label: "Match", cell: (r) => <span className="text-secondary">{r.home_team ? `${r.home_team} v ${r.away_team}` : "—"}</span> },
+    { label: "Kickoff", cell: (r) => <span className="text-secondary">{when(r.kickoff_at)}</span> },
+    { label: "Host", cell: (r) => <Link href={`/admin/users/${r.creator_id}`} className="text-secondary hover:underline">@{r.creator_username ?? "?"}</Link> },
     { label: "People", cell: (r) => num(r.participants), align: "right" },
     { label: "Pot", cell: (r) => usd(r.pool_cents), align: "right" },
-    { label: "YES", cell: (r) => <span className="text-rival-blue">{usd(r.yes_cents)}</span>, align: "right" },
-    { label: "NO", cell: (r) => <span className="text-rival-red">{usd(r.no_cents)}</span>, align: "right" },
+    { label: "YES", cell: (r) => <span className="text-yes-ink">{usd(r.yes_cents)}</span>, align: "right" },
+    { label: "NO", cell: (r) => <span className="text-no-ink">{usd(r.no_cents)}</span>, align: "right" },
     { label: "Fees", cell: (r) => (r.fee_bps + r.host_fee_bps ? `${(r.fee_bps + r.host_fee_bps) / 100}%` : "—"), align: "right" },
-    { label: "Result", cell: (r) => <span className="text-muted">{r.resolved_outcome?.toUpperCase() ?? "—"}</span> },
-    { label: "Data", cell: (r) => <span className="text-[12px] text-muted">{r.provider ?? "—"}</span> },
-    { label: "Created", cell: (r) => <span className="text-muted">{when(r.created_at)}</span> },
+    { label: "Result", cell: (r) => <span className="text-secondary">{r.resolved_outcome?.toUpperCase() ?? "—"}</span> },
+    { label: "Data", cell: (r) => <span className="text-caption text-secondary">{r.provider ?? "—"}</span> },
+    { label: "Created", cell: (r) => <span className="text-secondary">{when(r.created_at)}</span> },
   ];
   const qs = (over: Record<string, string>) => `/admin/rooms?${new URLSearchParams({ state, ...(q ? { q } : {}), ...over })}`;
 
@@ -73,20 +73,20 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
     <div>
       <PageHeader title="Rooms" subtitle={`${num(total)} ${state === "all" ? "rooms" : "matching"}`} />
       <form className="mb-3 flex gap-2" action="/admin/rooms">
-        <input name="q" defaultValue={q} placeholder="Search claim, team, host or room id" className="w-full max-w-md rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-foreground outline-none focus:border-border-strong" />
+        <input name="q" defaultValue={q} placeholder="Search claim, team, host or room id" className="w-full max-w-md rounded-control border border-line bg-surface px-3 py-2 text-label text-foreground outline-none focus:border-line-strong" />
         <input type="hidden" name="state" value={state} />
-        <button className="h-9 rounded-md bg-foreground px-4 text-[13px] font-semibold text-background">Search</button>
+        <button className="h-9 rounded-control bg-foreground px-4 text-label font-semibold text-background">Search</button>
       </form>
       <div className="no-scrollbar mb-4 flex gap-1 overflow-x-auto">
         {STATES.map(([id, label]) => (
-          <Link key={id} href={qs({ state: id, page: "1" })} className="shrink-0 rounded-md px-2.5 py-1 text-[12px]" style={state === id ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--muted)" }}>
+          <Link key={id} href={qs({ state: id, page: "1" })} className="shrink-0 rounded-control px-3 py-1 text-caption" style={state === id ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--text-secondary)" }}>
             {label}
           </Link>
         ))}
       </div>
       <DataTable columns={columns} rows={rows} rowHref={(r) => `/admin/rooms/${r.id}`} empty="No rooms here." />
       {total > PAGE && (
-        <div className="mt-3 flex items-center gap-3 text-[13px] text-muted">
+        <div className="mt-3 flex items-center gap-3 text-label text-secondary">
           {p > 1 && <Link href={qs({ page: String(p - 1) })}>← Newer</Link>}
           <span>
             Page {p} of {Math.ceil(total / PAGE)}

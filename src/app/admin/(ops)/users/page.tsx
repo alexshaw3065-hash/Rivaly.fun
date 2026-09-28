@@ -55,30 +55,30 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const status = (r: Row) => (r.banned_at ? "banned" : r.suspended_until && new Date(r.suspended_until) > new Date() ? "suspended" : "active");
   const columns: Column<Row>[] = [
     { label: "User", cell: (r) => <span className="font-medium">{displayName(r)}</span> },
-    { label: "Username", cell: (r) => <span className="text-muted">@{r.username}</span> },
-    { label: "Joined", cell: (r) => <span className="text-muted">{when(r.created_at)}</span> },
-    { label: "Last active", cell: (r) => <span className="text-muted">{r.last_active ?? "—"}</span> },
+    { label: "Username", cell: (r) => <span className="text-secondary">@{r.username}</span> },
+    { label: "Joined", cell: (r) => <span className="text-secondary">{when(r.created_at)}</span> },
+    { label: "Last active", cell: (r) => <span className="text-secondary">{r.last_active ?? "—"}</span> },
     { label: "Joined rooms", cell: (r) => num(r.rooms_joined), align: "right" },
     { label: "Hosted", cell: (r) => num(r.rooms_created), align: "right" },
     { label: "Stakes", cell: (r) => num(r.predictions), align: "right" },
     { label: "Staked", cell: (r) => usd(r.staked_cents), align: "right" },
-    { label: "Won", cell: (r) => <span className="text-rival-green">{usd(r.won_cents)}</span>, align: "right" },
+    { label: "Won", cell: (r) => <span className="text-money-ink">{usd(r.won_cents)}</span>, align: "right" },
     { label: "Lost", cell: (r) => usd(r.lost_cents), align: "right" },
     { label: "Host fees", cell: (r) => usd(r.host_fees_cents), align: "right" },
     { label: "Win rate", cell: (r) => (r.decided ? `${Math.round((r.wins / r.decided) * 100)}%` : "—"), align: "right" },
-    { label: "Wallet", cell: (r) => (r.wallet ? <span className="font-mono text-[11px] text-muted">{r.wallet.slice(0, 4)}…{r.wallet.slice(-4)}</span> : <span className="text-muted">—</span>) },
+    { label: "Wallet", cell: (r) => (r.wallet ? <span className="font-mono text-caption text-secondary">{r.wallet.slice(0, 4)}…{r.wallet.slice(-4)}</span> : <span className="text-secondary">—</span>) },
     { label: "Status", cell: (r) => <StatePill state={status(r)} /> },
     {
       label: "Risk",
       cell: (r) =>
         r.reports_received || r.open_flags ? (
-          <span className="text-[12px] text-[#f5a524]">
+          <span className="text-caption text-[#f5a524]">
             {r.reports_received ? `${r.reports_received} report${r.reports_received === 1 ? "" : "s"}` : ""}
             {r.reports_received && r.open_flags ? " · " : ""}
             {r.open_flags ? `${r.open_flags} flag${r.open_flags === 1 ? "" : "s"}` : ""}
           </span>
         ) : (
-          <span className="text-muted">—</span>
+          <span className="text-secondary">—</span>
         ),
     },
   ];
@@ -92,20 +92,20 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     <div>
       <PageHeader title="Users" subtitle={`${num(total)} ${filter === "all" ? "people" : "matching"}`} />
       <form className="mb-3 flex gap-2" action="/admin/users">
-        <input name="q" defaultValue={q} placeholder="Search username, name, user id or wallet" className="w-full max-w-md rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-foreground outline-none focus:border-border-strong" />
+        <input name="q" defaultValue={q} placeholder="Search username, name, user id or wallet" className="w-full max-w-md rounded-control border border-line bg-surface px-3 py-2 text-label text-foreground outline-none focus:border-line-strong" />
         <input type="hidden" name="filter" value={filter} />
-        <button className="h-9 rounded-md bg-foreground px-4 text-[13px] font-semibold text-background">Search</button>
+        <button className="h-9 rounded-control bg-foreground px-4 text-label font-semibold text-background">Search</button>
       </form>
       <div className="no-scrollbar mb-4 flex gap-1 overflow-x-auto">
         {FILTERS.map(([id, label]) => (
-          <Link key={id} href={qs({ filter: id, page: "1" })} className="shrink-0 rounded-md px-2.5 py-1 text-[12px]" style={filter === id ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--muted)" }}>
+          <Link key={id} href={qs({ filter: id, page: "1" })} className="shrink-0 rounded-control px-3 py-1 text-caption" style={filter === id ? { background: "var(--surface-elevated)", color: "var(--foreground)" } : { color: "var(--text-secondary)" }}>
             {label}
           </Link>
         ))}
       </div>
       <DataTable columns={columns} rows={rows} rowHref={(r) => `/admin/users/${r.id}`} empty="No one matches." />
       {total > PAGE && (
-        <div className="mt-3 flex items-center gap-3 text-[13px] text-muted">
+        <div className="mt-3 flex items-center gap-3 text-label text-secondary">
           {p > 1 && <Link href={qs({ page: String(p - 1) })}>← Newer</Link>}
           <span>
             Page {p} of {Math.ceil(total / PAGE)}

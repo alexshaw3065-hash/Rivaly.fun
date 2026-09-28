@@ -62,12 +62,12 @@ export function MobileMoreMenu() {
         >
           <div className="p-3">
             <div className="flex items-center justify-between rounded-control border border-line bg-surface-elevated px-3 py-3">
-              <div className="flex items-center gap-2 text-sm text-foreground">
-                <span style={{ color: isLight ? "var(--foreground)" : "var(--muted)", transition: "color 150ms ease" }}>
+              <div className="flex items-center gap-2 text-body text-foreground">
+                <span style={{ color: isLight ? "var(--foreground)" : "var(--text-secondary)", transition: "color 150ms ease" }}>
                   <SunIcon />
                 </span>
                 Theme
-                <span style={{ color: isLight ? "var(--muted)" : "var(--foreground)", transition: "color 150ms ease" }}>
+                <span style={{ color: isLight ? "var(--text-secondary)" : "var(--foreground)", transition: "color 150ms ease" }}>
                   <MoonIcon />
                 </span>
               </div>
@@ -81,7 +81,7 @@ export function MobileMoreMenu() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between px-4 py-3 text-sm text-foreground transition-colors hover:bg-overlay-1"
+                className="flex items-center justify-between px-4 py-3 text-body text-foreground transition-colors hover:bg-overlay-1"
               >
                 {link.label}
                 <span className="text-secondary">→</span>
@@ -97,7 +97,7 @@ export function MobileMoreMenu() {
                   signOut();
                 }}
                 disabled={signingOut}
-                className="w-full rounded-control px-3 py-3 text-left text-sm font-medium text-danger-red transition-colors hover:bg-overlay-1 disabled:opacity-40"
+                className="w-full rounded-control px-3 py-3 text-left text-body font-medium text-no-ink transition-colors hover:bg-overlay-1 disabled:opacity-40"
               >
                 {signingOut ? "Signing out…" : "Sign out"}
               </button>

@@ -62,23 +62,23 @@ function RoomsPageContent() {
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
-      <div className="flex items-center justify-between border-b border-border">
+      <div className="flex items-center justify-between border-b border-line">
         <div className="no-scrollbar flex min-w-0 gap-6 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="-mb-px shrink-0 border-b-2 pb-2.5 text-sm font-medium transition-colors duration-150"
+              className="-mb-px shrink-0 border-b-2 pb-3 text-body font-medium transition-colors duration-150"
               style={{
                 borderColor: tab === t.id ? "var(--foreground)" : "transparent",
-                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+                color: tab === t.id ? "var(--foreground)" : "var(--text-secondary)",
               }}
             >
               {t.label}
             </button>
           ))}
         </div>
-        <div className="shrink-0 pb-2.5">
+        <div className="shrink-0 pb-3">
           <JoinPrivateRoomButton />
         </div>
       </div>
@@ -134,17 +134,17 @@ function MatchRooms({ matchId }: { matchId: string }) {
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <Link href="/rooms" className="text-sm text-muted transition-colors hover:text-foreground">
+        <Link href="/rooms" className="text-body text-secondary transition-colors hover:text-foreground">
           ← All rooms
         </Link>
         {canStart && (
-          <Link href={startHref} className="text-sm font-medium text-rival-blue">
+          <Link href={startHref} className="text-body font-medium text-yes-ink">
             + New room
           </Link>
         )}
       </div>
       {match && (
-        <div className="overflow-hidden rounded-2xl border border-border">
+        <div className="overflow-hidden rounded-card border border-line">
           <MatchBanner match={match} />
         </div>
       )}
@@ -155,11 +155,11 @@ function MatchRooms({ matchId }: { matchId: string }) {
           emptyFiltered={
             <div className="flex flex-col items-center gap-3 py-14 text-center">
               <p className="font-display text-lg font-bold text-foreground">No rooms on this match yet</p>
-              <p className="max-w-xs text-sm text-muted">Make the first call and let someone take the other side.</p>
+              <p className="max-w-xs text-body text-secondary">Make the first call and let someone take the other side.</p>
               {canStart && (
                 <Link
                   href={startHref}
-                  className="mt-1 rounded-md bg-rival-blue px-5 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+                  className="mt-1 rounded-control bg-yes px-5 py-3 text-body font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
                 >
                   Start the first room
                 </Link>

@@ -73,7 +73,7 @@ export function CornerFlagIcon({ className }: P) {
 }
 
 /** A referee's card — rendered in its real colour, the one place red earns its loudness. */
-export function RefCardIcon({ className, color = "var(--danger-red)" }: P & { color?: string }) {
+export function RefCardIcon({ className, color = "var(--no)" }: P & { color?: string }) {
   return (
     <svg {...base} className={className}>
       <rect x="6" y="3" width="8.5" height="12.5" rx="1.2" transform="rotate(10 10 10)" fill={color} />

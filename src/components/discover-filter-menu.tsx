@@ -40,7 +40,7 @@ export function DiscoverFilterMenu({
   return (
     <div ref={rootRef} className="relative flex items-center gap-2">
       <span
-        className="shrink-0 rounded-full border px-3.5 py-1.5 text-sm"
+        className="shrink-0 rounded-full border px-4 py-1.5 text-body"
         style={{ borderColor: "var(--foreground)", color: "var(--foreground)", background: "var(--surface-elevated)" }}
       >
         {active.label}
@@ -50,7 +50,7 @@ export function DiscoverFilterMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-sm text-muted transition-colors duration-150"
+        className="flex shrink-0 items-center gap-1 rounded-full border border-line px-3 py-1.5 text-body text-secondary transition-colors duration-150"
         style={{ transition: "transform 150ms ease-out, border-color 150ms ease" }}
       >
         More
@@ -61,7 +61,7 @@ export function DiscoverFilterMenu({
 
       {open && (
         <div
-          className="enter-pop absolute left-0 top-full z-10 mt-2 w-52 overflow-hidden rounded-lg border border-border bg-surface-elevated py-1.5 shadow-lg"
+          className="enter-pop absolute left-0 top-full z-10 mt-2 w-52 overflow-hidden rounded-card bg-surface-elevated py-1 shadow-pop"
           role="listbox"
         >
           {rest.map((f) => (
@@ -73,7 +73,7 @@ export function DiscoverFilterMenu({
                 onSelect(f.id);
                 setOpen(false);
               }}
-              className="block w-full px-4 py-2.5 text-left text-sm text-foreground transition-colors duration-150 hover:bg-surface"
+              className="block w-full px-4 py-3 text-left text-body text-foreground transition-colors duration-150 hover:bg-surface"
             >
               {f.label}
             </button>

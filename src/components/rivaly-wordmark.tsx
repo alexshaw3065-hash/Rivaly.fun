@@ -36,7 +36,7 @@ function cropStyle(box: { x: number; y: number; w: number; h: number }, scale: n
 
 export function RivalyWordmark() {
   return (
-    <span className="brand-logo flex shrink-0 items-center gap-2.5">
+    <span className="brand-logo flex shrink-0 items-center gap-3">
       <span aria-hidden style={cropStyle(ICON_BOX, ICON_SCALE)} />
       <span className="sr-only">Rivaly</span>
       <span aria-hidden style={cropStyle(TEXT_BOX, TEXT_SCALE)} />

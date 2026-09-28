@@ -33,16 +33,16 @@ const GROUP_MS = 5 * 60_000;
 const NEAR_BOTTOM_PX = 80;
 const HOLD_MS = 420;
 const QUICK_REACT = ["🔥", "😂", "😭"] as const;
-const SIDE_COLOR: Record<EntrySide, string> = { yes: "var(--rival-blue)", no: "var(--rival-red)" };
-const SIDE_DIM: Record<EntrySide, string> = { yes: "var(--rival-blue-dim)", no: "var(--rival-red-dim)" };
+const SIDE_COLOR: Record<EntrySide, string> = { yes: "var(--yes)", no: "var(--no)" };
+const SIDE_DIM: Record<EntrySide, string> = { yes: "var(--yes-tint)", no: "var(--rival-red-dim)" };
 
 const TONE: Record<EventTone, { color: string; icon: string }> = {
-  goal: { color: "var(--rival-green)", icon: "⚽" },
-  card: { color: "#f5c542", icon: "▮" },
+  goal: { color: "var(--money)", icon: "⚽" },
+  card: { color: "var(--card-yellow)", icon: "▮" },
   var: { color: "#14b8c4", icon: "▣" },
-  whistle: { color: "var(--muted)", icon: "•" },
-  "takeover-yes": { color: "var(--rival-blue)", icon: "🏟" },
-  "takeover-no": { color: "var(--rival-red)", icon: "🏟" },
+  whistle: { color: "var(--text-secondary)", icon: "•" },
+  "takeover-yes": { color: "var(--yes)", icon: "🏟" },
+  "takeover-no": { color: "var(--no)", icon: "🏟" },
 };
 
 type Row =
@@ -287,7 +287,7 @@ export function ChatThread({
                           setSheetFor(null);
                         }}
                         className="flex h-12 items-center justify-center rounded-control text-2xl transition-transform duration-100 active:scale-90"
-                        style={{ background: mine ? "color-mix(in srgb, var(--rival-blue) 22%, var(--surface))" : "var(--surface)" }}
+                        style={{ background: mine ? "color-mix(in srgb, var(--yes) 22%, var(--surface))" : "var(--surface)" }}
                       >
                         {e}
                       </button>
@@ -477,17 +477,17 @@ function MessageRow({
         e.preventDefault();
         onOpenSheet();
       }}
-      className={`chat-row-enter group relative rounded-md px-1 transition-colors duration-300 hover:bg-foreground/[0.03] ${head ? "mt-2.5 py-1" : "py-0.5"}`}
+      className={`chat-row-enter group relative rounded-control px-1 transition-colors duration-300 hover:bg-foreground/[0.03] ${head ? "mt-3 py-1" : "py-0.5"}`}
       style={flashing ? { background: "var(--yes-tint)" } : undefined}
     >
       {/* Desktop: quick reactions and Reply on hover */}
       <div className="pointer-events-none absolute -top-3 right-2 z-10 hidden items-center gap-0.5 rounded-control bg-surface-elevated p-0.5 opacity-0 shadow-pop transition-opacity duration-100 group-hover:pointer-events-auto group-hover:opacity-100 md:flex">
         {QUICK_REACT.map((e) => (
-          <button key={e} type="button" onClick={() => onReact?.(message.id, e)} className="flex h-7 w-7 items-center justify-center rounded-md text-sm hover:bg-foreground/10" aria-label={`React ${e}`}>
+          <button key={e} type="button" onClick={() => onReact?.(message.id, e)} className="flex h-7 w-7 items-center justify-center rounded-control text-body hover:bg-foreground/10" aria-label={`React ${e}`}>
             {e}
           </button>
         ))}
-        <button type="button" onClick={onOpenSheet} className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-foreground/10 hover:text-foreground" aria-label="More reactions">
+        <button type="button" onClick={onOpenSheet} className="flex h-7 w-7 items-center justify-center rounded-control text-secondary hover:bg-foreground/10 hover:text-foreground" aria-label="More reactions">
           <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
             <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" fill="none" />
             <circle cx="6" cy="6.8" r="0.9" fill="currentColor" />
@@ -495,7 +495,7 @@ function MessageRow({
             <path d="M5.6 9.8c.6.9 1.4 1.3 2.4 1.3s1.8-.4 2.4-1.3" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
           </svg>
         </button>
-        <button type="button" onClick={() => onReply?.(message)} className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-foreground/10 hover:text-foreground" aria-label="Reply">
+        <button type="button" onClick={() => onReply?.(message)} className="flex h-7 w-7 items-center justify-center rounded-control text-secondary hover:bg-foreground/10 hover:text-foreground" aria-label="Reply">
           <ReplyIcon />
         </button>
       </div>
@@ -505,7 +505,7 @@ function MessageRow({
           {/* Reply: a curved line from the face up to a one-line quote */}
           {message.replyTo && (
             <div className="relative mb-0.5 flex items-center gap-1.5 pl-[52px]">
-              <span aria-hidden className="absolute left-[19px] top-[9px] h-[10px] w-[29px] rounded-tl-md border-l-2 border-t-2 border-border-strong" />
+              <span aria-hidden className="absolute left-[19px] top-[9px] h-[10px] w-[29px] rounded-tl-md border-l-2 border-t-2 border-line-strong" />
               {quoted ? (
                 <button type="button" onClick={() => onJumpToQuoted(quoted.id)} className="flex min-w-0 items-center gap-1.5 text-left">
                   <RivalCharacter name={quoted.authorName ?? "Rival"} imageUrl={quoted.authorAvatarUrl} size={16} />

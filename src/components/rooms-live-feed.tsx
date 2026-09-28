@@ -25,7 +25,7 @@ export function RoomsLiveFeed() {
           <LiveBadge />
         </div>
         {live.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">Nothing live right now — check back at kickoff.</p>
+          <p className="mt-3 text-body text-secondary">Nothing live right now — check back at kickoff.</p>
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {live.map(({ room, match }, i) => (
@@ -39,7 +39,7 @@ export function RoomsLiveFeed() {
 
       {upcoming.length > 0 && (
         <section>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Starting soon</p>
+          <p className="text-label font-semibold text-secondary">Starting soon</p>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {upcoming.map(({ room, match }) => (
               <RoomCard key={room.id} room={room} match={match} />

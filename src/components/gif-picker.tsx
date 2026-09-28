@@ -79,12 +79,12 @@ export function GifPicker({ userId, onPick }: { userId: string | undefined; onPi
     return cols;
   }, [gifs]);
 
-  if (!klipyEnabled) return <p className="py-6 text-center text-sm text-muted">GIFs aren&apos;t set up yet.</p>;
+  if (!klipyEnabled) return <p className="py-6 text-center text-body text-secondary">GIFs aren&apos;t set up yet.</p>;
 
   return (
     <div>
-      <label className="flex h-9 items-center gap-2 rounded-full bg-background px-3 ring-1 ring-border focus-within:ring-rival-blue">
-        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="shrink-0 text-muted">
+      <label className="flex h-9 items-center gap-2 rounded-full bg-background px-3 edge focus-within:ring-rival-blue">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="shrink-0 text-secondary">
           <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
           <path d="m9.5 9.5 3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
@@ -93,10 +93,10 @@ export function GifPicker({ userId, onPick }: { userId: string | undefined; onPi
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search KLIPY"
           enterKeyHint="search"
-          className="min-w-0 flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-body text-foreground placeholder:text-secondary focus:outline-none"
         />
         {q && (
-          <button type="button" onClick={() => setQ("")} aria-label="Clear search" className="flex h-5 w-5 items-center justify-center rounded-full bg-foreground/10 text-muted">
+          <button type="button" onClick={() => setQ("")} aria-label="Clear search" className="flex h-5 w-5 items-center justify-center rounded-full bg-foreground/10 text-secondary">
             <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden>
               <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
@@ -109,7 +109,7 @@ export function GifPicker({ userId, onPick }: { userId: string | undefined; onPi
             key={s}
             type="button"
             onClick={() => setQ(s)}
-            className="h-7 shrink-0 rounded-full px-3 text-[13px] ring-1 ring-border transition-colors duration-150"
+            className="h-7 shrink-0 rounded-full px-3 text-label edge transition-colors duration-150"
             style={{
               background: term.toLowerCase() === s.toLowerCase() ? "var(--foreground)" : "transparent",
               color: term.toLowerCase() === s.toLowerCase() ? "var(--background)" : "var(--foreground)",
@@ -119,11 +119,11 @@ export function GifPicker({ userId, onPick }: { userId: string | undefined; onPi
           </button>
         ))}
       </div>
-      <div ref={scroller} className="no-scrollbar mt-2 h-[232px] overflow-y-auto overscroll-contain rounded-lg">
+      <div ref={scroller} className="no-scrollbar mt-2 h-[232px] overflow-y-auto overscroll-contain rounded-control">
         {error && gifs.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">{error}</p>
+          <p className="py-10 text-center text-body text-secondary">{error}</p>
         ) : !loading && gifs.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">No GIFs for &ldquo;{term}&rdquo;.</p>
+          <p className="py-10 text-center text-body text-secondary">No GIFs for &ldquo;{term}&rdquo;.</p>
         ) : (
           <div className="flex gap-1.5">
             {columns.map((col, c) => (
@@ -134,7 +134,7 @@ export function GifPicker({ userId, onPick }: { userId: string | undefined; onPi
                     type="button"
                     onClick={() => onPick(g, term)}
                     aria-label={g.title}
-                    className="relative block w-full overflow-hidden rounded-lg bg-foreground/5 transition-transform duration-150 active:scale-95"
+                    className="relative block w-full overflow-hidden rounded-control bg-foreground/5 transition-transform duration-150 active:scale-95"
                     style={{ aspectRatio: `${g.thumb.w} / ${g.thumb.h}` }}
                   >
                     {g.lqip && (
@@ -145,7 +145,7 @@ export function GifPicker({ userId, onPick }: { userId: string | undefined; onPi
                     <img src={g.thumb.url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                   </button>
                 ))}
-                {loading && [0, 1].map((i) => <span key={`s${i}`} className="block h-24 animate-pulse rounded-lg bg-foreground/5" />)}
+                {loading && [0, 1].map((i) => <span key={`s${i}`} className="block h-24 skeleton rounded-control bg-foreground/5" />)}
               </div>
             ))}
           </div>
