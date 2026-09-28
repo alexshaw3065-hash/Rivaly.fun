@@ -36,17 +36,17 @@ export function SplitBar({
   return (
     <div>
       {showLabels && (
-        <div className="flex items-baseline justify-between font-mono text-[11px] tracking-tight">
-          <span className="text-rival-blue">
+        <div className="flex items-baseline justify-between text-caption font-semibold tabular-nums">
+          <span className="text-yes-ink">
             {leftLabel} · {leftPct}%
           </span>
-          <span className="text-rival-red">
+          <span className="text-no-ink">
             {rightPct}% · {rightLabel}
           </span>
         </div>
       )}
       <div
-        className={`split-bar h-[6px] w-full rounded-[1px] hover:brightness-125 ${showLabels ? "mt-1.5" : ""}`}
+        className={`split-bar h-1.5 w-full overflow-hidden rounded-full hover:brightness-125 ${showLabels ? "mt-2" : ""}`}
         // --split is a registered <percentage> (globals.css), so when a new
         // entry moves the balance the divide slides instead of jumping.
         style={{ "--split": `${leftPct}%` } as React.CSSProperties}

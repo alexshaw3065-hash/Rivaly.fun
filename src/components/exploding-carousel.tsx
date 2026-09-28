@@ -130,7 +130,7 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
     <div className="min-w-0">
       <div
         ref={scroller}
-        className="no-scrollbar relative flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-xl"
+        className="no-scrollbar relative flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-card"
         onPointerDown={() => setHeld(true)}
         onPointerUp={() => setHeld(false)}
         onPointerCancel={() => setHeld(false)}
@@ -150,11 +150,11 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
       </div>
 
       {count > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-2.5">
-          <div className="flex h-9 items-center gap-2.5 rounded-full bg-surface-elevated px-4">
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <div className="flex h-9 items-center gap-2 rounded-full bg-surface px-4 edge">
             {items.map((item, i) =>
               i === index ? (
-                <span key={item.key} className="relative h-2 w-9 overflow-hidden rounded-full bg-border-strong" aria-current="true">
+                <span key={item.key} className="relative h-2 w-9 overflow-hidden rounded-full bg-line-strong" aria-current="true">
                   {/* Keyed per slide so each one's fill starts fresh; its end advances the carousel. */}
                   <span
                     key={`fill-${index}-${cycle}`}
@@ -175,7 +175,7 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
                   type="button"
                   onClick={() => goTo(i)}
                   aria-label={`Show room ${i + 1}`}
-                  className="h-2 w-2 rounded-full bg-muted/60 transition-[background-color,transform] duration-150 hover:bg-muted active:scale-90"
+                  className="relative h-2 w-2 rounded-full bg-tertiary transition-[background-color,transform] duration-100 before:absolute before:-inset-2 hover:bg-secondary active:scale-90"
                 />
               ),
             )}
@@ -184,7 +184,7 @@ export function ExplodingCarousel({ items }: { items: ExplodingSlide[] }) {
             type="button"
             onClick={() => setPlaying((p) => !p)}
             aria-label={playing ? "Pause" : "Play"}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-elevated text-foreground transition-transform duration-150 ease-out active:scale-90"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface text-foreground edge transition-transform duration-100 ease-out before:absolute before:-inset-1 active:scale-90"
           >
             {playing ? (
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>

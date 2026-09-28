@@ -17,12 +17,10 @@ export function RivalDivider({
   return (
     <div
       data-section-next={sectionHeading}
-      className="flex w-16 shrink-0 flex-col items-center justify-center gap-1.5 border-l border-border pl-3 text-center"
+      className="flex w-16 shrink-0 flex-col items-center justify-center gap-2 border-l border-line pl-3 text-center"
     >
-      <span className="text-lg leading-none">{emoji}</span>
-      <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted">
-        {label}
-      </span>
+      <span className="text-title-3 leading-none">{emoji}</span>
+      <span className="text-micro uppercase leading-tight text-tertiary">{label}</span>
     </div>
   );
 }

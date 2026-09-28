@@ -8,6 +8,7 @@ import { RivalCharacter } from "./rival-character";
 import { TeamCrest } from "./team-crest";
 import { AutoScrollRow } from "./auto-scroll-row";
 import { RivalDivider } from "./rival-divider";
+import { Card, Skeleton } from "./ui/surfaces";
 
 // Home's rivals row — one continuously auto-scrolling strip of three groups:
 //   Top rivals   — the biggest single wins, each tied to the room that paid
@@ -138,7 +139,7 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
               <TeamCrest name={w.homeTeam} size={16} />
               <TeamCrest name={w.awayTeam} size={16} />
             </span>
-            <span className="truncate font-mono text-sm font-semibold text-rival-green">+{formatMoneyCompact(profit(w))}</span>
+            <span className="truncate text-label font-semibold tabular-nums text-money-ink">+{formatMoneyCompact(profit(w))}</span>
           </>
         ),
       }))
@@ -152,7 +153,7 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
         username: s.username,
         avatarUrl: s.avatarUrl,
         achievement: `${s.streak} rooms won in a row — and counting`,
-        metric: <span className="truncate font-mono text-sm font-semibold text-[#f5a524]">🔥 {s.streak} in a row</span>,
+        metric: <span className="truncate text-label font-semibold tabular-nums text-warning">🔥 {s.streak} in a row</span>,
       }))
     : [];
 
@@ -164,7 +165,7 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
         username: e.username,
         avatarUrl: e.avatarUrl,
         achievement: `${formatMoney(e.profitCents)} profit across ${e.roomsWon} winning room${e.roomsWon === 1 ? "" : "s"}`,
-        metric: <span className="truncate font-mono text-sm font-semibold text-rival-green">👑 {formatMoneyCompact(e.profitCents)}</span>,
+        metric: <span className="truncate text-label font-semibold tabular-nums text-money-ink">👑 {formatMoneyCompact(e.profitCents)}</span>,
       }))
     : [];
 
@@ -195,17 +196,15 @@ export function TopRivals() {
         type="button"
         onClick={() => toggle(item.key)}
         aria-expanded={active}
-        className="flex w-[150px] shrink-0 flex-col gap-2.5 rounded-xl border bg-surface p-3 text-left transition-[transform,border-color,background-color] duration-150 ease-out active:scale-[0.97]"
-        style={{
-          borderColor: active ? "var(--rival-green)" : "var(--border)",
-          background: active ? "var(--rival-green-dim)" : undefined,
-        }}
+        className={`flex w-[150px] shrink-0 flex-col gap-3 rounded-card p-3 text-left outline outline-1 -outline-offset-1 transition-[transform,background-color,outline-color] duration-100 ease-out active:scale-[0.97] ${
+          active ? "bg-money-tint outline-money" : "bg-surface outline-line"
+        }`}
       >
         <span className="flex min-w-0 items-center gap-2">
           <RivalCharacter name={item.username} imageUrl={item.avatarUrl} size={28} />
-          <span className="min-w-0 truncate text-sm font-semibold text-foreground">{item.name}</span>
+          <span className="min-w-0 truncate text-label font-semibold text-foreground">{item.name}</span>
         </span>
-        <span className="flex min-w-0 items-center gap-2 rounded-lg bg-background px-2.5 py-2">{item.metric}</span>
+        <span className="flex min-w-0 items-center gap-2 rounded-control bg-background px-2 py-2">{item.metric}</span>
       </button>
     );
   };
@@ -221,25 +220,25 @@ export function TopRivals() {
 
   return (
     <section className="min-w-0">
-      <h2 className="font-display text-xl font-semibold text-foreground">{heading}</h2>
+      <h2 className="text-title-3 font-display text-foreground">{heading}</h2>
 
       <div className="mt-4 min-w-0">
         {isLoading ? (
           <div className="flex gap-3 overflow-hidden">
             {Array.from({ length: 5 }, (_, i) => (
-              <div key={i} className="h-[92px] w-[150px] shrink-0 rounded-xl border border-border bg-surface" aria-hidden />
+              <Skeleton key={i} className="h-[92px] w-[150px] shrink-0 rounded-card" />
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-xl border border-border bg-surface px-4 py-5">
-            <p className="text-sm text-foreground">No winners yet.</p>
-            <p className="mt-0.5 text-sm text-muted">
+          <Card>
+            <p className="text-body font-semibold text-foreground">No winners yet.</p>
+            <p className="mt-1 text-body text-secondary">
               The first room to settle puts someone here.{" "}
-              <Link href="/rooms/create" className="font-medium text-rival-blue">
+              <Link href="/rooms/create" className="font-semibold text-yes-ink">
                 Start one →
               </Link>
             </p>
-          </div>
+          </Card>
         ) : (
           <AutoScrollRow itemCount={items.length} initialSectionLabel={HEADINGS.top} onActiveSectionChange={setHeading} paused={openKey !== null}>
             {row}
@@ -266,50 +265,50 @@ export function TopRivals() {
 
 function ProfileStory({ item, onClose }: { item: RivalItem; onClose: () => void }) {
   return (
-    <div className="mt-3 rounded-xl border border-border bg-surface p-4">
+    <Card className="mt-3">
       <div className="flex items-start gap-3">
         <RivalCharacter name={item.username} imageUrl={item.avatarUrl} size={48} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-lg font-bold text-foreground">{item.name}</p>
-          <p className="truncate text-xs text-muted">
+          <p className="truncate text-title-3 font-display text-foreground">{item.name}</p>
+          <p className="truncate text-caption text-secondary">
             {HEADINGS[item.group]}
             {` · @${item.username}`}
           </p>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="text-muted transition-colors hover:text-foreground">
+        <button type="button" onClick={onClose} aria-label="Close" className="relative text-secondary transition-colors before:absolute before:-inset-3 hover:text-foreground">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
             <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
           </svg>
         </button>
       </div>
-      <div className="mt-3 flex items-center gap-2 rounded-lg bg-background px-3 py-2.5">{item.metric}</div>
-      <p className="mt-2 text-sm text-foreground">{item.achievement}</p>
-      <Link href={`/profile/${item.username}`} className="mt-3 block text-center text-sm font-medium text-rival-blue">
+      <div className="mt-3 flex items-center gap-2 rounded-control bg-background px-3 py-3">{item.metric}</div>
+      <p className="mt-2 text-body text-foreground">{item.achievement}</p>
+      <Link href={`/profile/${item.username}`} className="mt-3 block text-center text-label font-semibold text-yes-ink">
         See {item.name}&rsquo;s profile
       </Link>
-    </div>
+    </Card>
   );
 }
 
 function WinStory({ win, onClose }: { win: TopWin; onClose: () => void }) {
-  const sideColor = win.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)";
+  const sideColor = win.side === "yes" ? "var(--yes-ink)" : "var(--no-ink)";
   return (
-    <div className="mt-3 rounded-xl border border-border bg-surface p-4">
+    <Card className="mt-3">
       <div className="flex items-start gap-3">
         <RivalCharacter name={win.username} imageUrl={win.avatarUrl} size={48} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-lg font-bold text-foreground">{win.displayName}</p>
-          <p className="truncate text-xs text-muted">@{win.username}</p>
+          <p className="truncate text-title-3 font-display text-foreground">{win.displayName}</p>
+          <p className="truncate text-caption text-secondary">@{win.username}</p>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="text-muted transition-colors hover:text-foreground">
+        <button type="button" onClick={onClose} aria-label="Close" className="relative text-secondary transition-colors before:absolute before:-inset-3 hover:text-foreground">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
             <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
           </svg>
         </button>
       </div>
 
-      <p className="mt-3 text-sm text-foreground">
-        Took home <span className="font-mono font-semibold text-rival-green">{formatMoney(win.payoutCents)}</span> backing{" "}
+      <p className="mt-3 text-body text-foreground">
+        Took home <span className="font-semibold tabular-nums text-money-ink">{formatMoney(win.payoutCents)}</span> backing{" "}
         <span className="font-semibold" style={{ color: sideColor }}>
           {win.side.toUpperCase()}
         </span>{" "}
@@ -318,19 +317,19 @@ function WinStory({ win, onClose }: { win: TopWin; onClose: () => void }) {
 
       <Link
         href={`/rooms/${win.roomId}`}
-        className="mt-2 flex items-center gap-3 rounded-lg bg-background p-3 transition-transform duration-150 ease-out active:scale-[0.98]"
+        className="mt-2 flex items-center gap-3 rounded-control bg-background p-3 transition-transform duration-100 ease-out active:scale-[0.98]"
       >
         <span className="flex shrink-0 -space-x-1.5">
           <TeamCrest name={win.homeTeam} size={24} />
           <TeamCrest name={win.awayTeam} size={24} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-foreground">{win.prediction}</span>
-          <span className="block truncate text-xs text-muted">
+          <span className="block truncate text-label font-semibold text-foreground">{win.prediction}</span>
+          <span className="block truncate text-caption text-secondary">
             {win.competition} · {win.participantCount} rivals · {formatMoneyCompact(win.poolTotalCents)} pool
           </span>
         </span>
-        <span className="text-muted">→</span>
+        <span className="text-secondary">→</span>
       </Link>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -339,20 +338,18 @@ function WinStory({ win, onClose }: { win: TopWin; onClose: () => void }) {
         <Stat label="Profit" value={`+${formatMoneyCompact(profit(win))}`} accent />
       </div>
 
-      <Link href={`/profile/${win.username}`} className="mt-3 block text-center text-sm font-medium text-rival-blue">
+      <Link href={`/profile/${win.username}`} className="mt-3 block text-center text-label font-semibold text-yes-ink">
         See {win.displayName}&rsquo;s profile
       </Link>
-    </div>
+    </Card>
   );
 }
 
 function Stat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-lg bg-background px-2 py-2">
-      <p className="font-mono text-sm font-semibold" style={{ color: accent ? "var(--rival-green)" : "var(--foreground)" }}>
-        {value}
-      </p>
-      <p className="mt-0.5 text-[11px] text-muted">{label}</p>
+    <div className="rounded-control bg-background px-2 py-2">
+      <p className={`text-label font-semibold tabular-nums ${accent ? "text-money-ink" : "text-foreground"}`}>{value}</p>
+      <p className="mt-1 text-caption text-secondary">{label}</p>
     </div>
   );
 }

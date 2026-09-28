@@ -28,21 +28,27 @@ export function IconButton({
   );
 }
 
-/** Filter / select chip: 32px, fully rounded; selected = solid foreground. */
+/**
+ * Filter / select chip: 32px, fully rounded; selected = solid foreground.
+ * tone="live" keeps a red tint while unselected (the chip with something on
+ * right now).
+ */
 export function Chip({
   selected = false,
   leading,
+  tone = "default",
   className = "",
   children,
   ...rest
-}: ComponentProps<"button"> & { selected?: boolean; leading?: ReactNode }) {
+}: ComponentProps<"button"> & { selected?: boolean; leading?: ReactNode; tone?: "default" | "live" }) {
+  const idle = tone === "live" ? "bg-no-tint text-no-ink" : "text-secondary edge-strong hover:bg-overlay-1 hover:text-foreground";
   return (
     <button
       type="button"
       aria-pressed={selected}
       {...rest}
       className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-label transition-[transform,background-color,color] duration-100 ease-out active:scale-[0.97] ${
-        selected ? "bg-foreground text-background" : "text-secondary edge-strong hover:bg-overlay-1 hover:text-foreground"
+        selected ? "bg-foreground text-background" : idle
       } ${className}`}
     >
       {leading}
@@ -61,20 +67,19 @@ export function SidePill({
   selected = false,
   label,
   meta,
-  size = "md",
+  size = "lg",
   className = "",
   ...rest
-}: Omit<ComponentProps<"button">, "children"> & { side: "yes" | "no"; selected?: boolean; label?: ReactNode; meta?: ReactNode; size?: "sm" | "md" }) {
+}: Omit<ComponentProps<"button">, "children"> & { side: "yes" | "no"; selected?: boolean; label?: ReactNode; meta?: ReactNode; size?: "sm" | "md" | "lg" }) {
   const yes = side === "yes";
+  const sizing = { sm: "h-8 rounded-tag px-3 text-label", md: "h-10 rounded-tag px-3 text-body", lg: "h-12 rounded-control px-4 text-body-lg" }[size];
   return (
     <button
       type="button"
       role="radio"
       aria-checked={selected}
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-control font-display font-bold transition-[transform,background-color,outline-color] duration-100 ease-out active:scale-[0.97] ${
-        size === "sm" ? "h-8 rounded-tag px-3 text-label" : "h-12 px-4 text-body-lg"
-      } ${yes ? "text-yes-ink" : "text-no-ink"} ${selected ? (yes ? "bg-yes-tint-strong" : "bg-no-tint-strong") : yes ? "bg-yes-tint" : "bg-no-tint"} outline outline-[1.5px] -outline-offset-[1.5px] ${selected ? (yes ? "outline-yes" : "outline-no") : "outline-transparent"} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-display font-bold transition-[transform,background-color,outline-color] duration-100 ease-out active:scale-[0.97] ${sizing} ${yes ? "text-yes-ink" : "text-no-ink"} ${selected ? (yes ? "bg-yes-tint-strong" : "bg-no-tint-strong") : yes ? "bg-yes-tint" : "bg-no-tint"} outline outline-[1.5px] -outline-offset-[1.5px] ${selected ? (yes ? "outline-yes" : "outline-no") : "outline-transparent"} ${className}`}
     >
       {label ?? (yes ? "YES" : "NO")}
       {meta != null && <span className="font-sans text-label tabular-nums opacity-80">{meta}</span>}
@@ -87,11 +92,14 @@ export function Tabs<T extends string>({
   tabs,
   value,
   onChange,
+  track = true,
   className = "",
 }: {
   tabs: { id: T; label: ReactNode; count?: number }[];
   value: T;
   onChange: (id: T) => void;
+  /** false when the parent draws the 1px track (e.g. an icon sits beside the tabs on the same line). */
+  track?: boolean;
   className?: string;
 }) {
   const refs = useRef(new Map<T, HTMLButtonElement>());
@@ -101,7 +109,7 @@ export function Tabs<T extends string>({
     if (el) setBar({ x: el.offsetLeft, w: el.offsetWidth });
   }, [value, tabs.length]);
   return (
-    <div role="tablist" className={`no-scrollbar relative flex gap-6 overflow-x-auto border-b border-line ${className}`}>
+    <div role="tablist" className={`no-scrollbar relative flex gap-6 overflow-x-auto ${track ? "border-b border-line" : ""} ${className}`}>
       {tabs.map((t) => (
         <button
           key={t.id}

@@ -5,7 +5,10 @@ import { useRealMatches } from "@/lib/use-real-matches";
 import { sportOf } from "@/lib/markets";
 import { RoomFeed, type FilterTab } from "./room-feed";
 import { MatchChip } from "./match-chip";
-import { BottomSheet } from "./bottom-sheet";
+import { Badge, Card, ListGroup, ListRow } from "./ui/surfaces";
+import { Sheet } from "./ui/sheet";
+import { Tabs } from "./ui/controls";
+import { Button } from "./ui/button";
 import { FilterIcon } from "./icons";
 import type { Room, Match } from "@/lib/types";
 
@@ -35,23 +38,16 @@ const HOME_FILTERS: { id: FilterTab; label: string }[] = [
   { id: "closing", label: "Closing soon" },
 ];
 
-function iconButtonColor(active: boolean) {
-  return active ? "var(--rival-blue)" : "var(--muted)";
-}
-
 function Checkbox({ checked }: { checked: boolean }) {
   return (
     <span
-      className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border"
-      style={{
-        borderColor: checked ? "var(--rival-blue)" : "var(--border-strong)",
-        background: checked ? "var(--rival-blue)" : "transparent",
-        transition: "background-color 150ms ease, border-color 150ms ease",
-      }}
+      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-tag border transition-[background-color,border-color] duration-100 ${
+        checked ? "border-yes bg-yes text-white" : "border-line-strong"
+      }`}
     >
       {checked && (
-        <svg viewBox="0 0 12 12" width="10" height="10" fill="none" aria-hidden>
-          <path d="M2 6.2 4.8 9 10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden>
+          <path d="M2 6.2 4.8 9 10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
     </span>
@@ -79,29 +75,29 @@ function PacksComingSoon({ matches }: { matches: Match[] }) {
     <div className="mx-auto flex max-w-md flex-col items-center text-center">
       <div aria-hidden className="relative w-full select-none">
         {/* Two cards peeking behind: a pack is a stack of calls */}
-        <div className="absolute inset-x-6 -top-3 h-full rounded-2xl border border-border bg-surface opacity-40" />
-        <div className="absolute inset-x-3 -top-1.5 h-full rounded-2xl border border-border bg-surface opacity-70" />
-        <div className="relative rounded-2xl border border-border bg-surface p-4 text-left">
+        <div className="absolute inset-x-6 -top-3 h-full rounded-card bg-surface opacity-40 edge" />
+        <div className="absolute inset-x-3 -top-1.5 h-full rounded-card bg-surface opacity-70 edge" />
+        <Card className="relative text-left">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">{calls.length}-call pack</span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-rival-blue">Preview</span>
+            <Badge>{calls.length}-call pack</Badge>
+            <Badge tone="yes">Preview</Badge>
           </div>
           <ul className="mt-3 flex flex-col gap-2">
             {calls.map((c, i) => (
-              <li key={i} className="flex items-center gap-2.5 rounded-xl bg-background px-3 py-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-bold text-muted ring-1 ring-border-strong">{i + 1}</span>
-                <span className="min-w-0 truncate text-sm font-semibold text-foreground/80">{c}</span>
+              <li key={i} className="flex items-center gap-3 rounded-control bg-background px-3 py-3">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-micro font-bold tabular-nums text-secondary outline outline-1 -outline-offset-1 outline-line-strong">{i + 1}</span>
+                <span className="min-w-0 truncate text-label font-semibold text-foreground/80">{c}</span>
               </li>
             ))}
           </ul>
-          <div className="mt-3 flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted">
+          <div className="mt-4 flex items-center justify-between text-caption text-secondary">
             <span>Hit all {calls.length}</span>
             <span>Take the pot</span>
           </div>
-        </div>
+        </Card>
       </div>
-      <p className="mt-6 font-display text-lg font-bold text-foreground">Packs are coming soon</p>
-      <p className="mt-1 text-sm text-muted">Bundle 2–4 calls into one. Get them all right and the pot is yours.</p>
+      <p className="mt-6 text-title-3 font-display text-foreground">Packs are coming soon</p>
+      <p className="mt-2 text-body text-secondary">Bundle 2–4 calls into one. Get them all right and the pot is yours.</p>
     </div>
   );
 }
@@ -167,88 +163,73 @@ export function RoomsMatchesBrowser({
 
   return (
     <div>
-      <div className="flex items-center gap-4 border-b border-border">
+      <div className="flex items-end gap-4 border-b border-line">
         <button
           onClick={() => setShowSheet(true)}
           aria-label="Filter by league"
           aria-pressed={selectedLeagues.length > 0}
-          className="pb-2.5"
-          style={{ color: iconButtonColor(selectedLeagues.length > 0), transition: "color 150ms ease" }}
+          className={`relative pb-3 transition-colors duration-100 before:absolute before:-inset-3 ${selectedLeagues.length > 0 ? "text-yes-ink" : "text-secondary hover:text-foreground"}`}
         >
           <FilterIcon />
         </button>
-        {(["rooms", "matches", "packs"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="-mb-px flex items-center gap-1.5 border-b-2 pb-2.5 text-sm capitalize transition-colors duration-150"
-            style={{
-              borderColor: tab === t ? "var(--foreground)" : "transparent",
-              color: tab === t ? "var(--foreground)" : "var(--muted)",
-            }}
-          >
-            {t}
-            {t === "packs" && (
-              <span className="rounded-full px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wider text-rival-blue ring-1 ring-rival-blue/40">
-                Soon
-              </span>
-            )}
-          </button>
-        ))}
-        {summary && (
-          <span className="ml-auto shrink-0 pb-2.5 font-mono text-xs text-rival-blue">{summary}</span>
-        )}
+        <Tabs
+          track={false}
+          className="min-w-0 flex-1"
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { id: "rooms", label: "Rooms" },
+            { id: "matches", label: "Matches" },
+            {
+              id: "packs",
+              label: (
+                <span className="inline-flex items-center gap-2">
+                  Packs <Badge tone="yes">Soon</Badge>
+                </span>
+              ),
+            },
+          ]}
+        />
+        {summary && <span className="ml-auto shrink-0 pb-3 text-label font-semibold text-yes-ink">{summary}</span>}
       </div>
 
-      <BottomSheet open={showSheet} onClose={() => setShowSheet(false)} title="Filter by league">
-        <div className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
-          <button
-            onClick={() => setDraftLeagues([])}
-            className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
+      <Sheet
+        open={showSheet}
+        onOpenChange={setShowSheet}
+        title="Filter by league"
+        footer={
+          <Button
+            variant="inverse"
+            size="cta"
+            onClick={() => {
+              onLeaguesChange(draftLeagues);
+              setShowSheet(false);
+            }}
           >
-            <span className="text-sm text-foreground">All leagues</span>
-            <Checkbox checked={draftLeagues.length === 0} />
-          </button>
+            Confirm
+          </Button>
+        }
+      >
+        <ListGroup>
+          <ListRow title="All leagues" trailing={<Checkbox checked={draftLeagues.length === 0} />} onClick={() => setDraftLeagues([])} />
           {leagues.map((l) => (
-            <button
-              key={l}
-              onClick={() => toggleDraftLeague(l)}
-              className="flex items-center justify-between rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-surface-elevated"
-            >
-              <span className="text-sm text-foreground">{l}</span>
-              <Checkbox checked={draftLeagues.includes(l)} />
-            </button>
+            <ListRow key={l} title={l} trailing={<Checkbox checked={draftLeagues.includes(l)} />} onClick={() => toggleDraftLeague(l)} />
           ))}
-        </div>
-        <button
-          onClick={() => {
-            onLeaguesChange(draftLeagues);
-            setShowSheet(false);
-          }}
-          className="mt-5 w-full rounded-md bg-foreground py-3 text-sm font-medium text-background transition-transform duration-150 ease-out active:scale-[0.97]"
-        >
-          Confirm
-        </button>
-      </BottomSheet>
+        </ListGroup>
+      </Sheet>
 
       {tab === "packs" ? (
-        <div className="mt-10">
+        <div className="mt-8">
           <PacksComingSoon matches={liveMatches} />
         </div>
       ) : tab === "rooms" ? (
-        <div className="mt-10">
-          <RoomFeed
-            extraFilter={roomMatchesLeagues}
-            tabs={HOME_FILTERS}
-            initialTab="trending"
-            activeChipBg="var(--border-strong)"
-            highlightTabId="live"
-          />
+        <div className="mt-4">
+          <RoomFeed extraFilter={roomMatchesLeagues} tabs={HOME_FILTERS} initialTab="trending" highlightTabId="live" />
         </div>
       ) : (
-        <div className="mt-10">
+        <div className="mt-4">
           {browseMatches.length === 0 ? (
-            <p className="text-sm text-muted">No matches for this league yet.</p>
+            <p className="py-8 text-center text-body text-secondary">No matches for this league yet.</p>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {browseMatches.map((m) => (

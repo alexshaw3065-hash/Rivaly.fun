@@ -22,7 +22,7 @@ export function Card({
 /** A section title with an optional action on the right ("See all"). */
 export function SectionHeader({ title, action, className = "" }: { title: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={`mb-3 flex items-baseline justify-between gap-4 ${className}`}>
+    <div className={`mb-4 flex items-baseline justify-between gap-4 ${className}`}>
       <h2 className="text-title-3 font-display text-foreground">{title}</h2>
       {action && <div className="shrink-0 text-label text-secondary">{action}</div>}
     </div>
@@ -93,8 +93,8 @@ export function ListRow({
 }
 
 /**
- * Tiny status badge — the only place UPPERCASE is used. The live dot is
- * steady (a state, not an animation): anti-slop law, "the pulsing live dot".
+ * Tiny status badge — the only place UPPERCASE is used. The live dot pulses
+ * a crisp ring (founder's call, 2026-09-28; .live-dot in globals.css).
  */
 export function Badge({ tone = "neutral", children, className = "" }: { tone?: "neutral" | "live" | "yes" | "no" | "money"; children: ReactNode; className?: string }) {
   const color = { neutral: "text-secondary", live: "text-live", yes: "text-yes-ink", no: "text-no-ink", money: "text-money-ink" }[tone];

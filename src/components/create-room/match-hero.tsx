@@ -87,34 +87,34 @@ export function MatchBanner({ match, size = "lg", children }: { match: Match; si
   return (
     <div className="relative overflow-hidden" style={{ background: teamSplit(match) }}>
       <FieldLines sport={sport} />
-      <div className={`relative ${size === "lg" ? "px-4 pb-4 pt-3.5" : "px-4 pb-3.5 pt-3"}`}>
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex min-w-0 items-center gap-1.5 text-foreground/80">
+      <div className="relative px-4 pb-4 pt-3">
+        <div className="flex items-center justify-between gap-3 text-caption text-foreground/80">
+          <span className="flex min-w-0 items-center gap-1.5">
             <LeagueMark
               name={match.competition}
               size={14}
               fallback={sport === "nfl" ? <GridironIcon className="h-3.5 w-3.5 shrink-0" /> : <SoccerIcon className="h-3.5 w-3.5 shrink-0" />}
             />
-            <span className="truncate font-mono text-[10px] uppercase tracking-wider">{match.competition}</span>
+            <span className="truncate font-medium">{match.competition}</span>
           </span>
           {match.status === "live" ? (
             <LiveBadge />
           ) : match.status === "finished" ? (
-            <span className="shrink-0 font-mono text-[11px] text-foreground/80">
+            <span className="shrink-0 tabular-nums">
               FT{match.homeScore != null && match.awayScore != null ? ` · ${match.homeScore}–${match.awayScore}` : ""}
             </span>
           ) : match.status === "postponed" || match.status === "cancelled" ? (
-            <span className="shrink-0 font-mono text-[11px] capitalize text-foreground/80">{match.status}</span>
+            <span className="shrink-0 capitalize">{match.status}</span>
           ) : (
-            <span className="shrink-0 font-mono text-[11px] text-foreground/80">
+            <span className="shrink-0 tabular-nums">
               <Countdown kickoffAt={match.kickoffAt} />
             </span>
           )}
         </div>
-        <div className={`grid grid-cols-[1fr_auto_1fr] items-center gap-2 ${size === "lg" ? "mt-3.5" : "mt-2.5"}`}>
-          <TeamSide name={match.homeTeam} crest={crest} />
-          <span className="font-display text-sm font-bold text-foreground/60">v</span>
-          <TeamSide name={match.awayTeam} crest={crest} />
+        <div className={`grid grid-cols-[1fr_auto_1fr] items-center gap-2 ${size === "lg" ? "mt-4" : "mt-3"}`}>
+          <TeamSide name={match.homeTeam} crest={crest} size={size} />
+          <span className="text-label font-display font-bold text-foreground/60">v</span>
+          <TeamSide name={match.awayTeam} crest={crest} size={size} />
         </div>
         {children}
       </div>
@@ -122,11 +122,11 @@ export function MatchBanner({ match, size = "lg", children }: { match: Match; si
   );
 }
 
-function TeamSide({ name, crest }: { name: string; crest: number }) {
+function TeamSide({ name, crest, size }: { name: string; crest: number; size: "sm" | "lg" }) {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
       <TeamCrest name={name} size={crest} />
-      <span className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">{name}</span>
+      <span className={`line-clamp-2 font-semibold leading-tight text-foreground ${size === "lg" ? "text-body" : "text-label"}`}>{name}</span>
     </div>
   );
 }

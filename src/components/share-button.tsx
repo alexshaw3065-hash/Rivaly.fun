@@ -25,11 +25,7 @@ export function ShareButton({ path, label = "item" }: { path: string; label?: st
         });
       }}
       aria-label={copied ? "Link copied" : `Share ${label}`}
-      className="shrink-0 p-0.5 active:scale-[0.9]"
-      style={{
-        color: copied ? "var(--rival-blue)" : "var(--muted)",
-        transition: "transform 150ms ease-out, color 150ms ease",
-      }}
+      className={`relative shrink-0 p-0.5 transition-[transform,color] duration-100 ease-out before:absolute before:-inset-2 active:scale-[0.9] ${copied ? "text-yes-ink" : "text-secondary hover:text-foreground"}`}
     >
       <ShareIcon />
     </button>

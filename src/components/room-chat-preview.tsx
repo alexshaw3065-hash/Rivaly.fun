@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "./avatar";
+import { Badge } from "./ui/surfaces";
 
 // A non-interactive teaser of a room's real chat on the Exploding card: the
 // latest lines, cycling slowly enough to read. Only ever real messages (this
@@ -65,18 +66,14 @@ export function RoomChatPreview({ roomId }: { roomId: string }) {
   const shown = Array.from({ length: Math.min(VISIBLE, lines.length) }, (_, i) => lines[(offset + i) % lines.length]);
 
   return (
-    <div className="flex flex-col gap-1.5" aria-label="Latest chat">
+    <div className="flex flex-col gap-2" aria-label="Latest chat">
       {shown.map((l) => (
         <div key={`${l.id}-${offset}`} className="chat-preview-line flex min-w-0 items-center gap-2">
           <Avatar name={l.name} size={16} imageUrl={l.avatar} />
-          <p className="min-w-0 flex-1 truncate text-xs text-muted">
-            <span className="font-medium text-foreground">{l.name}</span> {l.body}
+          <p className="min-w-0 flex-1 truncate text-caption text-secondary">
+            <span className="font-semibold text-foreground">{l.name}</span> {l.body}
           </p>
-          {l.side && (
-            <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wide" style={{ color: l.side === "yes" ? "var(--rival-blue)" : "var(--rival-red)" }}>
-              {l.side}
-            </span>
-          )}
+          {l.side && <Badge tone={l.side}>{l.side}</Badge>}
         </div>
       ))}
     </div>

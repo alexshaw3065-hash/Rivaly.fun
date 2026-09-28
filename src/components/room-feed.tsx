@@ -7,6 +7,8 @@ import { splitPctFromTotals } from "@/lib/supabase/room-mapper";
 import { RoomCard } from "./room-card";
 import { EmptyRooms } from "./empty-rooms";
 import { TvIcon } from "./icons";
+import { Chip } from "./ui/controls";
+import { Button } from "./ui/button";
 import type { Match } from "@/lib/types";
 
 // Six, not five — matches the founder's Polymarket reference (their Browse
@@ -110,18 +112,11 @@ function buildRows(items: RoomWithMatch[]): FeedRow[] {
 // `tabs` overrides which chips render (and in what order) without
 // touching the shared `filters` constant every other caller still uses —
 // Home passes its own 5-chip set (see rooms-matches-browser.tsx); Search
-// and everyone else omit it and get the full default list. `activeChipBg`
-// is the same idea for styling: defaults to the original subtle
-// --surface-elevated fill everywhere, so Home can opt into a stronger
-// --border-strong fill without that bleeding into Search's identical
-// chip row (a real bug caught after shipping — the color lived in this
-// shared component with no per-caller gate the first time). `highlightTabId`
-// is a third per-caller opt-in: that one chip gets a permanent red-tinted
-// treatment (same --danger-red LiveBadge already uses elsewhere) whether
-// or not it's the selected tab — Home uses this to make "Live" stand out
-// from the rest of its row at a glance, since a live match is the most
-// urgent thing on the page. Undefined (the default) means no chip gets
-// this, so Search/Rooms are unaffected unless a caller explicitly opts in.
+// and everyone else omit it and get the full default list. `highlightTabId`
+// is a per-caller opt-in: that one chip keeps a red live tint whether or not
+// it's selected — Home uses this to make "Live" stand out from the rest of
+// its row at a glance, since a live match is the most urgent thing on the
+// page. Undefined (the default) means no chip gets this.
 export function RoomFeed({
   extraFilter,
   chipRowEnd,
@@ -130,7 +125,6 @@ export function RoomFeed({
   onTabChange,
   hideChips = false,
   tabs = filters,
-  activeChipBg = "var(--surface-elevated)",
   highlightTabId,
   emptyFiltered,
 }: {
@@ -141,7 +135,6 @@ export function RoomFeed({
   onTabChange?: (tab: FilterTab) => void;
   hideChips?: boolean;
   tabs?: { id: FilterTab; label: string }[];
-  activeChipBg?: string;
   highlightTabId?: FilterTab;
   /** Replaces "No rooms match this filter yet" — e.g. a start-a-room call on one match. */
   emptyFiltered?: ReactNode;
@@ -201,34 +194,21 @@ export function RoomFeed({
     <div>
       {!hideChips && (
         <div className="flex items-center gap-3">
-          <div className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+          <div className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto py-1">
             {tabs.map((f) => {
-              const selected = tab === f.id;
               const highlighted = f.id === highlightTabId;
+              // TvIcon rides along with highlightTabId ("live" on Home): the
+              // chip that's tinted red is the one with something to watch.
               return (
-                <button
+                <Chip
                   key={f.id}
+                  selected={tab === f.id}
+                  tone={highlighted ? "live" : "default"}
+                  leading={highlighted ? <span className="[&_svg]:h-4 [&_svg]:w-4"><TvIcon /></span> : undefined}
                   onClick={() => setTab(f.id)}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm active:scale-[0.97]"
-                  style={{
-                    borderColor: selected ? "var(--foreground)" : highlighted ? "var(--danger-red)" : "var(--border)",
-                    color: selected ? "var(--foreground)" : highlighted ? "var(--danger-red)" : "var(--muted)",
-                    background: selected
-                      ? activeChipBg
-                      : highlighted
-                        ? "color-mix(in srgb, var(--danger-red) 15%, transparent)"
-                        : "transparent",
-                    transition:
-                      "transform 150ms ease-out, border-color 150ms ease, color 150ms ease, background-color 150ms ease",
-                  }}
                 >
-                  {/* TvIcon rides along with highlightTabId ("live" on
-                      Home) rather than its own prop — the same signal
-                      that makes this chip red-tinted also marks it as
-                      the one with something to actually watch. */}
-                  {highlighted && <TvIcon />}
                   {f.label}
-                </button>
+                </Chip>
               );
             })}
           </div>
@@ -236,13 +216,11 @@ export function RoomFeed({
         </div>
       )}
 
-      <div className={hideChips ? "flex flex-col gap-4" : "mt-6 flex flex-col gap-4"}>
+      <div className={hideChips ? "flex flex-col gap-3" : "mt-4 flex flex-col gap-3"}>
         {rows.map(({ room, match, showHeader }, i) => (
           <div key={room.id}>
             {showHeader && (
-              <p className="mb-3 mt-1 font-mono text-[11px] uppercase tracking-wider text-muted">
-                {match.competition}
-              </p>
+              <p className={`mb-3 text-label font-semibold text-secondary ${i > 0 ? "mt-5" : ""}`}>{match.competition}</p>
             )}
             <div
               className={i >= visibleCount - PAGE_SIZE ? "stagger-in" : undefined}
@@ -260,29 +238,22 @@ export function RoomFeed({
 
       {!done && (
         <div ref={sentinelRef} className="flex justify-center py-8">
-          <span
-            className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "var(--border-strong)", borderTopColor: "transparent" }}
-            aria-label="Loading more rooms"
-          />
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-line-strong border-t-transparent" aria-label="Loading more rooms" />
         </div>
       )}
 
       {done && filtered.length > 0 && (
         <div className="flex flex-col items-center gap-3 py-14 text-center">
-          <p className="font-display text-lg font-bold text-foreground">Rivaly</p>
-          <p className="text-sm text-muted">You&rsquo;ve seen every room. Go start one.</p>
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="mt-1 rounded-full border border-border-strong px-4 py-2 text-sm text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
-          >
+          <p className="text-title-3 font-display text-foreground">Rivaly</p>
+          <p className="text-body text-secondary">You&rsquo;ve seen every room. Go start one.</p>
+          <Button variant="secondary" size="sm" className="mt-1 rounded-full px-4" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
             Back to top ↑
-          </button>
+          </Button>
         </div>
       )}
 
       {!isLoading && items.length === 0 && (emptyFiltered ?? <EmptyRooms />)}
-      {items.length > 0 && filtered.length === 0 && (emptyFiltered ?? <p className="py-14 text-center text-sm text-muted">No rooms match this filter yet.</p>)}
+      {items.length > 0 && filtered.length === 0 && (emptyFiltered ?? <p className="py-12 text-center text-body text-secondary">No rooms match this filter yet.</p>)}
     </div>
   );
 }

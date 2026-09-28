@@ -7,6 +7,8 @@ import { SearchBarLink } from "@/components/search-bar-link";
 import { TopRivals } from "@/components/top-rivals";
 import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
 import { EmptyRooms } from "@/components/empty-rooms";
+import { FeatureCardShape } from "@/components/loading-shapes";
+import { SectionHeader } from "@/components/ui";
 
 // Redesigned against the founder's sketch (2026-08-15): search pill, an
 // "Exploding Now" carousel (Apple-style — see exploding-carousel.tsx), Top
@@ -26,29 +28,33 @@ export default function Home() {
         <SearchBarLink />
       </div>
 
-      <section className="mt-5 min-w-0 md:mt-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold text-foreground">🔥 Exploding now</h2>
-          <Link href="/rooms" className="hover-link text-sm text-muted transition-colors">
-            View all →
-          </Link>
-        </div>
-        <div className="mt-5">
+      <section className="mt-6 min-w-0">
+        <SectionHeader
+          title="🔥 Exploding now"
+          action={
+            <Link href="/rooms" className="hover-link transition-colors">
+              View all →
+            </Link>
+          }
+        />
+        <div>
           {exploding.length > 0 ? (
             <ExplodingCarousel items={exploding} />
           ) : explodingLoading ? (
-            <div className="h-64 rounded-xl border border-border bg-surface" aria-busy />
+            <div aria-busy>
+              <FeatureCardShape />
+            </div>
           ) : (
             <EmptyRooms />
           )}
         </div>
       </section>
 
-      <div className="mt-12">
+      <div className="mt-8">
         <TopRivals />
       </div>
 
-      <section className="mt-12 min-w-0">
+      <section className="mt-8 min-w-0">
         <RoomsMatchesBrowser selectedLeagues={selectedLeagues} onLeaguesChange={setSelectedLeagues} />
       </section>
     </main>

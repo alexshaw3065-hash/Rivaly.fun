@@ -46,11 +46,7 @@ export function BookmarkButton({
       }}
       aria-label={saved ? `Remove ${label} from wishlist` : `Save ${label} to wishlist`}
       aria-pressed={saved}
-      className="shrink-0 p-0.5 active:scale-[0.9]"
-      style={{
-        color: saved ? "var(--rival-blue)" : "var(--muted)",
-        transition: "transform 150ms ease-out, color 150ms ease",
-      }}
+      className={`relative shrink-0 p-0.5 transition-[transform,color] duration-100 ease-out before:absolute before:-inset-2 active:scale-[0.9] ${saved ? "text-yes-ink" : "text-secondary hover:text-foreground"}`}
     >
       <BookmarkIcon filled={saved} />
     </button>

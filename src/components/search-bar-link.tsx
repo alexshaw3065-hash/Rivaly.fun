@@ -60,13 +60,12 @@ export function SearchBarLink() {
   }, []);
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <div ref={containerRef} className="relative min-w-0 flex-1">
         <div
-          className="flex h-11 min-w-0 items-center gap-2.5 rounded-full border bg-surface px-4"
-          style={{ borderColor: open ? "var(--rival-blue)" : "var(--border)", transition: "border-color 150ms ease" }}
+          className={`flex h-11 min-w-0 items-center gap-2 rounded-full border bg-surface px-4 transition-colors duration-150 ${open ? "border-yes" : "border-line-strong"}`}
         >
-          <span className="shrink-0 text-muted [&_svg]:h-[19px] [&_svg]:w-[19px]">
+          <span className="shrink-0 text-secondary [&_svg]:h-[19px] [&_svg]:w-[19px]">
             <SearchIcon />
           </span>
           <input
@@ -81,15 +80,12 @@ export function SearchBarLink() {
               }
             }}
             placeholder="Search rooms, matches, people…"
-            className="min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-body-lg text-foreground placeholder:text-tertiary focus:outline-none"
           />
         </div>
 
         {open && (
-          <div
-            className="enter-pop absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-surface-elevated p-4"
-            style={{ boxShadow: "0 16px 40px -12px rgba(0, 0, 0, 0.5)" }}
-          >
+          <div className="enter-pop absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[70vh] overflow-y-auto rounded-card bg-surface-elevated p-4 shadow-pop">
             {!q ? (
               <SearchRollup
                 compact
@@ -113,10 +109,10 @@ export function SearchBarLink() {
         )}
       </div>
 
-      <button onClick={openSearchOverlay} aria-label="Advanced search" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,transform] duration-150 active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px] text-muted hover:bg-surface hover:text-foreground">
+      <button onClick={openSearchOverlay} aria-label="Advanced search" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-secondary transition-[color,background-color,transform] duration-100 hover:bg-overlay-1 hover:text-foreground active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px]">
         <SlidersIcon />
       </button>
-      <Link href="/wishlist" aria-label="Wishlist" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,transform] duration-150 active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px] text-muted hover:bg-surface hover:text-foreground">
+      <Link href="/wishlist" aria-label="Wishlist" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-secondary transition-[color,background-color,transform] duration-100 hover:bg-overlay-1 hover:text-foreground active:scale-90 [&_svg]:h-[19px] [&_svg]:w-[19px]">
         <BookmarkIcon />
       </Link>
     </div>

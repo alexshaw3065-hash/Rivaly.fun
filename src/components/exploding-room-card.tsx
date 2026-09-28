@@ -21,18 +21,20 @@ export function ExplodingRoomCard({ room, match }: { room: RoomWithTotals; match
   return (
     <Link
       href={`/rooms/${room.id}`}
-      className="flex h-full flex-col overflow-hidden rounded-xl border border-border-strong bg-surface-elevated transition-transform duration-150 ease-out active:scale-[0.98]"
+      className="flex h-full flex-col overflow-hidden rounded-card bg-surface edge transition-transform duration-100 ease-out active:scale-[0.98]"
     >
       <MatchBanner match={match} size="sm" />
-      <div className="flex flex-1 flex-col gap-4 border-t border-border p-5">
-        <p className="font-display text-xl font-semibold leading-snug text-foreground" title={room.prediction} aria-label={room.prediction}>
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <p className="text-title-2 font-display text-foreground" title={room.prediction} aria-label={room.prediction}>
           {abbreviateClaim(room.prediction, match.homeTeam, match.awayTeam)}
         </p>
         <SplitBar leftPct={leftPct} leftLabel="Yes" rightLabel="No" />
         <RoomChatPreview roomId={room.id} />
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3.5 font-mono text-xs text-muted">
-          <span className="shrink-0" title={formatMoney(room.poolTotalCents)}>{formatMoneyCompact(room.poolTotalCents)} pool</span>
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="mt-auto flex items-center justify-between gap-3 text-caption text-secondary">
+          <span className="shrink-0 tabular-nums" title={formatMoney(room.poolTotalCents)}>
+            <span className="text-label font-semibold text-foreground">{formatMoneyCompact(room.poolTotalCents)}</span> pool
+          </span>
+          <div className="flex min-w-0 items-center gap-4">
             <RivalsInRoom roomId={room.id} participantCount={room.participantCount} />
             <ShareButton path={`/rooms/${room.id}`} label="room" />
             <BookmarkButton id={room.id} label="room" />
