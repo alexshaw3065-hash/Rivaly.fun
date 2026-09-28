@@ -13,8 +13,14 @@ sidebar, desktop header, menus and FABs on the tokens and kit; LIVE dot pulses
 (founder's call); `loading.tsx` for every main route (root fallback shaped like
 Home, plus rooms, room, create, arena, post, profile, search, wallet,
 notifications) so taps navigate instantly and links can prefetch; tapped tabs
-light up that frame (`useLinkStatus`). Drift 833 → 810. Next: Phase 3, the
-screen passes.
+light up that frame (`useLinkStatus`). Drift 833 → 810. **Phase 3 in progress**
+(2026-09-28): done — Home, Room, Create, Arena (+ X-style feed dividers,
+`--divider`), Search, Profile, Wallet, Notifications, username step, shared
+BottomSheet. Left — Admin (light touch: tokens only, same mechanical pass),
+screenshot checks of signed-in views (own profile, wallet, notifications,
+sheets), then Phase 4. Drift now 360. Gotcha: never use a bare
+`rounded-sheet` (Tailwind emits nothing) — use `rounded-t-sheet` /
+`md:rounded-sheet`.
 
 Written 2026-09-27. Scope: polish the **existing** app — styling, type, colour,
 spacing, components, interactions, motion, responsiveness — so it feels like
