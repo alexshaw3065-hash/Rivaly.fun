@@ -86,7 +86,7 @@ export function ArenaRivals() {
       </div>
       <div className="no-scrollbar -mx-4 mt-2 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
         {people.map((p) => (
-          <div key={p.id} className="flex w-[132px] shrink-0 flex-col items-center gap-2 rounded-card border border-line bg-surface px-3 pb-3 pt-4 text-center">
+          <div key={p.id} className="flex w-[132px] shrink-0 flex-col items-center gap-2 rounded-card bg-surface edge px-3 pb-3 pt-4 text-center">
             <Link href={`/profile/${p.username}`} className="flex w-full min-w-0 flex-col items-center gap-1.5">
               <span className="relative">
                 <RivalCharacter name={p.username} imageUrl={p.avatar} size={44} />

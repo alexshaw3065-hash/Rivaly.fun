@@ -62,7 +62,7 @@ export function LineupPanel({ match, lineups, kits = {} }: { match: Match; lineu
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="stadium-art overflow-hidden rounded-2xl border border-border">
+      <div className="stadium-art overflow-hidden rounded-card edge">
         {/* Team switch */}
         <div role="tablist" aria-label="Team" className="grid grid-cols-2 bg-surface">
           {(["home", "away"] as const).map((s) => (
@@ -93,11 +93,11 @@ export function LineupPanel({ match, lineups, kits = {} }: { match: Match; lineu
         </div>
 
         {/* Both formations */}
-        <div className="flex items-end justify-between border-t border-border bg-surface px-4 py-2">
+        <div className="flex items-end justify-between border-t border-line bg-surface px-4 py-2">
           {(["home", "away"] as const).map((s) => (
             <div key={s} className={s === "away" ? "text-right" : ""}>
-              <p className="font-mono text-sm font-bold tabular-nums text-foreground">{lineups?.[s].formation || "–"}</p>
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">Formation</p>
+              <p className="text-label font-bold tabular-nums text-foreground">{lineups?.[s].formation || "–"}</p>
+              <p className="text-caption text-secondary">Formation</p>
             </div>
           ))}
         </div>
@@ -120,12 +120,12 @@ export function LineupPanel({ match, lineups, kits = {} }: { match: Match; lineu
       </div>
 
       {team && team.bench.length > 0 && (
-        <div className="rounded-2xl border border-border bg-surface px-4 py-3">
-          <p className="pb-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Substitutes</p>
+        <div className="rounded-card bg-surface px-4 py-3 edge">
+          <p className="pb-2 text-label font-semibold text-secondary">Substitutes</p>
           <Bench team={team} />
         </div>
       )}
-      {team && <p className="text-center text-[10px] text-muted">Official line-ups from the match feed</p>}
+      {team && <p className="text-center text-caption text-tertiary">Official line-ups from the match feed</p>}
     </div>
   );
 }
@@ -199,8 +199,8 @@ function Bench({ team }: { team: TeamLineup }) {
   return (
     <ul className="grid grid-cols-1 gap-x-4 min-[420px]:grid-cols-2">
       {team.bench.map((p) => (
-        <li key={p.id} className={`flex items-center gap-2 py-1 text-[13px] ${p.on === null ? "text-muted" : "text-foreground"}`}>
-          <span className="w-5 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted">{p.number}</span>
+        <li key={p.id} className={`flex items-center gap-2 py-1 text-label ${p.on === null ? "text-secondary" : "text-foreground"}`}>
+          <span className="w-5 shrink-0 text-right text-caption tabular-nums text-tertiary">{p.number}</span>
           <span className="min-w-0 flex-1 truncate" title={p.name}>
             {p.name}
           </span>

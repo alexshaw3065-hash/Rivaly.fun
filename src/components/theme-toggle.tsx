@@ -58,12 +58,7 @@ export function ThemeToggle() {
       role="switch"
       aria-checked={isLight}
       aria-label={`Switch to ${isLight ? "dark" : "light"} mode`}
-      className="relative h-[22px] w-10 shrink-0 rounded-full border active:scale-[0.97]"
-      style={{
-        borderColor: "var(--border-strong)",
-        background: "var(--surface-elevated)",
-        transition: "transform 150ms ease-out",
-      }}
+      className="relative h-[22px] w-10 shrink-0 rounded-full border border-line-strong bg-surface-elevated transition-transform duration-100 ease-out active:scale-[0.97]"
     >
       <span
         className="absolute top-[3px] h-4 w-4 rounded-full"

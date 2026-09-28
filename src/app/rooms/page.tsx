@@ -144,7 +144,7 @@ function MatchRooms({ matchId }: { matchId: string }) {
         )}
       </div>
       {match && (
-        <div className="overflow-hidden rounded-card border border-line">
+        <div className="overflow-hidden rounded-card edge">
           <MatchBanner match={match} />
         </div>
       )}
