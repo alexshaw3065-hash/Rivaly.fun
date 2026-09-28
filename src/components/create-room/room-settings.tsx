@@ -52,7 +52,7 @@ export function RoomSettingsStep({ value, onChange }: { value: RoomSettings; onC
   const limits = stakeLimits(value);
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-8">
       <Field label="Who can find it">
         <div role="radiogroup" aria-label="Visibility" className="grid grid-cols-2 gap-2">
           <VisibilityCard
@@ -91,7 +91,7 @@ export function RoomSettingsStep({ value, onChange }: { value: RoomSettings; onC
               <DollarInput label="Max" value={value.maxDollars} onChange={(v) => set("maxDollars", v)} invalid={Boolean(limits.error)} />
             </div>
             {limits.error ? (
-              <p role="alert" className="mt-2 text-xs text-danger-red">
+              <p role="alert" className="mt-2 text-caption text-no-ink">
                 {limits.error}
               </p>
             ) : (
@@ -102,13 +102,13 @@ export function RoomSettingsStep({ value, onChange }: { value: RoomSettings; onC
       </Field>
 
       {value.visibility === "public" && (
-        <div className="enter-row flex items-center gap-3 rounded-lg border border-border bg-surface px-3.5 py-3">
-          <span className="text-muted" style={{ color: value.allowSpectators ? "var(--rival-blue)" : undefined }}>
+        <div className="enter-row flex items-center gap-3 rounded-card bg-surface px-4 py-3 edge">
+          <span className={value.allowSpectators ? "text-yes-ink" : "text-secondary"}>
             <EyeIcon />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">Allow spectators</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted">People can follow the chat without joining.</p>
+            <p className="text-body font-semibold text-foreground">Allow spectators</p>
+            <p className="mt-1 text-caption leading-relaxed text-secondary">People can follow the chat without joining.</p>
           </div>
           <Switch checked={value.allowSpectators} onChange={(v) => set("allowSpectators", v)} label="Allow spectators" />
         </div>
@@ -136,16 +136,13 @@ function VisibilityCard({
       role="radio"
       aria-checked={active}
       onClick={onClick}
-      className="hover-border flex flex-col items-start gap-2 rounded-lg border p-3.5 text-left transition-[transform,background-color,border-color] duration-150 ease-out active:scale-[0.98]"
-      style={{
-        borderColor: active ? "var(--rival-blue)" : "var(--border)",
-        background: active ? "var(--rival-blue-dim)" : "var(--surface)",
-        boxShadow: active ? "inset 0 0 0 1px var(--rival-blue)" : "none",
-      }}
+      className={`flex flex-col items-start gap-2 rounded-card p-4 text-left outline -outline-offset-1 transition-[transform,background-color,outline-color] duration-100 ease-out active:scale-[0.98] ${
+        active ? "bg-yes-tint outline-[1.5px] outline-yes" : "bg-surface outline-1 outline-line hover:bg-surface-elevated"
+      }`}
     >
-      <span style={{ color: active ? "var(--rival-blue)" : "var(--muted)" }}>{icon}</span>
-      <span className="text-sm font-semibold text-foreground">{title}</span>
-      <span className="text-xs leading-snug text-muted">{body}</span>
+      <span className={active ? "text-yes-ink" : "text-secondary"}>{icon}</span>
+      <span className="text-body font-semibold text-foreground">{title}</span>
+      <span className="text-caption leading-snug text-secondary">{body}</span>
     </button>
   );
 }
@@ -153,30 +150,29 @@ function VisibilityCard({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <p className="mb-2.5 text-sm font-semibold text-foreground">{label}</p>
+      <p className="mb-3 text-body font-semibold text-foreground">{label}</p>
       {children}
     </div>
   );
 }
 
 function Hint({ children }: { children: ReactNode }) {
-  return <p className="mt-2 text-xs leading-relaxed text-muted">{children}</p>;
+  return <p className="mt-2 text-caption leading-relaxed text-secondary">{children}</p>;
 }
 
 function DollarInput({ label, value, onChange, invalid }: { label: string; value: string; onChange: (v: string) => void; invalid: boolean }) {
   return (
     <label
-      className="flex min-h-12 items-center gap-1.5 rounded-md border bg-surface px-3 transition-colors duration-150 focus-within:border-rival-blue"
-      style={{ borderColor: invalid ? "var(--danger-red)" : "var(--border)" }}
+      className={`flex h-12 items-center gap-1.5 rounded-control border bg-surface px-3 transition-colors duration-150 focus-within:border-yes ${invalid ? "border-no" : "border-line-strong"}`}
     >
-      <span className="text-xs font-medium text-muted">{label}</span>
-      <span className="ml-auto font-mono text-sm text-muted">$</span>
+      <span className="text-caption font-medium text-secondary">{label}</span>
+      <span className="ml-auto text-body text-secondary">$</span>
       <input
         aria-label={`${label} stake in USDC`}
         value={value ? Number(value).toLocaleString("en-US") : ""}
         onChange={(e) => onChange(digits(e.target.value))}
         inputMode="numeric"
-        className="w-20 bg-transparent text-right font-mono text-sm text-foreground focus:outline-none"
+        className="w-20 bg-transparent text-right text-body-lg tabular-nums text-foreground focus:outline-none"
       />
     </label>
   );

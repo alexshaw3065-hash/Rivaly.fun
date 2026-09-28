@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { composeMarket, goalsOnly, sportOf, type CreateRoomMarket, type Sport } from "@/lib/markets";
 import type { EntrySide, Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
+import { Button } from "../ui/button";
 import { Accordion, HelpTip, OptionCell, OverUnderGrid, ScoreStepper, Segmented } from "./controls";
 import {
   BothScoreIcon,
@@ -110,7 +111,7 @@ export function MarketPicker(props: PickerProps) {
       <div
         role="tablist"
         aria-label="Market groups"
-        className="no-scrollbar -mx-4 flex gap-5 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0"
+        className="no-scrollbar -mx-4 flex gap-6 overflow-x-auto border-b border-line px-4 md:mx-0 md:px-0"
       >
         {tabs.map((t) => {
           const active = t.id === tab;
@@ -121,15 +122,14 @@ export function MarketPicker(props: PickerProps) {
               role="tab"
               aria-selected={active}
               onClick={() => setTab(t.id)}
-              className="relative flex min-h-12 shrink-0 items-center gap-1.5 text-[15px] font-semibold transition-colors duration-150"
-              style={{ color: active ? "var(--foreground)" : "var(--muted)" }}
+              className={`relative flex min-h-12 shrink-0 items-center gap-1.5 text-body transition-colors duration-150 ${active ? "font-semibold text-foreground" : "text-secondary hover:text-foreground"}`}
             >
-              <span style={{ color: active ? "var(--rival-blue)" : "currentColor" }}>{t.icon}</span>
+              <span>{t.icon}</span>
               {t.label}
-              {pickTab === t.id && <span aria-label="has your pick" className="h-1.5 w-1.5 rounded-full bg-rival-blue" />}
+              {pickTab === t.id && <span aria-label="has your pick" className="h-1.5 w-1.5 rounded-full bg-yes" />}
               <span
                 aria-hidden
-                className="absolute inset-x-0 -bottom-px h-0.5 origin-center rounded-full bg-rival-blue transition-transform duration-200 ease-out"
+                className="absolute inset-x-0 -bottom-px h-0.5 origin-center rounded-full bg-foreground transition-transform duration-200 ease-out"
                 style={{ transform: active ? "scaleX(1)" : "scaleX(0)" }}
               />
             </button>
@@ -174,7 +174,7 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
     const key = `cs:${fullTime.home}-${fullTime.away}`;
     return (
       <div className="flex flex-col gap-3 py-4">
-        <p className="flex items-center gap-1 text-sm text-muted">
+        <p className="flex items-center gap-1 text-body text-secondary">
           Call the full-time score.
           <HelpTip label="exact score">
             The score after 90 minutes plus stoppage time. Both numbers have to match exactly — extra time and penalties
@@ -351,8 +351,8 @@ function NflPanel({ tab, match, pick, onPick }: PickerProps & { tab: string }) {
                   ariaLabel={`${name} win by ${Math.ceil(line)} or more`}
                 >
                   <TeamCrest name={name} size={18} />
-                  <span className="text-muted">by</span>
-                  <span className="font-mono tabular-nums">{Math.ceil(line)}+</span>
+                  <span className="font-medium opacity-70">by</span>
+                  <span className="tabular-nums">{Math.ceil(line)}+</span>
                 </OptionCell>
               );
             }),
@@ -381,7 +381,7 @@ function TeamTotals({ match, pick, onPick }: { match: Match; pick: Pick | null; 
           { value: "away", label: match.awayTeam },
         ]}
       />
-      <p className="flex items-center gap-2 text-sm text-muted">
+      <p className="flex items-center gap-2 text-body text-secondary">
         <TeamCrest name={name} size={18} />
         Points {name} score
         <HelpTip label="team totals">Points this team scores on its own, overtime included.</HelpTip>
@@ -417,13 +417,13 @@ function TeamResultRow({
       {outcomes.map((o) => {
         const name = o === "home" ? match.homeTeam : o === "away" ? match.awayTeam : null;
         return (
-          <OptionCell key={o} selected={isSelected(o)} onClick={() => onPick(o)} className="!min-h-[80px] flex-col !gap-1.5 py-2.5">
+          <OptionCell key={o} selected={isSelected(o)} onClick={() => onPick(o)} className="!min-h-[80px] flex-col !gap-1.5 py-3">
             {name ? (
               <TeamCrest name={name} size={26} />
             ) : (
-              <span className="flex h-[29px] items-center font-display text-xl font-bold text-muted">=</span>
+              <span className="flex h-[29px] items-center text-title-2 font-display text-secondary">=</span>
             )}
-            <span className="line-clamp-2 text-center text-[13px] leading-tight">{name ?? drawLabel}</span>
+            <span className="line-clamp-2 text-center text-label leading-tight">{name ?? drawLabel}</span>
           </OptionCell>
         );
       })}
@@ -446,12 +446,8 @@ function YesNoRow({ selected, onPick }: { selected: EntrySide | null; onPick: (s
 
 function ConfirmScore({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="min-h-12 rounded-md bg-rival-blue px-4 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.98]"
-    >
+    <Button variant="primary" size="lg" full onClick={onClick}>
       {selected ? `${label} ✓` : `${label} →`}
-    </button>
+    </Button>
   );
 }

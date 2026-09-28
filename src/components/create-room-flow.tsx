@@ -3,13 +3,15 @@ import { withRef } from "@/lib/referral";
 import { track } from "@/lib/analytics/track";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/mock-data";
 import { composeMarket, sportOf, type Sport } from "@/lib/markets";
 import { useCurrentUser } from "./current-user-provider";
 import { useRealMatches } from "@/lib/use-real-matches";
 import { LiveBadge } from "./live-badge";
+import { Button, ButtonLink } from "./ui/button";
+import { Chip } from "./ui/controls";
+import { Skeleton } from "./ui/surfaces";
 import { TeamCrest } from "./team-crest";
 import type { EntrySide, Match } from "@/lib/types";
 import { MarketPicker, pickLabel, type Pick, type Score } from "./create-room/market-picker";
@@ -298,16 +300,13 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
                     aria-label={`Step ${i + 1}: ${s.label}`}
                     className="w-full pt-2 text-left disabled:cursor-default"
                   >
-                    <span className="block h-1 overflow-hidden rounded-full bg-border">
+                    <span className="block h-1 overflow-hidden rounded-full bg-line-strong">
                       <span
-                        className="block h-full rounded-full bg-rival-blue transition-transform duration-500 ease-out"
+                        className="block h-full rounded-full bg-yes transition-transform duration-500 ease-out"
                         style={{ transform: reached ? "translateX(0)" : "translateX(-101%)" }}
                       />
                     </span>
-                    <span
-                      className="mt-1.5 block text-[11px] font-semibold transition-colors duration-200"
-                      style={{ color: s.id === step ? "var(--foreground)" : "var(--muted)" }}
-                    >
+                    <span className={`mt-2 block text-micro font-semibold transition-colors duration-200 ${s.id === step ? "text-foreground" : "text-tertiary"}`}>
                       {s.label}
                     </span>
                   </button>
@@ -316,37 +315,37 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
             })}
           </ol>
         </nav>
-        <button type="button" onClick={() => router.back()} className="hover-link-danger shrink-0 pt-2 text-sm text-muted transition-colors">
+        <button type="button" onClick={() => router.back()} className="hover-link-danger relative shrink-0 pt-2 text-label text-secondary transition-colors before:absolute before:-inset-3">
           Cancel
         </button>
       </div>
 
       {vs && (
-        <p className="mt-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold text-rival-blue ring-1 ring-rival-blue/40">
+        <p className="mt-5 inline-flex h-8 items-center gap-2 rounded-full bg-yes-tint px-3 text-label font-semibold text-yes-ink">
           Challenging @{vs}
         </p>
       )}
-      <h1 className="mt-6 font-display text-3xl font-bold text-foreground md:text-4xl">{STEPS[currentIndex].title}</h1>
+      <h1 className="mt-6 text-title-1 font-display text-foreground md:text-display">{STEPS[currentIndex].title}</h1>
 
       {/* The stake step's preview card already carries the match. */}
       {(step === "pick" || step === "room") && match && (
-        <div className="mt-4 overflow-hidden rounded-xl border border-border">
+        <div className="mt-4 overflow-hidden rounded-card edge">
           <MatchBanner match={match}>
-            <div className="mt-3.5 flex items-center justify-between gap-3 border-t border-foreground/10 pt-3">
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-foreground/10 pt-3">
               {step === "room" && pick ? (
-                <span className="min-w-0 truncate text-sm">
+                <span className="min-w-0 truncate text-label">
                   <span className="text-foreground/70">Your call </span>
                   <span className="font-semibold text-foreground">{pickLabel(pick, match)}</span>
                 </span>
               ) : (
-                <span className="text-xs text-foreground/70">
+                <span className="text-caption text-foreground/70">
                   {sportOf(match) === "nfl" ? "Settles on the official NFL result" : "Settles on the official match result"}
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => go("match")}
-                className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-foreground/25 bg-background/60 px-3 text-xs font-semibold text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-background/80 active:scale-[0.96]"
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-background/60 px-3 text-caption font-semibold text-foreground ring-1 ring-foreground/20 transition-[transform,background-color] duration-100 ease-out hover:bg-background/80 active:scale-[0.96]"
               >
                 <svg viewBox="0 0 20 20" width="14" height="14" fill="none" aria-hidden>
                   <path d="M4 7h11m0 0-3-3m3 3-3 3M16 13H5m0 0 3-3m-3 3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -362,7 +361,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
         {step === "match" && <MatchList matches={matches} isLoading={isLoading} selectedId={matchId} onPick={pickMatch} />}
 
         {step !== "match" && initialMatchMissing && (
-          <div className="rounded-lg border border-border bg-surface p-4 text-sm text-muted">
+          <div className="rounded-card bg-surface p-4 text-body text-secondary edge">
             That match isn&rsquo;t open for new rooms.{" "}
             <button type="button" onClick={() => go("match")} className="hover-link text-foreground underline underline-offset-2">
               Pick another
@@ -370,7 +369,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
           </div>
         )}
 
-        {step !== "match" && !match && isLoading && <p className="text-sm text-muted">Loading match…</p>}
+        {step !== "match" && !match && isLoading && <Skeleton className="h-40 rounded-card" />}
 
         {step === "pick" && match && (
           <MarketPicker
@@ -405,9 +404,9 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
           never scrolls away. */}
       {step === "pick" && pick && match && (
         <StickyBar>
-          <p className="min-w-0 flex-1 truncate text-sm">
-            <span className="text-muted">Your call </span>
-            <span className="font-semibold text-rival-blue">{pickLabel(pick, match)}</span>
+          <p className="min-w-0 flex-1 truncate text-body">
+            <span className="text-secondary">Your call </span>
+            <span className="font-semibold text-yes-ink">{pickLabel(pick, match)}</span>
           </p>
           <PrimaryButton onClick={() => go("room")}>Continue</PrimaryButton>
         </StickyBar>
@@ -423,7 +422,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
         <StickyBar>
           <div className="flex w-full flex-col gap-2">
             {error && (
-              <p role="alert" className="text-sm text-danger-red">
+              <p role="alert" className="text-label text-no-ink">
                 {error}
               </p>
             )}
@@ -440,9 +439,9 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
                   : `Throw down ${formatMoney(stakeCents)} on ${side === "yes" ? "YES" : "NO"}`}
             </StakeButton>
             {!currentUser && (
-              <p className="text-center text-xs text-muted">One quick sign-in, then your room goes live — your picks are kept.</p>
+              <p className="text-center text-caption text-secondary">One quick sign-in, then your room goes live — your picks are kept.</p>
             )}
-            {currentUser && blocker?.hint && <p className="text-center text-xs text-muted">{blocker.hint}</p>}
+            {currentUser && blocker?.hint && <p className="text-center text-caption text-secondary">{blocker.hint}</p>}
           </div>
         </StickyBar>
       )}
@@ -452,35 +451,17 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
 
 function StickyBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[5] -mx-4 mt-6 border-t border-border bg-background px-4 py-3 md:bottom-0 md:-mx-6 md:px-6">
+    <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[5] -mx-4 mt-6 border-t border-line bg-background px-4 py-3 md:bottom-0 md:-mx-6 md:px-6">
       <div className="flex items-center gap-3">{children}</div>
     </div>
   );
 }
 
-function PrimaryButton({
-  onClick,
-  disabled,
-  wide,
-  color = "var(--rival-blue)",
-  children,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  wide?: boolean;
-  color?: string;
-  children: React.ReactNode;
-}) {
+function PrimaryButton({ onClick, disabled, wide, children }: { onClick: () => void; disabled?: boolean; wide?: boolean; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`min-h-12 shrink-0 rounded-md px-6 text-sm font-semibold text-white transition-[transform,opacity,background-color] duration-150 ease-out active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 ${wide ? "w-full" : ""}`}
-      style={{ background: color }}
-    >
+    <Button variant="primary" size="lg" full={wide} className="shrink-0 px-6" onClick={onClick} disabled={disabled}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -533,44 +514,38 @@ function MatchList({
           ).map((o) => {
             const active = sport === o.id;
             return (
-              <button
+              <Chip
                 key={o.id}
-                type="button"
                 role="radio"
                 aria-checked={active}
+                aria-pressed={undefined}
+                selected={active}
+                leading={o.icon}
                 onClick={() => {
                   setSport(o.id);
                   setLeague("all");
                 }}
-                className="flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-[background-color,border-color,color] duration-150"
-                style={{
-                  borderColor: active ? "var(--rival-blue)" : "var(--border)",
-                  background: active ? "var(--rival-blue-dim)" : "transparent",
-                  color: active ? "var(--rival-blue)" : "var(--muted)",
-                }}
               >
-                {o.icon}
                 {o.label}
-              </button>
+              </Chip>
             );
           })}
         </div>
       )}
 
-      <div className="flex flex-col gap-2.5 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search teams or league…"
           aria-label="Search matches"
-          className="min-h-12 flex-1 rounded-md border border-border bg-surface px-3.5 text-sm text-foreground placeholder:text-muted focus:border-rival-blue focus:outline-none"
-          style={{ transition: "border-color 150ms ease" }}
+          className="h-12 min-h-12 flex-1 rounded-control border border-line-strong bg-surface px-4 text-body-lg text-foreground transition-colors duration-150 placeholder:text-tertiary focus:border-yes focus:outline-none"
         />
         <select
           value={league}
           onChange={(e) => setLeague(e.target.value)}
           aria-label="League"
-          className="min-h-12 rounded-md border border-border bg-surface px-3.5 text-sm text-foreground focus:border-rival-blue focus:outline-none"
+          className="h-12 rounded-control border border-line-strong bg-surface px-4 text-body-lg text-foreground focus:border-yes focus:outline-none"
         >
           <option value="all">All leagues</option>
           {leagues.map((l) => (
@@ -581,16 +556,16 @@ function MatchList({
         </select>
       </div>
 
-      <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">Next {MATCH_WINDOW_DAYS} days</p>
+      <p className="mt-6 text-label font-semibold text-secondary">Next {MATCH_WINDOW_DAYS} days</p>
 
       {isLoading ? (
         <div className="mt-3 flex flex-col gap-2" aria-busy>
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-[72px] rounded-lg border border-border bg-surface" />
+            <Skeleton key={i} className="h-[72px] rounded-card" />
           ))}
         </div>
       ) : creatable.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">No matches match that search.</p>
+        <p className="mt-3 text-body text-secondary">No matches match that search.</p>
       ) : (
         <div className="mt-3 flex flex-col gap-2">
           {creatable.map((m) => (
@@ -609,30 +584,27 @@ function MatchRow({ match: m, selected, onPick }: { match: Match; selected: bool
       type="button"
       onClick={onPick}
       aria-pressed={selected}
-      className="hover-border flex min-h-[72px] items-center gap-3 rounded-lg border px-3.5 py-3 text-left transition-[transform,background-color,border-color] duration-150 ease-out active:scale-[0.98]"
-      style={{
-        borderColor: selected ? "var(--rival-blue)" : "var(--border)",
-        background: selected ? "var(--rival-blue-dim)" : "var(--surface)",
-        boxShadow: selected ? "inset 0 0 0 1px var(--rival-blue)" : "none",
-      }}
+      className={`flex min-h-[72px] items-center gap-3 rounded-card px-4 py-3 text-left outline -outline-offset-1 transition-[transform,background-color,outline-color] duration-100 ease-out active:scale-[0.98] ${
+        selected ? "bg-yes-tint outline-[1.5px] outline-yes" : "bg-surface outline-1 outline-line hover:bg-surface-elevated"
+      }`}
     >
       <span className="flex shrink-0 -space-x-1.5">
         <TeamCrest name={m.homeTeam} size={26} />
         <TeamCrest name={m.awayTeam} size={26} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1 text-muted">
+        <span className="flex items-center gap-1.5 text-secondary">
           <LeagueMark name={m.competition} size={12} fallback={nfl ? <GridironIcon className="h-3 w-3" /> : <SoccerIcon className="h-3 w-3" />} />
-          <span className="truncate font-mono text-[10px] uppercase tracking-wider">{m.competition}</span>
+          <span className="truncate text-caption font-medium">{m.competition}</span>
         </span>
-        <span className="mt-0.5 block truncate text-sm font-semibold text-foreground">
-          {m.homeTeam} <span className="font-normal text-muted">v</span> {m.awayTeam}
+        <span className="mt-1 block truncate text-body font-semibold text-foreground">
+          {m.homeTeam} <span className="font-normal text-secondary">v</span> {m.awayTeam}
         </span>
       </span>
       {m.status === "live" ? (
         <LiveBadge />
       ) : (
-        <span className="shrink-0 text-right font-mono text-[11px] leading-tight text-muted">
+        <span className="shrink-0 text-right text-caption tabular-nums text-secondary">
           {kickoffLabel(m.kickoffAt).replace("Kicks off in ", "")}
         </span>
       )}
@@ -665,7 +637,7 @@ function CreatedView({
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const copiedTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
-  const sideColor = side === "yes" ? "var(--rival-blue)" : "var(--rival-red)";
+  const sideInk = side === "yes" ? "text-yes-ink" : "text-no-ink";
 
   function flash(kind: "code" | "link") {
     setCopied(kind);
@@ -701,17 +673,15 @@ function CreatedView({
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-8 pt-8 md:px-6 md:pt-12">
-      <p className="enter-row font-mono text-[11px] font-semibold uppercase tracking-wider" style={{ color: sideColor }}>
-        You created the room
-      </p>
-      <h1 className="enter-row mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">{vs ? `Now send it to @${vs}.` : "Now find your rival."}</h1>
+      <p className={`enter-row text-label font-semibold ${sideInk}`}>You created the room</p>
+      <h1 className="enter-row mt-2 text-title-1 font-display text-foreground md:text-display">{vs ? `Now send it to @${vs}.` : "Now find your rival."}</h1>
 
       <div className="mt-6">
         <RoomPreviewCard match={match} claim={claim} side={side} meta={meta} confirmed />
       </div>
-      <p className="enter-row mt-3 text-sm text-muted">
-        You&rsquo;re in with <span className="font-mono font-semibold text-foreground">{formatMoney(stakeCents)}</span> on{" "}
-        <span style={{ color: sideColor }} className="font-semibold">
+      <p className="enter-row mt-3 text-body text-secondary">
+        You&rsquo;re in with <span className="font-semibold tabular-nums text-foreground">{formatMoney(stakeCents)}</span> on{" "}
+        <span className={`font-semibold ${sideInk}`}>
           {side === "yes" ? "YES" : "NO"}
         </span>
         , locked in escrow. A room without opponents isn&rsquo;t a room.
@@ -720,40 +690,27 @@ function CreatedView({
         href={explorerTxUrl(signature)}
         target="_blank"
         rel="noopener noreferrer"
-        className="enter-row hover-link mt-1.5 inline-flex items-center gap-1 text-xs text-muted underline underline-offset-2"
+        className="enter-row hover-link mt-2 inline-flex items-center gap-1 text-caption text-secondary underline underline-offset-2"
       >
         Verify your stake on Solana ↗
       </a>
 
       <div className="enter-row mt-6 flex items-center gap-2">
-        <code className="flex min-h-12 flex-1 items-center rounded-md border border-border bg-surface px-4 font-mono text-sm font-semibold tracking-wider text-foreground">
+        <code className="flex h-12 flex-1 items-center rounded-control bg-surface px-4 font-mono text-body font-semibold tracking-wider text-foreground edge">
           {inviteCode}
         </code>
-        <button
-          type="button"
-          onClick={() => navigator.clipboard.writeText(inviteCode).then(() => flash("code"))}
-          className="min-h-12 rounded-md border border-border-strong px-4 text-sm font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
-        >
+        <Button variant="secondary" size="lg" onClick={() => navigator.clipboard.writeText(inviteCode).then(() => flash("code"))}>
           {copied === "code" ? "Copied" : "Copy"}
-        </button>
+        </Button>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={share}
-          className="min-h-12 rounded-md border px-4 text-sm font-semibold transition-transform duration-150 ease-out active:scale-[0.98]"
-          style={{ borderColor: sideColor, color: sideColor }}
-        >
+        <Button variant="secondary" size="lg" className={sideInk} onClick={share}>
           {copied === "link" ? "Link copied" : vs ? `Send to @${vs}` : "Challenge a rival"}
-        </button>
-        <Link
-          href={`/rooms/${roomId}`}
-          className="flex min-h-12 items-center justify-center rounded-md text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.98]"
-          style={{ background: sideColor }}
-        >
+        </Button>
+        <ButtonLink href={`/rooms/${roomId}`} variant={side} size="lg">
           Open room →
-        </Link>
+        </ButtonLink>
       </div>
     </main>
   );

@@ -5,6 +5,7 @@ import type { EntrySide, Match } from "@/lib/types";
 import { limitsLabel, type StakeLimits } from "./room-settings";
 import { MatchBanner } from "./match-hero";
 import { CheckIcon } from "./market-icons";
+import { SidePill } from "../ui/controls";
 
 const QUICK_STAKES_DOLLARS = [5, 10, 25, 50, 100];
 
@@ -16,8 +17,8 @@ export function stakeError(stakeCents: number, limits: StakeLimits): string | nu
 }
 
 const SIDE = {
-  yes: { label: "YES", color: "var(--rival-blue)", dim: "var(--rival-blue-dim)" },
-  no: { label: "NO", color: "var(--rival-red)", dim: "var(--rival-red-dim)" },
+  yes: { label: "YES", ink: "text-yes-ink", tint: "bg-yes-tint", ring: "outline-yes", border: "border-yes" },
+  no: { label: "NO", ink: "text-no-ink", tint: "bg-no-tint", ring: "outline-no", border: "border-no" },
 } as const;
 
 /**
@@ -44,49 +45,40 @@ export function RoomPreviewCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border bg-surface ${confirmed ? "room-confirmed" : ""}`}
-      style={{ borderColor: confirmed ? SIDE[side].color : "var(--border)" }}
+      className={`relative overflow-hidden rounded-card bg-surface outline -outline-offset-1 ${confirmed ? `room-confirmed outline-[1.5px] ${SIDE[side].ring}` : "outline-1 outline-line"}`}
     >
       <MatchBanner match={match} size="sm" />
-      <div className="border-t border-border p-4">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted">The call</p>
-        <p className="mt-1 font-display text-2xl font-bold leading-tight text-foreground md:text-[28px]">{claim}</p>
+      <div className="p-4">
+        <p className="text-caption text-secondary">The call</p>
+        <p className="mt-1 text-title-2 font-display text-foreground md:text-title-1">{claim}</p>
 
         <div className="mt-4 grid grid-cols-2 gap-2" role={onSide ? "radiogroup" : undefined} aria-label={onSide ? "Your side" : undefined}>
           {(["yes", "no"] as const).map((s) => {
             const active = side === s;
-            const content = (
-              <>
-                <span className="font-display text-lg font-bold tracking-wide">{SIDE[s].label}</span>
-                {active && (
-                  <span className="enter-pop flex items-center gap-1 text-[11px] font-semibold">
-                    <CheckIcon className="h-3 w-3" />
-                    {confirmed ? "Your side" : "You"}
-                  </span>
-                )}
-              </>
-            );
-            const style = {
-              borderColor: active ? SIDE[s].color : "var(--border)",
-              background: active ? SIDE[s].dim : "transparent",
-              color: active ? SIDE[s].color : "var(--muted)",
-              boxShadow: active ? `inset 0 0 0 1px ${SIDE[s].color}` : "none",
-            };
-            const cls =
-              "flex min-h-14 items-center justify-center gap-2 rounded-lg border transition-[transform,background-color,border-color,color] duration-150 ease-out";
-            return onSide ? (
-              <button key={s} type="button" role="radio" aria-checked={active} onClick={() => onSide(s)} className={`${cls} active:scale-[0.97]`} style={style}>
-                {content}
-              </button>
-            ) : (
-              <div key={s} className={cls} style={style}>
-                {content}
-              </div>
+            return (
+              <SidePill
+                key={s}
+                side={s}
+                selected={active}
+                role={onSide ? "radio" : undefined}
+                aria-checked={onSide ? active : undefined}
+                tabIndex={onSide ? undefined : -1}
+                className={onSide ? "" : "pointer-events-none"}
+                onClick={onSide ? () => onSide(s) : undefined}
+                meta={
+                  active ? (
+                    <span className="enter-pop flex items-center gap-1 text-caption font-semibold">
+                      <CheckIcon className="h-3 w-3" />
+                      {confirmed ? "Your side" : "You"}
+                    </span>
+                  ) : undefined
+                }
+              />
             );
           })}
         </div>
 
-        <p className="mt-3.5 text-xs leading-relaxed text-muted">{meta.join(" · ")}</p>
+        <p className="mt-4 text-caption leading-relaxed text-secondary">{meta.join(" · ")}</p>
       </div>
       {confirmed && <span aria-hidden className="confirm-sweep" />}
     </div>
@@ -112,24 +104,19 @@ export function StakeInput({
   const quick = inRange.length
     ? inRange
     : [limits.minCents / 100, ...(limits.maxCents !== null ? [limits.maxCents / 100] : [])];
-  const accent = SIDE[side].color;
+  const accent = SIDE[side];
   const showError = Boolean(error && valueDollars);
 
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor="stake" className="text-sm font-semibold text-foreground">
+        <label htmlFor="stake" className="text-body font-semibold text-foreground">
           Your stake
         </label>
-        <span className="text-xs text-muted">{limitsLabel(limits)}</span>
+        <span className="text-caption text-secondary">{limitsLabel(limits)}</span>
       </div>
-      <div
-        className="mt-2.5 flex min-h-16 items-center gap-2 rounded-lg border bg-surface px-4 transition-colors duration-150"
-        style={{ borderColor: showError ? "var(--danger-red)" : accent }}
-      >
-        <span className="font-display text-2xl font-bold" style={{ color: accent }}>
-          $
-        </span>
+      <div className={`mt-2 flex min-h-16 items-center gap-2 rounded-control border bg-surface px-4 transition-colors duration-150 ${showError ? "border-no" : accent.border}`}>
+        <span className={`text-title-2 font-display ${accent.ink}`}>$</span>
         <input
           id="stake"
           value={valueDollars ? Number(valueDollars).toLocaleString("en-US") : ""}
@@ -139,14 +126,14 @@ export function StakeInput({
           placeholder="0"
           aria-invalid={showError}
           aria-describedby="stake-error"
-          className="min-w-0 flex-1 bg-transparent font-display font-bold tabular-nums text-foreground placeholder:text-muted focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent font-display font-bold tabular-nums text-foreground placeholder:text-tertiary focus:outline-none"
           // Inline, not text-3xl: globals.css pins inputs to 16px on mobile
           // (stops iOS focus-zoom), which would otherwise win over the class.
           style={{ fontSize: 30 }}
         />
-        <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wider text-muted">USDC</span>
+        <span className="rounded-tag px-1.5 py-0.5 text-micro font-semibold text-secondary edge-strong">USDC</span>
       </div>
-      <div className="mt-2.5 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         {quick.map((n) => {
           const active = Number(valueDollars) === n;
           return (
@@ -154,23 +141,20 @@ export function StakeInput({
               key={n}
               type="button"
               onClick={() => onChange(String(n))}
-              className="min-h-10 min-w-14 rounded-md border px-3.5 font-mono text-sm font-medium transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.96]"
-              style={{
-                borderColor: active ? accent : "var(--border)",
-                background: active ? SIDE[side].dim : "var(--surface)",
-                color: active ? accent : "var(--foreground)",
-              }}
+              className={`h-10 min-w-14 rounded-control px-3 text-label font-semibold tabular-nums outline -outline-offset-1 transition-[transform,background-color,outline-color,color] duration-100 ease-out active:scale-[0.96] ${
+                active ? `${accent.tint} ${accent.ink} outline-1 ${accent.ring}` : "bg-surface text-foreground outline-1 outline-line"
+              }`}
             >
               {formatMoney(n * 100)}
             </button>
           );
         })}
       </div>
-      <p id="stake-error" role="alert" className="mt-2 min-h-4 text-xs">
+      <p id="stake-error" role="alert" className="mt-2 min-h-4 text-caption">
         {showError ? (
-          <span className="text-danger-red">{error}</span>
+          <span className="text-no-ink">{error}</span>
         ) : (
-          <span className="text-muted">Win and you split the whole pool with everyone on your side.</span>
+          <span className="text-secondary">Win and you split the whole pool with everyone on your side.</span>
         )}
       </p>
     </div>

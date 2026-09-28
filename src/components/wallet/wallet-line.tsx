@@ -27,24 +27,24 @@ export function WalletLine({
   if (!signedIn) return null;
   const short = hasLoaded && availableCents !== null && availableCents < needCents;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3.5 py-2.5">
-      <p className="text-sm">
-        <span className="text-muted">Wallet </span>
-        <span className="font-mono font-semibold text-foreground">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-card bg-surface px-4 py-3 edge">
+      <p className="text-body">
+        <span className="text-secondary">Wallet </span>
+        <span className="font-semibold tabular-nums text-foreground">
           {hasLoaded && availableCents !== null ? formatMoney(availableCents) : "…"}
         </span>
-        <span className="text-muted"> USDC</span>
-        {short && <span className="ml-1.5 text-xs text-danger-red">Not enough for this stake</span>}
+        <span className="text-secondary"> USDC</span>
+        {short && <span className="ml-1.5 text-caption text-no-ink">Not enough for this stake</span>}
       </p>
       {short && (
         <span className="flex items-center gap-3">
-          <a href={FAUCET_URL} target="_blank" rel="noopener noreferrer" className="hover-link text-xs text-muted underline underline-offset-2">
+          <a href={FAUCET_URL} target="_blank" rel="noopener noreferrer" className="hover-link text-caption text-secondary underline underline-offset-2">
             Devnet faucet
           </a>
           <button
             type="button"
             onClick={openQuickDeposit}
-            className="inline-flex min-h-10 items-center rounded-md border border-rival-green px-3.5 text-sm font-semibold text-rival-green transition-[transform,background-color] duration-150 ease-out hover:bg-rival-green-dim active:scale-[0.97]"
+            className="inline-flex h-10 items-center rounded-control px-3 text-label font-semibold text-money-ink outline outline-1 -outline-offset-1 outline-money transition-[transform,background-color] duration-100 ease-out hover:bg-money-tint active:scale-[0.97]"
           >
             Add USDC
           </button>

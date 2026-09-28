@@ -27,13 +27,9 @@ export function OptionCell({
       onClick={onClick}
       aria-pressed={selected}
       aria-label={ariaLabel}
-      className={`hover-border flex min-h-12 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rival-blue ${className}`}
-      style={{
-        borderColor: selected ? "var(--rival-blue)" : "var(--border)",
-        background: selected ? "var(--rival-blue-dim)" : "var(--surface)",
-        color: selected ? "var(--rival-blue)" : "var(--foreground)",
-        boxShadow: selected ? "inset 0 0 0 1px var(--rival-blue)" : "none",
-      }}
+      className={`flex min-h-12 items-center justify-center gap-1.5 rounded-control px-3 text-body font-semibold outline -outline-offset-1 transition-[transform,background-color,outline-color,color] duration-100 ease-out active:scale-[0.97] ${
+        selected ? "bg-yes-tint text-yes-ink outline-[1.5px] outline-yes" : "bg-surface text-foreground outline-1 outline-line hover:bg-surface-elevated"
+      } ${className}`}
     >
       {children}
     </button>
@@ -106,8 +102,7 @@ export function HelpTip({
         aria-label={`What is ${label}?`}
         aria-expanded={open}
         aria-describedby={open ? tipId : undefined}
-        className="flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-150"
-        style={{ color: open ? "var(--rival-blue)" : "var(--muted)" }}
+        className={`relative flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-100 before:absolute before:-inset-2 ${open ? "text-yes-ink" : "text-secondary"}`}
       >
         <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden>
           <circle
@@ -131,7 +126,7 @@ export function HelpTip({
           id={tipId}
           role="tooltip"
           style={{ left: box.left, width: box.width }}
-          className="enter-pop absolute top-full z-20 mt-1.5 rounded-lg border border-border-strong bg-surface-elevated px-3 py-2.5 text-xs font-normal leading-relaxed text-foreground shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]"
+          className="enter-pop absolute top-full z-20 mt-2 rounded-control bg-surface-elevated px-3 py-2 text-caption font-normal leading-relaxed text-foreground shadow-pop"
         >
           {children}
         </span>
@@ -160,34 +155,31 @@ export function Accordion({
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
   return (
-    <section className="border-b border-border last:border-b-0">
+    <section className="border-b border-line last:border-b-0">
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-controls={bodyId}
-          className="flex min-w-0 flex-1 items-center gap-2 py-3.5 text-left"
+          className="flex min-h-12 min-w-0 flex-1 items-center gap-2 py-3 text-left"
         >
           <span
-            className="text-muted transition-transform duration-200 ease-out [&>svg]:h-4 [&>svg]:w-4"
+            className="text-secondary transition-transform duration-200 ease-out [&>svg]:h-4 [&>svg]:w-4"
             style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}
           >
             <ChevronDownIcon />
           </span>
           {icon && (
-            <span
-              className="transition-colors duration-150"
-              style={{ color: summary ? "var(--rival-blue)" : "var(--muted)" }}
-            >
+            <span className={`transition-colors duration-150 ${summary ? "text-yes-ink" : "text-secondary"}`}>
               {icon}
             </span>
           )}
-          <span className="flex-1 text-sm font-semibold text-foreground">
+          <span className="flex-1 text-body font-semibold text-foreground">
             {title}
           </span>
           {!open && summary && (
-            <span className="truncate text-xs font-medium text-rival-blue">
+            <span className="truncate text-caption font-semibold text-yes-ink">
               {summary}
             </span>
           )}
@@ -234,10 +226,8 @@ export function OverUnderGrid({
             onClick={() => onPick(c, line)}
             ariaLabel={`${c === "over" ? "Over" : "Under"} ${line} ${unit}`}
           >
-            <span className="text-muted">
-              {c === "over" ? "Over" : "Under"}
-            </span>
-            <span className="font-mono tabular-nums">{line}</span>
+            <span className="font-medium opacity-70">{c === "over" ? "Over" : "Under"}</span>
+            <span className="tabular-nums">{line}</span>
           </OptionCell>
         )),
       )}
@@ -262,7 +252,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-10 w-10 items-center justify-center rounded-full border border-border-strong text-lg text-foreground transition-[transform,opacity] duration-150 ease-out active:scale-90 disabled:opacity-30"
+      className="relative flex h-10 w-10 items-center justify-center rounded-full text-title-3 text-foreground edge-strong transition-[transform,opacity] duration-100 ease-out before:absolute before:-inset-1 active:scale-90 disabled:opacity-30"
     >
       {children}
     </button>
@@ -285,9 +275,9 @@ export function ScoreStepper({
 }) {
   const clamp = (n: number) => Math.min(20, Math.max(0, n));
   const side = (team: string, value: number, set: (v: number) => void) => (
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5">
-      <span className="max-w-full truncate text-sm text-muted">{team}</span>
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-3">
+      <span className="max-w-full truncate text-label text-secondary">{team}</span>
+      <div className="flex items-center gap-2 sm:gap-3">
         <StepButton
           label={`Fewer ${team} goals`}
           onClick={() => set(clamp(value - 1))}
@@ -296,7 +286,7 @@ export function ScoreStepper({
           −
         </StepButton>
         <span
-          className="w-7 text-center font-display text-3xl font-bold tabular-nums text-foreground"
+          className="w-8 text-center text-title-1 font-display tabular-nums text-foreground"
           aria-live="polite"
         >
           {value}
@@ -311,9 +301,9 @@ export function ScoreStepper({
     </div>
   );
   return (
-    <div className="flex items-end gap-1 rounded-lg border border-border bg-surface px-2 py-5 sm:gap-3 sm:px-4">
+    <div className="flex items-end gap-1 rounded-card bg-surface px-2 py-5 edge sm:gap-3 sm:px-4">
       {side(homeTeam, home, (v) => onChange(v, away))}
-      <span className="pb-3 text-muted" aria-hidden>
+      <span className="pb-3 text-secondary" aria-hidden>
         —
       </span>
       {side(awayTeam, away, (v) => onChange(home, v))}
@@ -336,7 +326,7 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="grid grid-flow-col auto-cols-fr gap-1 rounded-lg border border-border bg-surface p-1"
+      className="grid grid-flow-col auto-cols-fr gap-1 rounded-control bg-surface p-1 edge"
     >
       {options.map((o) => {
         const active = o.value === value;
@@ -347,14 +337,7 @@ export function Segmented<T extends string>({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(o.value)}
-            className="min-h-10 rounded-md text-sm font-medium transition-[background-color,color] duration-150 ease-out"
-            style={{
-              background: active ? "var(--surface-elevated)" : "transparent",
-              color: active ? "var(--foreground)" : "var(--muted)",
-              boxShadow: active
-                ? "inset 0 0 0 1px var(--border-strong)"
-                : "none",
-            }}
+            className={`h-10 rounded-tag text-label transition-[background-color,color] duration-150 ease-out ${active ? "bg-surface-3 font-semibold text-foreground" : "text-secondary hover:text-foreground"}`}
           >
             {o.label}
           </button>
@@ -380,10 +363,7 @@ export function Switch({
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className="relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ease-out"
-      style={{
-        background: checked ? "var(--rival-blue)" : "var(--border-strong)",
-      }}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ease-out ${checked ? "bg-yes" : "bg-line-strong"}`}
     >
       <span
         className="absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white transition-transform duration-200 ease-out"

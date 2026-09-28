@@ -6,7 +6,7 @@ import { useCurrentUser } from "@/components/current-user-provider";
 import { savePost } from "@/lib/arena/data";
 import type { Side } from "@/lib/arena/model";
 
-const COLOR: Record<Side, string> = { yes: "var(--rival-blue)", no: "var(--rival-red)" };
+const COLOR: Record<Side, string> = { yes: "var(--yes-ink)", no: "var(--no-ink)" };
 const MAX = 500;
 
 // Right after a stake goes through — the moment you're most sure of it —
@@ -24,11 +24,11 @@ export function CallItPrompt({ roomId, side, save = savePost }: { roomId: string
 
   if (phase === "done" && postId) {
     return (
-      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 [animation:fade-in-up_200ms_ease-out_both]">
-        <p className="text-sm text-foreground">
-          Called it in the Arena. <span className="text-muted">It comes back as a receipt.</span>
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3 [animation:fade-in-up_200ms_ease-out_both]">
+        <p className="text-body text-foreground">
+          Called it in the Arena. <span className="text-secondary">It comes back as a receipt.</span>
         </p>
-        <Link href={`/arena/p/${postId}`} className="shrink-0 text-sm font-semibold" style={{ color: COLOR[side] }}>
+        <Link href={`/arena/p/${postId}`} className="shrink-0 text-label font-semibold" style={{ color: COLOR[side] }}>
           See it
         </Link>
       </div>
@@ -52,29 +52,28 @@ export function CallItPrompt({ roomId, side, save = savePost }: { roomId: string
   }
 
   return (
-    <div className="mt-3 border-t border-border pt-3">
-      <p className="text-sm font-semibold text-foreground">Tell them why?</p>
-      <p className="mt-0.5 text-xs text-muted">Post it to the Arena as your call — it comes back as a receipt when the room settles.</p>
+    <div className="mt-3 border-t border-line pt-3">
+      <p className="text-body font-semibold text-foreground">Tell them why?</p>
+      <p className="mt-1 text-caption text-secondary">Post it to the Arena as your call — it comes back as a receipt when the room settles.</p>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={MAX}
         rows={2}
         placeholder={`Why ${side.toUpperCase()}? Say it now.`}
-        className="mt-2 w-full resize-none rounded-xl bg-background px-3 py-2.5 text-[15px] text-foreground ring-1 ring-border placeholder:text-muted focus:outline-none"
+        className="mt-2 w-full resize-none rounded-control border border-line-strong bg-background px-3 py-2 text-body-lg text-foreground transition-colors duration-150 placeholder:text-tertiary focus:border-yes focus:outline-none"
       />
-      {error && <p className="mt-1 text-xs font-semibold text-rival-red">{error}</p>}
+      {error && <p className="mt-1 text-caption font-semibold text-no-ink">{error}</p>}
       <div className="mt-2 flex items-center gap-2">
         <button
           type="button"
           onClick={() => void post()}
           disabled={!text.trim() || phase === "posting"}
-          className="h-10 flex-1 rounded-full text-sm font-bold text-white transition-opacity disabled:opacity-40"
-          style={{ background: COLOR[side] }}
+          className={`h-10 flex-1 rounded-full text-label font-bold text-white transition-[transform,opacity] duration-100 active:scale-[0.97] disabled:opacity-40 ${side === "yes" ? "bg-yes" : "bg-no"}`}
         >
           {phase === "posting" ? "Posting…" : "Post call"}
         </button>
-        <button type="button" onClick={() => setPhase("skipped")} className="h-10 rounded-full px-4 text-sm text-muted hover:text-foreground">
+        <button type="button" onClick={() => setPhase("skipped")} className="h-10 rounded-full px-4 text-label text-secondary hover:text-foreground">
           Skip
         </button>
       </div>
