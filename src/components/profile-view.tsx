@@ -441,7 +441,7 @@ export function ProfileView({
         )}
 
         <div className="mt-4">
-          {tab === "position" && <ProfilePositions items={positions.items} isLoading={positions.isLoading} filter={positionFilter} />}
+          {tab === "position" && <ProfilePositions items={positions.items} stakes={positions.stakes} isLoading={positions.isLoading} filter={positionFilter} />}
           {tab === "replies" && <ProfileReplies profileId={profile.id} />}
           {tab === "activity" && <ProfileActivity profileId={profile.id} />}
         </div>

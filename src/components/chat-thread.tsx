@@ -32,6 +32,9 @@ export type ReactionMap = Record<string, Record<string, string[]>>;
 const GROUP_MS = 5 * 60_000;
 const NEAR_BOTTOM_PX = 80;
 const HOLD_MS = 420;
+// Swipe a message right to reply (WhatsApp/Discord): past this far it's armed.
+const SWIPE_REPLY_PX = 56;
+const SWIPE_MAX_PX = 80;
 const QUICK_REACT = ["🔥", "😂", "😭"] as const;
 const SIDE_COLOR: Record<EntrySide, string> = { yes: "var(--yes)", no: "var(--no)" };
 const SIDE_DIM: Record<EntrySide, string> = { yes: "var(--yes-tint)", no: "var(--rival-red-dim)" };
@@ -434,6 +437,48 @@ function MessageRow({
   };
   const endHold = () => window.clearTimeout(hold.current);
 
+  // Swipe to reply (touch only; mouse users have the hover Reply button). A
+  // clearly sideways drag to the right slides the message over and reveals the
+  // reply arrow; past the threshold it ticks, and letting go replies. Any
+  // vertical movement first stays a normal scroll (touch-action: pan-y).
+  const swipe = useRef<{ x: number; y: number; sideways: boolean | null; armed: boolean } | null>(null);
+  const [dx, setDx] = useState(0);
+  const onDown = (e: React.PointerEvent) => {
+    startHold(e);
+    if (e.pointerType !== "mouse" && onReply) swipe.current = { x: e.clientX, y: e.clientY, sideways: null, armed: false };
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const g = swipe.current;
+    if (!g) return;
+    const mx = e.clientX - g.x;
+    const my = e.clientY - g.y;
+    if (g.sideways === null) {
+      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+      g.sideways = mx > 0 && Math.abs(mx) > Math.abs(my) * 1.4;
+      if (!g.sideways) {
+        swipe.current = null;
+        return;
+      }
+      endHold();
+    }
+    const d = Math.max(0, Math.min(mx, SWIPE_MAX_PX));
+    setDx(d);
+    const armed = d >= SWIPE_REPLY_PX;
+    if (armed && !g.armed) haptic("tick");
+    g.armed = armed;
+  };
+  const onUp = () => {
+    endHold();
+    if (swipe.current?.armed) onReply?.(message);
+    swipe.current = null;
+    setDx(0);
+  };
+  const onCancel = () => {
+    endHold();
+    swipe.current = null;
+    setDx(0);
+  };
+
   const reactionList = Object.entries(reactions ?? {}).filter(([, users]) => users.length > 0);
 
   const body = (
@@ -469,17 +514,29 @@ function MessageRow({
   return (
     <div
       data-mid={message.id}
-      onPointerDown={startHold}
-      onPointerUp={endHold}
-      onPointerLeave={endHold}
-      onPointerCancel={endHold}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerLeave={onCancel}
+      onPointerCancel={onCancel}
       onContextMenu={(e) => {
         e.preventDefault();
         onOpenSheet();
       }}
-      className={`chat-row-enter group relative rounded-control px-1 transition-colors duration-300 hover:bg-foreground/[0.03] ${head ? "mt-3 py-1" : "py-0.5"}`}
-      style={flashing ? { background: "var(--yes-tint)" } : undefined}
+      className={`chat-row-enter group relative overflow-x-clip rounded-control px-1 transition-colors duration-300 hover:bg-foreground/[0.03] ${head ? "mt-3 py-1" : "py-0.5"}`}
+      style={{ touchAction: "pan-y pinch-zoom", ...(flashing ? { background: "var(--yes-tint)" } : {}) }}
     >
+      {/* The reply arrow the swipe uncovers — it fills in once letting go will reply. */}
+      {dx > 0 && (
+        <span
+          aria-hidden
+          className={`absolute left-2 top-1/2 flex h-7 w-7 items-center justify-center rounded-full ${dx >= SWIPE_REPLY_PX ? "bg-overlay-3 text-foreground" : "text-secondary"}`}
+          style={{ opacity: Math.min(1, dx / SWIPE_REPLY_PX), transform: `translateY(-50%) scale(${0.6 + 0.4 * Math.min(1, dx / SWIPE_REPLY_PX)})` }}
+        >
+          <ReplyIcon />
+        </span>
+      )}
+      <div style={dx > 0 ? { transform: `translateX(${dx}px)` } : { transform: "translateX(0)", transition: "transform 200ms var(--ease-out)" }}>
       {/* Desktop: quick reactions and Reply on hover */}
       <div className="pointer-events-none absolute -top-3 right-2 z-10 hidden items-center gap-0.5 rounded-control bg-surface-elevated p-0.5 opacity-0 shadow-pop transition-opacity duration-100 group-hover:pointer-events-auto group-hover:opacity-100 md:flex">
         {QUICK_REACT.map((e) => (
@@ -557,6 +614,7 @@ function MessageRow({
           <div className="min-w-0 flex-1">{body}</div>
         </div>
       )}
+      </div>
     </div>
   );
 }

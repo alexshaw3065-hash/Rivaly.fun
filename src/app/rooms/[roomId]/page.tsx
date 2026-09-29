@@ -33,6 +33,7 @@ import type { Metadata } from "next";
 import { pageMeta, roomJsonLd, roomSummary } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 import { JsonLd } from "@/components/seo/json-ld";
+import { PositionBar, PositionCard, type PositionProps } from "@/components/room/your-position";
 
 // The heart of the product: a digital viewing centre, not a form. Per
 // docs/masterplan/07-product-blueprint.md#45-room and the 2026-09-24 room
@@ -180,6 +181,21 @@ export default async function RoomPage({
     ...(outcome ? [{ id: "result", at: room.settledAt ? +new Date(room.settledAt) : +new Date(match.kickoffAt) + 1, kind: "result" as const, outcome }] : []),
   ];
   const sharePath = `/rooms/${room.id}${room.visibility === "private" ? `?code=${room.inviteCode}` : ""}`;
+  // Your stake and what it'd win, live — only while the room is undecided.
+  const position: PositionProps | null =
+    myEntry && !outcome
+      ? {
+          side: myEntry.side,
+          stakeCents: myEntry.amountCents,
+          yesCents: room.yesTotalCents ?? 0,
+          noCents: room.noTotalCents ?? 0,
+          rivalyBps: room.feeBps ?? 0,
+          hostBps: room.hostFeeBps ?? 0,
+          locked: stakesClosed,
+        }
+      : null;
+  const feeTotalBps = (room.feeBps ?? 0) + (room.hostFeeBps ?? 0);
+  const bpsPct = (bps: number) => `${(bps / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
   const stakeLimitLabel =
     room.maxStakeCents === null ? "No limit" : `${formatMoney(room.minStakeCents)}–${formatMoney(room.maxStakeCents)}`;
 
@@ -254,7 +270,7 @@ export default async function RoomPage({
             )}
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} initialReactions={reactions} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} sport={sport} nflClock={nflClock} />}
+              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} initialReactions={reactions} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} sport={sport} nflClock={nflClock} position={position ? <PositionBar {...position} /> : undefined} />}
               match={match}
               sport={sportOf(match)}
               events={eventRows}
@@ -266,11 +282,21 @@ export default async function RoomPage({
                 { label: "Stakes", value: stakeLimitLabel },
                 { label: "Resolves via", value: room.settlementMode === "auto" ? room.resolutionSource : "Creator confirms after the match" },
                 { label: "Settles", value: "Once the result is certain, after a 10-minute VAR window" },
-                { label: "Payouts", value: "Winners split the whole pool by stake — no fee" },
+                {
+                  label: "Payouts",
+                  // The room's own fee, frozen when it was created.
+                  value:
+                    feeTotalBps > 0
+                      ? `Winners split the pool by stake, less ${bpsPct(feeTotalBps)} of the winnings (${bpsPct(room.feeBps ?? 0)} Rivaly, ${bpsPct(room.hostFeeBps ?? 0)} host)`
+                      : "Winners split the whole pool by stake — no fee",
+                },
                 { label: "Room", value: room.visibility === "private" ? `Private · ${room.inviteCode}` : "Public" },
                 { label: "Rivals", value: String(room.participantCount) },
               ]}
             />
+
+            {/* Comparison with the bar docked in the chat — keep whichever reads better. */}
+            {position && <PositionCard {...position} />}
           </div>
 
           <aside className="flex flex-col gap-4 md:sticky md:top-[calc(var(--header-height)+16px)] md:self-start">

@@ -104,6 +104,7 @@ export function ChatComposer({
   matchTeams,
   sport = "soccer",
   nflClock,
+  position,
 }: {
   roomId: string;
   matchId?: string;
@@ -127,6 +128,8 @@ export function ChatComposer({
   sport?: "soccer" | "nfl";
   /** NFL: the quarter state where the server's initial feed left off, carried on by live events. */
   nflClock?: NflClock;
+  /** Your stake and what it'd win, docked above the input (room/your-position.tsx). */
+  position?: React.ReactNode;
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
@@ -647,6 +650,7 @@ export function ChatComposer({
       />
 
       <div className="shrink-0 border-t border-line px-3 pb-3 pt-2">
+        {position}
         {/* Trays: one-tap shouts (open by default — joining in shouldn't need
             typing), or emoji for your message. */}
         {tray === "quick" && (
