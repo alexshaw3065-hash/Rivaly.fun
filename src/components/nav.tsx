@@ -9,6 +9,7 @@ import { ColosseumIcon, HomeIcon, PersonIcon, SearchIcon } from "./icons";
 import { Avatar } from "./avatar";
 import { TopBarIcons } from "./top-bar-icons";
 import { MobileMoreMenu } from "./mobile-more-menu";
+import { HowItWorksHost } from "./how-it-works";
 import { Sidebar } from "./sidebar";
 import { DesktopHeader } from "./desktop-header";
 import { MobileSearchOverlay } from "./mobile-search-overlay";
@@ -149,6 +150,7 @@ export function Nav({ children }: { children: ReactNode }) {
       />
       <MobileSearchOverlay />
       <QuickDepositSheet />
+      <HowItWorksHost />
       <StreakTracker />
       <AppPreloader />
       <ArenaComposerHost />

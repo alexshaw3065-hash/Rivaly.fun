@@ -397,6 +397,13 @@ summary {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* How it works, step two: each side's bar grows in towards the middle
+   (set transform-origin on the element to pick the direction). */
+@keyframes side-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 
 .stagger-in {
   opacity: 0;

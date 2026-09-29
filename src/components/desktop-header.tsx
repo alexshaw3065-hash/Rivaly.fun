@@ -3,6 +3,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { DesktopAccountMenu } from "./desktop-account-menu";
 import { DesktopSearchBox } from "./desktop-search-box";
 import { openAuthModal } from "@/lib/auth-modal-store";
+import { openHowItWorks } from "@/lib/how-it-works-store";
 import { Button, ButtonLink } from "./ui/button";
 
 // Desktop-only (hidden md:flex) top bar, offset by the sidebar's current
@@ -35,6 +36,12 @@ export function DesktopHeader({
         {pathname !== "/search" && <DesktopSearchBox />}
 
         <div className="ml-auto flex shrink-0 items-center gap-5">
+          {/* New visitors' way back to the three-step intro (how-it-works.tsx). */}
+          {!selfUsername && (
+            <Button onClick={() => openHowItWorks("header")} variant="ghost" size="md" className="shrink-0">
+              How it works
+            </Button>
+          )}
           <ButtonLink href="/rooms/create" prefetch variant="inverse" size="md" className="shrink-0">
             Create room
           </ButtonLink>

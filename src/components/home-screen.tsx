@@ -16,16 +16,15 @@ import { SectionHeader } from "@/components/ui";
 // top-rivals.tsx), then the same [filter icon][Rooms][Matches]
 // browser Search uses (see rooms-matches-browser.tsx) so both pages share
 // one league-filtered, infinite-scrolling browse experience.
-// `intro` and `footer` are server-rendered by app/page.tsx for signed-out
-// visitors only: the plain-text "what is Rivaly" that search engines and AI
+// `footer` is server-rendered by app/page.tsx for signed-out visitors only:
+// links and the plain-text "what is Rivaly" that search engines and AI
 // assistants read (they don't run this component's data fetching).
-export function HomeScreen({ intro, footer }: { intro?: React.ReactNode; footer?: React.ReactNode }) {
+export function HomeScreen({ footer }: { footer?: React.ReactNode }) {
   const { slides: exploding, isLoading: explodingLoading } = useExplodingSlides();
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
     <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6">
-      {intro}
       {/* md:hidden — desktop already has a search bar in DesktopHeader
           (nav.tsx/desktop-header.tsx); this is the mobile-only shortcut. */}
       <div className="md:hidden">

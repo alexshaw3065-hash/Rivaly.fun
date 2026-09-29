@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/json-ld";
-import { SiteFooter } from "@/components/seo/home-intro";
+import { SiteFooter } from "@/components/seo/site-footer";
 import { pageMeta } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 
@@ -74,8 +74,8 @@ const steps: { title: string; body: string }[] = [
     body: "Pick a fixture and say what you think will happen — the result, goals, a scorer, cards. That call is the room. Choose your stake, and whether the room is public or private.",
   },
   {
-    title: "Challenge the people who disagree",
-    body: "Share the room's link anywhere — WhatsApp, X, TikTok. Anyone who thinks you're wrong takes the other side. Public rooms can also be found on Rivaly by anyone.",
+    title: "A rival takes the other side",
+    body: "Anyone on Rivaly who thinks you're wrong can find your room and take the other side. Want a particular rival? Send them the link — WhatsApp, X, anywhere.",
   },
   {
     title: "The stakes are held until full time",

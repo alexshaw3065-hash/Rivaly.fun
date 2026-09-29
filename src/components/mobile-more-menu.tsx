@@ -7,9 +7,11 @@ import { ThemeToggle, useIsLightTheme } from "./theme-toggle";
 import { useCurrentUser } from "./current-user-provider";
 import { useSignOut } from "@/lib/use-sign-out";
 import { SOCIALS } from "@/lib/socials";
+import { openHowItWorks } from "@/lib/how-it-works-store";
 
 const menuLinks = [
-  { href: "/docs", label: "Documentation" },
+  { href: "/about", label: "About Rivaly" },
+  { href: "/docs", label: "Full guide" },
   { href: "/terms", label: "Terms of Use" },
   { href: "/support", label: "Support" },
 ];
@@ -76,6 +78,17 @@ export function MobileMoreMenu() {
           </div>
 
           <div className="flex flex-col divide-y divide-line border-t border-line">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                openHowItWorks("menu");
+              }}
+              className="flex items-center justify-between px-4 py-3 text-left text-body font-semibold text-foreground transition-colors hover:bg-overlay-1"
+            >
+              How it works
+              <span className="text-secondary">→</span>
+            </button>
             {menuLinks.map((link) => (
               <Link
                 key={link.href}
