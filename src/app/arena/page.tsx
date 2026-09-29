@@ -8,8 +8,10 @@ export const metadata = pageMeta({
   path: "/arena",
 });
 
-// The screen itself is components/arena-screen.tsx; this wrapper only gives
-// the page its title and description.
-export default function ArenaPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  return <ArenaScreen searchParams={searchParams} />;
+// The screen itself is components/arena-screen.tsx; this wrapper gives the
+// page its title and description, and reads ?tab= so the screen starts on
+// the right tab without waiting for anything.
+export default async function ArenaPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
+  return <ArenaScreen initialTab={tab === "leaderboard" || tab === "leagues" ? tab : "feed"} />;
 }

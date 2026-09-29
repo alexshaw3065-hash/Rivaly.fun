@@ -9,6 +9,7 @@ import { useCurrentUser } from "./current-user-provider";
 import { RivalCharacter } from "./rival-character";
 import { BottomSheet } from "./bottom-sheet";
 import { siteUrl } from "@/lib/site";
+import { Button } from "./ui";
 
 // Points only — no entry fee, no prize, ever (money would make it a
 // Tournament, which V1 leaves out). A win is 3 points; beating the room
@@ -40,13 +41,13 @@ export function ArenaLeagues() {
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between gap-3">
         <p className="text-label font-semibold text-secondary">Your leagues</p>
-        <div className="flex gap-2">
-          <button onClick={() => open("join")} className="h-8 rounded-full px-4 text-body text-foreground edge">
+        <div className="flex shrink-0 gap-2">
+          <Button size="sm" variant="secondary" onClick={() => open("join")}>
             Join with code
-          </button>
-          <button onClick={() => open("create")} className="h-8 rounded-full px-4 text-body font-bold text-white" style={{ background: "var(--yes)" }}>
+          </Button>
+          <Button size="sm" variant="primary" onClick={() => open("create")}>
             New league
-          </button>
+          </Button>
         </div>
       </div>
 

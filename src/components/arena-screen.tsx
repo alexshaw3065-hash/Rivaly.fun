@@ -1,12 +1,12 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArenaFeed } from "@/components/arena-feed";
 import { ArenaLeagues } from "@/components/arena-leagues";
 import { ArenaLeaderboard } from "@/components/arena-leaderboard";
 import { Tabs } from "@/components/ui/controls";
 
-type ArenaTab = "feed" | "leagues" | "leaderboard";
+export type ArenaTab = "feed" | "leagues" | "leaderboard";
 
 const tabs: { id: ArenaTab; label: string }[] = [
   { id: "feed", label: "Feed" },
@@ -21,10 +21,11 @@ const tabs: { id: ArenaTab; label: string }[] = [
 // ranked list. No page title, no per-tab hint copy, matching the same call
 // already made on Rooms — the tabs speak for themselves. The online-rivals
 // badge lives inside arena-feed.tsx now, not here — see that file for why.
-export function ArenaScreen({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  // ?tab=leaderboard / ?tab=leagues opens straight on that tab (e.g. from a profile's rank).
-  const { tab: requested } = use(searchParams);
-  const [tab, setTab] = useState<ArenaTab>(requested === "leaderboard" || requested === "leagues" ? requested : "feed");
+export function ArenaScreen({ initialTab }: { initialTab: ArenaTab }) {
+  // ?tab=leaderboard / ?tab=leagues opens straight on that tab (e.g. from a
+  // profile's rank) — read by the server page and handed in ready, so nothing
+  // waits on it while the screen loads.
+  const [tab, setTab] = useState<ArenaTab>(initialTab);
 
   // The floating "post a take" button (nav.tsx) belongs to the Feed only —
   // Leagues and Leaderboard have their own one primary action.
