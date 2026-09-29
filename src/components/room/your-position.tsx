@@ -9,10 +9,9 @@ import { formatMoney } from "@/lib/mock-data";
 // side the room re-renders (room-live.tsx) and these numbers move with it.
 // The maths is the settlement's own (planSettlement) at the room's frozen fee
 // rates, so "to win" is what would actually be paid if the room settled now —
-// an estimate only because more people can still join.
-//
-// Two layouts to compare (founder, 2026-09-29): PositionBar docked above the
-// chat input, PositionCard beneath the chat. Keep the one that wins.
+// an estimate only because more people can still join. It sits docked above
+// the chat input (the founder picked this over a card beneath the chat,
+// 2026-09-29): one line, tap for the details.
 //
 // Engagement mechanisms (rivaly-engagement-psychology): #2 anticipation —
 // your potential win moving as the pot fills; #6 "money at play".
@@ -145,26 +144,5 @@ export function PositionBar(p: PositionProps) {
         </div>
       )}
     </div>
-  );
-}
-
-/** Beneath the chat: the same numbers, always open. */
-export function PositionCard(p: PositionProps) {
-  const n = positionNumbers(p);
-  const delta = useChange(n.payout);
-  return (
-    <section className="rounded-card bg-surface p-4 edge" aria-label="Your position">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-body-lg font-display font-bold text-foreground">Your position</h2>
-        <span className={`text-label font-bold ${SIDE_INK[p.side]}`}>{p.side.toUpperCase()}</span>
-      </div>
-      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-body">
-        {headline(p, n)}
-        <Change delta={delta} />
-      </p>
-      <div className="mt-3">
-        <Details p={p} n={n} />
-      </div>
-    </section>
   );
 }

@@ -33,7 +33,7 @@ import type { Metadata } from "next";
 import { pageMeta, roomJsonLd, roomSummary } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 import { JsonLd } from "@/components/seo/json-ld";
-import { PositionBar, PositionCard, type PositionProps } from "@/components/room/your-position";
+import { PositionBar, type PositionProps } from "@/components/room/your-position";
 
 // The heart of the product: a digital viewing centre, not a form. Per
 // docs/masterplan/07-product-blueprint.md#45-room and the 2026-09-24 room
@@ -294,9 +294,6 @@ export default async function RoomPage({
                 { label: "Rivals", value: String(room.participantCount) },
               ]}
             />
-
-            {/* Comparison with the bar docked in the chat — keep whichever reads better. */}
-            {position && <PositionCard {...position} />}
           </div>
 
           <aside className="flex flex-col gap-4 md:sticky md:top-[calc(var(--header-height)+16px)] md:self-start">
