@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui";
 // while it reads them, so there's no second jump).
 export default function NotificationsLoading() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8 md:px-6 md:py-12">
+    <main className="mx-auto max-w-2xl px-4 py-8 md:px-6 md:py-12 lg:max-w-[648px]">
       <Skeleton className="h-8 w-44" />
       <div className="mt-7">
         <RowsShape />

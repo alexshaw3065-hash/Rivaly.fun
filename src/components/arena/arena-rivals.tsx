@@ -36,7 +36,10 @@ interface Person {
   reason: string;
 }
 
-export function ArenaRivals() {
+// `variant="rail"`: the same people as a vertical "who to follow" list for
+// Arena's right-hand column on wide screens (like X's) — same faces, same
+// Challenge / Follow action; the first 8 so the column stays short.
+export function ArenaRivals({ variant = "row" }: { variant?: "row" | "rail" } = {}) {
   const me = useCurrentUser();
   const online = useOnlineRivals();
   const [suggested, setSuggested] = useState<Suggested[] | null>(null);
@@ -73,6 +76,52 @@ export function ArenaRivals() {
   if (people.length === 0) return null;
   const onlineCount = people.filter((p) => p.online).length;
 
+  const action = (p: Person) =>
+    p.online && me ? (
+      <Link
+        href={`/rooms/create?vs=${encodeURIComponent(p.username)}`}
+        className="w-full rounded-control bg-yes py-1.5 text-center text-caption font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+      >
+        Challenge
+      </Link>
+    ) : (
+      <FollowButton profileId={p.id} variant="compact" />
+    );
+
+  if (variant === "rail") {
+    return (
+      <section aria-label="Rivals">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-title-3 font-display text-foreground">Rivals</h2>
+          {onlineCount > 0 && (
+            <span className="flex items-center gap-1.5 text-caption text-secondary">
+              <span className="h-1.5 w-1.5 rounded-full bg-rival-green" aria-hidden />
+              {onlineCount} online
+            </span>
+          )}
+        </div>
+        <div className="mt-3 flex flex-col gap-1">
+          {people.slice(0, 8).map((p) => (
+            <div key={p.id} className="flex min-w-0 items-center gap-3 rounded-control px-2 py-2">
+              <Link href={`/profile/${p.username}`} className="flex min-w-0 flex-1 items-center gap-3">
+                <span className="relative shrink-0">
+                  <RivalCharacter name={p.username} imageUrl={p.avatar} size={36} />
+                  {p.online && <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-rival-green ring-2 ring-background" aria-label="Online now" />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-label font-semibold text-foreground">{p.name}</span>
+                  <span className="block truncate text-caption text-secondary">{p.reason}</span>
+                </span>
+              </Link>
+              {/* Fixed width: the compact Follow button fills its box. */}
+              <span className="flex w-24 shrink-0">{action(p)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="mt-4" aria-label="Rivals">
       <div className="flex items-baseline justify-between">
@@ -98,16 +147,7 @@ export function ArenaRivals() {
               <span className="-mt-1 w-full truncate tabular-nums text-caption text-secondary">@{p.username}</span>
             </Link>
             <span className="w-full truncate text-caption text-secondary">{p.reason}</span>
-            {p.online && me ? (
-              <Link
-                href={`/rooms/create?vs=${encodeURIComponent(p.username)}`}
-                className="w-full rounded-control bg-yes py-1.5 text-caption font-semibold text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-              >
-                Challenge
-              </Link>
-            ) : (
-              <FollowButton profileId={p.id} variant="compact" />
-            )}
+            {action(p)}
           </div>
         ))}
       </div>

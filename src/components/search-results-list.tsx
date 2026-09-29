@@ -56,7 +56,7 @@ export function SearchResultsList({
                 className={
                   compact
                     ? "mt-3 flex flex-col gap-2"
-                    : "mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                    : "mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
                 }
               >
                 {rooms.slice(0, cap).map(({ room, match }) => (
@@ -72,7 +72,7 @@ export function SearchResultsList({
                 className={
                   compact
                     ? "no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1"
-                    : "mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                    : "mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
                 }
               >
                 {matches.slice(0, cap).map((m) => (

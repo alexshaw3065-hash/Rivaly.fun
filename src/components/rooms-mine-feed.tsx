@@ -112,7 +112,7 @@ export function RoomsMineFeed() {
       </div>
 
       {current.length > 0 ? (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {current.map((item) =>
             sub === "completed" ? (
               <CompletedRoomCard key={item.room.id} item={item} result={mine.results.get(item.room.id)} />

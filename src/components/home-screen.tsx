@@ -24,36 +24,45 @@ export function HomeScreen({ footer }: { footer?: React.ReactNode }) {
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6">
+    // Wide screens (xl): a wider page with Polymarket's shape — Exploding now
+    // beside a right-hand column of Top rivals, the room grid full width below.
+    // Phones, tablets and laptops keep the single column exactly as before.
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 xl:max-w-[1200px]">
       {/* md:hidden — desktop already has a search bar in DesktopHeader
           (nav.tsx/desktop-header.tsx); this is the mobile-only shortcut. */}
       <div className="md:hidden">
         <SearchBarLink />
       </div>
 
-      <section className="mt-6 min-w-0">
-        <SectionHeader
-          title="🔥 Exploding now"
-          action={
-            <Link href="/rooms" className="hover-link transition-colors">
-              View all →
-            </Link>
-          }
-        />
-        <div>
-          {exploding.length > 0 ? (
-            <ExplodingCarousel items={exploding} />
-          ) : explodingLoading ? (
-            <div aria-busy>
-              <FeatureCardShape />
-            </div>
-          ) : (
-            <EmptyRooms />
-          )}
-        </div>
-      </section>
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start xl:gap-8">
+        <section className="mt-6 min-w-0">
+          <SectionHeader
+            title="🔥 Exploding now"
+            action={
+              <Link href="/rooms" className="hover-link transition-colors">
+                View all →
+              </Link>
+            }
+          />
+          <div>
+            {exploding.length > 0 ? (
+              <ExplodingCarousel items={exploding} />
+            ) : explodingLoading ? (
+              <div aria-busy>
+                <FeatureCardShape />
+              </div>
+            ) : (
+              <EmptyRooms />
+            )}
+          </div>
+        </section>
 
-      <div className="mt-8">
+        <aside className="mt-6 hidden min-w-0 xl:block" aria-label="Top rivals">
+          <TopRivals variant="rail" />
+        </aside>
+      </div>
+
+      <div className="mt-8 xl:hidden">
         <TopRivals />
       </div>
 

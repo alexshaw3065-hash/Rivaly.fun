@@ -9,7 +9,9 @@ export function RoomsExplodingSection() {
   if (slides.length === 0) return null;
 
   return (
-    <section className="min-w-0">
+    // Capped on desktop so the carousel reads as a feature card, not a
+    // page-wide banner (lined up with the tabs above); phones unchanged.
+    <section className="min-w-0 lg:max-w-[880px]">
       <h2 className="font-display text-xl font-semibold text-foreground">🔥 Exploding now</h2>
       <div className="mt-5">
         <ExplodingCarousel items={slides} />

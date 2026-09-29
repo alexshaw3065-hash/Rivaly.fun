@@ -13,6 +13,7 @@ import { ArenaCard, type CardActions } from "./arena/arena-cards";
 import { ArenaMatchRooms } from "./arena/arena-match-rooms";
 import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, fetchRanked, newRankedSession, setReaction, type FeedScope, type RankedSession } from "@/lib/arena/data";
 import { ArenaRivals } from "./arena/arena-rivals";
+import { useWideScreen } from "@/lib/use-wide-screen";
 import {
   appendPage,
   cursorOf,
@@ -49,6 +50,7 @@ interface Face {
 // proof — what's drawing reactions right now rises.
 export function ArenaFeed() {
   const me = useCurrentUser();
+  const wide = useWideScreen();
   const viewerId = me?.id ?? null;
   const { matches } = useRealMatches();
   const [scope, setScope] = useState<FeedScope>("global");
@@ -346,7 +348,8 @@ export function ArenaFeed() {
         </button>
       )}
 
-      <ArenaRivals />
+      {/* On wide screens the same rivals sit in Arena's right-hand column instead (arena-screen.tsx). */}
+      {!wide && <ArenaRivals />}
 
       <button
         type="button"

@@ -230,7 +230,7 @@ export function SearchRollup({
       {topics.length > 0 && (
         <section>
           <p className="text-label font-semibold text-secondary">Topics</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-3">
             {topics.map(({ topic, count, sample, live }) => (
               <button
                 key={topic.id}

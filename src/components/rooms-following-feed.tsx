@@ -155,7 +155,7 @@ export function RoomsFollowingFeed() {
 
       {sub === "created" ? (
         created.length > 0 ? (
-          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {created.map(({ item, byId }) => (
               <RoomWithByline key={item.room.id} item={item} profile={current?.profiles.get(byId)} />
             ))}
@@ -164,7 +164,7 @@ export function RoomsFollowingFeed() {
           <p className="mt-6 text-body text-secondary">Nobody you follow has created a room right now.</p>
         )
       ) : joined.length > 0 ? (
-        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {joined.map(({ item, byId }) => (
             <RoomWithByline key={`${item.room.id}-${byId}`} item={item} profile={current?.profiles.get(byId)} />
           ))}

@@ -231,7 +231,7 @@ export function RoomsMatchesBrowser({
           {browseMatches.length === 0 ? (
             <p className="py-8 text-center text-body text-secondary">No matches for this league yet.</p>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {browseMatches.map((m) => (
                 <MatchChip key={m.id} match={m} />
               ))}

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui";
 // waits on the server with nothing on screen.
 export default function Loading() {
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 xl:max-w-[1200px]">
       <Skeleton className="h-11 rounded-full" />
       <div className="mt-6 flex flex-col gap-4">
         <TitleShape wide />
@@ -15,8 +15,10 @@ export default function Loading() {
       </div>
       <div className="mt-8 flex flex-col gap-3">
         <TitleShape />
-        <RoomCardShape />
-        <RoomCardShape />
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 xl:grid-cols-3">
+          <RoomCardShape />
+          <RoomCardShape />
+        </div>
       </div>
     </main>
   );

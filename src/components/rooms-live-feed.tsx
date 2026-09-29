@@ -27,7 +27,7 @@ export function RoomsLiveFeed() {
         {live.length === 0 ? (
           <p className="mt-3 text-body text-secondary">Nothing live right now — check back at kickoff.</p>
         ) : (
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {live.map(({ room, match }, i) => (
               <div key={room.id} className="stagger-in" style={{ animationDelay: `${i * 40}ms` }}>
                 <RoomCard room={room} match={match} />
@@ -40,7 +40,7 @@ export function RoomsLiveFeed() {
       {upcoming.length > 0 && (
         <section>
           <p className="text-label font-semibold text-secondary">Starting soon</p>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {upcoming.map(({ room, match }) => (
               <RoomCard key={room.id} room={room} match={match} />
             ))}

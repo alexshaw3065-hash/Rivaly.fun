@@ -81,24 +81,39 @@ function toWin(r: Row): TopWin {
   };
 }
 
-function useBoards(): { wins: TopWin[]; streaks: Streak[]; earners: Earner[]; isLoading: boolean } {
+interface Boards {
+  wins: TopWin[];
+  streaks: Streak[];
+  earners: Earner[];
+}
+
+// One read shared by every TopRivals on the page (Home shows the strip on
+// phones and the side column on wide screens — both mounted, one hidden), and
+// reused for 30s so switching tabs back doesn't ask again.
+let boardsRead: { at: number; promise: Promise<Boards> } | null = null;
+function loadBoards(): Promise<Boards> {
+  if (boardsRead && Date.now() - boardsRead.at < 30_000) return boardsRead.promise;
+  const supabase = createClient();
+  const rows = (fn: string) =>
+    supabase.rpc(fn, { p_limit: 5 }).then(
+      ({ data }) => (data ?? []) as Row[],
+      () => [] as Row[],
+    );
+  const promise = Promise.all([rows("top_payouts"), rows("top_streaks"), rows("top_earners")]).then(([w, s, e]) => ({
+    wins: w.map(toWin),
+    streaks: s.map((r) => ({ ...person(r), streak: Number(r.streak) })),
+    earners: e.map((r) => ({ ...person(r), profitCents: Number(r.profit_cents), roomsWon: Number(r.rooms_won) })),
+  }));
+  boardsRead = { at: Date.now(), promise };
+  return promise;
+}
+
+function useBoards(): Boards & { isLoading: boolean } {
   const [state, setState] = useState({ wins: [] as TopWin[], streaks: [] as Streak[], earners: [] as Earner[], isLoading: true });
   useEffect(() => {
     let cancelled = false;
-    const supabase = createClient();
-    const rows = (fn: string) =>
-      supabase.rpc(fn, { p_limit: 5 }).then(
-        ({ data }) => (data ?? []) as Row[],
-        () => [] as Row[],
-      );
-    Promise.all([rows("top_payouts"), rows("top_streaks"), rows("top_earners")]).then(([w, s, e]) => {
-      if (cancelled) return;
-      setState({
-        isLoading: false,
-        wins: w.map(toWin),
-        streaks: s.map((r) => ({ ...person(r), streak: Number(r.streak) })),
-        earners: e.map((r) => ({ ...person(r), profitCents: Number(r.profit_cents), roomsWon: Number(r.rooms_won) })),
-      });
+    void loadBoards().then((b) => {
+      if (!cancelled) setState({ ...b, isLoading: false });
     });
     return () => {
       cancelled = true;
@@ -172,7 +187,10 @@ function buildItems(wins: TopWin[], streaks: Streak[], earners: Earner[]): Rival
   return [...top, ...goated, ...hof];
 }
 
-export function TopRivals() {
+// `variant="rail"`: the same rivals as a vertical list for Home's right-hand
+// column on wide screens (like Polymarket's "Hot topics") — same people, same
+// tap-to-open story; only the shape changes.
+export function TopRivals({ variant = "row" }: { variant?: "row" | "rail" } = {}) {
   const { wins, streaks, earners, isLoading } = useBoards();
   const [heading, setHeading] = useState(HEADINGS.top);
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -210,6 +228,77 @@ export function TopRivals() {
   };
 
   const groups: Group[] = ["top", "goated", "hof"];
+
+  const storyPanel = (
+    <div className="accordion-body" data-open={openKey ? "true" : "false"}>
+      <div className="min-h-0 overflow-hidden">
+        {story &&
+          (story.win ? (
+            <WinStory win={story.win} onClose={() => setOpenKey(null)} />
+          ) : (
+            <ProfileStory item={story} onClose={() => setOpenKey(null)} />
+          ))}
+      </div>
+    </div>
+  );
+
+  if (variant === "rail") {
+    const railRow = (item: RivalItem) => {
+      const active = item.key === openKey;
+      return (
+        <button
+          key={item.key}
+          type="button"
+          onClick={() => toggle(item.key)}
+          aria-expanded={active}
+          className={`press-row flex w-full min-w-0 items-center gap-3 rounded-control px-2 py-2 text-left transition-colors duration-100 ${active ? "bg-money-tint" : "hover:bg-overlay-1"}`}
+        >
+          <RivalCharacter name={item.username} imageUrl={item.avatarUrl} size={28} />
+          <span className="min-w-0 flex-1 truncate text-label font-semibold text-foreground">{item.name}</span>
+          <span className="flex min-w-0 shrink-0 items-center gap-2">{item.metric}</span>
+        </button>
+      );
+    };
+    return (
+      <section className="min-w-0">
+        <h2 className="text-title-3 font-display text-foreground">{HEADINGS.top}</h2>
+        <div className="mt-3 min-w-0">
+          {isLoading ? (
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: 5 }, (_, i) => (
+                <Skeleton key={i} className="h-11 w-full rounded-control" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <Card>
+              <p className="text-body font-semibold text-foreground">No winners yet.</p>
+              <p className="mt-1 text-body text-secondary">
+                The first room to settle puts someone here.{" "}
+                <Link href="/rooms/create" className="font-semibold text-yes-ink">
+                  Start one →
+                </Link>
+              </p>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {groups.map((g, gi) => {
+                const inGroup = items.filter((i) => i.group === g);
+                if (inGroup.length === 0) return null;
+                return (
+                  <div key={g} className="flex flex-col gap-1">
+                    {gi > 0 && <p className="px-2 text-label font-semibold text-secondary">{HEADINGS[g]}</p>}
+                    {inGroup.map(railRow)}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {storyPanel}
+      </section>
+    );
+  }
+
   const row = groups.flatMap((g, gi) => {
     const inGroup = items.filter((i) => i.group === g);
     if (inGroup.length === 0) return [];
@@ -247,17 +336,7 @@ export function TopRivals() {
       </div>
 
       {/* The story behind the selected card — slides open beneath the row. */}
-      <div className="accordion-body" data-open={openKey ? "true" : "false"}>
-        <div className="min-h-0 overflow-hidden">
-          {story &&
-            (story.win ? (
-              <WinStory win={story.win} onClose={() => setOpenKey(null)} />
-            ) : (
-              <ProfileStory item={story} onClose={() => setOpenKey(null)} />
-            ))}
-        </div>
-      </div>
-
+      {storyPanel}
 
     </section>
   );

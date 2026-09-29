@@ -59,7 +59,9 @@ export function AutoScrollRow({
     function tick(now: number) {
       const dt = now - last;
       last = now;
-      if (el && now >= pausedUntil.current && !dragState.current && !pausedProp.current) {
+      // clientWidth 0 = hidden (e.g. Home's strip while the wide-screen side
+      // column shows the same rivals) — nothing to scroll.
+      if (el && el.clientWidth > 0 && now >= pausedUntil.current && !dragState.current && !pausedProp.current) {
         el.scrollLeft += (PX_PER_SEC * dt) / 1000;
       }
       rafId = requestAnimationFrame(tick);

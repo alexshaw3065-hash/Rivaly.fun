@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { byHeat, usePublicRooms, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { splitPctFromTotals } from "@/lib/supabase/room-mapper";
@@ -216,11 +216,14 @@ export function RoomFeed({
         </div>
       )}
 
-      <div className={hideChips ? "flex flex-col gap-3" : "mt-4 flex flex-col gap-3"}>
+      {/* One column on phones; on desktop the cards keep their natural
+          ~320px size and repeat in a grid (2 across on a laptop, 3 on a wide
+          screen) instead of stretching — each league heading spans its row. */}
+      <div className={`${hideChips ? "" : "mt-4 "}flex flex-col gap-3 lg:grid lg:grid-cols-2 xl:grid-cols-3`}>
         {rows.map(({ room, match, showHeader }, i) => (
-          <div key={room.id}>
+          <Fragment key={room.id}>
             {showHeader && (
-              <p className={`mb-3 text-label font-semibold text-secondary ${i > 0 ? "mt-5" : ""}`}>{match.competition}</p>
+              <p className={`text-label font-semibold text-secondary lg:col-span-full ${i > 0 ? "mt-5" : ""}`}>{match.competition}</p>
             )}
             <div
               className={i >= visibleCount - PAGE_SIZE ? "stagger-in" : undefined}
@@ -232,7 +235,7 @@ export function RoomFeed({
             >
               <RoomCard room={room} match={match} />
             </div>
-          </div>
+          </Fragment>
         ))}
       </div>
 

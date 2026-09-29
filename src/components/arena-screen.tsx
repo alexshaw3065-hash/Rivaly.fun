@@ -5,6 +5,8 @@ import { ArenaFeed } from "@/components/arena-feed";
 import { ArenaLeagues } from "@/components/arena-leagues";
 import { ArenaLeaderboard } from "@/components/arena-leaderboard";
 import { Tabs } from "@/components/ui/controls";
+import { ArenaRivals } from "@/components/arena/arena-rivals";
+import { useWideScreen } from "@/lib/use-wide-screen";
 
 export type ArenaTab = "feed" | "leagues" | "leaderboard";
 
@@ -26,6 +28,7 @@ export function ArenaScreen({ initialTab }: { initialTab: ArenaTab }) {
   // profile's rank) — read by the server page and handed in ready, so nothing
   // waits on it while the screen loads.
   const [tab, setTab] = useState<ArenaTab>(initialTab);
+  const wide = useWideScreen();
 
   // The floating "post a take" button (nav.tsx) belongs to the Feed only —
   // Leagues and Leaderboard have their own one primary action.
@@ -36,14 +39,28 @@ export function ArenaScreen({ initialTab }: { initialTab: ArenaTab }) {
     };
   }, [tab]);
 
+  // Desktop sizing like X: one 600px column from laptops up, and on wide
+  // screens a right-hand column with Rivals beside the feed. Phones and
+  // tablets keep the full-width layout.
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
-      <Tabs tabs={tabs} value={tab} onChange={setTab} />
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12 lg:max-w-[648px] xl:max-w-[1000px]">
+      <div className="xl:grid xl:grid-cols-[600px_320px] xl:justify-center xl:gap-8">
+        <div className="min-w-0">
+          <Tabs tabs={tabs} value={tab} onChange={setTab} />
 
-      <div className="mt-6">
-        {tab === "feed" && <ArenaFeed />}
-        {tab === "leagues" && <ArenaLeagues />}
-        {tab === "leaderboard" && <ArenaLeaderboard />}
+          <div className="mt-6">
+            {tab === "feed" && <ArenaFeed />}
+            {tab === "leagues" && <ArenaLeagues />}
+            {tab === "leaderboard" && <ArenaLeaderboard />}
+          </div>
+        </div>
+        {wide && (
+          <aside className="min-w-0 pt-2" aria-label="Rivals">
+            <div className="sticky top-24">
+              <ArenaRivals variant="rail" />
+            </div>
+          </aside>
+        )}
       </div>
     </main>
   );

@@ -47,7 +47,7 @@ export default async function ProfilePage({
   const initialFollowing = isSelf ? false : await currentUserFollows(profile.id);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12 md:px-6">
+    <main className="mx-auto max-w-4xl px-4 py-12 md:px-6 lg:max-w-[728px]">
       <ProfileView profile={profile} isSelf={isSelf} initialFollowing={initialFollowing} />
     </main>
   );
