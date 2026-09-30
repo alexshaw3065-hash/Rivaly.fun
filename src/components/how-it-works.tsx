@@ -23,7 +23,7 @@ import { track } from "@/lib/analytics/track";
 // results and receipts, and in the full guide.
 //
 // Engagement mechanisms (rivaly-engagement-psychology): #2 anticipation — the
-// pot locked until full time is the beat before the whistle; #5 rivalry — it's
+// pot locked until the result is decided is the beat before the whistle; #5 rivalry — it's
 // you against a named side, not odds against a house.
 
 const HOME = "Arsenal";
@@ -36,7 +36,7 @@ const STEPS = [
   },
   {
     title: "A rival takes the other side",
-    body: "Anyone on Rivaly who disagrees can take the other side — or send the room to a friend you want to beat. Every stake is locked until full time.",
+    body: "Anyone on Rivaly who disagrees can take the other side — or send the room to a friend you want to beat. Every stake is locked until the result is decided.",
   },
   {
     title: "Winner gets paid",
@@ -208,7 +208,7 @@ function SidesVisual() {
       <div className="mt-5 flex items-center justify-center gap-2 text-label text-foreground">
         <LockGlyph />
         <span>
-          <span className="font-semibold tabular-nums">$20 pot</span> <span className="text-secondary">· locked until full time</span>
+          <span className="font-semibold tabular-nums">$20 pot</span> <span className="text-secondary">· locked until it’s decided</span>
         </span>
       </div>
     </div>

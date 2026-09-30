@@ -78,8 +78,8 @@ const steps: { title: string; body: string }[] = [
     body: "Anyone on Rivaly who thinks you're wrong can find your room and take the other side. Want a particular rival? Send them the link — WhatsApp, X, anywhere.",
   },
   {
-    title: "The stakes are held until full time",
-    body: "Every stake goes into escrow when it's placed and stays there, untouched, until the room settles. Nobody — not you, not your rival, not Rivaly — can take it out early.",
+    title: "The stakes are held until it’s decided",
+    body: "Every stake goes into escrow when it's placed and stays there, untouched, until the room settles — the moment its result is certain, sometimes before the final whistle. Nobody — not you, not your rival, not Rivaly — can take it out early.",
   },
   {
     title: "Watch it together",

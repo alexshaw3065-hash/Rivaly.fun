@@ -32,7 +32,7 @@ const DIFFERENCES: { title: string; body: string }[] = [
   },
   {
     title: "Settled fairly, in plain sight",
-    body: "Stakes are held until full time, the official match data decides it, and winners are paid automatically. The fee is 5% of winnings — never of a stake — and it's shown before you play.",
+    body: "Stakes are held until the result is decided by official match data — sometimes before the final whistle — and winners are paid automatically. The fee is 5% of winnings — never of a stake — and it's shown before you play.",
   },
 ];
 
