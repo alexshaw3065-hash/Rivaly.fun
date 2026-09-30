@@ -52,21 +52,19 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
     >
       <div className="flex items-center justify-between">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="flex shrink-0 -space-x-1">
-            <TeamCrest name={match.homeTeam} size={18} />
-            <TeamCrest name={match.awayTeam} size={18} />
-          </span>
           <LeagueMark name={match.competition} size={14} />
           <span className="truncate text-caption font-medium text-secondary">{match.competition}</span>
         </span>
-        {match.status === "live" ? (
-          <LiveBadge />
-        ) : (
-          <span className="shrink-0 text-caption tabular-nums text-secondary">
-            {countdown && <span className="text-yes-ink">{countdown} · </span>}
-            {teamIdentity(match.homeTeam).code} v {teamIdentity(match.awayTeam).code}
-          </span>
-        )}
+        {match.status === "live" ? <LiveBadge /> : countdown && <span className="shrink-0 text-caption tabular-nums text-yes-ink">{countdown}</span>}
+      </div>
+
+      {/* Each club's badge beside its own name: MUN v TOT. */}
+      <div className="flex items-center gap-2 text-label font-semibold text-foreground">
+        <TeamCrest name={match.homeTeam} size={20} />
+        <span>{teamIdentity(match.homeTeam).code}</span>
+        <span className="font-normal text-tertiary">v</span>
+        <span>{teamIdentity(match.awayTeam).code}</span>
+        <TeamCrest name={match.awayTeam} size={20} />
       </div>
 
       <p className="text-title-3 font-display text-foreground" title={room.prediction} aria-label={room.prediction}>
