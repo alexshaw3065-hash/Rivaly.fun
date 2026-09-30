@@ -4,6 +4,7 @@ import { formatMoney } from "@/lib/mock-data";
 import { getRoomById, getRoomByInviteCode } from "@/lib/supabase/rooms";
 import { getMatchById } from "@/lib/supabase/matches";
 import { getProfileById } from "@/lib/supabase/profiles";
+import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { getMyEntryForRoom, getRoomRivals } from "@/lib/supabase/entries";
 import { getRoomMessageLog, getRoomMessages, getRoomReactions } from "@/lib/supabase/messages";
 import { raceFrom } from "@/lib/room-race";
@@ -115,6 +116,12 @@ export default async function RoomPage({
 
   const creator = await getProfileById(room.creatorId);
   const myEntry = await getMyEntryForRoom(room.id);
+  const viewer = await getCurrentProfile();
+  // Chat is for the people with money on it: the host and anyone who took a
+  // side. Spectators (when the room allows them) read along; otherwise the
+  // chat isn't there at all. The database enforces the same rule.
+  const canChat = !!myEntry || viewer?.id === room.creatorId;
+  const canReadChat = canChat || (room.visibility === "public" && room.allowSpectators);
   const stakesClosed = stakesAreClosed(match);
   const settled = room.status === "settled" || room.status === "refunded";
   const outcome = room.resolvedOutcome ?? null;
@@ -270,7 +277,26 @@ export default async function RoomPage({
             )}
 
             <RoomTabs
-              chat={<ChatComposer roomId={room.id} matchId={match.id} initialMessages={feed} initialReactions={reactions} sides={sides} stakes={stakes} initialRace={race} players={names} teams={teams} matchTeams={{ home: match.homeTeam, away: match.awayTeam }} sport={sport} nflClock={nflClock} position={position ? <PositionBar {...position} /> : undefined} />}
+              chat={
+                canReadChat ? (
+                  <ChatComposer
+                    roomId={room.id}
+                    matchId={match.id}
+                    initialMessages={feed}
+                    initialReactions={reactions}
+                    sides={sides}
+                    stakes={stakes}
+                    initialRace={race}
+                    players={names}
+                    teams={teams}
+                    matchTeams={{ home: match.homeTeam, away: match.awayTeam }}
+                    sport={sport}
+                    nflClock={nflClock}
+                    position={position ? <PositionBar {...position} /> : undefined}
+                    readOnly={canChat ? undefined : { joinable: !stakesClosed && !outcome }}
+                  />
+                ) : null
+              }
               match={match}
               sport={sportOf(match)}
               events={eventRows}

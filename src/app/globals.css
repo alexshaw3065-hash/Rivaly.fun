@@ -23,6 +23,8 @@
  * LiveBadge) clear AA contrast against white.
  */
 :root {
+  /* Native controls and scrollbars follow the theme (Windows otherwise draws a white track). */
+  color-scheme: dark;
   --background: #0a0a0a;
   --surface: #131313;
   --surface-elevated: #1a1a1a;
@@ -106,6 +108,7 @@
 }
 
 :root.light {
+  color-scheme: light;
   --background: #ffffff;
   --surface: #f4f4f2;
   --surface-elevated: #ebebe8;
@@ -343,6 +346,12 @@ summary {
 :where(a, button, [role="button"], [role="tab"], [role="switch"], summary):focus-visible {
   outline: 2px solid var(--rival-blue);
   outline-offset: 2px;
+}
+
+/* A slim, quiet scrollbar for panels that scroll inside the page (the room chat). */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
 }
 
 /* For every horizontally-scrolling row (rival cards, filter chips, league

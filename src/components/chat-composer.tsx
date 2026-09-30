@@ -29,6 +29,8 @@ import { REACTION_EVENT } from "./room/room-stage";
 import { PressureTicker } from "./room/pressure-ticker";
 import { announceChatActivity } from "./room/room-tabs-event";
 import { haptic } from "@/lib/haptics";
+import { openStakeSheet } from "@/lib/stake-sheet-store";
+import { SidePill } from "./ui/controls";
 
 // The crowd. A full chat thread (Discord-style, see chat-thread.tsx) with
 // the match's own moments (kick-off, goals, cards, VAR, whistles) landing
@@ -105,6 +107,7 @@ export function ChatComposer({
   sport = "soccer",
   nflClock,
   position,
+  readOnly,
 }: {
   roomId: string;
   matchId?: string;
@@ -130,6 +133,8 @@ export function ChatComposer({
   nflClock?: NflClock;
   /** Your stake and what it'd win, docked above the input (room/your-position.tsx). */
   position?: React.ReactNode;
+  /** Spectators read along but can't post or react; `joinable` while sides are still open. */
+  readOnly?: { joinable: boolean };
 }) {
   const currentUser = useCurrentUser();
   const isRealRoom = MESSAGE_UUID_RE.test(roomId);
@@ -145,7 +150,11 @@ export function ChatComposer({
   }, [items]);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<DisplayChatMessage | null>(null);
-  const [tray, setTray] = useState<"quick" | "emoji" | "gif" | null>("quick");
+  // "auto": the shouts row is open on phones and folded on desktop, where the
+  // keyboard is right there and the thread needs the height. Pure CSS, so the
+  // server render matches; the first tap turns it into a real choice.
+  const [tray, setTray] = useState<"auto" | "quick" | "emoji" | "gif" | null>("auto");
+  const quickOpen = tray === "quick" || tray === "auto";
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Grow the box to fit what's typed (and shrink back after sending).
@@ -543,6 +552,7 @@ export function ChatComposer({
 
   // "Tunde is typing…" — at most one ping every couple of seconds.
   function typing() {
+    if (readOnly) return;
     if (!currentUser || !isRealRoom) return;
     const t = clock();
     if (t - lastTypingSent.current < TYPING_SEND_MS) return;
@@ -640,21 +650,42 @@ export function ChatComposer({
         hasEarlier={hasEarlier && isRealRoom}
         onLoadEarlier={loadEarlier}
         reactions={reactions}
-        onReact={react}
-        onReply={reply}
+        onReact={readOnly ? undefined : react}
+        onReply={readOnly ? undefined : reply}
         onReport={(m, reason) => {
           setItems((cur) => cur.filter((x) => x.id !== m.id));
           void reportContent("message", m.id, reason);
         }}
-        empty={<p className="px-6 text-center text-body text-secondary">Quiet so far. Say something — the room&rsquo;s listening.</p>}
+        empty={
+          <p className="px-6 text-center text-body text-secondary">
+            {readOnly ? "Quiet so far." : <>Quiet so far. Say something — the room&rsquo;s listening.</>}
+          </p>
+        }
       />
+
+      {readOnly ? (
+        // Spectators watch the room talk; taking a side is what gets you a voice.
+        <div className="flex shrink-0 items-center gap-3 border-t border-line px-4 py-3">
+          <p className="min-w-0 flex-1 text-label text-secondary">
+            <span className="font-semibold text-foreground">You&rsquo;re watching.</span>{" "}
+            {readOnly.joinable ? "Take a side to join the chat." : "Only rivals in this room can chat."}
+          </p>
+          {/* Phones open the stake sheet; on desktop the stake panel is already beside the chat. */}
+          {readOnly.joinable && (
+            <div className="flex shrink-0 gap-2 md:hidden">
+              <SidePill side="yes" size="sm" role="button" aria-checked={undefined} onClick={() => openStakeSheet("yes")} />
+              <SidePill side="no" size="sm" role="button" aria-checked={undefined} onClick={() => openStakeSheet("no")} />
+            </div>
+          )}
+        </div>
+      ) : (
 
       <div className="shrink-0 border-t border-line px-3 pb-3 pt-2">
         {position}
-        {/* Trays: one-tap shouts (open by default — joining in shouldn't need
-            typing), or emoji for your message. */}
-        {tray === "quick" && (
-          <div className="no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3">
+        {/* Trays: one-tap shouts (open by default on phones — joining in
+            shouldn't need typing), or emoji for your message. */}
+        {quickOpen && (
+          <div className={`no-scrollbar -mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3 ${tray === "auto" ? "lg:hidden" : ""}`}>
             {QUICK[sport].map((q) => (
               <button
                 key={q}
@@ -749,12 +780,19 @@ export function ChatComposer({
           >
             <button
               type="button"
-              onClick={() => setTray((t) => (t === "quick" ? null : "quick"))}
+              onClick={() =>
+                setTray((t) => {
+                  const open = t === "quick" || (t === "auto" && !window.matchMedia("(min-width: 1024px)").matches);
+                  return open ? null : "quick";
+                })
+              }
               aria-label="Quick shouts"
-              aria-pressed={tray === "quick"}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,color,background-color] duration-100 active:scale-90 ${tray === "quick" ? "bg-foreground text-background" : "bg-overlay-2 text-secondary"}`}
+              aria-pressed={quickOpen}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[transform,color,background-color] duration-100 active:scale-90 ${
+                tray === "quick" ? "bg-foreground text-background" : tray === "auto" ? "bg-foreground text-background lg:bg-overlay-2 lg:text-secondary" : "bg-overlay-2 text-secondary"
+              }`}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="transition-transform duration-200" style={{ transform: tray === "quick" ? "rotate(45deg)" : undefined }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className={`transition-transform duration-200 ${tray === "quick" ? "rotate-45" : tray === "auto" ? "rotate-45 lg:rotate-0" : ""}`}>
                 <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
@@ -841,6 +879,7 @@ export function ChatComposer({
           )}
         </div>
       </div>
+      )}
     </section>
   );
 }

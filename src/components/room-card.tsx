@@ -50,21 +50,25 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
       href={`/rooms/${room.id}`}
       className="group flex flex-col gap-3 rounded-card bg-surface p-4 edge transition-[transform,background-color] duration-100 ease-out hover:bg-surface-elevated active:scale-[0.98]"
     >
-      <div className="flex items-center justify-between">
-        <span className="flex min-w-0 items-center gap-2">
-          <LeagueMark name={match.competition} size={14} />
-          <span className="truncate text-caption font-medium text-secondary">{match.competition}</span>
+      {/* One line: each club's badge beside its code, the competition's own
+          mark after a hairline, and the countdown (or LIVE) on the right. */}
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-2 text-label font-semibold text-foreground">
+          <TeamCrest name={match.homeTeam} size={20} />
+          <span>{teamIdentity(match.homeTeam).code}</span>
+          <span className="font-normal text-tertiary">v</span>
+          <span>{teamIdentity(match.awayTeam).code}</span>
+          <TeamCrest name={match.awayTeam} size={20} />
+          <span aria-hidden className="mx-0.5 h-3.5 w-px shrink-0 bg-line-strong" />
+          <span className="flex min-w-0 items-center" title={match.competition} aria-label={match.competition}>
+            <LeagueMark
+              name={match.competition}
+              size={16}
+              fallback={<span className="truncate text-caption font-medium text-secondary">{match.competition}</span>}
+            />
+          </span>
         </span>
         {match.status === "live" ? <LiveBadge /> : countdown && <span className="shrink-0 text-caption tabular-nums text-yes-ink">{countdown}</span>}
-      </div>
-
-      {/* Each club's badge beside its own name: MUN v TOT. */}
-      <div className="flex items-center gap-2 text-label font-semibold text-foreground">
-        <TeamCrest name={match.homeTeam} size={20} />
-        <span>{teamIdentity(match.homeTeam).code}</span>
-        <span className="font-normal text-tertiary">v</span>
-        <span>{teamIdentity(match.awayTeam).code}</span>
-        <TeamCrest name={match.awayTeam} size={20} />
       </div>
 
       <p className="text-title-3 font-display text-foreground" title={room.prediction} aria-label={room.prediction}>

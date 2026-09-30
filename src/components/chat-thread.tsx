@@ -213,7 +213,7 @@ export function ChatThread({
         </button>
       )}
 
-      <div ref={scroller} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-1">
+      <div ref={scroller} onScroll={onScroll} className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-1">
         {hasEarlier && (
           <div className="flex justify-center py-2">
             <button type="button" onClick={loadEarlier} disabled={loadingEarlier} className="rounded-full px-3 py-1 text-caption font-semibold text-secondary edge-strong transition-colors hover:text-foreground disabled:opacity-60">
@@ -278,6 +278,7 @@ export function ChatThread({
                 <p className="mb-3 line-clamp-2 rounded-control bg-surface px-3 py-2 text-label text-foreground/80">
                   <span className="font-semibold text-foreground">{sheetFor.authorName}</span> {summary(sheetFor)}
                 </p>
+                {onReact && (
                 <div className="grid grid-cols-5 gap-2">
                   {REACTION_EMOJI.map((e) => {
                     const mine = !!selfId && (reactions[sheetFor.id]?.[e] ?? []).includes(selfId);
@@ -297,7 +298,9 @@ export function ChatThread({
                     );
                   })}
                 </div>
-                <div className="mt-3 flex flex-col overflow-hidden rounded-card bg-surface edge">
+                )}
+                <div className={`flex flex-col overflow-hidden rounded-card bg-surface edge ${onReact ? "mt-3" : ""}`}>
+                  {onReply && (
                   <SheetAction
                     label="Reply"
                     icon={<ReplyIcon />}
@@ -306,6 +309,7 @@ export function ChatThread({
                       setSheetFor(null);
                     }}
                   />
+                  )}
                   {sheetFor.body && (
                   <SheetAction
                     label="Copy text"
@@ -494,6 +498,7 @@ function MessageRow({
                 key={emoji}
                 type="button"
                 onClick={() => onReact?.(message.id, emoji)}
+                disabled={!onReact}
                 className={`enter-pop flex h-6 items-center gap-1 rounded-tag px-1.5 text-label outline outline-1 -outline-offset-1 transition-transform duration-100 active:scale-90 ${
                   mine ? "bg-yes-tint outline-yes" : "bg-overlay-1 outline-transparent"
                 }`}
@@ -537,7 +542,8 @@ function MessageRow({
         </span>
       )}
       <div style={dx > 0 ? { transform: `translateX(${dx}px)` } : { transform: "translateX(0)", transition: "transform 200ms var(--ease-out)" }}>
-      {/* Desktop: quick reactions and Reply on hover */}
+      {/* Desktop: quick reactions and Reply on hover (not for spectators, who only read) */}
+      {onReact && (
       <div className="pointer-events-none absolute -top-3 right-2 z-10 hidden items-center gap-0.5 rounded-control bg-surface-elevated p-0.5 opacity-0 shadow-pop transition-opacity duration-100 group-hover:pointer-events-auto group-hover:opacity-100 md:flex">
         {QUICK_REACT.map((e) => (
           <button key={e} type="button" onClick={() => onReact?.(message.id, e)} className="flex h-7 w-7 items-center justify-center rounded-control text-body hover:bg-foreground/10" aria-label={`React ${e}`}>
@@ -556,6 +562,7 @@ function MessageRow({
           <ReplyIcon />
         </button>
       </div>
+      )}
 
       {head ? (
         <>
