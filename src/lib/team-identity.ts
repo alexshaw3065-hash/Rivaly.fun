@@ -191,6 +191,110 @@ const ALIASES: Record<string, string> = {
   "fc cincinnati": "cincinnati",
 };
 
+// Short codes for the Big Balls leagues (La Liga, Serie A, Bundesliga,
+// Ligue 1, Champions League), keyed by the feed's own names. Without these
+// the fallback built codes from initials — "Bayer Leverkusen" became "BL",
+// "Real Madrid" "RM". Code only: colours still come from the fallback until
+// these clubs get full entries in TEAMS.
+const CODES: Record<string, string> = {
+  // Bundesliga
+  "1. fc union berlin": "FCU",
+  "bayer leverkusen": "LEV",
+  "bayern munich": "BAY",
+  "borussia dortmund": "BVB",
+  "borussia mönchengladbach": "BMG",
+  "eintracht frankfurt": "SGE",
+  "fc augsburg": "FCA",
+  "fc cologne": "KOE",
+  "hamburger sv": "HSV",
+  mainz: "M05",
+  "rb leipzig": "RBL",
+  "sc freiburg": "SCF",
+  "sc paderborn 07": "SCP",
+  "schalke 04": "S04",
+  "sv elversberg": "SVE",
+  "tsg hoffenheim": "TSG",
+  "vfb stuttgart": "VFB",
+  "werder bremen": "SVW",
+  // La Liga
+  alavés: "ALA",
+  "athletic club": "ATH",
+  "atlético madrid": "ATM",
+  barcelona: "BAR",
+  "celta vigo": "CEL",
+  elche: "ELC",
+  espanyol: "ESP",
+  getafe: "GET",
+  levante: "LEV",
+  málaga: "MAL",
+  osasuna: "OSA",
+  "rayo vallecano": "RAY",
+  "rc deportivo la coruña": "DEP",
+  "real betis": "BET",
+  "real madrid": "RMA",
+  "real racing club de santander": "RAC",
+  "real sociedad": "RSO",
+  "sevilla fc": "SEV",
+  valencia: "VAL",
+  villarreal: "VIL",
+  // Serie A
+  "ac milan": "MIL",
+  "as roma": "ROM",
+  atalanta: "ATA",
+  bologna: "BOL",
+  cagliari: "CAG",
+  "como 1907": "COM",
+  fiorentina: "FIO",
+  frosinone: "FRO",
+  genoa: "GEN",
+  "inter milan": "INT",
+  juventus: "JUV",
+  lazio: "LAZ",
+  lecce: "LEC",
+  monza: "MON",
+  napoli: "NAP",
+  parma: "PAR",
+  sassuolo: "SAS",
+  torino: "TOR",
+  udinese: "UDI",
+  "venezia fc": "VEN",
+  // Ligue 1
+  "aj auxerre": "AUX",
+  angers: "ANG",
+  "as monaco": "MON",
+  brest: "BRE",
+  "le havre ac": "HAC",
+  "le mans": "LEM",
+  lens: "LEN",
+  lille: "LIL",
+  lorient: "LOR",
+  lyon: "LYO",
+  marseille: "MAR",
+  nice: "NIC",
+  "paris fc": "PFC",
+  "paris saint-germain": "PSG",
+  "stade rennais": "REN",
+  strasbourg: "STR",
+  toulouse: "TOU",
+  troyes: "TRO",
+  // Champions League (the rest)
+  "club brugge kv": "BRU",
+  "fc porto": "POR",
+  "fenerbahçe sk": "FEN",
+  "feyenoord rotterdam": "FEY",
+  "fk bodø/glimt": "BOD",
+  "fk shakhtar donetsk": "SHA",
+  "galatasaray sk": "GAL",
+  "lask linz": "LAS",
+  "pae aek": "AEK",
+  psv: "PSV",
+  "sabah fk": "SAB",
+  "sk slavia praha": "SLA",
+  "šk slovan bratislava": "SLO",
+  "sporting clube de portugal": "SCP",
+  "viking fk": "VIK",
+};
+
 function hashHue(name: string): number {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
@@ -234,7 +338,7 @@ export function teamIdentity(name: string): TeamIdentity {
   }
   const hue = hashHue(key);
   const primary = hslToHex(hue, 0.55, 0.4);
-  return { code: codeFor(name), primary, secondary: hslToHex((hue + 40) % 360, 0.6, 0.72), ink: inkFor(primary) };
+  return { code: CODES[key] ?? codeFor(name), primary, secondary: hslToHex((hue + 40) % 360, 0.6, 0.72), ink: inkFor(primary) };
 }
 
 /**
