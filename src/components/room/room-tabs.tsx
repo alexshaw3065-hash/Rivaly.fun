@@ -61,8 +61,7 @@ export function RoomTabs({
   overview,
   roomId,
 }: {
-  /** Null when this viewer can't see the chat (spectators in a room that doesn't allow them): no Chat tab at all. */
-  chat: ReactNode | null;
+  chat: ReactNode;
   match: Match;
   /** For the match-story share card. */
   roomId?: string;
@@ -72,8 +71,7 @@ export function RoomTabs({
   activity: ActivityItem[];
   overview: OverviewFact[];
 }) {
-  const hasChat = chat !== null;
-  const [tab, setTab] = useState<Tab>(hasChat ? "chat" : "stats");
+  const [tab, setTab] = useState<Tab>("chat");
   // Live while the match can still change; a finished match is what it is.
   const rows = useMatchFeed(match.id, events, match.status !== "finished");
   const stats = useMemo(() => matchStats(match, rows, sport), [match, rows, sport]);
@@ -211,7 +209,7 @@ export function RoomTabs({
         aria-label="Room"
         className={`no-scrollbar flex gap-1 overflow-x-auto rounded-full p-1 transition-[box-shadow,background-color] duration-200 ${stuck ? FLOAT : "bg-surface edge"}`}
       >
-        {TABS.filter((t) => (t.id !== "lineup" || lineups !== undefined) && (t.id !== "chat" || hasChat)).map((t) =>
+        {TABS.filter((t) => t.id !== "lineup" || lineups !== undefined).map((t) =>
           t.id === "chat" ? (
             // The room's heart gets the contrast: always bold with a live
             // dot, inverted when open, and a count of what you're missing.
@@ -256,7 +254,6 @@ export function RoomTabs({
             elsewhere. It fills the screen under the floating bar (and above
             the phone's tab bar), like a messaging app: the thread scrolls
             inside it, the message box stays put. */}
-        {hasChat && (
         <div
           ref={chatRef}
           hidden={tab !== "chat"}
@@ -264,7 +261,6 @@ export function RoomTabs({
         >
           {chat}
         </div>
-        )}
         {tab === "lineup" && lineups !== undefined && <LineupPanel match={match} lineups={lineups} kits={kits} />}
         {tab === "stats" && (
           <div className="flex flex-col gap-3">

@@ -34,6 +34,7 @@ import type { Metadata } from "next";
 import { pageMeta, roomJsonLd, roomSummary } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 import { JsonLd } from "@/components/seo/json-ld";
+import { LockedChat } from "@/components/room/locked-chat";
 import { PositionBar, type PositionProps } from "@/components/room/your-position";
 
 // The heart of the product: a digital viewing centre, not a form. Per
@@ -119,7 +120,7 @@ export default async function RoomPage({
   const viewer = await getCurrentProfile();
   // Chat is for the people with money on it: the host and anyone who took a
   // side. Spectators (when the room allows them) read along; otherwise the
-  // chat isn't there at all. The database enforces the same rule.
+  // chat is blurred shut until they stake. The database enforces the same rule.
   const canChat = !!myEntry || viewer?.id === room.creatorId;
   const canReadChat = canChat || (room.visibility === "public" && room.allowSpectators);
   const stakesClosed = stakesAreClosed(match);
@@ -295,7 +296,9 @@ export default async function RoomPage({
                     position={position ? <PositionBar {...position} /> : undefined}
                     readOnly={canChat ? undefined : { joinable: !stakesClosed && !outcome }}
                   />
-                ) : null
+                ) : (
+                  <LockedChat joinable={!stakesClosed && !outcome} />
+                )
               }
               match={match}
               sport={sportOf(match)}

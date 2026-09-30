@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { byHeat, usePublicRooms, type RoomWithMatch } from "@/lib/use-real-rooms";
 import { splitPctFromTotals } from "@/lib/supabase/room-mapper";
@@ -75,19 +75,6 @@ function applyFilter(items: RoomWithMatch[], tab: FilterTab): RoomWithMatch[] {
   }
 }
 
-interface FeedRow extends RoomWithMatch {
-  showHeader: boolean;
-}
-
-function buildRows(items: RoomWithMatch[]): FeedRow[] {
-  let lastCompetition = "";
-  return items.map((item) => {
-    const showHeader = item.match.competition !== lastCompetition;
-    lastCompetition = item.match.competition;
-    return { ...item, showHeader };
-  });
-}
-
 // Infinite-scroll pattern per the Polymarket reference: keep appending pages
 // on scroll (IntersectionObserver on a sentinel, not a "load more" click),
 // and end in a real closing moment once the (finite) real rooms run out —
@@ -159,7 +146,7 @@ export function RoomFeed({
   const { items, isLoading } = usePublicRooms();
   const base = useMemo(() => applyFilter(items, tab), [items, tab]);
   const filtered = useMemo(() => (extraFilter ? base.filter((i) => extraFilter(i.room, i.match)) : base), [base, extraFilter]);
-  const rows = useMemo(() => buildRows(filtered.slice(0, visibleCount)), [filtered, visibleCount]);
+  const rows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const done = visibleCount >= filtered.length;
 
   // extraFilter changing (e.g. the advanced panel was edited) needs the
@@ -218,14 +205,13 @@ export function RoomFeed({
 
       {/* One column on phones; on desktop the cards keep their natural
           ~320px size and repeat in a grid (2 across on a laptop, 3 on a wide
-          screen) instead of stretching — each league heading spans its row. */}
+          screen) instead of stretching. One list in the chosen order, whatever
+          the league (Polymarket-style) — every card carries its own
+          competition mark, so no league headings. */}
       <div className={`${hideChips ? "" : "mt-4 "}flex flex-col gap-3 lg:grid lg:grid-cols-2 xl:grid-cols-3`}>
-        {rows.map(({ room, match, showHeader }, i) => (
-          <Fragment key={room.id}>
-            {showHeader && (
-              <p className={`text-label font-semibold text-secondary lg:col-span-full ${i > 0 ? "mt-5" : ""}`}>{match.competition}</p>
-            )}
+        {rows.map(({ room, match }, i) => (
             <div
+              key={room.id}
               className={i >= visibleCount - PAGE_SIZE ? "stagger-in" : undefined}
               style={
                 i >= visibleCount - PAGE_SIZE
@@ -235,7 +221,6 @@ export function RoomFeed({
             >
               <RoomCard room={room} match={match} />
             </div>
-          </Fragment>
         ))}
       </div>
 
