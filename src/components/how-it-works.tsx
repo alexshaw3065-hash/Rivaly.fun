@@ -128,7 +128,7 @@ function Steps() {
       {last ? (
         <div className="mt-5 flex flex-col gap-3">
           <Button variant="primary" size="cta" onClick={() => go("/rooms/create", "create")}>
-            Make your first call
+            Create your first prediction
           </Button>
           <div className="flex items-center justify-center gap-5 text-label">
             <button type="button" onClick={() => go("/rooms", "browse")} className="font-semibold text-foreground hover:underline">
