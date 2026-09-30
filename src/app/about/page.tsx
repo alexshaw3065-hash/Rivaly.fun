@@ -10,7 +10,7 @@ import { SITE_URL, siteUrl } from "@/lib/site";
 // (fees: lib/settlement/payouts.ts; competitions: the score feeds; beta status).
 
 export const metadata = pageMeta({
-  title: "About Rivaly — the social prediction market for football",
+  title: "About Rivaly — social prediction for sport",
   description:
     "Why Rivaly exists: predicting football has always been social, but betting apps made it you against the house and prediction markets made it a price on a screen. Rivaly puts you up against the people you actually argue with.",
   path: "/about",
@@ -51,7 +51,7 @@ export default function AboutPage() {
 
       <h1 className="font-display text-title-1 text-foreground md:text-display">About Rivaly</h1>
       <p className="mt-4 text-body-lg text-foreground">
-        Rivaly is the social prediction market for football. You put your opinion on a match against someone else&rsquo;s,
+        Rivaly is social prediction for sport. You put your prediction on a match against someone else&rsquo;s,
         with money on it, and the winner is paid automatically.
       </p>
 

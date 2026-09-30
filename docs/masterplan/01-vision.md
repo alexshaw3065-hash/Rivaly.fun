@@ -1,5 +1,7 @@
 # Chapter 1 — Vision
 
+> **Positioning update (founder, 2026-09-30):** Rivaly is **social prediction for sport**, not football only. Football stays the first and main sport, and the heart of this chapter; the NFL is already live, and the model works for any sport with an official result. Public copy (site title, About, How Rivaly works, share images) says "sport".
+
 ## 1.1 Why Rivaly Exists
 
 Football has always been about opinions.

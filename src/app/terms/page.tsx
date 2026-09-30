@@ -23,7 +23,7 @@ export default function TermsPage() {
         <section>
           <h2 className="font-display text-body-lg font-semibold text-foreground">1. What Rivaly is</h2>
           <p className="mt-2 text-body text-secondary">
-            Rivaly is a peer-to-peer social prediction platform for football. Users predict against
+            Rivaly is a peer-to-peer social prediction platform for sport. Users predict against
             each other in rooms they create or join — Rivaly is not a party to any prediction, does
             not set odds, and never takes the opposite side of a user&rsquo;s position. Rivaly&rsquo;s
             role is to hold pooled funds in escrow and settle rooms against the stated resolution

@@ -31,8 +31,8 @@ const AWAY = "Chelsea";
 
 const STEPS = [
   {
-    title: "Make a call",
-    body: "Pick a real match and say what'll happen — Arsenal win, over 2.5 goals, Saka scores. Your call becomes a room.",
+    title: "Create a prediction",
+    body: "Pick a real match and say what'll happen — Arsenal win, over 2.5 goals, Saka scores. Your prediction becomes a room.",
   },
   {
     title: "A rival takes the other side",

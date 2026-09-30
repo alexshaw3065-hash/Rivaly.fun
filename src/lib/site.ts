@@ -16,6 +16,6 @@ export function siteUrl(path: string): string {
 // Rivaly works page never drift apart. Answer-first: the first sentence is
 // the definition an assistant can quote as-is.
 export const SITE_NAME = "Rivaly";
-export const SITE_TITLE = "Rivaly — the social prediction market for football";
+export const SITE_TITLE = "Rivaly — social prediction for sport";
 export const SITE_DESCRIPTION =
-  "Rivaly is a social prediction market for football. Make a call on a match, challenge the people who disagree, watch it together, and the winner is paid automatically — you predict against people, never against the house.";
+  "Rivaly is social prediction for sport. Create a prediction on a match, others back it or take the other side, you watch it together, and the winners are paid automatically — you play people, never a bookie.";

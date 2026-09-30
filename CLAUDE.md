@@ -6,7 +6,7 @@ This repository will build **Rivaly**, a peer-to-peer social prediction platform
 
 ## What Rivaly Is
 
-A Peer-to-Peer Social Prediction Platform. Anyone can create prediction rooms around live football events where people with opposing opinions compete with real money in transparent, custom markets. Users predict against **each other**, not against a bookmaker. Rivaly holds funds securely, verifies outcomes, and settles rooms fairly — it never bets against its users.
+A Peer-to-Peer Social Prediction Platform — **social prediction for sport** (founder, 2026-09-30: not football only; football is the first and main sport, the NFL is live too, and public copy says "sport"). Anyone can create prediction rooms around live football events where people with opposing opinions compete with real money in transparent, custom markets. Users predict against **each other**, not against a bookmaker. Rivaly holds funds securely, verifies outcomes, and settles rooms fairly — it never bets against its users.
 
 **Rivaly is not:** a sportsbook, a casino, a bookmaker, a traditional prediction exchange, or another social network.
 

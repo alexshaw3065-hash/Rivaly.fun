@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { HomeIcon, SearchIcon, ColosseumIcon, ChevronIcon, PersonIcon, XIcon, TiktokIcon, LinkedInIcon } from "./icons";
-import { RivalyMark } from "./rivaly-wordmark";
+import { RivalyMark, RivalyWordmark } from "./rivaly-wordmark";
 import { SOCIALS } from "@/lib/socials";
 import { Avatar } from "./avatar";
 import { useCurrentUser } from "./current-user-provider";
@@ -51,19 +50,11 @@ export function Sidebar() {
       className="sidebar-shell fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-line bg-background md:flex"
       aria-label="Primary"
     >
-      <Link href="/" className="flex shrink-0 items-center px-5 py-5">
-        {collapsed ? (
-          <span className="font-display text-lg font-bold tracking-tight text-foreground">R</span>
-        ) : (
-          <Image
-            src="/rivaly-logo.png"
-            alt="Rivaly"
-            width={160}
-            height={64}
-            priority
-            className="brand-logo h-8 w-auto"
-          />
-        )}
+      {/* The same cropped wordmark as the phone header (rivaly-wordmark.tsx):
+          the logo PNG has wide empty margins, so drawing the whole file at
+          h-8 left the actual artwork tiny. Collapsed, the mark alone. */}
+      <Link href="/" aria-label="Rivaly home" className="flex h-16 shrink-0 items-center px-5">
+        {collapsed ? <RivalyMark height={20} /> : <RivalyWordmark />}
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 px-3">

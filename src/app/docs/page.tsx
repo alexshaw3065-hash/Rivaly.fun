@@ -14,9 +14,9 @@ import { siteUrl } from "@/lib/site";
 const UPDATED = "2026-09-28";
 
 export const metadata = pageMeta({
-  title: "How Rivaly works — the social prediction market for football",
+  title: "How Rivaly works — social prediction for sport",
   description:
-    "Rivaly is a social prediction market for football: make a call on a real match, challenge the people who disagree, and the pool pays the winners automatically. How rooms, escrow, settlement, fees and hosting work.",
+    "Rivaly is social prediction for sport: create a prediction on a real match, others back it or take the other side, and the pool pays the winners automatically. How rooms, escrow, settlement, fees and hosting work.",
   path: "/docs",
   absoluteTitle: true,
 });
@@ -24,7 +24,7 @@ export const metadata = pageMeta({
 const faqs: { q: string; a: string }[] = [
   {
     q: "What is Rivaly?",
-    a: "Rivaly is a social prediction market for football. You make a call on a real match — “Arsenal win”, “over 2.5 goals”, “Saka scores” — and put money on it in a room. People who disagree take the other side. Everyone watches the match together in the room, and when it ends the pool is paid to whoever called it right, automatically.",
+    a: "Rivaly is social prediction for sport, starting with football and the NFL. You create a prediction on a real match — “Arsenal win”, “over 2.5 goals”, “Saka scores” — and put money on it in a room. Others back you or take the other side. Everyone watches the match together in the room, and when the result is decided the pool is split among everyone who called it right, automatically.",
   },
   {
     q: "Is Rivaly a sportsbook or a betting site?",
@@ -70,7 +70,7 @@ const faqs: { q: string; a: string }[] = [
 
 const steps: { title: string; body: string }[] = [
   {
-    title: "Make a call on a real match",
+    title: "Create a prediction on a real match",
     body: "Pick a fixture and say what you think will happen — the result, goals, a scorer, cards. That call is the room. Choose your stake, and whether the room is public or private.",
   },
   {
@@ -106,7 +106,7 @@ export default function DocsPage() {
 
       <h1 className="font-display text-title-1 text-foreground md:text-display">How Rivaly works</h1>
       <p className="mt-4 text-body-lg text-foreground">
-        Rivaly is a social prediction market for football. You put your opinion on a match against someone else&rsquo;s, with
+        Rivaly is social prediction for sport. You put your prediction on a match against someone else&rsquo;s, with
         money on it, and the winner is paid automatically. You predict against people — never against the house.
       </p>
       <p className="mt-3 text-caption text-tertiary">

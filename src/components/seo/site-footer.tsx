@@ -27,7 +27,7 @@ export function SiteFooter() {
           </a>
         ))}
       </nav>
-      <p className="mt-3">Rivaly — the social prediction market for football. Predict against people, never the house.</p>
+      <p className="mt-3">Rivaly — social prediction for sport. Play people, never the house.</p>
     </footer>
   );
 }
