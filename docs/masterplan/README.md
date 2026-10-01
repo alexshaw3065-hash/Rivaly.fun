@@ -14,6 +14,7 @@ Source: `rivaly masterplan.docx` (provided by the founder). This directory break
 | [07-product-blueprint.md](07-product-blueprint.md) | Full sitemap, every screen, every component, every state (mature product) |
 | [08-v1-scope.md](08-v1-scope.md) | **Read this before building anything.** The ruthless V1 scope, Pump.fun case study, the core loop |
 | [09-competitive-research.md](09-competitive-research.md) | What to borrow/reject from betting platforms, prediction markets, and social products |
+| [10-positioning-and-pitch.md](10-positioning-and-pitch.md) | **The agreed pitch (2026-09-30):** what Rivaly is, the problem, the solution, who it's for (with sources), why now, founder story, tech/Solana answers, competition, and what never to claim |
 
 ## How to use these docs
 

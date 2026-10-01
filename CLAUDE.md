@@ -14,6 +14,8 @@ A Peer-to-Peer Social Prediction Platform — **social prediction for sport** (f
 
 Full version: [docs/masterplan/01-vision.md](docs/masterplan/01-vision.md)
 
+**Pitch and positioning (agreed 2026-09-30):** the settled answers to what Rivaly is, the problem, who it's for, why now and the founder story, plus what never to claim ("first", "trustless", "smart contract", "locked until full time"; no country demographics), live in [docs/masterplan/10-positioning-and-pitch.md](docs/masterplan/10-positioning-and-pitch.md). Reuse them; don't re-derive them.
+
 ## The Rivaly Formula
 
 ```
