@@ -18,6 +18,7 @@ export interface OnlineRival {
 
 let channel: RealtimeChannel | null = null;
 let trackedAs: string | null = null;
+let trackedMe: OnlineRival | null = null;
 let online: OnlineRival[] = [];
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
@@ -25,9 +26,18 @@ const emit = () => listeners.forEach((l) => l());
 /** Join (or re-join as a different account). `me` null = watch only. */
 export function joinOnline(me: OnlineRival | null) {
   const key = me?.id ?? null;
-  if (channel && trackedAs === key) return;
+  if (channel && trackedAs === key) {
+    // Same account, new details (a changed photo or name): re-announce, so
+    // everyone else's list updates without anyone reloading.
+    if (me && JSON.stringify(me) !== JSON.stringify(trackedMe)) {
+      trackedMe = me;
+      void channel.track(me);
+    }
+    return;
+  }
   leaveOnline();
   trackedAs = key;
+  trackedMe = me;
   const supabase = createClient();
   const ch = supabase.channel("online", { config: { private: true, presence: { key: key ?? `guest-${Math.random().toString(36).slice(2)}` } } });
   ch.on("presence", { event: "sync" }, () => {
@@ -41,7 +51,7 @@ export function joinOnline(me: OnlineRival | null) {
     emit();
   });
   ch.subscribe((status) => {
-    if (status === "SUBSCRIBED" && me) void ch.track(me);
+    if (status === "SUBSCRIBED" && trackedMe) void ch.track(trackedMe);
   });
   channel = ch;
 }

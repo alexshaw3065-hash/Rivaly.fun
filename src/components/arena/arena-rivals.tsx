@@ -52,6 +52,9 @@ function shownThisSession(): boolean {
   }
 }
 
+/** Five at a time, in the rail and the phone row alike. */
+const VISIBLE = 5;
+
 export function ArenaRivals({ variant = "row" }: { variant?: "row" | "rail" } = {}) {
   const me = useCurrentUser();
   const online = useOnlineRivals();
@@ -75,10 +78,13 @@ export function ArenaRivals({ variant = "row" }: { variant?: "row" | "rail" } = 
   const people = useMemo<Person[]>(() => {
     const out: Person[] = [];
     const seen = new Set<string>();
+    // The database copy of a profile is fresher than what someone announced
+    // when they came online, so their photo wins whenever we have it.
+    const fresh = new Map((suggested ?? []).map((s) => [s.id, s.avatar_url]));
     for (const o of online) {
       if (o.id === me?.id || seen.has(o.id)) continue;
       seen.add(o.id);
-      out.push({ id: o.id, username: o.username, name: displayOf(o.name, o.username), avatar: o.avatar, online: true, reason: "Online now" });
+      out.push({ id: o.id, username: o.username, name: displayOf(o.name, o.username), avatar: fresh.has(o.id) ? fresh.get(o.id) ?? null : o.avatar, online: true, reason: "Online now" });
     }
     const onlineIds = new Set(online.map((o) => o.id));
     for (const s of suggested ?? []) {
@@ -86,7 +92,7 @@ export function ArenaRivals({ variant = "row" }: { variant?: "row" | "rail" } = 
       seen.add(s.id);
       out.push({ id: s.id, username: s.username, name: displayOf(s.display_name, s.username), avatar: s.avatar_url, online: onlineIds.has(s.id), reason: s.reason });
     }
-    return out.slice(0, 16);
+    return out.slice(0, VISIBLE);
   }, [online, suggested, me?.id]);
 
   // Counts as shown only once it has actually shown someone.
@@ -128,7 +134,7 @@ export function ArenaRivals({ variant = "row" }: { variant?: "row" | "rail" } = 
           )}
         </div>
         <div className="mt-3 flex flex-col gap-1">
-          {people.slice(0, 8).map((p) => (
+          {people.map((p) => (
             <div key={p.id} className="flex min-w-0 items-center gap-3 rounded-control px-2 py-2">
               <Link href={`/profile/${p.username}`} className="flex min-w-0 flex-1 items-center gap-3">
                 <span className="relative shrink-0">
