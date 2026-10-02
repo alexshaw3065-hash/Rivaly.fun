@@ -50,11 +50,10 @@ export function playerCard(d: PlayerCardData, art: string, character: string) {
   const name = d.name.length > 22 ? `${d.name.slice(0, 21)}…` : d.name;
   const attrs: [string, number][] = [
     ["ACC", d.attrs.acc],
-    ["FRM", d.attrs.frm],
-    ["STR", d.attrs.str],
+    ["FORM", d.attrs.frm],
+    ["STREAK", d.attrs.str],
     ["EXP", d.attrs.exp],
     ["WIN", d.attrs.win],
-    ["FAN", d.attrs.fan],
   ];
   const noResults = d.played === 0;
 
@@ -79,13 +78,13 @@ export function playerCard(d: PlayerCardData, art: string, character: string) {
         <div style={{ display: "flex", width: 560, height: 3, background: line, marginTop: 22 }} />
       </div>
 
-      {/* Six attributes, two columns */}
+      {/* Five attributes, two columns (3 + 2) */}
       <div style={{ position: "absolute", left: 150, right: 150, top: 690, display: "flex", justifyContent: "space-between" }}>
         {[attrs.slice(0, 3), attrs.slice(3)].map((col, c) => (
           <div key={c} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {col.map(([k, v]) => (
-              <div key={k} style={{ display: "flex", alignItems: "baseline", width: 220 }}>
-                <div style={{ display: "flex", width: 92, fontSize: 50, fontWeight: 800, letterSpacing: -1 }}>{noResults && k !== "FAN" ? "–" : String(v)}</div>
+              <div key={k} style={{ display: "flex", alignItems: "baseline", width: 250 }}>
+                <div style={{ display: "flex", width: 92, fontSize: 50, fontWeight: 800, letterSpacing: -1 }}>{noResults ? "–" : String(v)}</div>
                 <div style={{ display: "flex", fontSize: 34, fontWeight: 500, color: soft }}>{k}</div>
               </div>
             ))}
