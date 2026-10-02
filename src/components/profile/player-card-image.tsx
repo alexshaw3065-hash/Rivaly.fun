@@ -34,14 +34,6 @@ const INK: Record<Tier, string> = { gold: "#241a06", silver: "#16181c", bronze: 
 const SOFT: Record<Tier, string> = { gold: "rgba(36,26,6,0.55)", silver: "rgba(22,24,28,0.55)", bronze: "rgba(42,19,6,0.6)" };
 const LINE: Record<Tier, string> = { gold: "rgba(36,26,6,0.22)", silver: "rgba(22,24,28,0.2)", bronze: "rgba(42,19,6,0.25)" };
 
-/** $1,234 → "+$1.2K"; always short enough for the card. */
-function money(cents: number): string {
-  const sign = cents > 0 ? "+" : cents < 0 ? "−" : "";
-  const d = Math.abs(cents) / 100;
-  const v = d >= 1_000_000 ? `${(d / 1_000_000).toFixed(1).replace(/\.0$/, "")}M` : d >= 1000 ? `${(d / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${Math.round(d)}`;
-  return `${sign}$${v}`;
-}
-
 /** Long names shrink so they never run off the card. */
 function nameSize(name: string): number {
   const n = name.length;
@@ -125,9 +117,8 @@ export function playerCard(d: PlayerCardData, art: string, character: string) {
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", marginTop: 14, fontSize: 24, fontWeight: 800, letterSpacing: 5, color: soft }}>
-          {noResults ? "NO SETTLED ROOMS YET" : `${d.wins}–${d.losses}  ·  ${money(d.profit)}  ·  ${d.streak > 1 ? `${d.streak} IN A ROW` : "FORM"}`}
-        </div>
+        {/* The form dots speak for themselves; only a brand-new card says why they're empty. */}
+        {noResults && <div style={{ display: "flex", marginTop: 14, fontSize: 24, fontWeight: 800, letterSpacing: 5, color: soft }}>NO SETTLED ROOMS YET</div>}
       </div>
     </div>
       {/* Avatar, top right — drawn outside the scaled layer so it stays whole and sharp */}

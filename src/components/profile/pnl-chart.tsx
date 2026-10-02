@@ -4,6 +4,9 @@ import { useId, useMemo, useRef, useState, type PointerEvent } from "react";
 
 // Your profit/loss over time: one step per room that settled (you only make
 // or lose money when a room settles, so the line steps rather than drifts).
+// Each settled room gets an equal step across the width, in order — on a
+// plain time axis, two rooms settling minutes apart after a quiet week were
+// crushed into a spike at the right edge. Dragging still reads each date.
 // The figure is what you made in the chosen period; drag along the line to
 // read any point. Engagement mechanism #7 (investment): a record that grows
 // with every room you play is a reason to come back — and a loss reads as one
@@ -65,12 +68,12 @@ export function PnlChart({ points, now }: { points: PnlPoint[] | null; now: numb
       lo -= 100;
       hi += 100;
     }
-    const x = (t: number) => ((t - start) / Math.max(1, now - start)) * W;
+    const xs = series.map((_, i) => (i / Math.max(1, series.length - 1)) * W);
     const y = (v: number) => PAD + ((hi - v) / (hi - lo)) * (H - 2 * PAD);
-    let line = `M${x(series[0].t)},${y(series[0].v)}`;
-    for (let i = 1; i < series.length; i++) line += ` H${x(series[i].t)} V${y(series[i].v)}`;
-    const area = `${line} V${H} H${x(series[0].t)} Z`;
-    return { series, inside, total: cum, x, y, line, area, zero: y(0) };
+    let line = `M${xs[0]},${y(series[0].v)}`;
+    for (let i = 1; i < series.length; i++) line += ` H${xs[i]} V${y(series[i].v)}`;
+    const area = `${line} V${H} H${xs[0]} Z`;
+    return { series, inside, total: cum, xs, y, line, area, zero: y(0) };
   }, [points, period, now]);
 
   const shown = data ? (scrub !== null ? data.series[scrub] : { t: now, v: data.total }) : null;
@@ -84,8 +87,8 @@ export function PnlChart({ points, now }: { points: PnlPoint[] | null; now: numb
     const t = ((e.clientX - r.left) / r.width) * W;
     let best = 0;
     let bestD = Infinity;
-    data.series.forEach((s, i) => {
-      const d = Math.abs(data.x(s.t) - t);
+    data.xs.forEach((sx, i) => {
+      const d = Math.abs(sx - t);
       if (d < bestD) {
         bestD = d;
         best = i;
@@ -155,8 +158,8 @@ export function PnlChart({ points, now }: { points: PnlPoint[] | null; now: numb
               <path d={data.line} fill="none" stroke={tone} strokeWidth={2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               {scrub !== null && (
                 <line
-                  x1={data.x(data.series[scrub].t)}
-                  x2={data.x(data.series[scrub].t)}
+                  x1={data.xs[scrub]}
+                  x2={data.xs[scrub]}
                   y1={0}
                   y2={H}
                   stroke="var(--text-secondary)"
