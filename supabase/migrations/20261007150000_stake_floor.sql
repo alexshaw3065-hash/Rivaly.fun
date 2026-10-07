@@ -4,7 +4,7 @@
 -- (the old "No limit" default) and a check would block their later status
 -- updates and payouts.
 create or replace function public.enforce_stake_floor() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = public as $$
 begin
   if tg_table_name = 'entries' and new.amount_cents < 100 then
     raise exception 'stake_below_minimum' using errcode = 'check_violation';
