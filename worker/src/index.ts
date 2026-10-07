@@ -233,16 +233,58 @@ async function main(): Promise<void> {
 }
 
 // Settlement heartbeat. Settling needs the escrow key, which lives only on
-// Vercel — so this always-on process just pings the app's settle route once
-// a minute (rooms go live at kickoff, resolve early behind the safety window,
+// Vercel — so this always-on process just pings the app's settle route (each
+// minute while there's work — see settleHasWork) (rooms go live at kickoff, resolve early behind the safety window,
 // winners get paid). Optional: without SETTLE_URL + CRON_SECRET it's off, and
 // rooms still settle when they're viewed. The route is idempotent, so an
 // overlapping ping can't pay anyone twice.
 const SETTLE_URL = process.env.SETTLE_URL;
 const CRON_SECRET = process.env.CRON_SECRET;
+// Every settle run is a Vercel function (and a few Solana reads), so the
+// minute tick only calls it when something could need it; otherwise a slow
+// safety heartbeat covers recovery and the escrow check. Rooms also settle
+// whenever they're viewed, so nothing waits on this.
+const SAFETY_HEARTBEAT_MS = 15 * 60_000;
+
+/** Is there anything for a settlement pass to do right now? Cheap counts only. */
+async function settleHasWork(): Promise<boolean> {
+  const supabase = db();
+  const now = Date.now();
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const count = (q: PromiseLike<{ count: number | null; error: unknown }>) =>
+    Promise.resolve(q).then((r) => (r.error ? 1 : (r.count ?? 0)), () => 1); // unsure → do the work
+  // Rooms about to go live, live, or resolving: matches kicking off from 6 h
+  // ago to 2 min ahead (rooms.match_id is text, so two steps, not a join).
+  const { data: near, error: nearError } = await supabase
+    .from("matches")
+    .select("id")
+    .gte("kickoff_at", iso(now - 6 * 60 * 60_000))
+    .lte("kickoff_at", iso(now + 2 * 60_000))
+    .limit(150);
+  // A huge matchday (or an error) just means: run the pass.
+  if (nearError || (near?.length ?? 0) >= 150) return true;
+  const nearIds = (near ?? []).map((m) => String(m.id));
+  const checks = await Promise.all([
+    nearIds.length === 0
+      ? 0
+      : count(supabase.from("rooms").select("id", { count: "exact", head: true }).in("status", ["open", "live"]).in("match_id", nearIds)),
+    // Stakes, fee claims and welcome credits still landing on chain.
+    count(supabase.from("stake_intents").select("id", { count: "exact", head: true }).eq("status", "submitted")),
+    count(supabase.from("fee_claims").select("id", { count: "exact", head: true }).in("status", ["pending", "sent"])),
+    count(supabase.from("signup_grants").select("user_id", { count: "exact", head: true }).in("status", ["pending", "sent"])),
+    // New accounts who may be owed their welcome credit.
+    count(supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", iso(now - 30 * 60_000))),
+  ]);
+  return checks.some((n) => n > 0);
+}
+
 if (SETTLE_URL && CRON_SECRET) {
+  let lastSettleAt = 0;
   const settleTick = async () => {
     try {
+      const due = Date.now() - lastSettleAt >= SAFETY_HEARTBEAT_MS || (await settleHasWork());
+      if (!due) return;
+      lastSettleAt = Date.now();
       const res = await fetch(SETTLE_URL, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
       if (!res.ok) console.error(`[settle] ${res.status}`);
     } catch (e) {
@@ -250,7 +292,7 @@ if (SETTLE_URL && CRON_SECRET) {
     }
   };
   setInterval(settleTick, 60_000);
-  console.log("[settle] heartbeat on — every 60s");
+  console.log("[settle] heartbeat on — every 60s when there's work, every 15 min otherwise");
 
   // Chat photos older than 60 days: removed once a day, same app, same secret.
   const EXPIRE_URL = new URL("/api/cron/expire-photos", SETTLE_URL).toString();
