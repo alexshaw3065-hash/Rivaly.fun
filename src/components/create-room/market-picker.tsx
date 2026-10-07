@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { composeMarket, goalsOnly, sportOf, type CreateRoomMarket, type Sport } from "@/lib/markets";
+import { useEffect, useState, type ReactNode } from "react";
+import { composeMarket, goalsOnly, scorerMarketsFor, sportOf, type CreateRoomMarket, type Sport } from "@/lib/markets";
+import { buildLineups, type LineupPlayer, type MatchLineups } from "@/lib/match-lineups";
+import { createClient } from "@/lib/supabase/client";
 import type { EntrySide, Match } from "@/lib/types";
 import { TeamCrest } from "../team-crest";
 import { Button } from "../ui/button";
 import { Accordion, HelpTip, OptionCell, OverUnderGrid, ScoreStepper, Segmented } from "./controls";
 import {
+  BootIcon,
   BothScoreIcon,
   CornerFlagIcon,
   GoalIcon,
@@ -272,11 +275,15 @@ function SoccerPanel({ tab, match, pick, onPick, fullTime, setFullTime, halfTime
           help="Yes wins if each team scores at least once. No wins if either team keeps a clean sheet." icon={<BothScoreIcon />} summary={summaryFor("btts:")}>
         <YesNoRow selected={sideFor("btts:")} onPick={(side) => onPick({ key: `btts:${side}`, market: { type: "both_score" }, side })} />
       </Accordion>
-      {/* Anytime goalscorer is hidden while stakes move real USDC: the feed
-          names scorers by numeric id only, so nothing could settle it
-          automatically, and the creator confirming a result they have money
-          on isn't fair. It comes back with a lineup feed (see git history
-          for the picker and the curated player list). */}
+      {/* Premier League only: players come from the real line-up, and goals
+          settle it by the scorer's id (settlement/resolve.ts). */}
+      {scorerMarketsFor(match) && (
+        <Accordion title="Anytime goalscorer"
+            help="Yes wins if your player scores at any point in normal time. Own goals don't count. If they don't score, including if they never get on the pitch, No wins."
+            icon={<BootIcon />} summary={summaryFor("scorer:")}>
+          <ScorerPicker match={match} pick={pick} onPick={onPick} />
+        </Accordion>
+      )}
     </>
   );
 }
@@ -449,5 +456,77 @@ function ConfirmScore({ label, selected, onClick }: { label: string; selected: b
     <Button variant="primary" size="lg" full onClick={onClick}>
       {selected ? `${label} ✓` : `${label} →`}
     </Button>
+  );
+}
+
+/** The match's latest line-up, read once (null while loading, false when not out yet). */
+function useLineups(match: Match): MatchLineups | null | false {
+  const [lineups, setLineups] = useState<MatchLineups | null | false>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void createClient()
+      .from("match_events")
+      .select("action, minute, payload")
+      .eq("match_id", match.id)
+      .eq("action", "lineups")
+      .order("occurred_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const rows = (data ?? []) as { action: string; minute: number | null; payload: Record<string, unknown> | null }[];
+        setLineups(buildLineups(rows, match.homeTeam, match.awayTeam) ?? false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [match.id, match.homeTeam, match.awayTeam]);
+  return lineups;
+}
+
+function ScorerPicker({ match, pick, onPick }: { match: Match; pick: Pick | null; onPick: (pick: Pick) => void }) {
+  const lineups = useLineups(match);
+  const [team, setTeam] = useState<"home" | "away">(pick?.market.type === "anytime_scorer" ? pick.market.team : "home");
+
+  if (lineups === null) return <p className="py-2 text-body text-secondary">Loading the line-ups…</p>;
+  if (lineups === false) {
+    return <p className="py-2 text-body text-secondary">Players appear here once the line-ups are out, about an hour before kick-off.</p>;
+  }
+
+  const side = lineups[team];
+  const teamName = team === "home" ? match.homeTeam : match.awayTeam;
+  const choose = (p: LineupPlayer) =>
+    onPick({ key: `scorer:${team}:${p.id}`, market: { type: "anytime_scorer", playerId: p.id, player: p.surname || p.name, team }, side: "yes" });
+  // Forwards first: they're who people pick.
+  const starters = [...side.lines].reverse().flat();
+  const group = (title: string, players: LineupPlayer[]) =>
+    players.length > 0 && (
+      <div className="flex flex-col gap-2">
+        <p className="text-caption font-semibold text-secondary">{title}</p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {players.map((p) => (
+            <OptionCell key={p.id} selected={pick?.key === `scorer:${team}:${p.id}`} onClick={() => choose(p)} className="!justify-start">
+              <TeamCrest name={teamName} size={16} />
+              <span className="w-6 shrink-0 text-right tabular-nums text-tertiary">{p.number}</span>
+              {p.surname || p.name}
+            </OptionCell>
+          ))}
+        </div>
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Segmented
+        label="Team"
+        value={team}
+        onChange={setTeam}
+        options={[
+          { value: "home", label: match.homeTeam },
+          { value: "away", label: match.awayTeam },
+        ]}
+      />
+      {group("Starting XI", starters)}
+      {group("Bench", side.bench)}
+    </div>
   );
 }

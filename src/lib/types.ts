@@ -100,10 +100,8 @@ export type RoomStatus = "open" | "live" | "settled" | "cancelled" | "refunded";
 // matching row — settlement for those needs no new matches columns since
 // the events are already captured by the TxLINE ingester. halftime_correct_score
 // reads the HT columns; second_half_total_goals is full-time total minus HT
-// total. anytime_scorer is the one Tier 1-shaped market that can't auto-settle
-// yet — the feed identifies scorers by numeric PlayerId only, with no names to
-// match the picked player against — so it's creator_confirms until a lineup
-// feed exists. Tier 3 (custom)
+// total. anytime_scorer (Premier League) settles by the scorer's PlayerId,
+// matched against the player picked from the match's own line-up. Tier 3 (custom)
 // is a free-text claim the creator confirms after the match; the
 // create-room UI no longer offers it (founder's call), but existing rooms
 // (including the seeded demo roster) still use it, so it stays supported
@@ -161,8 +159,10 @@ export interface MarketSideDefinition {
   // correct_score / halftime_correct_score: the exact scoreline "Yes" claims.
   homeGoals?: number;
   awayGoals?: number;
-  // anytime_scorer: the player "Yes" says scores (with `team` above).
+  // anytime_scorer: the player "Yes" says scores (with `team` above), and
+  // their id in the match's line-up — what settlement matches goals against.
   player?: string;
+  playerId?: number;
 }
 
 /**

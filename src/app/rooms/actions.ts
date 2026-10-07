@@ -7,6 +7,7 @@ import { getMatchById } from "@/lib/supabase/matches";
 import { matchIsScored } from "@/lib/supabase/scored-competitions";
 import { composeMarket, invalidMarketReason, marketFitsMatch, MIN_STAKE_FLOOR_CENTS, type CreateRoomMarket } from "@/lib/markets";
 import { walletUsdcCents } from "@/lib/wallet/stakeable";
+import { buildLineups } from "@/lib/match-lineups";
 import {
   buildStakeTransaction,
   cosignAndSend,
@@ -148,7 +149,26 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     // A room settles from the live score feed; no feed, no room.
     if (!(await matchIsScored(admin, input.matchId))) return { ok: false, error: NOT_COVERED };
 
-    const composed = composeMarket(input.market, match);
+    // Anytime goalscorer: the player must be in this match's line-up, on the
+    // side picked. The name comes from the line-up, never from the client.
+    let market = input.market;
+    if (market.type === "anytime_scorer") {
+      const { data: rows } = await admin
+        .from("match_events")
+        .select("action, minute, payload")
+        .eq("match_id", input.matchId)
+        .eq("action", "lineups")
+        .order("occurred_at", { ascending: false })
+        .limit(1);
+      const lineups = buildLineups((rows ?? []) as { action: string; minute: number | null; payload: Record<string, unknown> | null }[], match.homeTeam, match.awayTeam);
+      if (!lineups) return { ok: false, error: "The line-ups aren't out yet — try closer to kick-off." };
+      const side = lineups[market.team];
+      const player = [...side.lines.flat(), ...side.bench].find((p) => p.id === (market as { playerId: number }).playerId);
+      if (!player) return { ok: false, error: "That player isn't in the line-up." };
+      market = { ...market, player: player.surname || player.name };
+    }
+
+    const composed = composeMarket(market, match);
     result = {
       amountCents: stakeCents,
       side: input.side,

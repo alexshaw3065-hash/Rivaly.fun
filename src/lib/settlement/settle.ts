@@ -14,7 +14,7 @@ import {
   transactionState,
 } from "@/lib/escrow/escrow";
 import type { MarketSideDefinition, MatchStatus } from "@/lib/types";
-import { decideSettlement, resolveMarket, type MatchEventFact, type MatchFacts, type Pending } from "./resolve";
+import { decideSettlement, eventFact, resolveMarket, type MatchEventFact, type MatchFacts, type Pending } from "./resolve";
 import { planSettlement } from "./payouts";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -36,7 +36,7 @@ interface RoomRow {
   fee_plan: FeePlan | null;
 }
 
-const SETTLEMENT_ACTIONS = ["halftime_finalised", "penalty", "var", "var_end", "instant_replay", "instant_replay_end", "action_discarded", "action_amend"];
+const SETTLEMENT_ACTIONS = ["halftime_finalised", "penalty", "var", "var_end", "instant_replay", "instant_replay_end", "action_discarded", "action_amend", "goal"];
 
 async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchFacts; kickoffAt: string; events: MatchEventFact[] } | null> {
   const { data: m } = await admin
@@ -83,7 +83,7 @@ async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchF
       awayFieldGoals: m.away_field_goals,
       wentToOvertime: m.went_to_overtime,
     },
-    events: kept.map((e) => ({ action: e.action as string, at: +new Date(e.occurred_at as string) })),
+    events: kept.map((e) => eventFact(e.action as string, e.occurred_at as string, e.payload as Record<string, unknown> | null)),
   };
 }
 

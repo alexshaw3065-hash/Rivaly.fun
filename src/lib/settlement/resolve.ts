@@ -48,6 +48,21 @@ export interface MatchEventFact {
   action: string;
   /** Epoch milliseconds. */
   at: number;
+  /** goal: who scored (the feed's PlayerId) and how ("Own" / "OwnGoal" for own goals). */
+  playerId?: number | null;
+  goalType?: string | null;
+}
+
+const idOf = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) ? v : null);
+
+/** A stored event, reduced to what the rules read (for goals: who scored, and how). */
+export function eventFact(action: string, occurredAt: string, payload: Record<string, unknown> | null): MatchEventFact {
+  const fact: MatchEventFact = { action, at: +new Date(occurredAt) };
+  if (action === "goal") {
+    fact.playerId = idOf(payload?.PlayerId);
+    fact.goalType = typeof payload?.GoalType === "string" ? payload.GoalType : null;
+  }
+  return fact;
 }
 
 const has = (events: MatchEventFact[], action: string) => events.some((e) => e.action === action);
@@ -206,8 +221,19 @@ function resolveRaw(def: MarketSideDefinition | null, match: MatchFacts, events:
       return { kind: "open" };
     }
 
-    case "anytime_scorer":
-      return { kind: "manual" };
+    case "anytime_scorer": {
+      // Rooms from before line-up ids existed carry only a name: an admin settles those.
+      if (def.playerId == null) return { kind: "manual" };
+      const id = def.playerId;
+      // Duplicates of the same goal are harmless (any one is enough); goals
+      // the feed discarded (VAR) were already dropped from `events`.
+      const scored = events.some((e) => e.action === "goal" && e.playerId === id && e.goalType !== "Own" && e.goalType !== "OwnGoal");
+      if (scored) return { kind: "locked", outcome: "yes" };
+      if (!fullTime) return { kind: "open" };
+      // Full time without their goal is "No" — including a player who never
+      // got on the pitch (founder's call, 2026-10-07: no goal is no goal).
+      return { kind: "final", outcome: "no" };
+    }
   }
 }
 

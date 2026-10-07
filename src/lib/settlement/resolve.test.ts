@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   decideSettlement,
+  eventFact,
   resolveMarket,
   reviewOpen,
   SAFETY_WINDOW_MS,
@@ -199,5 +200,36 @@ describe("decideSettlement — the 10-minute safety window", () => {
   it("whistle results pay immediately; cancellations refund immediately", () => {
     assert.deepEqual(decideSettlement({ kind: "final", outcome: "no" }, null, [], t0), { action: "settle", outcome: "no" });
     assert.deepEqual(decideSettlement({ kind: "void" }, null, [ev("var")], t0), { action: "settle", outcome: "void" });
+  });
+});
+
+describe("resolveMarket — anytime goalscorer (Premier League)", () => {
+  const scorer = def({ stat: "anytime_scorer", player: "Isak", playerId: 101, team: "away" });
+  const goal = (playerId: number, goalType = "Shot", at = 0) => eventFact("goal", new Date(at).toISOString(), { PlayerId: playerId, GoalType: goalType });
+
+  it("locks Yes the moment the player scores, final at the whistle", () => {
+    assert.deepEqual(resolveMarket(scorer, match(), [goal(101)]), { kind: "locked", outcome: "yes" });
+    assert.deepEqual(resolveMarket(scorer, match({ status: "finished" }), [goal(101)]), { kind: "final", outcome: "yes" });
+  });
+
+  it("ignores own goals and other players' goals", () => {
+    assert.deepEqual(resolveMarket(scorer, match(), [goal(101, "Own"), goal(101, "OwnGoal"), goal(202)]), { kind: "open" });
+  });
+
+  it("is No at full time without their goal — even if they never played", () => {
+    assert.deepEqual(resolveMarket(scorer, match({ status: "finished" }), [goal(202)]), { kind: "final", outcome: "no" });
+    assert.deepEqual(resolveMarket(scorer, match({ status: "finished" }), []), { kind: "final", outcome: "no" });
+  });
+
+  it("counts duplicate rows of the same goal once (any one is enough)", () => {
+    assert.deepEqual(resolveMarket(scorer, match({ status: "finished" }), [goal(101), goal(101)]), { kind: "final", outcome: "yes" });
+  });
+
+  it("leaves rooms without a player id (older rooms) to an admin", () => {
+    assert.deepEqual(resolveMarket(def({ stat: "anytime_scorer", player: "Isak", team: "away" }), match({ status: "finished" }), []), { kind: "manual" });
+  });
+
+  it("refunds if the match is cancelled", () => {
+    assert.deepEqual(resolveMarket(scorer, match({ status: "cancelled" }), [goal(101)]), { kind: "void" });
   });
 });

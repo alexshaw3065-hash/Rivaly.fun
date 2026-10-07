@@ -31,7 +31,9 @@ export type CreateRoomMarket =
   | { type: "penalty" }
   | { type: "red_card" }
   | { type: "var" }
-  | { type: "anytime_scorer"; player: string; team: "home" | "away" }
+  // Premier League only: the player comes from the real line-up (TxLINE), so
+  // goals settle it by PlayerId.
+  | { type: "anytime_scorer"; playerId: number; player: string; team: "home" | "away" }
   // NFL — every one of these reads a stat TxLINE's NFL feed actually
   // carries (Score/Touchdown/FieldGoal per HT and Total, plus an OT period).
   | { type: "total_points"; comparison: "over" | "under"; line: number }
@@ -73,8 +75,18 @@ export function goalsOnly(match: { provider?: string }): boolean {
 }
 
 /** Whether this market can be offered on this match: right sport, and data that can settle it. */
-export function marketFitsMatch(market: CreateRoomMarket, match: { sportId?: number; provider?: string }): boolean {
+export function marketFitsMatch(market: CreateRoomMarket, match: { sportId?: number; provider?: string; competition?: string }): boolean {
+  if (market.type === "anytime_scorer") return scorerMarketsFor(match);
   return marketFitsSport(market, sportOf(match)) && (!goalsOnly(match) || GOAL_MARKETS.has(market.type));
+}
+
+/**
+ * Anytime goalscorer needs line-ups with player ids and goals naming the
+ * scorer by the same id: TxLINE's football feed has both. Premier League only
+ * for now (founder's call).
+ */
+export function scorerMarketsFor(match: { sportId?: number; provider?: string; competition?: string }): boolean {
+  return sportOf(match) === "soccer" && !goalsOnly(match) && (match.competition ?? "").trim().toLowerCase() === "premier league";
 }
 
 /** Whether this market means anything for this match's sport (no corners in the NFL). */
@@ -192,14 +204,15 @@ export function composeMarket(market: CreateRoomMarket, match: { homeTeam: strin
     case "var":
       return auto("var", "A VAR review happens");
     case "anytime_scorer":
-      // Can't auto-settle yet: the scores feed names scorers by numeric
-      // PlayerId only, so there's nothing to match a picked name against.
+      // Settles from the feed: a goal (not an own goal) whose PlayerId is
+      // this player's. The id comes from the match's own line-up; the server
+      // re-checks it and takes the name from there (rooms/actions.ts).
       return {
         prediction: `${market.player.trim()} scores`,
         marketType: "anytime_scorer",
         marketLine: null,
-        marketSideDefinition: { stat: "anytime_scorer", player: market.player.trim(), team: market.team },
-        settlementMode: "creator_confirms",
+        marketSideDefinition: { stat: "anytime_scorer", player: market.player.trim(), playerId: market.playerId, team: market.team },
+        settlementMode: "auto",
       };
     case "total_points":
       return auto(
@@ -273,7 +286,8 @@ export function invalidMarketReason(market: CreateRoomMarket): string | null {
     }
     case "anytime_scorer": {
       const name = market.player.trim();
-      return name.length >= 2 && name.length <= 60 ? null : "Pick a player.";
+      const ok = Number.isInteger(market.playerId) && market.playerId > 0 && name.length >= 2 && name.length <= 60 && (market.team === "home" || market.team === "away");
+      return ok ? null : "Pick a player.";
     }
     default:
       return null;

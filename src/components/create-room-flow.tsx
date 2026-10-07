@@ -281,7 +281,7 @@ export function CreateRoomFlow({ initialMatchId, resume = false, vs }: { initial
     settings.visibility === "public" ? "Public" : "Private",
     limitsLabel(limits),
     ...(settings.visibility === "public" ? [settings.allowSpectators ? "Spectators on" : "No spectators"] : []),
-    pick?.market.type === "anytime_scorer" ? "Creator confirms from the scoresheet" : "Settles on the official result",
+    "Settles on the official result",
   ];
 
   if (result && match && pick) {
