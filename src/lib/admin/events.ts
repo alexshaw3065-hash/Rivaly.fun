@@ -121,6 +121,8 @@ export function describeEvent(e: PlatformEvent, ctx: EventContext): EventLine {
     case "MODERATION_ACTION":
     case "ADMIN_ACTION":
       return { text: `Admin: ${String(m.action ?? "action").replaceAll("_", " ")}${m.reason ? ` — ${String(m.reason)}` : ""}`, tone: "admin", href: e.room_id ? roomHref : userHref };
+    case "MATCH_SCORE_DISPUTED":
+      return { text: `Score in dispute: Big Balls says ${String(m.ours ?? "?")} on one record and ${String(m.twin ?? "?")} on the other — rooms held`, tone: "bad", href: "/admin/matches" };
     case "SYSTEM_ERROR":
       return { text: `System error${m.job ? ` in ${String(m.job)}` : ""}: ${String(m.error ?? "").slice(0, 100)}`, tone: "bad", href: "/admin/system?tab=errors" };
     default:
@@ -135,6 +137,6 @@ export const EVENT_GROUPS: { label: string; types: string[] }[] = [
   { label: "Results", types: ["MATCH_STARTED", "MATCH_FINISHED", "RESULT_HELD", "RESULT_RECEIVED", "SETTLEMENT_COMPLETED"] },
   { label: "Money", types: ["PAYOUT_SENT", "REFUND_SENT", "FEE_EARNED", "CLAIM_STARTED", "CLAIM_COMPLETED", "SIGNUP_GRANT", "DEPOSIT", "WITHDRAWAL"] },
   { label: "Social", types: ["POST_CREATED", "REPLY_CREATED", "CHAT_MESSAGE", "REACTION", "LEAGUE_JOINED"] },
-  { label: "Problems", types: ["STAKE_FAILED", "SETTLEMENT_FAILED", "CLAIM_FAILED", "SIGNUP_GRANT_FAILED", "SYSTEM_ERROR", "REPORT_CREATED"] },
+  { label: "Problems", types: ["STAKE_FAILED", "SETTLEMENT_FAILED", "CLAIM_FAILED", "SIGNUP_GRANT_FAILED", "SYSTEM_ERROR", "REPORT_CREATED", "MATCH_SCORE_DISPUTED"] },
   { label: "Admin", types: ["MODERATION_ACTION", "ADMIN_ACTION", "ADMIN_LOGIN", "ADMIN_LOGIN_FAILED"] },
 ];

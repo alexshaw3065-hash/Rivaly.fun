@@ -38,6 +38,19 @@ const VIEWS = [
 
 type Miss = { kind: string; name: string; reason: string | null; attempts: number; tried_at: string };
 
+type Disputed = { id: string; home_team: string; away_team: string; competition: string; kickoff_at: string; home_score: number | null; away_score: number | null };
+
+/** Matches whose provider records disagree on the final score: their rooms wait for a person. */
+async function disputedScores(): Promise<Disputed[]> {
+  const { data } = await db()
+    .from("matches")
+    .select("id, home_team, away_team, competition, kickoff_at, home_score, away_score")
+    .eq("score_disputed", true)
+    .order("kickoff_at", { ascending: false })
+    .limit(50);
+  return (data ?? []) as Disputed[];
+}
+
 async function crestHealth(): Promise<{ teams: number; leagues: number; misses: Miss[] }> {
   const [teams, leagues, misses] = await Promise.all([
     db().from("crests").select("*", { count: "exact", head: true }).eq("kind", "team"),
@@ -58,7 +71,7 @@ function verification(r: Row): { state: string; label: string } {
 export default async function MatchesPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   await requireAdmin();
   const { view = "with_rooms" } = await searchParams;
-  const [rows, worker, crestStats] = await Promise.all([rpc<Row[]>("admin_matches", { p_view: view, p_limit: 200 }), workerHealth(), crestHealth()]);
+  const [rows, worker, crestStats, disputed] = await Promise.all([rpc<Row[]>("admin_matches", { p_view: view, p_limit: 200 }), workerHealth(), crestHealth(), disputedScores()]);
   const bb = worker?.bigballs;
 
   const columns: Column<Row>[] = [
@@ -88,6 +101,25 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
           <Kpi label="Goals from last poll" value={num(bb?.lastPoll?.goals)} sub={bb?.lastPoll ? `${bb.lastPoll.polled} matches · ${bb.lastPoll.confirmedFinals} finals confirmed` : "no live rooms"} />
         </KpiGrid>
       </Section>
+      {disputed.length > 0 && (
+        <Section
+          title="Scores in dispute"
+          hint="Big Balls has two records of these matches with different final scores, so their rooms won't pay out. Check the real result, then set the score and clear score_disputed on the match; the next settlement run pays."
+        >
+          <DataTable
+            columns={
+              [
+                { label: "Match", cell: (d: Disputed) => <span className="font-medium">{d.home_team} v {d.away_team}</span> },
+                { label: "Competition", cell: (d: Disputed) => <span className="text-secondary">{d.competition}</span> },
+                { label: "Kickoff", cell: (d: Disputed) => <span className="text-secondary">{when(d.kickoff_at)}</span> },
+                { label: "Score we hold", cell: (d: Disputed) => (d.home_score == null ? "—" : `${d.home_score}–${d.away_score}`), align: "right" },
+              ] as Column<Disputed>[]
+            }
+            rows={disputed}
+            empty=""
+          />
+        </Section>
+      )}
       <Section title="Badges" hint="Real team and league badges from TheSportsDB, synced hourly. A name with no certain match keeps its monogram — fix the feed name or leave it.">
         <p className="mb-3 text-label text-secondary">
           {num(crestStats.teams)} team badges · {num(crestStats.leagues)} league badges · {num(crestStats.misses.length)} without a match

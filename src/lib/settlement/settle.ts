@@ -38,11 +38,11 @@ interface RoomRow {
 
 const SETTLEMENT_ACTIONS = ["halftime_finalised", "penalty", "var", "var_end", "instant_replay", "instant_replay_end", "action_discarded", "action_amend", "goal"];
 
-async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchFacts; kickoffAt: string; events: MatchEventFact[] } | null> {
+async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchFacts; kickoffAt: string; disputed: boolean; events: MatchEventFact[] } | null> {
   const { data: m } = await admin
     .from("matches")
     .select(
-      "status, kickoff_at, home_score, away_score, home_score_ht, away_score_ht, home_corners, away_corners, home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards, home_touchdowns, away_touchdowns, home_field_goals, away_field_goals, went_to_overtime",
+      "status, score_disputed, kickoff_at, home_score, away_score, home_score_ht, away_score_ht, home_corners, away_corners, home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards, home_touchdowns, away_touchdowns, home_field_goals, away_field_goals, went_to_overtime",
     )
     .eq("id", matchId)
     .maybeSingle();
@@ -65,6 +65,7 @@ async function loadMatch(admin: Admin, matchId: string): Promise<{ facts: MatchF
   const kept = (ev ?? []).filter((e) => e.action === "action_discarded" || !discarded.has((e.payload as { _eid?: number } | null)?._eid));
   return {
     kickoffAt: m.kickoff_at,
+    disputed: m.score_disputed === true,
     facts: {
       status: m.status as MatchStatus,
       homeScore: m.home_score,
@@ -93,11 +94,14 @@ async function decide(admin: Admin, room: RoomRow, now: number): Promise<{ outco
 
   const match = await loadMatch(admin, room.match_id);
   if (!match) return { outcome: null, state: "skipped" };
-
   // Stakes close at kickoff: the room goes live and stops taking entries.
   if (room.status === "open" && (match.facts.status !== "scheduled" || +new Date(match.kickoffAt) <= now)) {
     await admin.from("rooms").update({ status: "live" }).eq("id", room.id).eq("status", "open");
   }
+
+  // The data provider's two records of this match disagree on the score: no
+  // payout until an admin confirms the real result (and clears the flag).
+  if (match.disputed) return { outcome: null, state: "open" };
 
   const pending: Pending | null =
     room.pending_outcome && room.pending_since ? { outcome: room.pending_outcome, since: +new Date(room.pending_since) } : null;

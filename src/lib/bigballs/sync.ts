@@ -41,6 +41,14 @@ async function comps(db: Db): Promise<Comp[]> {
 
 // ── Fixtures ─────────────────────────────────────────────────────────
 
+const TWIN_WINDOW_MS = 3 * 3600_000;
+const norm = (s: string) => s.trim().toLowerCase();
+
+/** Same two teams, same way round, kicking off within a few hours: the same match. */
+function sameFixture(home: string, away: string, kickoff: string, m: BbMatch): boolean {
+  return norm(home) === norm(m.home.name) && norm(away) === norm(m.away.name) && Math.abs(+new Date(kickoff) - +new Date(m.kickoff_utc)) <= TWIN_WINDOW_MS;
+}
+
 export interface FixturesResult {
   leagues: number;
   fetched: number;
@@ -65,9 +73,43 @@ export async function syncFixtures(db: Db, key: string): Promise<FixturesResult>
       continue;
     }
     result.leagues += 1;
-    const football = list.filter((m) => m.sport === "football" && m.id && m.home?.name && m.away?.name);
+    let football = list.filter((m) => m.sport === "football" && m.id && m.home?.name && m.away?.name);
     result.fetched += football.length;
     if (football.length === 0) continue;
+
+    // Big Balls sometimes lists one match twice under two ids (and the two
+    // can disagree on the score). Keep one row per match — the one already
+    // stored, else the first seen — and remember the twin's id on it, so the
+    // live poller can compare them before anyone is paid.
+    const kicks = football.map((m) => +new Date(m.kickoff_utc));
+    const { data: storedRows } = await db
+      .from("matches")
+      .select("id, provider_ref, home_team, away_team, kickoff_at, alt_provider_refs")
+      .eq("provider", "bigballs")
+      .eq("competition_id", comp.competition_id)
+      .gte("kickoff_at", new Date(Math.min(...kicks) - TWIN_WINDOW_MS).toISOString())
+      .lte("kickoff_at", new Date(Math.max(...kicks) + TWIN_WINDOW_MS).toISOString());
+    const stored = (storedRows ?? []) as { id: string; provider_ref: string; home_team: string; away_team: string; kickoff_at: string; alt_provider_refs: string[] | null }[];
+    const storedRefs = new Set(stored.map((s) => s.provider_ref));
+    const kept: BbMatch[] = [];
+    for (const m of football) {
+      if (storedRefs.has(m.id)) {
+        kept.push(m);
+        continue;
+      }
+      const twinRow = stored.find((s) => sameFixture(s.home_team, s.away_team, s.kickoff_at, m));
+      if (twinRow) {
+        const alts = twinRow.alt_provider_refs ?? [];
+        if (!alts.includes(m.id)) {
+          await db.from("matches").update({ alt_provider_refs: [...alts, m.id] }).eq("id", twinRow.id);
+          twinRow.alt_provider_refs = [...alts, m.id];
+        }
+        continue;
+      }
+      if (kept.some((k) => sameFixture(k.home.name, k.away.name, k.kickoff_utc, m))) continue; // twin in this same response: the first one wins
+      kept.push(m);
+    }
+    football = kept;
 
     const rows = football.map((m) => ({
       provider: "bigballs",
@@ -121,6 +163,8 @@ export async function syncFixtures(db: Db, key: string): Promise<FixturesResult>
 interface HotMatch {
   id: string;
   provider_ref: string;
+  /** The provider's other ids for this same match (see syncFixtures). */
+  alt_provider_refs: string[] | null;
   competition_id: number;
   kickoff_at: string;
   status: string;
@@ -156,7 +200,7 @@ export async function pollLive(db: Db, key: string, now = Date.now()): Promise<L
 
   const { data: candidates, error } = await db
     .from("matches")
-    .select("id, provider_ref, competition_id, kickoff_at, status, home_score, away_score")
+    .select("id, provider_ref, alt_provider_refs, competition_id, kickoff_at, status, home_score, away_score")
     .eq("provider", "bigballs")
     .in("status", ["scheduled", "live"])
     .lte("kickoff_at", new Date(endOfDay).toISOString())
@@ -198,7 +242,8 @@ export async function pollLive(db: Db, key: string, now = Date.now()): Promise<L
         const seen = byRef.get(match.provider_ref);
         if (!seen) continue;
         out.polled += 1;
-        const r = await applyLive(db, match, seen, now);
+        const twins = (match.alt_provider_refs ?? []).map((ref) => byRef.get(ref)).filter((t): t is BbMatch => Boolean(t));
+        const r = await applyLive(db, match, seen, now, twins);
         out.goals += r.goals;
         if (r.confirmed) out.confirmedFinals += 1;
       }
@@ -222,7 +267,7 @@ export async function pollLive(db: Db, key: string, now = Date.now()): Promise<L
   return out;
 }
 
-async function applyLive(db: Db, match: HotMatch, seen: BbMatch, now: number): Promise<{ goals: number; confirmed: boolean }> {
+async function applyLive(db: Db, match: HotMatch, seen: BbMatch, now: number, twins: BbMatch[] = []): Promise<{ goals: number; confirmed: boolean }> {
   const status = mapStatus(seen.status);
   const nowIso = new Date(now).toISOString();
   let goals = 0;
@@ -275,6 +320,31 @@ async function applyLive(db: Db, match: HotMatch, seen: BbMatch, now: number): P
   if (decision.pending) pendingFinals.set(match.id, decision.pending);
   else pendingFinals.delete(match.id);
   if (!decision.confirmed) return { goals, confirmed: false };
+
+  // The provider's twin record of this match must agree before anyone is
+  // paid. Still going on the twin: wait (up to 4 h after kickoff, then trust
+  // this one). A different final score: hold every room and flag it.
+  const disagree = twins.find((t) => mapStatus(t.status) === "finished" && t.score?.home != null && t.score?.away != null && (t.score.home !== next.home || t.score.away !== next.away));
+  const twinPending = twins.some((t) => mapStatus(t.status) === "live" || mapStatus(t.status) === "scheduled");
+  if (disagree) {
+    // Flag once (the poller keeps seeing it until the match leaves its window).
+    const { data: flagged } = await db
+      .from("matches")
+      .update({ score_disputed: true, home_score: next.home, away_score: next.away, updated_at: nowIso })
+      .eq("id", match.id)
+      .eq("score_disputed", false)
+      .select("id");
+    if ((flagged ?? []).length > 0) await db.from("platform_events").insert({
+      type: "MATCH_SCORE_DISPUTED",
+      match_id: match.id,
+      source: "worker",
+      status: "failed",
+      metadata: { ours: `${next.home}-${next.away}`, twin: `${disagree.score!.home}-${disagree.score!.away}`, twin_ref: disagree.id },
+    });
+    pendingFinals.delete(match.id);
+    return { goals, confirmed: false };
+  }
+  if (twinPending && now - +new Date(match.kickoff_at) < 4 * 3600_000) return { goals, confirmed: false };
 
   pendingFinals.delete(match.id);
   await db.from("match_events").upsert(
