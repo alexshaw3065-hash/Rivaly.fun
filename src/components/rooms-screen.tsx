@@ -61,7 +61,7 @@ function RoomsPageContent() {
   if (matchId) return <MatchRooms matchId={matchId} />;
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:py-12">
       <div className="flex items-center justify-between border-b border-line">
         <div className="no-scrollbar flex min-w-0 gap-6 overflow-x-auto">
           {tabs.map((t) => (
@@ -132,7 +132,7 @@ function MatchRooms({ matchId }: { matchId: string }) {
   const startHref = `/rooms/create?matchId=${matchId}`;
 
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:py-12">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link href="/rooms" className="text-body text-secondary transition-colors hover:text-foreground">
           ← All rooms

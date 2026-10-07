@@ -6,6 +6,10 @@ import { Drawer } from "vaul";
 // The one bottom sheet (vaul): drag down or flick to dismiss, a grab handle,
 // 22px top corners, the sheet shadow, content padded clear of the home bar,
 // and the page behind dimmed. Motion is vaul's iOS-style drawer curve.
+// repositionInputs is off on every sheet: the viewport already shrinks for
+// the keyboard (interactiveWidget: resizes-content), and vaul's own resizing
+// on top of that left the sheet stuck short after the keyboard closed,
+// hiding the stake sheet's Join button.
 
 export function Sheet({
   open,
@@ -23,7 +27,7 @@ export function Sheet({
   children: ReactNode;
 }) {
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
+    <Drawer.Root open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-scrim" />
         <Drawer.Content

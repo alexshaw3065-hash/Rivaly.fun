@@ -130,7 +130,7 @@ export function Nav({ children }: { children: ReactNode }) {
         className="mobile-topbar sticky top-0 z-10 border-b border-line bg-background/95 backdrop-blur-sm md:hidden"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="flex items-center gap-3 py-4 pl-6 pr-4">
+        <div className="flex items-center gap-3 py-3 pl-6 pr-4">
           <Link href="/" className="shrink-0">
             <RivalyWordmark />
           </Link>

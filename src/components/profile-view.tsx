@@ -78,7 +78,8 @@ function ShareButton({ name }: { name: string }) {
 }
 
 // Reddit-style header: banner → avatar overlapping it → name+edit-pencil →
-// username/Rivaly Score/followers → bio → connected socials → achievements.
+// username/Rivaly Score/followers → bio → connected socials → achievements
+// (your own profile only — they are personal, never shown to visitors).
 // On your own profile the banner's top-right corner carries Share/
 // Settings/Invite (referral) icons; on someone else's it carries Share
 // plus Follow/Challenge — same "actions on the cover" convention as X/
@@ -263,9 +264,12 @@ function ProfileHeader({
           </div>
           <HostLine profileId={profile.id} isSelf={isSelf} />
 
-          <div className="mt-3">
-            <ProfileAchievements profile={profile} isSelf={isSelf} stats={stats} />
-          </div>
+          {/* Achievements are personal: only you see your own. */}
+          {isSelf && (
+            <div className="mt-3">
+              <ProfileAchievements profile={profile} isSelf={isSelf} stats={stats} />
+            </div>
+          )}
         </div>
       </div>
 

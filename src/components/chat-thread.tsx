@@ -118,7 +118,15 @@ export function ChatThread({
   onReport?: (message: DisplayChatMessage, reason: ReportReason) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
+  const smoothUntil = useRef(0);
+  // Only the reader's own scrolling unpins the thread: layout shifts (the
+  // URL bar sliding, the panel resizing) fire scroll events too.
+  const lastTouch = useRef(0);
+  const touched = () => {
+    lastTouch.current = performance.now();
+  };
   const [unseen, setUnseen] = useState(0);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [sheetFor, setSheetForRaw] = useState<DisplayChatMessage | null>(null);
@@ -144,6 +152,22 @@ export function ChatThread({
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
+  // Stay on the newest message while you're there: avatars and GIFs load
+  // after the first paint, and the panel grows as the room header tucks
+  // away — without this the thread was left stranded partway up.
+  useEffect(() => {
+    const el = scroller.current;
+    const inner = content.current;
+    if (!el || !inner || typeof ResizeObserver === "undefined") return;
+    const pin = () => {
+      if (atBottom.current && performance.now() > smoothUntil.current) el.scrollTop = el.scrollHeight;
+    };
+    const ro = new ResizeObserver(pin);
+    ro.observe(el);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, []);
+
   // New at the bottom: follow if you're there (or it's yours), otherwise count it.
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -154,15 +178,20 @@ export function ChatThread({
     lastNewest.current = newest;
     if (!el || !grew || !appended) return;
     const mine = items[items.length - 1]?.userId === selfId;
-    if (atBottom.current || mine) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    else setUnseen((n) => n + 1);
+    if (atBottom.current || mine) {
+      atBottom.current = true;
+      smoothUntil.current = performance.now() + 500;
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    } else setUnseen((n) => n + 1);
   }, [items, selfId]);
 
   const onScroll = () => {
     const el = scroller.current;
     if (!el) return;
-    atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-    if (atBottom.current && unseen) setUnseen(0);
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX) {
+      atBottom.current = true;
+      if (unseen) setUnseen(0);
+    } else if (performance.now() - lastTouch.current < 1000) atBottom.current = false;
   };
 
   const jump = () => {
@@ -172,6 +201,7 @@ export function ChatThread({
   };
 
   const goTo = (id: string) => {
+    touched();
     const target = scroller.current?.querySelector(`[data-mid="${id}"]`);
     if (!target) return;
     target.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -182,6 +212,7 @@ export function ChatThread({
   const loadEarlier = async () => {
     const el = scroller.current;
     if (!el || !onLoadEarlier || loadingEarlier) return;
+    touched();
     const before = el.scrollHeight;
     setLoadingEarlier(true);
     await onLoadEarlier();
@@ -213,47 +244,49 @@ export function ChatThread({
         </button>
       )}
 
-      <div ref={scroller} onScroll={onScroll} className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-1">
-        {hasEarlier && (
-          <div className="flex justify-center py-2">
-            <button type="button" onClick={loadEarlier} disabled={loadingEarlier} className="rounded-full px-3 py-1 text-caption font-semibold text-secondary edge-strong transition-colors hover:text-foreground disabled:opacity-60">
-              {loadingEarlier ? "Loading…" : "Load earlier messages"}
-            </button>
-          </div>
-        )}
-        {items.length === 0 ? (
-          <div className="flex h-full items-center justify-center">{empty}</div>
-        ) : (
-          rows.map((r) =>
-            r.kind === "day" ? (
-              <DayDivider key={r.id} label={r.label} />
-            ) : r.kind === "system" ? (
-              <SystemLine key={r.id} message={r.message} />
-            ) : (
-              <MessageRow
-                key={r.id}
-                message={r.message}
-                head={r.head}
-                side={r.message.userId ? sides[r.message.userId] : undefined}
-                stake={r.message.userId ? stakes[r.message.userId] : undefined}
-                self={r.message.userId === selfId}
-                selfId={selfId}
-                quoted={r.message.replyTo ? byId.get(r.message.replyTo) : undefined}
-                quotedSide={r.message.replyTo ? sides[byId.get(r.message.replyTo)?.userId ?? ""] : undefined}
-                reactions={reactions[r.message.id]}
-                flashing={flash === r.message.id}
-                onReact={onReact}
-                onReply={onReply}
-                onOpenSheet={() => setSheetFor(r.message)}
-                onJumpToQuoted={goTo}
-              />
-            ),
-          )
-        )}
+      <div ref={scroller} onScroll={onScroll} onWheel={touched} onTouchMove={touched} onPointerDown={touched} onKeyDown={touched} className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-1">
+        <div ref={content} className="flex min-h-full flex-col">
+          {hasEarlier && (
+            <div className="flex justify-center py-2">
+              <button type="button" onClick={loadEarlier} disabled={loadingEarlier} className="rounded-full px-3 py-1 text-caption font-semibold text-secondary edge-strong transition-colors hover:text-foreground disabled:opacity-60">
+                {loadingEarlier ? "Loading…" : "Load earlier messages"}
+              </button>
+            </div>
+          )}
+          {items.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center">{empty}</div>
+          ) : (
+            rows.map((r) =>
+              r.kind === "day" ? (
+                <DayDivider key={r.id} label={r.label} />
+              ) : r.kind === "system" ? (
+                <SystemLine key={r.id} message={r.message} />
+              ) : (
+                <MessageRow
+                  key={r.id}
+                  message={r.message}
+                  head={r.head}
+                  side={r.message.userId ? sides[r.message.userId] : undefined}
+                  stake={r.message.userId ? stakes[r.message.userId] : undefined}
+                  self={r.message.userId === selfId}
+                  selfId={selfId}
+                  quoted={r.message.replyTo ? byId.get(r.message.replyTo) : undefined}
+                  quotedSide={r.message.replyTo ? sides[byId.get(r.message.replyTo)?.userId ?? ""] : undefined}
+                  reactions={reactions[r.message.id]}
+                  flashing={flash === r.message.id}
+                  onReact={onReact}
+                  onReply={onReply}
+                  onOpenSheet={() => setSheetFor(r.message)}
+                  onJumpToQuoted={goTo}
+                />
+              ),
+            )
+          )}
+        </div>
       </div>
 
       {/* Press-and-hold on a phone: react, reply, copy */}
-      <Drawer.Root open={sheetFor !== null} onOpenChange={(o) => !o && setSheetFor(null)}>
+      <Drawer.Root open={sheetFor !== null} onOpenChange={(o) => !o && setSheetFor(null)} repositionInputs={false}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-50 bg-scrim" />
           <Drawer.Content

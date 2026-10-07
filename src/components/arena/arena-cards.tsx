@@ -13,6 +13,7 @@ import { BottomSheet } from "@/components/bottom-sheet";
 import { ReportReasons } from "@/components/report-reasons";
 import type { ReportReason } from "@/lib/report";
 import { LeagueMark } from "@/components/league-mark";
+import { SplitBar } from "@/components/split-bar";
 import { siteUrl } from "@/lib/site";
 import {
   ARENA_EMOJI,
@@ -203,9 +204,9 @@ function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom;
           <span className="ml-auto tabular-nums font-medium normal-case tracking-normal text-secondary">{formatMoney(room.pool)} pot · {room.participants}</span>
         </div>
         <p className="mt-1.5 text-body font-semibold leading-snug text-foreground">{room.prediction}</p>
-        <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-foreground/10" aria-hidden>
-          <span style={{ width: `${yesShare * 100}%`, background: SIDE_COLOR.yes }} />
-          <span style={{ width: `${(1 - yesShare) * 100}%`, background: SIDE_COLOR.no }} />
+        {/* The app's own split bar — solid YES blue against NO red. */}
+        <div className="mt-3" aria-hidden>
+          <SplitBar leftPct={Math.round(yesShare * 100)} leftLabel="Yes" rightLabel="No" showLabels={false} />
         </div>
       </Link>
       {open && side && !own && (

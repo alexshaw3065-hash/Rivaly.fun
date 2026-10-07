@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui";
 // waits on the server with nothing on screen.
 export default function Loading() {
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 xl:max-w-[1200px]">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:pt-6 xl:max-w-[1200px]">
       <Skeleton className="h-11 rounded-full" />
       <div className="mt-6 flex flex-col gap-4">
         <TitleShape wide />

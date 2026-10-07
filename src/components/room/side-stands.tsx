@@ -101,18 +101,25 @@ export function SideStands({
               type="button"
               onClick={() => setSheetSide(side)}
               aria-label={`Everyone on ${s.label} — ${people.length} ${people.length === 1 ? "rival" : "rivals"}`}
-              className={`flex min-h-[72px] items-center gap-1.5 px-3 py-3 text-left transition-transform duration-100 ease-out active:scale-[0.98] ${frame}`}
+              className={`@container flex min-h-[72px] items-center gap-1 px-2 py-3 text-left transition-transform duration-100 ease-out active:scale-[0.98] ${frame}`}
             >
-              {people.slice(0, FACES).map((p) => (
-                <span key={p.userId} className="enter-pop flex w-[34px] shrink-0 flex-col items-center gap-1" title={`${p.displayName} · ${formatMoney(p.amountCents)}`}>
-                  <RivalCharacter name={p.displayName} imageUrl={p.avatarUrl} size={32} />
+              {/* Four columns share the box; on the narrowest phones the
+                  third face gives way so the +N never spills out. */}
+              {people.slice(0, FACES).map((p, i) => (
+                <span
+                  key={p.userId}
+                  className={`enter-pop min-w-0 max-w-10 flex-1 flex-col items-center gap-1 ${i === FACES - 1 ? "hidden @[7.75rem]:flex" : "flex"}`}
+                  title={`${p.displayName} · ${formatMoney(p.amountCents)}`}
+                >
+                  <RivalCharacter name={p.displayName} imageUrl={p.avatarUrl} size={28} />
                   <span className="max-w-full truncate text-micro font-semibold tabular-nums text-foreground/80">{formatMoneyCompact(p.amountCents)}</span>
                 </span>
               ))}
-              {people.length > FACES && (
-                <span className="flex w-[34px] shrink-0 flex-col items-center gap-1">
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-full text-micro font-bold tabular-nums outline outline-[1.5px] -outline-offset-[1.5px] ${s.ink} ${s.edge}`}>
-                    +{people.length - FACES}
+              {people.length > FACES - 1 && (
+                <span className={`min-w-0 max-w-10 flex-1 flex-col items-center gap-1 ${people.length > FACES ? "flex" : "flex @[7.75rem]:hidden"}`}>
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-micro font-bold tabular-nums outline outline-[1.5px] -outline-offset-[1.5px] ${s.ink} ${s.edge}`}>
+                    <span className="@[7.75rem]:hidden">+{people.length - (FACES - 1)}</span>
+                    <span className="hidden @[7.75rem]:inline">+{people.length - FACES}</span>
                   </span>
                   <span className="text-micro text-transparent" aria-hidden>
                     ·

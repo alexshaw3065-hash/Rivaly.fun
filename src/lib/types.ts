@@ -47,6 +47,8 @@ export interface Profile {
   /** Banner photo (Cloudinary). Null = the banner colour. */
   bannerUrl?: string | null;
   ringColor?: string | null;
+  /** Own profile only: still on the generated sign-up name, not yet claimed. */
+  usernameIsPlaceholder?: boolean;
 }
 
 export type MatchStatus = "scheduled" | "live" | "finished" | "postponed" | "cancelled";

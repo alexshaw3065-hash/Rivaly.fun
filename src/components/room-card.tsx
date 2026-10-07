@@ -48,19 +48,21 @@ export function RoomCard({ room, match }: { room: RoomWithTotals; match: Match }
   return (
     <Link
       href={`/rooms/${room.id}`}
-      className="group flex flex-col gap-3 rounded-card bg-surface p-4 edge transition-[transform,background-color] duration-100 ease-out hover:bg-surface-elevated active:scale-[0.98]"
+      className="@container group flex flex-col gap-3 rounded-card bg-surface p-4 edge transition-[transform,background-color] duration-100 ease-out hover:bg-surface-elevated active:scale-[0.98]"
     >
       {/* One line: each club's badge beside its code, the competition's own
-          mark after a hairline, and the countdown (or LIVE) on the right. */}
+          mark after a hairline, and the countdown (or LIVE) on the right.
+          On a narrow card (the phone search sheet) the competition mark
+          steps aside so it can never sit on top of the countdown. */}
       <div className="flex items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2 text-label font-semibold text-foreground">
+        <span className="flex min-w-0 items-center gap-2 overflow-hidden text-label font-semibold text-foreground">
           <TeamCrest name={match.homeTeam} size={20} />
           <span>{teamIdentity(match.homeTeam).code}</span>
           <span className="font-normal text-tertiary">v</span>
           <span>{teamIdentity(match.awayTeam).code}</span>
           <TeamCrest name={match.awayTeam} size={20} />
-          <span aria-hidden className="mx-0.5 h-3.5 w-px shrink-0 bg-line-strong" />
-          <span className="flex min-w-0 items-center" title={match.competition} aria-label={match.competition}>
+          <span aria-hidden className="mx-0.5 hidden h-3.5 w-px shrink-0 bg-line-strong @[15rem]:block" />
+          <span className="hidden min-w-0 items-center @[15rem]:flex" title={match.competition} aria-label={match.competition}>
             <LeagueMark
               name={match.competition}
               size={16}

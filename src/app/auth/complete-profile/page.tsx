@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { markUsernameClaimed } from "@/components/username-gate";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
@@ -55,6 +56,7 @@ export default function CompleteProfilePage() {
       return;
     }
 
+    markUsernameClaimed();
     router.push(next);
     router.refresh();
   }

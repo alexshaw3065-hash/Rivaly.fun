@@ -23,7 +23,7 @@ export function BottomSheet({
   children: React.ReactNode;
 }) {
   return (
-    <Drawer.Root open={open} onOpenChange={(next) => !next && onClose()}>
+    <Drawer.Root open={open} onOpenChange={(next) => !next && onClose()} repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-scrim" />
         <Drawer.Content

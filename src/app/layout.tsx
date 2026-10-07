@@ -7,6 +7,7 @@ import { DynamicProvider } from "@/components/dynamic-provider";
 import { WalletProvider } from "@/lib/wallet/wallet-context";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
+import { UsernameGate } from "@/components/username-gate";
 import { CrestProvider } from "@/components/crest-provider";
 import { getCrestMap } from "@/lib/crests/map";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
@@ -128,6 +129,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 CurrentUserProvider (the profile carries the address). */}
             <WalletProvider>
               <AnalyticsTracker />
+              <UsernameGate />
               <CrestProvider map={crests}>
                 <Nav>{children}</Nav>
               </CrestProvider>

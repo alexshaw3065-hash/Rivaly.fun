@@ -6,7 +6,7 @@ export default function ArenaLoading() {
   return (
     // Same frame as arena-screen.tsx: a 600px column from laptops up, with
     // room for the Rivals column beside it on wide screens.
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12 lg:max-w-[648px] xl:max-w-[1000px]">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:py-12 lg:max-w-[648px] xl:max-w-[1000px]">
       <div className="xl:grid xl:grid-cols-[600px_320px] xl:justify-center xl:gap-8">
         <div className="min-w-0">
           <TabsShape />

@@ -63,12 +63,13 @@ export const getCurrentProfile = cache(async function getCurrentProfile(): Promi
 
   const { data } = await supabase
     .from("profiles")
-    .select(PROFILE_COLUMNS)
+    .select(`${PROFILE_COLUMNS}, username_is_placeholder`)
     .eq("id", user.id)
     .single();
   if (!data) return null;
 
-  return mapProfileRow(data as ProfileRow);
+  const row = data as ProfileRow & { username_is_placeholder: boolean | null };
+  return { ...mapProfileRow(row), usernameIsPlaceholder: row.username_is_placeholder === true };
 });
 
 export { PROFILE_COLUMNS };

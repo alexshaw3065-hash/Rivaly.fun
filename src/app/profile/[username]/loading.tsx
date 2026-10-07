@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui";
 // cover, avatar over its edge, name, handle and stats.
 export default function ProfileLoading() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12 md:px-6 lg:max-w-[728px]">
+    <main className="mx-auto max-w-4xl px-4 pb-12 pt-4 md:px-6 md:pt-12 lg:max-w-[728px]">
       <div className="overflow-hidden rounded-card bg-surface edge">
         <Skeleton className="h-44 rounded-none md:h-60" />
         <div className="relative -mt-12 px-5 pb-5">

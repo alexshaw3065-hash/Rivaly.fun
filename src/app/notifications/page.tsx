@@ -60,7 +60,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8 md:px-6 md:py-12 lg:max-w-[648px]">
+    <main className="mx-auto max-w-2xl px-4 pb-8 pt-4 md:px-6 md:py-12 lg:max-w-[648px]">
       <h1 className="text-title-1 font-display text-foreground">Notifications</h1>
 
       {!me ? (

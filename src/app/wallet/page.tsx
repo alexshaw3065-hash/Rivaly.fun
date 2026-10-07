@@ -14,14 +14,14 @@ export default async function WalletPage() {
   const me = await getCurrentProfile();
   if (!me) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-12 md:px-6 lg:max-w-[688px]">
+      <main className="mx-auto max-w-4xl px-4 pb-12 pt-4 md:px-6 md:pt-12 lg:max-w-[688px]">
         <WalletSignedOut />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12 md:px-6 lg:max-w-[688px]">
+    <main className="mx-auto max-w-4xl px-4 pb-12 pt-4 md:px-6 md:pt-12 lg:max-w-[688px]">
       <WalletActions />
       <HostingEarnings />
       <div className="mt-10">

@@ -14,7 +14,7 @@ export function MobileSearchOverlay() {
   const open = useSearchOverlayOpen();
 
   return (
-    <Drawer.Root open={open} onOpenChange={(next) => !next && closeSearchOverlay()}>
+    <Drawer.Root open={open} onOpenChange={(next) => !next && closeSearchOverlay()} repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-scrim md:hidden" />
         <Drawer.Content

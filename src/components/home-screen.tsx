@@ -27,7 +27,7 @@ export function HomeScreen({ footer }: { footer?: React.ReactNode }) {
     // Wide screens (xl): a wider page with Polymarket's shape — Exploding now
     // beside a right-hand column of Top rivals, the room grid full width below.
     // Phones, tablets and laptops keep the single column exactly as before.
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 xl:max-w-[1200px]">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:pt-6 xl:max-w-[1200px]">
       {/* md:hidden — desktop already has a search bar in DesktopHeader
           (nav.tsx/desktop-header.tsx); this is the mobile-only shortcut. */}
       <div className="md:hidden">

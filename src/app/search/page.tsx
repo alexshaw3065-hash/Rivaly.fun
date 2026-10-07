@@ -13,7 +13,7 @@ export const metadata = pageMeta({ title: "Search", description: "Search Rivaly 
 // scope, and search-body.tsx for the actual idle/browse/query states.
 export default function SearchPage() {
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:pb-12 md:pt-12">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:pb-12 md:pt-12">
       <SearchBody />
     </main>
   );

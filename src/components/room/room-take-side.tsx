@@ -54,7 +54,7 @@ export function RoomTakeSide({
       <div className="hidden md:block">{panel(preselect)}</div>
 
       {/* Phone: the stake sheet */}
-      <Drawer.Root open={sheetSide !== null} onOpenChange={(open) => !open && setSheetSide(null)}>
+      <Drawer.Root open={sheetSide !== null} onOpenChange={(open) => !open && setSheetSide(null)} repositionInputs={false}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-40 bg-scrim md:hidden" />
           <Drawer.Content aria-describedby={undefined} className="fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] rounded-t-sheet bg-background shadow-sheet outline-none md:hidden">

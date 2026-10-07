@@ -43,7 +43,7 @@ export function ArenaScreen({ initialTab }: { initialTab: ArenaTab }) {
   // screens a right-hand column with Rivals beside the feed. Phones and
   // tablets keep the full-width layout.
   return (
-    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 md:px-6 md:py-12 lg:max-w-[648px] xl:max-w-[1000px]">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:py-12 lg:max-w-[648px] xl:max-w-[1000px]">
       <div className="xl:grid xl:grid-cols-[600px_320px] xl:justify-center xl:gap-8">
         <div className="min-w-0">
           <Tabs tabs={tabs} value={tab} onChange={setTab} />
