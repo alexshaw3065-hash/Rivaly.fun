@@ -1,0 +1,9 @@
+.anchor
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.surfpool
+# Program and deploy keypairs never go in git.
+*keypair*.json
+id.json
