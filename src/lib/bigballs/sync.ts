@@ -5,6 +5,7 @@
 // Limits, timing and why: docs/plans/match-data-providers.md.
 
 import { bbGet, syncUsage, usedToday } from "./client";
+import { BACKFILL_BUDGET, fetchBoxScore, nameGoals } from "./extras";
 import {
   confirmFinal,
   goalsBetween,
@@ -155,6 +156,33 @@ export async function syncFixtures(db: Db, key: string): Promise<FixturesResult>
       }
     }
   }
+
+  // Extras for recent results that missed them (no room, or finished between
+  // polls): only while the day is quiet, a few per run.
+  if (usedToday() < BACKFILL_BUDGET) {
+    const since = new Date(Date.now() - 48 * 3600_000).toISOString();
+    const { data: bare } = await db
+      .from("matches")
+      .select("id, provider_ref, home_team, away_team")
+      .eq("provider", "bigballs")
+      .eq("status", "finished")
+      .is("box_score", null)
+      .gte("kickoff_at", since)
+      .order("kickoff_at", { ascending: false })
+      .limit(8);
+    for (const m of (bare ?? []) as { id: string; provider_ref: string; home_team: string; away_team: string }[]) {
+      if (usedToday() >= BACKFILL_BUDGET) break;
+      try {
+        await nameGoals(db, key, m);
+        if (!(await fetchBoxScore(db, key, m))) {
+          // No statistics from the provider: mark it so we don't ask again.
+          await db.from("matches").update({ box_score: { none: true } }).eq("id", m.id);
+        }
+      } catch (e) {
+        result.errors.push(`extras ${m.provider_ref}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
   return result;
 }
 
@@ -165,6 +193,8 @@ interface HotMatch {
   provider_ref: string;
   /** The provider's other ids for this same match (see syncFixtures). */
   alt_provider_refs: string[] | null;
+  home_team: string;
+  away_team: string;
   competition_id: number;
   kickoff_at: string;
   status: string;
@@ -200,7 +230,7 @@ export async function pollLive(db: Db, key: string, now = Date.now()): Promise<L
 
   const { data: candidates, error } = await db
     .from("matches")
-    .select("id, provider_ref, alt_provider_refs, competition_id, kickoff_at, status, home_score, away_score")
+    .select("id, provider_ref, alt_provider_refs, home_team, away_team, competition_id, kickoff_at, status, home_score, away_score")
     .eq("provider", "bigballs")
     .in("status", ["scheduled", "live"])
     .lte("kickoff_at", new Date(endOfDay).toISOString())
@@ -243,7 +273,7 @@ export async function pollLive(db: Db, key: string, now = Date.now()): Promise<L
         if (!seen) continue;
         out.polled += 1;
         const twins = (match.alt_provider_refs ?? []).map((ref) => byRef.get(ref)).filter((t): t is BbMatch => Boolean(t));
-        const r = await applyLive(db, match, seen, now, twins);
+        const r = await applyLive(db, key, match, seen, now, twins);
         out.goals += r.goals;
         if (r.confirmed) out.confirmedFinals += 1;
       }
@@ -267,7 +297,7 @@ export async function pollLive(db: Db, key: string, now = Date.now()): Promise<L
   return out;
 }
 
-async function applyLive(db: Db, match: HotMatch, seen: BbMatch, now: number, twins: BbMatch[] = []): Promise<{ goals: number; confirmed: boolean }> {
+async function applyLive(db: Db, key: string, match: HotMatch, seen: BbMatch, now: number, twins: BbMatch[] = []): Promise<{ goals: number; confirmed: boolean }> {
   const status = mapStatus(seen.status);
   const nowIso = new Date(now).toISOString();
   let goals = 0;
@@ -306,6 +336,8 @@ async function applyLive(db: Db, match: HotMatch, seen: BbMatch, now: number, tw
       if (regiven.length > 0) await db.from("match_events").delete().eq("match_id", match.id).eq("action", "action_discarded").in("provider_seq", regiven);
       await db.from("match_events").upsert(events, { onConflict: "match_id,provider_seq,action", ignoreDuplicates: false });
     }
+    // A goal went in: one call names the scorer (display only; never blocks the score).
+    if (goals > 0) await nameGoals(db, key, match).catch(() => undefined);
     const changed = next.home !== prev.home || next.away !== prev.away || match.home_score === null;
     if (changed || match.status === "scheduled") {
       await db
@@ -352,5 +384,8 @@ async function applyLive(db: Db, match: HotMatch, seen: BbMatch, now: number, tw
     { onConflict: "match_id,provider_seq,action", ignoreDuplicates: false },
   );
   await db.from("matches").update({ status: "finished", home_score: next.home, away_score: next.away, updated_at: nowIso }).eq("id", match.id);
+  // Full time: the final scorer list and the team statistics (display only).
+  await nameGoals(db, key, match).catch(() => undefined);
+  await fetchBoxScore(db, key, match).catch(() => undefined);
   return { goals, confirmed: true };
 }

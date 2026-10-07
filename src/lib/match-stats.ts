@@ -41,6 +41,27 @@ export function matchStats(match: Match, rows: EventRow[], sport: "soccer" | "nf
     ];
   }
 
+  // Big Balls leagues: no ball-by-ball feed, so the provider's own
+  // post-match totals once they arrive.
+  const box = match.boxScore;
+  if (box) {
+    const h = box.home;
+    const a = box.away;
+    const v = (x: number | null) => x ?? 0;
+    const out: StatRow[] = [
+      { key: "possession", label: "Possession", home: v(h.possession), away: v(a.possession), pct: true },
+      { key: "shots", label: "Shots", home: v(h.shots), away: v(a.shots) },
+      { key: "on-target", label: "Shots on target", home: v(h.onTarget), away: v(a.onTarget) },
+      { key: "corners", label: "Corners", home: v(h.corners), away: v(a.corners) },
+      { key: "fouls", label: "Fouls", home: v(h.fouls), away: v(a.fouls) },
+      { key: "offsides", label: "Offsides", home: v(h.offsides), away: v(a.offsides) },
+      { key: "saves", label: "Saves", home: v(h.saves), away: v(a.saves) },
+      { key: "yellow", label: "Yellow cards", home: v(h.yellow), away: v(a.yellow) },
+      { key: "red", label: "Red cards", home: v(h.red), away: v(a.red) },
+    ];
+    return out;
+  }
+
   const tally = (pick: (r: EventRow) => Side | null) => {
     const t = { home: 0, away: 0 };
     for (const r of rows) {

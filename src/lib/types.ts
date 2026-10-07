@@ -87,6 +87,29 @@ export interface Match {
   homeFieldGoals?: number | null;
   awayFieldGoals?: number | null;
   wentToOvertime?: boolean | null;
+  /** Big Balls' post-match team statistics (its leagues only; null until full time). */
+  boxScore?: BoxScore | null;
+}
+
+export interface BoxScoreSide {
+  possession: number | null;
+  shots: number | null;
+  onTarget: number | null;
+  corners: number | null;
+  fouls: number | null;
+  offsides: number | null;
+  yellow: number | null;
+  red: number | null;
+  saves: number | null;
+  passes: number | null;
+  accuratePasses: number | null;
+}
+
+export interface BoxScore {
+  home: BoxScoreSide;
+  away: BoxScoreSide;
+  source: "bigballs";
+  fetchedAt: string;
 }
 
 export type RoomVisibility = "public" | "private";

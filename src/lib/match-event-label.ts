@@ -16,10 +16,13 @@ export interface MatchMoment {
 
 const at = (minute: number | null | undefined) => (typeof minute === "number" && minute > 0 ? ` ${minute}'` : "");
 
-/** " · Cunha" when the feed named the player and the line-ups say who that is. */
+/**
+ * " · Cunha" when the feed named the player and the line-ups say who that is,
+ * or when Big Balls named the scorer itself (_player, see bigballs/extras.ts).
+ */
 function who(p: Record<string, unknown>, names: Record<number, string> | undefined, suffix = ""): string {
   const id = typeof p.PlayerId === "number" ? p.PlayerId : null;
-  const name = id !== null ? names?.[id] : undefined;
+  const name = (id !== null ? names?.[id] : undefined) ?? (typeof p._player === "string" ? p._player + (p._own === true ? " (OG)" : "") : undefined);
   return name ? ` · ${name}${suffix}` : "";
 }
 

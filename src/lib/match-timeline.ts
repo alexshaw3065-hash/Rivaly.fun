@@ -170,7 +170,7 @@ export function eventFromRow(
           : 0;
   const score = typeof p._home === "number" && typeof p._away === "number" ? { home: p._home, away: p._away } : null;
   const side = p._side === "home" || p._side === "away" ? p._side : null;
-  const player = typeof p.PlayerId === "number" ? (ctx.players?.[p.PlayerId] ?? null) : null;
+  const player = typeof p.PlayerId === "number" ? (ctx.players?.[p.PlayerId] ?? null) : typeof p._player === "string" ? p._player : null;
   // One marker per real event: the feed's first report, confirmation and
   // detail share an event id, so live updates replace rather than stack.
   const id = typeof p._eid === "number" ? `${row.action}:${p._eid}` : row.id;

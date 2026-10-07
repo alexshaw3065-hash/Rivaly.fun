@@ -1,4 +1,4 @@
-import type { Match, MatchStatus } from "@/lib/types";
+import type { BoxScore, Match, MatchStatus } from "@/lib/types";
 
 // Shared between src/lib/supabase/matches.ts (server) and
 // src/lib/use-real-matches.ts (client) — same reason room-mapper.ts exists
@@ -7,7 +7,7 @@ import type { Match, MatchStatus } from "@/lib/types";
 // One string literal, not a concatenation: supabase-js parses the select
 // string at the type level, and `a + b` widens to plain `string`.
 export const MATCH_COLUMNS =
-  "id, competition, home_team, away_team, kickoff_at, status, home_score, away_score, home_score_ht, away_score_ht, home_corners, away_corners, home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards, sport_id, home_touchdowns, away_touchdowns, home_field_goals, away_field_goals, went_to_overtime, provider";
+  "id, competition, home_team, away_team, kickoff_at, status, home_score, away_score, home_score_ht, away_score_ht, home_corners, away_corners, home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards, sport_id, home_touchdowns, away_touchdowns, home_field_goals, away_field_goals, went_to_overtime, provider, box_score";
 
 export interface MatchRow {
   id: string;
@@ -33,6 +33,7 @@ export interface MatchRow {
   away_field_goals: number | null;
   went_to_overtime: boolean | null;
   provider: string;
+  box_score: BoxScore | { none: true } | null;
 }
 
 export function mapMatchRow(row: MatchRow): Match {
@@ -60,5 +61,6 @@ export function mapMatchRow(row: MatchRow): Match {
     awayFieldGoals: row.away_field_goals,
     wentToOvertime: row.went_to_overtime,
     provider: row.provider,
+    boxScore: row.box_score && "home" in row.box_score ? row.box_score : null,
   };
 }
