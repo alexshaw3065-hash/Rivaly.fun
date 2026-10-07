@@ -35,7 +35,7 @@ export function stakeLimits(s: RoomSettings): StakeLimits {
   const minCents = Number(s.minDollars || 0) * 100;
   const maxCents = Number(s.maxDollars || 0) * 100;
   let error: string | null = null;
-  if (minCents < MIN_STAKE_FLOOR_CENTS) error = "Set a minimum above $0.";
+  if (minCents < MIN_STAKE_FLOOR_CENTS) error = "The minimum stake is at least $1.";
   else if (maxCents < minCents) error = "Max has to be at least the minimum.";
   return { minCents, maxCents, error };
 }

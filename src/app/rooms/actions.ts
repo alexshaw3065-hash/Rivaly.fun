@@ -70,6 +70,7 @@ const isCents = (n: unknown): n is number => typeof n === "number" && Number.isI
 
 const DB_ERRORS: Record<string, string> = {
   stake_out_of_range: "That stake is outside this room's limits.",
+  stake_below_minimum: "The smallest stake is $1.",
   bad_limits: "Max stake has to be at least the minimum.",
   room_not_found: "Room not found.",
   room_closed: "This room isn't open for entries anymore.",
@@ -200,7 +201,8 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
       .maybeSingle();
     if (!room) return { ok: false, error: DB_ERRORS.room_not_found };
     if (room.status !== "open") return { ok: false, error: DB_ERRORS.room_closed };
-    if (amountCents < room.min_stake_cents || (room.max_stake_cents !== null && amountCents > room.max_stake_cents)) {
+    // The $1 floor holds on rooms made before it existed too.
+    if (amountCents < Math.max(MIN_STAKE_FLOOR_CENTS, room.min_stake_cents) || (room.max_stake_cents !== null && amountCents > room.max_stake_cents)) {
       return { ok: false, error: DB_ERRORS.stake_out_of_range };
     }
     const { data: m } = await admin.from("matches").select("status, kickoff_at").eq("id", room.match_id).maybeSingle();

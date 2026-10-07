@@ -103,9 +103,10 @@ export interface ComposedMarket {
   settlementMode: SettlementMode;
 }
 
-// "No limit" means no limit: the only floor is one cent, the smallest amount
-// a USDC balance in this app can hold — not a product minimum.
-export const MIN_STAKE_FLOOR_CENTS = 1;
+// The smallest stake anywhere on Rivaly: $1. "No limit" on a room means no
+// maximum. Enforced in the app, on the server (rooms/actions.ts) and by the
+// database (entries/rooms checks): 1-cent rooms were created on 2026-10-05.
+export const MIN_STAKE_FLOOR_CENTS = 100;
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

@@ -1,4 +1,5 @@
 "use client";
+import { MIN_STAKE_FLOOR_CENTS } from "@/lib/markets";
 import { track } from "@/lib/analytics/track";
 
 import { useEffect, useRef, useState } from "react";
@@ -55,7 +56,8 @@ export function JoinPanel({
   const router = useRouter();
   const currentUser = useCurrentUser();
   const stakeable = useStakeable();
-  const limits = { minCents: minStakeCents, maxCents: maxStakeCents, error: null };
+  // Never below the $1 floor, even on rooms made before it existed.
+  const limits = { minCents: Math.max(MIN_STAKE_FLOOR_CENTS, minStakeCents), maxCents: maxStakeCents, error: null };
   const suggested = Math.max(minStakeCents, SUGGESTED_STAKE_CENTS);
   const [side, setSide] = useState<EntrySide>(initialSide ?? "yes");
   const [stakeDollars, setStakeDollars] = useState(
