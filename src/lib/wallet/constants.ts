@@ -7,6 +7,11 @@ export const USDC_DECIMALS = 6;
 
 export const SOLANA_EXPLORER_CLUSTER = "devnet";
 
+// The rivaly_rooms program (onchain/), deployed on Devnet 2026-10-07: holds
+// the stakes of rooms opened with on-chain custody. Its config names the
+// escrow wallet as operator and treasury. docs/plans/onchain-escrow.md.
+export const RIVALY_ROOMS_PROGRAM_ID = "FwPoC3NgmMVwoHk7QUGGotmx7dbsSNF5E6N7enxx7kLF";
+
 // Sending an SPL token still costs SOL for the network fee, and funding the
 // recipient's associated token account (which Dynamic's transfer does
 // automatically when it doesn't exist yet) costs ~0.002 SOL of rent. A

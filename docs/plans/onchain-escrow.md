@@ -16,6 +16,12 @@ Today every stake sits in one Rivaly-held wallet whose key is on the server. Who
 
 Admin → Settings → **On-chain escrow** (a `feature_flags` row): off / admins only / everyone. It decides the custody of **new rooms only**: each room records `custody = 'wallet' | 'program'` when created, and every stake, payout and refund for that room follows its own custody until it closes. Turning the switch off sends new rooms back to the wallet; program rooms already open still finish on the program. Once the program has run cleanly for long enough, the wallet path for rooms is deleted. The escrow wallet stays as the fee payer (gasless staking), the operator key and the fee treasury.
 
+## Where it is (devnet)
+
+- Program `FwPoC3NgmMVwoHk7QUGGotmx7dbsSNF5E6N7enxx7kLF` (deployed 2026-10-07), upgrade authority and config admin `28JBTpya6YVYLHHdQYswPogYEQ9pJodXNVPeXiYzVTXS` (the deployer; its key is only in WSL at `~/.config/solana/id.json`, the program-address key at `~/.config/solana/rivaly/`).
+- Config `Vvu1UWedEUY5Aa1uzGwUUmYbat3pLuFkzbtnMUcMYWh`: operator = treasury = escrow wallet `7XBmYHxvBFe5XTpkoytxFKDbaMqxZrs4qcEjoNHnsfWJ`, mint = devnet USDC.
+- Build / test / deploy from Windows: `wsl -d Ubuntu -- bash "<repo>/onchain/scripts/wsl-build.sh" [test]`, then `wsl-deploy.sh` (an upgrade, once deployed).
+
 ## Program design (`onchain/programs/rivaly_rooms`)
 
 Amounts are whole cents, as the app stores them (1 cent = 10,000 USDC units), so on-chain and off-chain splits agree to the cent.
