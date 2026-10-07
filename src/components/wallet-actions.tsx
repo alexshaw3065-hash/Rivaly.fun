@@ -73,7 +73,6 @@ export function WalletActions({
           <WithdrawSheet
             open={mode === "withdraw"}
             onClose={() => setMode(null)}
-            userId={profile.id}
             onSuccess={() => {
               live.refresh();
               setMode(null);

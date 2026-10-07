@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { USDC_DECIMALS, USDC_MINT } from "./constants";
 import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
 
@@ -117,7 +118,11 @@ export async function reconcileWalletTransactions(): Promise<{ inserted: number 
     ];
     if (candidates.length === 0) return { inserted: 0 };
 
-    const { data: known } = await supabase
+    // Writes go through the service role: users can't insert history rows
+    // themselves (a forged "deposit" was logged that way on 2026-10-05). The
+    // user id is the session's own, and every field comes off the chain.
+    const admin = createAdminClient();
+    const { data: known } = await admin
       .from("wallet_transactions")
       .select("tx_signature")
       .eq("user_id", user.id)
@@ -174,7 +179,7 @@ export async function reconcileWalletTransactions(): Promise<{ inserted: number 
     // instead of erroring. Per person, not global: one payout transaction
     // belongs in every winner's history. Still RLS-scoped: user_id is the
     // session's own id.
-    const { data: written, error } = await supabase
+    const { data: written, error } = await admin
       .from("wallet_transactions")
       .upsert(rows, { onConflict: "user_id,tx_signature", ignoreDuplicates: true })
       .select("id");

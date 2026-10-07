@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { USDC_MINT, USDC_DECIMALS, MIN_SOL_FOR_WITHDRAWAL, explorerTxUrl } from "@/lib/wallet/constants";
-import { logWalletTransaction, notifyWalletTransactionsChanged } from "@/lib/wallet/use-wallet-transactions";
+import { notifyWalletTransactionsChanged } from "@/lib/wallet/use-wallet-transactions";
+import { reconcileWalletTransactions } from "@/lib/wallet/reconcile";
 import { formatUsdc } from "@/lib/wallet/format";
 import { useWallet } from "@/lib/wallet/wallet-context";
 
@@ -44,12 +45,10 @@ function readableError(error: unknown): string {
 export function WithdrawSheet({
   open,
   onClose,
-  userId,
   onSuccess,
 }: {
   open: boolean;
   onClose: () => void;
-  userId: string;
   onSuccess: () => void;
 }) {
   const { signingWallet, usdcBalance, solBalance, hasLoaded, status } = useWallet();
@@ -90,19 +89,15 @@ export function WithdrawSheet({
       });
       if (!sig) throw new Error("No confirmation came back — check your wallet before retrying.");
       setSignature(sig);
-      // Best-effort log: the transfer itself already succeeded on-chain, so
-      // a failed insert must never read as a failed withdrawal.
+      // Best-effort: the server reads the new transfer off the chain into
+      // the history (nothing here is trusted from the client). The transfer
+      // already succeeded, so a failed catch-up must never read as a failed
+      // withdrawal; the next wallet visit reconciles again anyway.
       try {
-        await logWalletTransaction({
-          userId,
-          type: "withdrawal",
-          amountMicros: Math.round(amountNum * 10 ** USDC_DECIMALS),
-          counterpartyAddress: toAddress,
-          txSignature: sig,
-        });
+        await reconcileWalletTransactions();
         notifyWalletTransactionsChanged();
       } catch {
-        // History row missing is a cosmetic gap; the chain is the record.
+        // History row missing for now is a cosmetic gap; the chain is the record.
       }
       onSuccess();
     } catch (e) {

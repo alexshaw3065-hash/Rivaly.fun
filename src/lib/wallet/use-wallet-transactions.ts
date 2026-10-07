@@ -24,26 +24,6 @@ export function notifyWalletTransactionsChanged() {
   window.dispatchEvent(new Event(CHANGED_EVENT));
 }
 
-// Client-side, not a server action: RLS's own "insert your own row" policy
-// is the whole authorization story here, same pattern already used for
-// messages/entries — see the wallet_transactions migration.
-export async function logWalletTransaction(params: {
-  userId: string;
-  type: "deposit" | "withdrawal";
-  amountMicros: number;
-  counterpartyAddress: string | null;
-  txSignature: string;
-}): Promise<void> {
-  const supabase = createClient();
-  await supabase.from("wallet_transactions").insert({
-    user_id: params.userId,
-    type: params.type,
-    amount_micros: params.amountMicros,
-    counterparty_address: params.counterpartyAddress,
-    tx_signature: params.txSignature,
-  });
-}
-
 export function useWalletTransactions(profile: Profile | null) {
   const isReal = profile?.dynamicWalletAddress != null;
   const [rows, setRows] = useState<WalletTransactionRow[]>([]);
