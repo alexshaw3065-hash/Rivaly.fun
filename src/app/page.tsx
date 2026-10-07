@@ -13,5 +13,12 @@ export const metadata = pageMeta({ title: SITE_TITLE, description: SITE_DESCRIPT
 // footer: links plus the one-line definition of Rivaly they can read.
 export default async function Home() {
   const me = await getCurrentProfile();
-  return <HomeScreen footer={me ? undefined : <SiteFooter />} />;
+  // The page's one heading, for screen readers and search engines: Home's
+  // visible screen is the app itself, with no title block.
+  return (
+    <>
+      <h1 className="sr-only">{SITE_TITLE}</h1>
+      <HomeScreen footer={me ? undefined : <SiteFooter />} />
+    </>
+  );
 }
