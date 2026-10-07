@@ -18,7 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: siteUrl("/rooms"), changeFrequency: "hourly", priority: 0.8 },
     { url: siteUrl("/arena"), changeFrequency: "hourly", priority: 0.7 },
     { url: siteUrl("/support"), changeFrequency: "monthly", priority: 0.4 },
+    { url: siteUrl("/responsible-play"), changeFrequency: "yearly", priority: 0.3 },
     { url: siteUrl("/terms"), changeFrequency: "yearly", priority: 0.2 },
+    { url: siteUrl("/privacy"), changeFrequency: "yearly", priority: 0.2 },
   ];
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

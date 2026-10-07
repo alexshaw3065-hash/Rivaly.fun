@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { HomeIcon, SearchIcon, ColosseumIcon, ChevronIcon, PersonIcon, XIcon, TiktokIcon, LinkedInIcon } from "./icons";
 import { RivalyMark, RivalyWordmark } from "./rivaly-wordmark";
 import { SOCIALS } from "@/lib/socials";
+import { COMPANY_TABS } from "@/lib/company";
 import { Avatar } from "./avatar";
 import { useCurrentUser } from "./current-user-provider";
 import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-collapsed";
@@ -83,6 +84,16 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {!collapsed && (
+        <nav aria-label="Company" className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 px-5 pb-3 text-caption text-tertiary">
+          {COMPANY_TABS.map((l) => (
+            <Link key={l.href} href={l.href} className="transition-colors duration-100 hover:text-secondary">
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {!collapsed && (
         <div className="flex shrink-0 items-center gap-1 px-4 pb-2">

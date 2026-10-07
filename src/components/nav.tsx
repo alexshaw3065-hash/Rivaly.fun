@@ -1,5 +1,6 @@
 "use client";
 
+import { COMPANY_TABS } from "@/lib/company";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { AppPreloader } from "./app-preloader";
@@ -180,10 +181,11 @@ export function Nav({ children }: { children: ReactNode }) {
           </svg>
         </button>
       )}
-      {/* Not in rooms (the chat box lives there), Arena (its own post button)
-          or profiles (founder, 2026-09-30: it sat over the stats and the
-          wallet's Deposit/Withdraw). */}
-      {!pathname.startsWith("/rooms/") && pathname !== "/arena" && !pathname.startsWith("/profile") && (
+      {/* Not in rooms (the chat box lives there), Arena (its own post button),
+          profiles (founder, 2026-09-30: it sat over the stats and the
+          wallet's Deposit/Withdraw) or the company and legal pages, which
+          are for reading. */}
+      {!pathname.startsWith("/rooms/") && pathname !== "/arena" && !pathname.startsWith("/profile") && !COMPANY_TABS.some((t) => t.href === pathname) && (
         <Link
           href="/rooms/create"
           prefetch

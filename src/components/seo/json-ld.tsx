@@ -1,4 +1,5 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, siteUrl } from "@/lib/site";
+import { COMPANY } from "@/lib/company";
 import { SOCIALS } from "@/lib/socials";
 
 // Structured data (schema.org JSON-LD): the facts about a page spelled out
@@ -22,6 +23,8 @@ export const SITE_GRAPH = {
       logo: siteUrl("/icon.png"),
       description: SITE_DESCRIPTION,
       sameAs: SOCIALS.map((s) => s.href),
+      email: COMPANY.email,
+      contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: COMPANY.email, url: siteUrl("/support") },
     },
     {
       "@type": "WebSite",

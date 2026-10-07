@@ -6,9 +6,9 @@ import { useCurrentUser } from "./current-user-provider";
 
 // A new account still on its generated name can't wander off the
 // claim-your-username page: tapping Home, Rooms or anything else sends it
-// straight back until a real name is picked. Sign-in, the legal pages and
-// ops stay reachable.
-const OPEN_PATHS = ["/auth", "/login", "/signup", "/terms", "/admin"];
+// straight back until a real name is picked. Sign-in, the legal and help
+// pages, and ops stay reachable.
+const OPEN_PATHS = ["/auth", "/login", "/signup", "/terms", "/privacy", "/responsible-play", "/support", "/admin"];
 
 // Set the moment the claim saves, so the stale server profile (still
 // "placeholder" until the refresh lands) doesn't bounce the person back.

@@ -103,9 +103,13 @@ export default function CompleteProfilePage() {
           {busy ? "Saving…" : "Continue"}
         </button>
         <p className="mt-3 text-center text-caption text-secondary">
-          By continuing you agree to Rivaly&apos;s{" "}
+          By continuing you confirm you&apos;re 18 or over and agree to Rivaly&apos;s{" "}
           <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-foreground">
-            Terms and Conditions
+            Terms of Use
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+            Privacy Policy
           </Link>
           .
         </p>

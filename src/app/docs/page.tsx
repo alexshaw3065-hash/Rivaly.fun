@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { CompanyPage, DocList, DocSection } from "@/components/company/company-page";
 import { JsonLd } from "@/components/seo/json-ld";
-import { SiteFooter } from "@/components/seo/site-footer";
+import { SplitBar } from "@/components/split-bar";
+import { POLICY_DATES, formatPolicyDate } from "@/lib/company";
 import { pageMeta } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 
@@ -9,9 +11,10 @@ import { siteUrl } from "@/lib/site";
 // definition), then the mechanics, a worked example with real maths, the
 // fees, and the questions people actually ask. Every claim here must be true
 // of what's shipped: fees are planSettlement's (lib/settlement/payouts.ts),
-// competitions are what the score feeds cover. Update UPDATED when it changes.
+// competitions are what the score feeds cover. Update POLICY_DATES.guide
+// (lib/company.ts) when it changes.
 
-const UPDATED = "2026-09-28";
+const UPDATED = POLICY_DATES.guide;
 
 export const metadata = pageMeta({
   title: "How Rivaly works — social prediction for sport",
@@ -91,9 +94,45 @@ const steps: { title: string; body: string }[] = [
   },
 ];
 
+const TOC = [
+  { id: "room", label: "A room, start to finish" },
+  { id: "money", label: "How the money works" },
+  { id: "fees", label: "Fees" },
+  { id: "hosting", label: "Hosting" },
+  { id: "trust", label: "Why you can trust the result" },
+  { id: "questions", label: "Questions" },
+];
+
+// The worked example, drawn as the receipt a room actually produces: the
+// call, the split, then the money line by line. Arsenal draw; NO wins.
+const RECEIPT: [string, string][] = [
+  ["Pool", "$100.00"],
+  ["Winners' profit (the YES side's money)", "$60.00"],
+  ["Fee: 5% of that profit", "−$3.00"],
+  ["Paid to the NO side", "$97.00"],
+];
+
 export default function DocsPage() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12 md:px-6 md:py-16">
+    <CompanyPage
+      active="/docs"
+      title="How Rivaly works"
+      lede={
+        <>
+          <p className="text-foreground">
+            Rivaly is social prediction for sport. You put your prediction on a match against someone else&rsquo;s, with money on it, and the
+            winner is paid automatically.
+          </p>
+          <p className="mt-3">You predict against people — never against the house.</p>
+        </>
+      }
+      meta={
+        <>
+          Updated <time dateTime={UPDATED}>{formatPolicyDate(UPDATED)}</time>
+        </>
+      }
+      toc={TOC}
+    >
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -104,81 +143,122 @@ export default function DocsPage() {
         }}
       />
 
-      <h1 className="font-display text-title-1 text-foreground md:text-display">How Rivaly works</h1>
-      <p className="mt-4 text-body-lg text-foreground">
-        Rivaly is social prediction for sport. You put your prediction on a match against someone else&rsquo;s, with
-        money on it, and the winner is paid automatically. You predict against people — never against the house.
-      </p>
-      <p className="mt-3 text-caption text-tertiary">
-        Updated <time dateTime={UPDATED}>28 September 2026</time>
-      </p>
-
-      <section className="mt-12">
-        <h2 className="font-display text-title-3 text-foreground">A room, start to finish</h2>
-        <ol className="mt-5 flex flex-col gap-6">
+      <DocSection id="room" title="A room, start to finish">
+        <ol className="flex flex-col gap-5">
           {steps.map((s, i) => (
             <li key={s.title} className="flex gap-4">
-              <span className="w-6 shrink-0 font-display text-title-3 tabular-nums text-tertiary">{i + 1}</span>
+              <span className="w-5 shrink-0 tabular-nums text-tertiary">{i + 1}</span>
               <div>
-                <h3 className="text-body font-semibold text-foreground">{s.title}</h3>
-                <p className="mt-1 text-body text-secondary">{s.body}</p>
+                <h3 className="font-semibold text-foreground">{s.title}</h3>
+                <p className="mt-1">{s.body}</p>
               </div>
             </li>
           ))}
         </ol>
-      </section>
+      </DocSection>
 
-      <section className="mt-12">
-        <h2 className="font-display text-title-3 text-foreground">How the money works — an example</h2>
-        <p className="mt-3 text-body text-secondary">
-          A room on &ldquo;Arsenal win&rdquo;. $60 is staked on YES (Arsenal win) and $40 on NO. You put $10 on NO. Arsenal
-          draw, so NO wins.
+      <DocSection id="money" title="How the money works">
+        <p>
+          A room on &ldquo;Arsenal win&rdquo;. $60 is staked on YES and $40 on NO. You put $10 on NO. Arsenal draw, so NO wins, and the NO side
+          splits the pool by stake.
         </p>
-        <dl className="mt-5 flex flex-col divide-y divide-line text-body">
-          {[
-            ["Pool", "$100"],
-            ["Winners' profit (the losing side's money)", "$60"],
-            ["Fee: 5% of that profit", "$3 — $1.80 to Rivaly, $1.20 to the host"],
-            ["Paid to the NO side", "$97, split by stake"],
-            ["Your share ($10 of the $40 on NO)", "$24.25 — your $10 back plus $14.25"],
-          ].map(([k, v]) => (
-            <div key={k} className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-6">
-              <dt className="text-secondary">{k}</dt>
-              <dd className="font-semibold tabular-nums text-foreground sm:text-right">{v}</dd>
+        <figure className="overflow-hidden rounded-card bg-surface edge">
+          <div className="p-5">
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="font-display text-title-3 text-foreground">Arsenal win</p>
+              <p className="shrink-0 text-caption font-semibold text-no-ink">NO wins</p>
+            </div>
+            <div className="mt-4">
+              <SplitBar leftPct={60} leftLabel="Yes $60" rightLabel="$40 No" />
+            </div>
+          </div>
+          <dl className="border-t border-line px-5 py-2">
+            {RECEIPT.map(([k, v]) => (
+              <div key={k} className="flex items-baseline justify-between gap-6 py-2">
+                <dt>{k}</dt>
+                <dd className="shrink-0 tabular-nums text-foreground">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex items-center justify-between gap-6 border-t border-line bg-money-tint px-5 py-4">
+            <div>
+              <p className="font-semibold text-foreground">Your share</p>
+              <p className="text-caption">$10 of the $40 on NO</p>
+            </div>
+            <p className="font-display text-title-2 tabular-nums text-money-ink">$24.25</p>
+          </div>
+          <figcaption className="sr-only">
+            Worked example: a $100 pool, $60 on YES and $40 on NO. NO wins; after a $3 fee the NO side is paid $97, and a $10 stake on NO
+            returns $24.25.
+          </figcaption>
+        </figure>
+        <p>
+          That&rsquo;s your $10 back plus $14.25. The fewer people who back your side, the bigger your share if you&rsquo;re right. If Arsenal
+          had won, the YES side would have split the pool instead.
+        </p>
+      </DocSection>
+
+      <DocSection id="fees" title="Fees">
+        <DocList
+          items={[
+            <>
+              <strong>5% of the winners&rsquo; profit</strong>, never of anyone&rsquo;s stake. In the example that&rsquo;s $3 of the $60 the NO
+              side won: $1.80 to Rivaly and $1.20 to the host.
+            </>,
+            <>Losers pay nothing beyond their stake, and winners always get back at least what they put in.</>,
+            <>A room&rsquo;s fee is fixed when it&rsquo;s created and shown before you stake. Refunded rooms pay none.</>,
+            <>Rivaly charges nothing to deposit or withdraw.</>,
+          ]}
+        />
+      </DocSection>
+
+      <DocSection id="hosting" title="Hosting">
+        <p>
+          Whoever creates a room is its host and earns 2% of the winners&rsquo; profit when it settles, whichever side wins. Earnings build up
+          in one balance — pending while rooms are live, claimable once they settle — and are claimed in one transfer from $1. The more people a
+          host brings in, the bigger the room and the more they earn.
+        </p>
+      </DocSection>
+
+      <DocSection id="trust" title="Why you can trust the result">
+        <DocList
+          items={[
+            <>
+              <strong>Rivaly never takes a side.</strong> The pool is only the stakes of the people in the room, and it&rsquo;s only paid to
+              them.
+            </>,
+            <>
+              <strong>The money is held, not spent.</strong> Stakes sit in escrow on the Solana network from the moment they&rsquo;re placed
+              until the room settles. Nobody can take them out early.
+            </>,
+            <>
+              <strong>Official data decides it.</strong> Rooms settle on the official match data feed, against the prediction exactly as
+              written, never a judgement call after the fact.
+            </>,
+            <>
+              <strong>Nothing is hidden.</strong> The fee is on the stake panel, the result and your receipt, and refunds are automatic when a
+              match is called off or one side is empty.
+            </>,
+          ]}
+        />
+        <p>
+          The full rules are in our <Link href="/terms">Terms of Use</Link>.
+        </p>
+      </DocSection>
+
+      <DocSection id="questions" title="Questions">
+        <dl className="flex flex-col">
+          {faqs.map((f) => (
+            <div key={f.q} className="border-t border-line py-4 first:border-0 first:pt-1">
+              <dt className="font-semibold text-foreground">{f.q}</dt>
+              <dd className="mt-1.5">{f.a}</dd>
             </div>
           ))}
         </dl>
-        <p className="mt-4 text-body text-secondary">
-          The fewer people who back your side, the bigger your share if you&rsquo;re right. If Arsenal had won, the YES
-          side would have split the pool instead.
+        <p>
+          Ready? <Link href="/rooms">See the rooms open right now</Link> or <Link href="/rooms/create">create your own prediction</Link>.
         </p>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="font-display text-title-3 text-foreground">Questions</h2>
-        <div className="mt-5 flex flex-col gap-7">
-          {faqs.map((f) => (
-            <div key={f.q}>
-              <h3 className="text-body font-semibold text-foreground">{f.q}</h3>
-              <p className="mt-1.5 text-body text-secondary">{f.a}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <p className="mt-12 text-body text-secondary">
-        Ready?{" "}
-        <Link href="/rooms" className="font-semibold text-foreground hover:underline">
-          See the rooms open right now
-        </Link>{" "}
-        or{" "}
-        <Link href="/rooms/create" className="font-semibold text-foreground hover:underline">
-          make your own call
-        </Link>
-        .
-      </p>
-
-      <SiteFooter />
-    </main>
+      </DocSection>
+    </CompanyPage>
   );
 }

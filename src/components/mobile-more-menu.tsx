@@ -8,13 +8,22 @@ import { useCurrentUser } from "./current-user-provider";
 import { useSignOut } from "@/lib/use-sign-out";
 import { SOCIALS } from "@/lib/socials";
 import { openHowItWorks } from "@/lib/how-it-works-store";
+import { COMPANY_GROUPS } from "@/lib/company";
 
-const menuLinks = [
-  { href: "/about", label: "About Rivaly" },
-  { href: "/docs", label: "Full guide" },
-  { href: "/terms", label: "Terms of Use" },
-  { href: "/support", label: "Support" },
-];
+// Learn and Help as rows; the legal pages as quiet links in the footer, the
+// way most apps file them — one tap away, never in the way.
+const ROW_GROUPS = COMPANY_GROUPS.filter((g) => g.title !== "Legal");
+const LEGAL = COMPANY_GROUPS.find((g) => g.title === "Legal")?.links ?? [];
+
+function Chevron() {
+  return (
+    <svg width="7" height="12" viewBox="0 0 7 12" aria-hidden className="shrink-0 text-tertiary">
+      <path d="M1 1l5 5-5 5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const ROW = "flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-body text-foreground transition-colors duration-100 hover:bg-overlay-1 active:bg-overlay-2";
 
 // Rivaly's official accounts (src/lib/socials.ts).
 const SOCIAL_ICONS = { x: XIcon, tiktok: TiktokIcon, linkedin: LinkedInIcon } as const;
@@ -60,7 +69,7 @@ export function MobileMoreMenu() {
 
       {open && (
         <div
-          className="dropdown-panel absolute right-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-card bg-surface shadow-pop"
+          className="dropdown-panel absolute right-0 top-full z-30 mt-2 max-h-[calc(100dvh-88px)] w-64 overflow-y-auto overscroll-contain rounded-card bg-surface shadow-pop"
         >
           <div className="p-3">
             <div className="flex items-center justify-between rounded-control border border-line bg-surface-elevated px-3 py-3">
@@ -77,30 +86,30 @@ export function MobileMoreMenu() {
             </div>
           </div>
 
-          <div className="flex flex-col divide-y divide-line border-t border-line">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                openHowItWorks("menu");
-              }}
-              className="flex items-center justify-between px-4 py-3 text-left text-body font-semibold text-foreground transition-colors hover:bg-overlay-1"
-            >
-              How it works
-              <span className="text-secondary">→</span>
-            </button>
-            {menuLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between px-4 py-3 text-body text-foreground transition-colors hover:bg-overlay-1"
-              >
-                {link.label}
-                <span className="text-secondary">→</span>
-              </Link>
-            ))}
-          </div>
+          {ROW_GROUPS.map((group, gi) => (
+            <nav key={group.title} aria-label={group.title} className="border-t border-line pb-1.5 pt-3">
+              <p className="px-4 pb-1 text-caption font-medium text-tertiary">{group.title}</p>
+              {gi === 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    openHowItWorks("menu");
+                  }}
+                  className={ROW}
+                >
+                  Rivaly in 30 seconds
+                  <Chevron />
+                </button>
+              )}
+              {group.links.map((link) => (
+                <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={ROW}>
+                  {link.label}
+                  <Chevron />
+                </Link>
+              ))}
+            </nav>
+          ))}
 
           {currentUser && (
             <div className="border-t border-line p-3">
@@ -117,7 +126,7 @@ export function MobileMoreMenu() {
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-3 border-t border-line py-2">
+          <div className="flex items-center justify-center gap-3 border-t border-line pt-2">
             {SOCIALS.map(({ key, label, href }) => {
               const Icon = SOCIAL_ICONS[key];
               return (
@@ -135,6 +144,14 @@ export function MobileMoreMenu() {
               );
             })}
           </div>
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 pb-3 pt-1 text-caption text-tertiary">
+            {LEGAL.map((l) => (
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="transition-colors duration-100 hover:text-secondary">
+                {l.label}
+              </Link>
+            ))}
+            <span>© {new Date().getFullYear()} Rivaly</span>
+          </p>
         </div>
       )}
     </div>

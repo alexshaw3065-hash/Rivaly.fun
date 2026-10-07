@@ -21,6 +21,7 @@ import { useIsLightTheme } from "./theme-toggle";
 import { RivalyWordmark } from "./rivaly-wordmark";
 import { getAuthModalNext, useAuthModalState } from "@/lib/auth-modal-store";
 import { clearSignOutFlag, finishDynamicLogout, signOutPending } from "@/lib/sign-out-state";
+import { siteUrl } from "@/lib/site";
 
 // The Dynamic SDK and everything that talks to it directly. Loaded on its
 // own, AFTER the page is usable (DynamicProvider in dynamic-provider.tsx
@@ -314,6 +315,9 @@ export function DynamicRuntime() {
     () => ({
       environmentId: environmentId ?? "",
       walletConnectors,
+      // The sign-in modal's consent line links these.
+      termsOfServiceUrl: siteUrl("/terms"),
+      privacyPolicyUrl: siteUrl("/privacy"),
       events: {
         // A genuine sign-in from the modal — it overrides any unfinished sign-out.
         onAuthSuccess: () => {

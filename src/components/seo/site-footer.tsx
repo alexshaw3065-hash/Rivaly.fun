@@ -15,7 +15,9 @@ export async function SiteFooter() {
     { href: "/rooms", label: "Rooms" },
     { href: "/arena", label: "Arena" },
     { href: "/support", label: "Support" },
+    { href: "/responsible-play", label: "Responsible play" },
     { href: "/terms", label: "Terms" },
+    { href: "/privacy", label: "Privacy" },
   ];
   return (
     <footer className="mt-12 border-t border-line pt-6 pb-4 text-caption text-tertiary">
@@ -46,6 +48,7 @@ export async function SiteFooter() {
         </nav>
       )}
       <p className="mt-3">Rivaly — social prediction for sport. Play people, never the house.</p>
+      <p className="mt-1">© {new Date().getFullYear()} Rivaly · 18+ · Beta: balances are test USDC with no cash value.</p>
     </footer>
   );
 }
