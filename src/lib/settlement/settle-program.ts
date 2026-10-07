@@ -93,13 +93,10 @@ export async function payProgramRoom(admin: Admin, room: ProgramRoom, decided: "
   for (const p of settlement.payouts) {
     await admin.from("entries").update({ is_winner: p.isWinner, payout_cents: p.cents }).eq("id", p.entryId);
   }
-  const rivalyCents = chain ? chain.rivalyFeeCents : settlement.rivalyCents;
-  const hostCents = chain ? chain.hostFeeCents : settlement.hostCents;
-  const feeRows = [
-    ...(rivalyCents > 0 ? [{ room_id: room.id, kind: "rivaly", recipient_id: null, cents: rivalyCents }] : []),
-    ...(hostCents > 0 ? [{ room_id: room.id, kind: "host", recipient_id: room.creator_id, cents: hostCents }] : []),
-  ];
-  if (feeRows.length > 0) await admin.from("room_fees").upsert(feeRows, { onConflict: "room_id,kind", ignoreDuplicates: true });
+  // The fees, as the chain froze them (planSettlement's if the room is
+  // already closed); recorded only once they've reached the treasury, below.
+  const rivalyCents = chain && chain.outcome !== "open" ? chain.rivalyFeeCents : settlement.rivalyCents;
+  const hostCents = chain && chain.outcome !== "open" ? chain.hostFeeCents : settlement.hostCents;
 
   // 3. Pay every position still on-chain (winners, losers and refunds alike:
   //    paying closes the position, and the room can only close once all are).
@@ -134,6 +131,14 @@ export async function payProgramRoom(admin: Admin, room: ProgramRoom, decided: "
       }
     }
   }
+
+  // The room is closed on-chain, so its fees are in the treasury: now they
+  // count (Rivaly's withdrawable, the host's claimable). Idempotent.
+  const feeRows = [
+    ...(rivalyCents > 0 ? [{ room_id: room.id, kind: "rivaly", recipient_id: null, cents: rivalyCents }] : []),
+    ...(hostCents > 0 ? [{ room_id: room.id, kind: "host", recipient_id: room.creator_id, cents: hostCents }] : []),
+  ];
+  if (feeRows.length > 0) await admin.from("room_fees").upsert(feeRows, { onConflict: "room_id,kind", ignoreDuplicates: true });
 
   const final: State = outcome === "void" || settlement.payouts.every((p) => p.isWinner === null) ? "refunded" : "settled";
   await admin.from("rooms").update({ status: final, settled_at: new Date().toISOString() }).eq("id", room.id).in("status", ["open", "live"]);
