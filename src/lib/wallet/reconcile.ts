@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { USDC_DECIMALS, USDC_MINT } from "./constants";
+import { RIVALY_ROOMS_PROGRAM_ID, USDC_DECIMALS, USDC_MINT } from "./constants";
 import { getUsdcTokenAccounts, solanaRpc } from "./solana-rpc";
 
 // Closes the one gap the wallet's transaction log couldn't cover on its own:
@@ -38,6 +38,7 @@ interface TokenBalanceEntry {
 
 interface ParsedTransaction {
   blockTime?: number | null;
+  transaction?: { message?: { accountKeys?: ({ pubkey?: string } | string)[] } };
   meta?: {
     err?: unknown;
     preTokenBalances?: TokenBalanceEntry[];
@@ -59,6 +60,11 @@ function usdcHeldBy(rows: TokenBalanceEntry[] | undefined, owner: string): numbe
 
 function counterpartyOf(tx: ParsedTransaction, owner: string): string | null {
   const balances = [...(tx.meta?.preTokenBalances ?? []), ...(tx.meta?.postTokenBalances ?? [])];
+  // A stake into, or payout from, an on-chain room's vault: Rivaly is the
+  // other side, just as with the escrow wallet (the vault is the room's own
+  // account, which means nothing to a person reading their history).
+  const keys = (tx.transaction?.message?.accountKeys ?? []).map((k) => (typeof k === "string" ? k : k.pubkey));
+  if (ESCROW && keys.includes(RIVALY_ROOMS_PROGRAM_ID)) return ESCROW;
   // A payout batch touches every winner's account — the escrow is the real
   // other side, so it wins over whichever winner happens to be listed first.
   if (ESCROW && balances.some((row) => row.mint === USDC_MINT && row.owner === ESCROW)) return ESCROW;

@@ -4,7 +4,8 @@ import { atLeast, requireAdmin } from "@/lib/admin/guard";
 import { db, displayName, eventContext, loadEvents, rpc } from "@/lib/admin/data";
 import { describeEvent } from "@/lib/admin/events";
 import { planSettlement } from "@/lib/settlement/payouts";
-import { explorerTxUrl } from "@/lib/wallet/constants";
+import { explorerAddressUrl, explorerTxUrl } from "@/lib/wallet/constants";
+import { roomPda, vaultPda } from "@/lib/escrow/program";
 import { DataTable, Kpi, KpiGrid, Mono, PageHeader, Section, StatePill, num, usd, when, type Column } from "@/components/admin/ui";
 import { ActionButton } from "@/components/admin/admin-forms";
 import { rerunSettlement, voidRoom } from "@/app/admin/actions";
@@ -159,6 +160,22 @@ export default async function RoomDetail({ params }: { params: Promise<{ id: str
             <dl className="grid grid-cols-[140px_1fr] gap-y-1.5">
               <dt className="text-secondary">State</dt>
               <dd><StatePill state={state} /></dd>
+              <dt className="text-secondary">Stakes held by</dt>
+              <dd>
+                {room.custody === "program" ? (
+                  <>
+                    on-chain program ·{" "}
+                    <a href={explorerAddressUrl(vaultPda(roomPda(room.id)).toBase58())} target="_blank" rel="noopener noreferrer" className="underline">
+                      vault ↗
+                    </a>{" "}
+                    <a href={explorerAddressUrl(roomPda(room.id).toBase58())} target="_blank" rel="noopener noreferrer" className="underline">
+                      room ↗
+                    </a>
+                  </>
+                ) : (
+                  "escrow wallet"
+                )}
+              </dd>
               <dt className="text-secondary">Early lock</dt>
               <dd>{room.pending_outcome ? `${room.pending_outcome.toUpperCase()} since ${when(room.pending_since, "full")}` : "—"}</dd>
               <dt className="text-secondary">Result</dt>

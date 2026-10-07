@@ -69,6 +69,15 @@ export function escrowAddress(): string {
   return escrow().keypair.publicKey.toBase58();
 }
 
+/**
+ * The escrow key as the on-chain program's operator and fee payer — only
+ * for src/lib/escrow/program.ts, which can move money only where the
+ * program's rules allow (docs/plans/onchain-escrow.md).
+ */
+export function escrowSigner(): { keypair: Keypair; connection: Connection } {
+  return escrow();
+}
+
 const toUnits = (cents: number) => BigInt(cents) * UNITS_PER_CENT;
 
 export interface PreparedStake {

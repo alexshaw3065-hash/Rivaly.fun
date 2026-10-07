@@ -16,6 +16,9 @@ import {
 import type { MarketSideDefinition, MatchStatus } from "@/lib/types";
 import { decideSettlement, eventFact, resolveMarket, type MatchEventFact, type MatchFacts, type Pending } from "./resolve";
 import { planSettlement } from "./payouts";
+import { payProgramRoom } from "./settle-program";
+import { programRoomOf, refundProgramStake } from "@/lib/escrow/program-recovery";
+import { readChainRoom } from "@/lib/escrow/program";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -34,6 +37,8 @@ interface RoomRow {
   fee_bps: number;
   host_fee_bps: number;
   fee_plan: FeePlan | null;
+  /** Who holds the stakes: the escrow wallet, or the on-chain program (settle-program.ts). */
+  custody: "wallet" | "program";
 }
 
 const SETTLEMENT_ACTIONS = ["halftime_finalised", "penalty", "var", "var_end", "instant_replay", "instant_replay_end", "action_discarded", "action_amend", "goal"];
@@ -286,13 +291,14 @@ export async function settleRoom(roomId: string, now = Date.now()): Promise<Room
   const admin = createAdminClient();
   const { data: room } = await admin
     .from("rooms")
-    .select("id, status, match_id, market_side_definition, resolved_outcome, pending_outcome, pending_since, creator_id, fee_bps, host_fee_bps, fee_plan")
+    .select("id, status, match_id, market_side_definition, resolved_outcome, pending_outcome, pending_since, creator_id, fee_bps, host_fee_bps, fee_plan, custody")
     .eq("id", roomId)
     .maybeSingle<RoomRow>();
   if (!room || !["open", "live"].includes(room.status)) return { roomId, state: "skipped" };
 
   const { outcome, state } = await decide(admin, room, now);
   if (!outcome) return { roomId, state };
+  if (room.custody === "program") return { roomId, state: await payProgramRoom(admin, room, outcome, now) };
   return { roomId, state: await pay(admin, room, outcome) };
 }
 
@@ -305,7 +311,7 @@ async function recoverStakes(admin: Admin): Promise<number> {
   const cutoff = new Date(Date.now() - 3 * 60_000).toISOString();
   const { data } = await admin
     .from("stake_intents")
-    .select("id, wallet_address, amount_cents, tx_signature, error")
+    .select("id, kind, room_id, payload, wallet_address, amount_cents, tx_signature, error")
     .eq("status", "submitted")
     .lt("created_at", cutoff)
     .limit(20);
@@ -327,6 +333,19 @@ async function recoverStakes(admin: Admin): Promise<number> {
       continue; // still landing (or failed — left for an operator; logged by reconciliation)
     }
     const stakeState = await transactionState(intent.tx_signature);
+    const programRoom = programRoomOf(intent);
+    if (stakeState === "confirmed" && programRoom) {
+      // In a program room the stake sits in the room's vault: refund it from
+      // there while the room is open; once it's resolved, settlement pays the
+      // position like any other (it pays every position on-chain).
+      const chain = await readChainRoom(programRoom).catch(() => null);
+      if (!chain || chain.outcome !== "open") {
+        await admin.from("stake_intents").update({ status: "failed", error: "paid_by_settlement" }).eq("id", intent.id);
+      } else if (await refundProgramStake(admin, intent)) {
+        handled++;
+      }
+      continue;
+    }
     if (stakeState === "confirmed") {
       const batch = await signPayoutBatch([{ to: intent.wallet_address, cents: intent.amount_cents }]);
       await admin.from("stake_intents").update({ error: `refund:${batch.signature}` }).eq("id", intent.id);
@@ -373,8 +392,10 @@ export async function settleDueRooms(budgetMs = 45_000): Promise<SettleRunResult
   // Reconciliation: escrow must always hold at least what open rooms owe.
   const { data: owed } = await admin
     .from("entries")
-    .select("amount_cents, room:rooms!inner(status)")
+    .select("amount_cents, room:rooms!inner(status, custody)")
     .in("room.status", ["open", "live"])
+    // Program rooms' stakes sit in their own vaults, not in the escrow wallet.
+    .eq("room.custody", "wallet")
     .not("stake_tx_signature", "is", null);
   const stakesOwed = ((owed ?? []) as { amount_cents: number }[]).reduce((s, e) => s + e.amount_cents, 0);
   // Fees earned but not yet paid out of escrow (unclaimed, or a claim still landing).

@@ -16,6 +16,9 @@ import {
   sendSignedBatch,
   signPayoutBatch,
 } from "@/lib/escrow/escrow";
+import { buildProgramStakeTransaction, readChainRoom, ROOM_EXPIRY_SECONDS } from "@/lib/escrow/program";
+import { programRoomOf, refundProgramStake } from "@/lib/escrow/program-recovery";
+import type { StakeArgsInput } from "@/lib/escrow/program-codec";
 import type { EntrySide } from "@/lib/types";
 
 // Every stake is a gasless on-chain transfer from the user's own embedded
@@ -99,6 +102,8 @@ interface Validated {
   side: EntrySide;
   roomId: string | null;
   payload: Record<string, unknown>;
+  /** Set when the room's stakes are held by the on-chain program (docs/plans/onchain-escrow.md). */
+  chain: Omit<StakeArgsInput, "side" | "amountCents"> | null;
 }
 
 async function validate(req: StakeRequest): Promise<Validated | Fail> {
@@ -117,8 +122,8 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
   // Operations controls (/admin): account restrictions, pause switches, the platform stake cap.
   const [{ data: restricted }, { data: flags }, { data: settings }] = await Promise.all([
     admin.rpc("is_restricted", { p_user: user.id }),
-    admin.from("feature_flags").select("key, enabled").in("key", ["stakes_paused", "room_creation_paused"]),
-    admin.from("platform_settings").select("max_stake_cents").eq("id", true).maybeSingle(),
+    admin.from("feature_flags").select("key, enabled").in("key", ["stakes_paused", "room_creation_paused", "onchain_escrow", "onchain_escrow_admins"]),
+    admin.from("platform_settings").select("max_stake_cents, fees_enabled, rivaly_fee_bps, host_fee_bps").eq("id", true).maybeSingle(),
   ]);
   if (restricted) return { ok: false, error: "Your account can't stake right now. Contact support if you think this is a mistake." };
   const flagOn = (k: string) => ((flags ?? []) as { key: string; enabled: boolean }[]).some((f) => f.key === k && f.enabled);
@@ -126,6 +131,14 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
   if (req.kind === "create" && flagOn("room_creation_paused")) return { ok: false, error: "New rooms are paused for a moment — try again soon." };
   const platformMax = (settings?.max_stake_cents as number | null | undefined) ?? null;
   let result: Omit<Validated, "userId" | "wallet">;
+  // A room's custody is chosen once, when it's created: the program for
+  // everyone, or (test mode) only for rooms an admin creates.
+  const programForNewRoom = async () => {
+    if (flagOn("onchain_escrow")) return true;
+    if (!flagOn("onchain_escrow_admins")) return false;
+    const { data: isAdmin } = await admin.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
+    return Boolean(isAdmin);
+  };
 
   if (req.kind === "create") {
     const input = req.room;
@@ -170,11 +183,30 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     }
 
     const composed = composeMarket(market, match);
+    // On-chain rooms: the id and fee rates are fixed now, because the first
+    // stake opens the room's vault on-chain with exactly these.
+    let chain: Validated["chain"] = null;
+    let custodyPayload: Record<string, unknown> = {};
+    if (await programForNewRoom()) {
+      const feesOn = Boolean(settings?.fees_enabled);
+      const lockTs = Math.floor(+new Date(match.kickoffAt) / 1000);
+      chain = {
+        roomId: randomUUID(),
+        host: wallet,
+        feeBps: feesOn ? Number(settings?.rivaly_fee_bps ?? 0) : 0,
+        hostFeeBps: feesOn ? Number(settings?.host_fee_bps ?? 0) : 0,
+        lockTs,
+        expiryTs: lockTs + ROOM_EXPIRY_SECONDS,
+      };
+      custodyPayload = { p_room_id: chain.roomId, p_custody: "program", p_fee_bps: chain.feeBps, p_host_fee_bps: chain.hostFeeBps };
+    }
     result = {
       amountCents: stakeCents,
       side: input.side,
       roomId: null,
+      chain,
       payload: {
+        ...custodyPayload,
         p_match_id: input.matchId,
         p_prediction: composed.prediction,
         p_market_type: composed.marketType,
@@ -196,7 +228,7 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     // what got the user this far (room_by_invite_code).
     const { data: room } = await admin
       .from("rooms")
-      .select("status, match_id, min_stake_cents, max_stake_cents")
+      .select("status, match_id, min_stake_cents, max_stake_cents, custody, fee_bps, host_fee_bps")
       .eq("id", roomId)
       .maybeSingle();
     if (!room) return { ok: false, error: DB_ERRORS.room_not_found };
@@ -212,7 +244,21 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     if (!(await matchIsScored(admin, room.match_id as string))) return { ok: false, error: NOT_COVERED };
     const { data: existing } = await admin.from("entries").select("id").eq("room_id", roomId).eq("user_id", user.id).maybeSingle();
     if (existing) return { ok: false, error: DB_ERRORS.already_joined };
-    result = { amountCents, side, roomId, payload: { p_room: roomId } };
+    let chain: Validated["chain"] = null;
+    if (room.custody === "program") {
+      // The room's vault must already be open on-chain and taking stakes.
+      const onChain = await readChainRoom(roomId).catch(() => null);
+      if (!onChain || onChain.outcome !== "open") return { ok: false, error: DB_ERRORS.room_closed };
+      chain = {
+        roomId,
+        host: wallet, // only used when a room is first opened; this one already is
+        feeBps: onChain.feeBps,
+        hostFeeBps: onChain.hostFeeBps,
+        lockTs: onChain.lockTs,
+        expiryTs: onChain.expiryTs,
+      };
+    }
+    result = { amountCents, side, roomId, chain, payload: { p_room: roomId, custody: room.custody } };
   }
 
   if (platformMax !== null && result.amountCents > platformMax) {
@@ -243,7 +289,9 @@ export async function prepareStake(req: StakeRequest): Promise<PrepareResult> {
   const intentId = randomUUID();
   let prepared;
   try {
-    prepared = await buildStakeTransaction(v.wallet, v.amountCents, intentId);
+    prepared = v.chain
+      ? await buildProgramStakeTransaction(v.wallet, intentId, { ...v.chain, side: v.side, amountCents: v.amountCents })
+      : await buildStakeTransaction(v.wallet, v.amountCents, intentId);
   } catch (e) {
     return { ok: false, error: readable(e) };
   }
@@ -265,8 +313,16 @@ export async function prepareStake(req: StakeRequest): Promise<PrepareResult> {
 }
 
 /** Sends a stake back to the wallet it came from — used when the entry can't be written after the transfer landed. */
-async function refundIntent(intent: { id: string; wallet_address: string; amount_cents: number }): Promise<string | null> {
+async function refundIntent(intent: {
+  id: string;
+  kind: string;
+  room_id: string | null;
+  payload: unknown;
+  wallet_address: string;
+  amount_cents: number;
+}): Promise<string | null> {
   const admin = createAdminClient();
+  if (programRoomOf(intent)) return refundProgramStake(admin, intent);
   try {
     const batch = await signPayoutBatch([{ to: intent.wallet_address, cents: intent.amount_cents }]);
     await admin.from("stake_intents").update({ error: `refund:${batch.signature}` }).eq("id", intent.id);
