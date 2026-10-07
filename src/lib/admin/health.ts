@@ -1,5 +1,9 @@
 import { db } from "./data";
-import { currentBlockHeight, escrowAddress, escrowConfigured, escrowUsdcCents } from "@/lib/escrow/escrow";
+import { currentBlockHeight, escrowAddress, escrowConfigured, escrowSigner, escrowUsdcCents } from "@/lib/escrow/escrow";
+import { readChainRoom } from "@/lib/escrow/program";
+
+/** Below this the escrow can't keep paying fees and room rent (program rooms front ~0.006 SOL each). */
+const ESCROW_MIN_SOL = 0.5;
 
 // Live health checks for /admin → System. Each check is timed and never
 // throws — a broken dependency shows as a red row, not a broken page.
@@ -58,7 +62,8 @@ export async function escrowPosition(): Promise<{ balance: number; stakes: numbe
   if (!escrowConfigured()) return null;
   const admin = db();
   const [{ data: owed }, { data: feeRows }, balance] = await Promise.all([
-    admin.from("entries").select("amount_cents, room:rooms!inner(status)").in("room.status", ["open", "live"]).not("stake_tx_signature", "is", null),
+    // Program rooms' stakes sit in their own vaults, not here (see programVaults).
+    admin.from("entries").select("amount_cents, room:rooms!inner(status, custody)").in("room.status", ["open", "live"]).eq("room.custody", "wallet").not("stake_tx_signature", "is", null),
     admin.from("room_fees").select("cents, claim:fee_claims(status)"),
     escrowUsdcCents(),
   ]);
@@ -67,6 +72,28 @@ export async function escrowPosition(): Promise<{ balance: number; stakes: numbe
     .filter((f) => f.claim?.status !== "confirmed")
     .reduce((s, f) => s + Number(f.cents), 0);
   return { balance, stakes, fees, ok: balance >= stakes + fees };
+}
+
+/** Open program rooms: does each vault hold what the database says was staked? */
+export async function programVaults(): Promise<{ rooms: number; mismatched: string[] }> {
+  const admin = db();
+  const { data } = await admin
+    .from("rooms")
+    .select("id, entries(amount_cents, side, stake_tx_signature)")
+    .eq("custody", "program")
+    .in("status", ["open", "live"])
+    .limit(50);
+  const rows = (data ?? []) as { id: string; entries: { amount_cents: number; side: string; stake_tx_signature: string | null }[] }[];
+  const mismatched: string[] = [];
+  for (const r of rows) {
+    const staked = r.entries.filter((e) => e.stake_tx_signature);
+    const yes = staked.filter((e) => e.side === "yes").reduce((s, e) => s + Number(e.amount_cents), 0);
+    const no = staked.filter((e) => e.side === "no").reduce((s, e) => s + Number(e.amount_cents), 0);
+    const chain = await readChainRoom(r.id).catch(() => null);
+    // Resolved on-chain but not yet closed is fine (settlement is mid-way).
+    if (!chain || (chain.outcome === "open" && (chain.yesCents !== yes || chain.noCents !== no))) mismatched.push(r.id);
+  }
+  return { rooms: rows.length, mismatched };
 }
 
 export async function runChecks(): Promise<{ checks: Check[]; worker: WorkerHealth | null }> {
@@ -85,6 +112,19 @@ export async function runChecks(): Promise<{ checks: Check[]; worker: WorkerHeal
       const detail = `${escrowAddress().slice(0, 4)}…${escrowAddress().slice(-4)} holds $${(p.balance / 100).toFixed(2)}; owes $${((p.stakes + p.fees) / 100).toFixed(2)}`;
       if (!p.ok) throw new Error(`SHORT — ${detail}`);
       return detail;
+    }),
+    timed("Escrow SOL (fees and room rent)", async () => {
+      if (!escrowConfigured()) throw new Error("not configured");
+      const { keypair, connection } = escrowSigner();
+      const sol = (await connection.getBalance(keypair.publicKey, "confirmed")) / 1e9;
+      const detail = `${sol.toFixed(3)} SOL`;
+      if (sol < ESCROW_MIN_SOL) throw new Error(`LOW — ${detail}; stakes stop when it runs out`);
+      return detail;
+    }),
+    timed("On-chain room vaults", async () => {
+      const v = await programVaults();
+      if (v.mismatched.length) throw new Error(`${v.mismatched.length} of ${v.rooms} open program rooms don't match the database: ${v.mismatched.slice(0, 3).join(", ")}`);
+      return v.rooms ? `${v.rooms} open program room${v.rooms === 1 ? "" : "s"}, every vault matches` : "no open program rooms";
     }),
     timed("Render worker", async () => {
       if (!worker) throw new Error(`no answer from ${WORKER_HEALTH_URL}`);

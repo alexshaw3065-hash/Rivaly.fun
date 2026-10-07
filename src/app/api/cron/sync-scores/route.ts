@@ -1,5 +1,6 @@
 import { syncScores } from "@/lib/txline/sync-scores";
 import { recordJob } from "@/lib/admin/jobs";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 // The correctness backstop for match results. Runs frequently enough to keep
 // finished matches accurate without needing the always-on SSE worker, and
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   if (!secret) {
     return Response.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
   }
-  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 

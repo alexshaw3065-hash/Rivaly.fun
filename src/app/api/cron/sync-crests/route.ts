@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 import { syncCrests } from "@/lib/crests/sync";
 import { recordJob } from "@/lib/admin/jobs";
 import { submitRecentPages } from "@/lib/indexnow";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 // Real team/league badges for any team that doesn't have one yet (new
 // fixtures, retries of last week's misses). The Render worker pings this
@@ -14,7 +15,7 @@ export const maxDuration = 60;
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return Response.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
-  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   try {

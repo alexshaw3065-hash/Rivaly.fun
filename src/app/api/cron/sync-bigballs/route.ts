@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordJob } from "@/lib/admin/jobs";
 import { syncFixtures } from "@/lib/bigballs/sync";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 // Big Balls fixtures for UCL, La Liga, Bundesliga, Serie A, Ligue 1 and MLS
 // (one call per league). The Render worker runs this itself every 6 hours
@@ -11,7 +12,7 @@ export const maxDuration = 60;
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return Response.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
-  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   const key = process.env.BIGBALLS_API_KEY;

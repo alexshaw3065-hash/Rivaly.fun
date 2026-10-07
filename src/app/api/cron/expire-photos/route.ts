@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ChatAttachment } from "@/lib/supabase/message-mapper";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 // Photos live 60 days — in room chat and in the Arena alike. Once a day this
 // deletes older ones from Cloudinary and marks their message or post expired
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   if (!secret) {
     return Response.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
   }
-  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   // Either the separate key/secret, or Cloudinary's own one-line

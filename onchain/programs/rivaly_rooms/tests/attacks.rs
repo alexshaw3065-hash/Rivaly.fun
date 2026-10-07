@@ -193,3 +193,45 @@ fn payouts_batched_five_to_a_transaction_fit() {
     env.send(&ixs, &op, &[&op]).unwrap();
     assert_eq!(env.room(&id).paid, 5);
 }
+
+#[test]
+fn the_same_position_twice_in_one_transaction_pays_once() {
+    let mut env = Env::new();
+    let id = room_id(1);
+    let alice = env.user(10_000);
+    let bob = env.user(10_000);
+    env.stake(id, &alice, YES, 1_000);
+    env.stake(id, &bob, NO, 1_000);
+    env.set_time(LOCK + 1);
+    let a = alice.pubkey();
+    env.resolve(&id, YES, Some(&a)).unwrap();
+    let op = env.operator.insecure_clone();
+    let ix = env.ix_payout(&id, &op.pubkey(), &a);
+    // The whole transaction fails: the second payout finds the position closed.
+    assert!(env.send(&[ix.clone(), ix], &op, &[&op]).is_err());
+    assert_eq!(env.usdc_cents(&a), 9_000, "nothing paid");
+    env.payout(&id, &a).unwrap();
+    assert_eq!(env.usdc_cents(&a), 9_000 + 1_950, "paid exactly once");
+}
+
+#[test]
+fn a_position_from_another_room_cant_be_paid_from_this_one() {
+    let mut env = Env::new();
+    let (id1, id2) = (room_id(1), room_id(2));
+    let alice = env.user(10_000);
+    let bob = env.user(10_000);
+    let carol = env.user(10_000);
+    env.stake(id1, &alice, YES, 1_000);
+    env.stake(id1, &bob, NO, 1_000);
+    env.stake(id2, &carol, YES, 1_000);
+    env.set_time(LOCK + 1);
+    let a = alice.pubkey();
+    env.resolve(&id1, YES, Some(&a)).unwrap();
+    // Carol's room-2 position named in a room-1 payout.
+    let op = env.operator.insecure_clone();
+    let mut ix = env.ix_payout(&id1, &op.pubkey(), &carol.pubkey());
+    let room2 = room_pda(&env.program, &id2);
+    ix.accounts[5].pubkey = position_pda(&env.program, &room2, &carol.pubkey());
+    assert!(env.send(&[ix], &op, &[&op]).is_err());
+    assert_eq!(env.vault_units(&id1), 2_000 * UNITS);
+}

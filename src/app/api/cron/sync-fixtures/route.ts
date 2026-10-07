@@ -1,5 +1,6 @@
 import { syncFixtures } from "@/lib/txline/sync-fixtures";
 import { recordJob } from "@/lib/admin/jobs";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 // Fixtures change slowly (kickoff times, postponements), so hourly is ample —
 // which is why this is a scheduled route rather than part of the always-on
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   if (!secret) {
     return Response.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
   }
-  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 

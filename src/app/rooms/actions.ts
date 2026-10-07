@@ -66,6 +66,11 @@ export type SubmitResult = { ok: true; roomId: string; inviteCode: string | null
 // scored-competitions.ts) can't settle, so no money goes into them.
 const NOT_COVERED = "We can't follow this match live, so rooms aren't open for it.";
 
+// Rooms one person can have open at once. Far above normal use; it stops
+// one account (or a farm of sign-up-grant accounts) tying up the escrow's
+// SOL, which fronts each on-chain room's rent until it settles.
+const MAX_OPEN_ROOMS_PER_HOST = 20;
+
 // Leave time to read the wallet's confirm screen before kickoff locks stakes.
 const KICKOFF_BUFFER_MS = 60_000;
 
@@ -151,6 +156,14 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
       return { ok: false, error: "Your stake has to sit inside the room's limits." };
     }
     if (input.side !== "yes" && input.side !== "no") return { ok: false, error: "Pick a side." };
+    const { count: openRooms } = await admin
+      .from("rooms")
+      .select("id", { count: "exact", head: true })
+      .eq("creator_id", user.id)
+      .in("status", ["open", "live"]);
+    if ((openRooms ?? 0) >= MAX_OPEN_ROOMS_PER_HOST) {
+      return { ok: false, error: `You have ${MAX_OPEN_ROOMS_PER_HOST} rooms open — let some settle before opening more.` };
+    }
     const invalid = invalidMarketReason(input.market);
     if (invalid) return { ok: false, error: invalid };
 
