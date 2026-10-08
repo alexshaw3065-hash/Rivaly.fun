@@ -14,10 +14,10 @@ Everything for Rivaly's submission in one place. Facts and lines come from [10-p
 
 | Criterion | What they ask | Our answer | Gap |
 |---|---|---|---|
-| Functionality | Does it work? Code quality? | Live beta, real matches, automatic settlement, 165 tests, typed, RLS on every table | — |
+| Functionality | Does it work? Code quality? | Live beta, real matches, automatic settlement; ~170 app tests + 45 program tests (incl. a 400-room on-chain/off-chain parity check); typed; RLS on every table; two security reviews with fixes shipped | — |
 | Potential impact | Market size, effect on crypto | Sports betting is huge and social; crypto invisible = mainstream users on Solana without knowing it | Keep claims to sourced numbers |
 | Novelty | How unique? | Not first (say so). The combination is rarer: pools not just 1v1, a live room, hosts earn, invisible crypto | Crowded category (see below) |
-| UX | Blockchain → great UX? | Email sign-in, embedded wallet, no SOL, gasless staking, payouts in seconds, on-chain receipts | — |
+| UX | Blockchain → great UX? | Email sign-in, embedded wallet, no SOL, gasless staking, payouts in seconds, stakes held by an on-chain program (rules users can verify: ≤6% fee, refund after 21 days) | — |
 | Open-source | Open source? Composes with others? | Code is public | **README says "not licensed for reuse". Pick a licence (decision for the founder).** |
 | Business plan | Viable business, team? | 5% of winners' profit (3% Rivaly / 2% host); creators bring rivals | Say what's next: mainnet, local payments, licence |
 
@@ -35,14 +35,20 @@ Colosseum's database has ~176 past projects in "Solana competitive wagering and 
 3. **Nobody touches crypto**: email in, staked, paid, never saw a wallet.
 4. **Hosts earn**, so the people who bring rivals grow it.
 
-## Traction (true numbers, 7 Oct)
+## Traction (true numbers, 8 Oct)
 
-Use these, rounded; update the day you submit.
-- 24 accounts, 17 of them in the last 7 days
-- 13 people have staked; 61 stakes in 26 rooms
-- 17 rooms had two or more people in them
+Use these, rounded; update the day you submit (the SQL is in the session log of 8 Oct — accounts, stakers, stakes, rooms with 2+ people, settled).
+- 25 accounts, 15 of them in the last 7 days
+- 14 people have staked; 63 stakes in 27 rooms
+- 18 rooms had two or more people in them
 - 5 rooms settled and paid automatically from live data, 4 refunded automatically
-- 11 Arena posts, 20 follows
+- 11 Arena posts, 20 follows, 20 chat messages
+
+**Honest read:** this is small, and several accounts are the team's own. It's the weakest part of the submission — and the weekend before the deadline is a full matchday (below), the best chance to change it.
+
+## Built during the hackathon (from git, 8 Oct)
+
+The contest opened 14 Sep; Rivaly's first commit was 9 Aug. Since 14 Sep: **193 of 302 commits**, +64k / −15k lines. Built in the window: the on-chain escrow program (devnet, upgraded 8 Oct with a fee cap, a refund deadline and a two-step admin hand-over), automatic settlement from two live data providers, the Arena, host earnings, the sign-up grant, Rivaly Ops (admin), SEO/AI discovery, the help center with full Terms / Privacy / Responsible play, and two security reviews. Say plainly that the project predates the contest and show this list.
 
 **Don't** quote the stake volume: it's devnet test USDC, mostly from testing, and judges will discount it. **Do** quote one real line from a user if you have one (a message, a tweet, "my mate and I settled our Arsenal argument"). Judges explicitly look for user feedback.
 
@@ -57,7 +63,7 @@ Use these, rounded; update the day you submit.
 
 **Tracks:** Solana. Category: Consumer.
 
-**Tools:** Solana, USDC (SPL token), Dynamic embedded wallets, Helius RPC, Supabase, Next.js, TxLINE and Big Balls Data (live sports data).
+**Tools:** Solana, Anchor (the `rivaly_rooms` escrow program), USDC (SPL token), Dynamic embedded wallets, Helius RPC, Supabase, Next.js, TxLINE and Big Balls Data (live sports data).
 
 **Links:** rivaly.fun · github.com/alexshaw3065-hash/Rivaly.fun · x.com/Rivaly_fun
 
@@ -103,16 +109,24 @@ Screen recording with your voice. This one is about *how* and *why*, not selling
 
 1. **Architecture (0:00–0:30).** One diagram: Next.js on Vercel → Supabase (Postgres, RLS, Realtime) → Solana (USDC escrow) ← worker on Render reading TxLINE and Big Balls Data.
 2. **Sign-in and wallets (0:30–0:55).** Dynamic: email sign-in creates an embedded Solana wallet. Why: mainstream users never manage keys or hold SOL.
-3. **Staking (0:55–1:30).** Join a room → the server builds the USDC transfer to escrow, Rivaly pays the fee, the user signs silently → the server checks the transfer on-chain before the stake counts. Open the transaction on Solana Explorer.
+3. **Staking (0:55–1:30).** Join a room → the server builds the program's `stake` instruction (USDC from the user into the room's vault), Rivaly co-signs and pays the fee, the user signs silently → the server checks it on-chain before the stake counts. Open the transaction on Solana Explorer.
 4. **Settlement (1:30–2:10).** The worker writes live events; `resolveMarket` decides each market from official data; a 10-minute safety window for VAR; the pot is split pro rata minus the 5%-of-profit fee; payouts sent and recorded. Open a payout on Explorer. Mention: twin-record check (two data records disagree → no payout until resolved), $1 floor enforced by app, server and database.
-5. **Why custodial escrow for V1, honestly (2:10–2:40).** "V1 holds stakes in a Rivaly escrow wallet: every move is public on-chain, and it let us ship automatic settlement from live sports data fast. The next step is an on-chain escrow program, so the rules hold the money, not us."
+5. **The on-chain escrow, honestly (2:10–2:40).** Open `rivaly_rooms` on Solana Explorer (FwPoC3Ng…7kLF, devnet). "Each room's stakes sit in a vault our program owns. The program only lets money go back to the people who staked in that room, caps our fee at 6% of winnings, and if we ever failed to post a result, anyone can refund the room 21 days after kick-off. What it doesn't do yet is decide results — our operator posts them from official data. The admin key is ready to move to a multisig." Show the 400-room parity test and a real program room's payout on Explorer. Never say "trustless" or "audited".
 
-## What's left before Sunday
+## The plan to the deadline (review of 8 Oct)
 
-- [ ] Founder: register on colosseum.com (each team member).
-- [ ] Founder: decide the licence (see below).
-- [ ] Founder: one or two real user quotes.
-- [ ] Record the pitch video (face + screen).
-- [ ] Record the technical demo.
-- [ ] Logo file for the form (the app icon).
-- [ ] Fill team section; submit by Sunday 11 Oct.
+**Thu 8 / Fri 9 — decisions and set-up**
+- [ ] Register on colosseum.com (every team member).
+- [ ] Licence (open-source is a scored criterion; the README still says "all rights reserved"). Recommended: MIT for `onchain/` (composable, auditable), AGPL-3.0 for the app (open, but anyone who runs a copy must publish theirs). Founder's call.
+- [ ] Write the team section with one true personal detail (positioning §7 is still a draft) — founder-market fit is the first thing judges score.
+- [ ] Check the first real program room (Cowboys v Bucs, kick-off 9 Oct 00:15 UTC) settles and pays; keep its Explorer links for the tech demo.
+
+**Sat 10 / Sun 11 — matchday: traction and footage**
+Before the deadline: 10 Premier League, 10 La Liga, 10 Serie A, 9 Bundesliga, 9 Ligue 1, 18 MLS and 15 NFL games.
+- [ ] Open rooms on the big games and share them into real group chats (not test accounts). Target by Sunday night: 50+ accounts, 30+ people staked, 10+ rooms settled.
+- [ ] Screenshot real chat moments and ask two or three people for one honest line each — judges look for user feedback.
+- [ ] Record the pitch video's app section during a live game (live room, goal moment, chat), and the settlement + payout after full time.
+- [ ] Record the technical demo (script above).
+
+**Sun 11 night — submit**
+- [ ] Refresh the traction numbers, fill the form, upload both videos and the logo. Submit Sunday; the hard deadline is Mon 12 Oct 11:59pm PT (Tue 07:59 WAT).
