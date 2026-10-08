@@ -119,11 +119,10 @@ export default function DocsPage() {
       title="How Rivaly works"
       lede={
         <>
-          <p className="text-foreground">
+          <p>
             Rivaly is social prediction for sport. You put your prediction on a match against someone else&rsquo;s, with money on it, and the
-            winner is paid automatically.
+            winner is paid automatically. You predict against people — never against the house.
           </p>
-          <p className="mt-3">You predict against people — never against the house.</p>
         </>
       }
       meta={

@@ -60,6 +60,16 @@ export const COMPANY_GROUPS: { title: string; links: CompanyLink[] }[] = [
   },
 ];
 
+/** Every company page as a card: the help-center hub and "keep reading". */
+export const COMPANY_PAGES: { href: string; title: string; blurb: string; section: "Learn" | "Help" | "Legal" }[] = [
+  { href: "/docs", title: "How Rivaly works", blurb: "Rooms, the pool, settlement and fees — with a worked example.", section: "Learn" },
+  { href: "/about", title: "About Rivaly", blurb: "Why we built a place to predict sport with people, not a bookie.", section: "Learn" },
+  { href: "/support", title: "Support", blurb: "Answers on your account, wallet, rooms and payouts.", section: "Help" },
+  { href: "/responsible-play", title: "Responsible play", blurb: "Keeping it fun, warning signs, breaks and free help.", section: "Help" },
+  { href: "/terms", title: "Terms of Use", blurb: "The rules for using Rivaly, in full and in plain English.", section: "Legal" },
+  { href: "/privacy", title: "Privacy Policy", blurb: "What we collect, what's public and your choices.", section: "Legal" },
+];
+
 /** Short labels for the tab strip across the top of every company page. */
 export const COMPANY_TABS: CompanyLink[] = [
   { href: "/about", label: "About" },

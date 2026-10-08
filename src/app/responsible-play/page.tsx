@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CompanyPage, DocList, DocSection } from "@/components/company/company-page";
+import { Callout, CompanyPage, DocList, DocSection } from "@/components/company/company-page";
 import { COMPANY, POLICY_DATES, formatPolicyDate, mailto } from "@/lib/company";
 import { pageMeta } from "@/lib/seo";
 
@@ -129,11 +129,13 @@ export default function ResponsiblePlayPage() {
       </DocSection>
 
       <DocSection id="break" n={4} title="Take a break or stop">
+        <Callout title="Breaks can't be ended early.">
+          Once a break starts we won&rsquo;t lift it before the date you chose, even if you ask. That&rsquo;s what makes it work.
+        </Callout>
         <p>
           <strong>Take a break.</strong> Email <a href={mailto("Take a break")}>{COMPANY.email}</a> from your account&rsquo;s email address,
           with how long you want — a day, a week, a month or longer. We&rsquo;ll stop your account from staking, creating rooms and posting
-          for that time. Rooms you&rsquo;re already in settle normally and winnings still reach your wallet. Once a break starts, we won&rsquo;t
-          end it early, even if you ask.
+          for that time. Rooms you&rsquo;re already in settle normally and winnings still reach your wallet.
         </p>
         <p>
           <strong>Stop for good.</strong> Ask us to self-exclude you and we&rsquo;ll close your account for at least six months, or
@@ -147,18 +149,26 @@ export default function ResponsiblePlayPage() {
 
       <DocSection id="help" n={5} title="Free, confidential help">
         <p>Talking to someone helps. These services are free, confidential and don&rsquo;t judge:</p>
-        <ul className="flex flex-col">
+        <ul className="grid gap-3 sm:grid-cols-2">
           {HELP.map((h) => (
-            <li key={h.name} className="border-t border-line py-4 first:border-0 first:pt-1">
-              <a href={h.href} target="_blank" rel="noopener noreferrer" className="font-semibold">
-                {h.name}
+            <li key={h.name}>
+              <a
+                href={h.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-full flex-col rounded-card bg-surface p-4 !no-underline edge transition-colors duration-100 hover:bg-surface-elevated"
+              >
+                <span className="font-semibold text-foreground">{h.name}</span>
+                <span className="mt-1 text-caption font-normal text-secondary">{h.what}</span>
+                {h.contact && <span className="mt-3 text-body-lg font-semibold tabular-nums text-foreground">{h.contact}</span>}
+                <span className="mt-auto pt-3 text-caption font-medium text-yes-ink">{h.href.replace(/^https:\/\/(www\.)?/, "")} ↗</span>
               </a>
-              <p className="mt-1">{h.what}</p>
-              {h.contact && <p className="mt-1 tabular-nums text-foreground">{h.contact}</p>}
             </li>
           ))}
         </ul>
-        <p>If you&rsquo;re in crisis or thinking about harming yourself, call your local emergency number now.</p>
+        <Callout tone="care" title="In crisis right now?">
+          If you&rsquo;re thinking about harming yourself, call your local emergency number now.
+        </Callout>
       </DocSection>
 
       <DocSection id="under-18" n={6} title="Under 18s">

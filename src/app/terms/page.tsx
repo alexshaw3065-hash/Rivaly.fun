@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CompanyPage, DocList, DocSection, PlainSummary } from "@/components/company/company-page";
+import { Callout, CompanyPage, DocList, DocSection, PlainSummary } from "@/components/company/company-page";
 import { COMPANY, POLICY_DATES, formatPolicyDate, mailto } from "@/lib/company";
 import { pageMeta } from "@/lib/seo";
 
@@ -112,6 +112,9 @@ export default function TermsPage() {
       </DocSection>
 
       <DocSection id="beta" n={n("beta")} title="The beta and test funds">
+        <Callout title="Rivaly is in beta. Balances are test USDC with no cash value.">
+          Nothing you stake, win or earn during the beta can be exchanged for money.
+        </Callout>
         <p>
           Rivaly is in beta. While it is, balances, stakes, payouts and host earnings are in <strong>test USDC on the Solana devnet</strong>.
           Test USDC has no monetary value: it can&rsquo;t be bought, sold, or exchanged for money or anything else, and nothing you win
@@ -151,10 +154,10 @@ export default function TermsPage() {
           (YES) or oppose (NO) by staking into the room&rsquo;s pool. Whoever creates the room is its host. Before anyone can join, the room
           shows the prediction, the match, the stake limits and the fee.
         </p>
-        <p>
-          <strong>Rivaly is never a party to a room.</strong> We don&rsquo;t set odds, take a side, or profit from anyone losing. The pool is
-          made up only of the stakes of the people in it, and it is paid out only to them.
-        </p>
+        <Callout tone="good" title="Rivaly is never a party to a room.">
+          We don&rsquo;t set odds, take a side, or profit from anyone losing. The pool is made up only of the stakes of the people in it, and
+          it is paid out only to them.
+        </Callout>
         <p>
           We may refuse, hide or close a room that is unclear, misleading, offensive, on an event we can&rsquo;t settle reliably, or that
           breaks these terms. If we close a room before it settles, every stake in it is refunded in full.

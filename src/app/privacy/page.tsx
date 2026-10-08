@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CompanyPage, DocList, DocSection, PlainSummary } from "@/components/company/company-page";
+import { Callout, CompanyPage, DocList, DocSection, PlainSummary } from "@/components/company/company-page";
 import { COMPANY, POLICY_DATES, formatPolicyDate, mailto } from "@/lib/company";
 import { pageMeta } from "@/lib/seo";
 
@@ -140,15 +140,17 @@ export default function PrivacyPage() {
           Private rooms are visible only to the people in them and are never shown to search engines. Host earnings are private unless you
           choose to show them.
         </p>
-        <p>
-          <strong>The blockchain is public and permanent.</strong> Deposits, stakes, payouts and withdrawals are transactions on the Solana
-          network. Anyone can see the wallet addresses and amounts involved, and someone who knows your wallet address could connect it to your
-          activity. Nobody — including us — can change or delete a blockchain transaction.
-        </p>
+        <Callout title="The blockchain is public and permanent.">
+          Deposits, stakes, payouts and withdrawals are transactions on the Solana network. Anyone can see the wallet addresses and amounts
+          involved, and someone who knows your wallet address could connect it to your activity. Nobody — including us — can change or delete a
+          blockchain transaction.
+        </Callout>
       </DocSection>
 
       <DocSection id="share" n={n("share")} title="Who we share it with">
-        <p>We never sell your personal data. We share it only with:</p>
+        <Callout tone="good" title="We never sell your personal data.">
+          We share it only with the people below, for the reasons given.
+        </Callout>
         <DocList
           items={[
             <>

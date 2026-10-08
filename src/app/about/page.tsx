@@ -55,7 +55,7 @@ export default function AboutPage() {
       active="/about"
       title="About Rivaly"
       lede={
-        <p className="text-foreground">
+        <p>
           Rivaly is social prediction for sport. You put your prediction on a match against someone else&rsquo;s, with money on it, and the
           winner is paid automatically.
         </p>

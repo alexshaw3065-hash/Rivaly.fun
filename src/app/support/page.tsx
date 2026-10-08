@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CompanyPage, DocSection } from "@/components/company/company-page";
+import { CompanyPage } from "@/components/company/company-page";
+import { SupportFaq, SupportSearch } from "@/components/company/support-faq";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buttonClasses } from "@/components/ui/button";
-import { COMPANY, mailto } from "@/lib/company";
 import { pageMeta } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 
@@ -174,10 +174,10 @@ export default function SupportPage() {
   return (
     <CompanyPage
       active="/support"
-      title="Support"
-      lede="Answers to what people ask most — and a real person on the other end if yours isn't here."
-      toc={TOPICS.map((t) => ({ id: t.id, label: t.title }))}
-      contactLine="Still stuck?"
+      title="Help center"
+      lede="Guides and answers for everything on Rivaly — and a real person on the other end if yours isn't here."
+      band={<SupportSearch />}
+      contactLine="Can't find your answer?"
     >
       <JsonLd
         data={{
@@ -188,28 +188,15 @@ export default function SupportPage() {
         }}
       />
 
-      <section aria-label="Contact support" className="rounded-card bg-surface p-5 edge md:p-6">
-        <h2 className="font-display text-title-3 text-foreground">Email us</h2>
-        <p className="mt-2 text-body text-secondary">
-          Include your username, and the room link if it&rsquo;s about a room. We read every message and reply as soon as we can.
-        </p>
-        <a href={mailto("Rivaly support")} className={buttonClasses({ variant: "inverse", size: "lg", className: "mt-5 w-full sm:w-auto" })}>
-          {COMPANY.email}
-        </a>
+      <section aria-label="Popular topics" className="flex flex-wrap gap-2">
+        {TOPICS.map((t) => (
+          <a key={t.id} href={`#${t.id}`} className={buttonClasses({ variant: "secondary", size: "sm", className: "rounded-full" })}>
+            {t.title}
+          </a>
+        ))}
       </section>
 
-      {TOPICS.map((t) => (
-        <DocSection key={t.id} id={t.id} title={t.title}>
-          <dl className="flex flex-col">
-            {t.items.map((f) => (
-              <div key={f.q} className="border-t border-line py-4 first:border-0 first:pt-1">
-                <dt className="font-semibold text-foreground">{f.q}</dt>
-                <dd className="mt-1.5">{f.a}</dd>
-              </div>
-            ))}
-          </dl>
-        </DocSection>
-      ))}
+      <SupportFaq topics={TOPICS} />
     </CompanyPage>
   );
 }
