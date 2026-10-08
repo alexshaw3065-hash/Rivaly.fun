@@ -6,7 +6,7 @@ Order matters: the admin first (it needs the program upgrade that adds the hand-
 
 ## 0. Before you start
 
-- The program upgrade with `propose_admin` / `accept_admin` is deployed (`wsl-build.sh test`, then `wsl-deploy.sh`).
+- The program upgrade with `propose_admin` / `accept_admin` is deployed (done on devnet 2026-10-08, slot 508718766).
 - Decide the members and threshold. Recommended: **2 of 3** — e.g. the founder's hardware wallet, a second device kept elsewhere, and a co-founder or trusted adviser. Never two keys on the same machine.
 - Create the multisig at [app.squads.so](https://app.squads.so) (devnet first: switch the network in settings). Note its **vault address** (vault index 0). That address is what becomes the admin and the upgrade authority.
 
