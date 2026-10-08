@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPasswordSession } from "./session";
@@ -7,7 +7,8 @@ import { hasPasswordSession } from "./session";
 // action — never trusted from the browser. Two ways in:
 //   · the ops password (ADMIN_PASSWORD, signed session cookie) → owner
 //   · a named admin account (the admins table) → its role
-// Everyone else is sent to /admin/login.
+// Everyone else gets a 404 — the panel doesn't advertise itself. The
+// password form is only at /admin/login/<ADMIN_LOGIN_PATH> (session.ts).
 //
 // Roles, each including the one below it:
 //   moderator — reports, content, suspensions, notes, flags
@@ -51,10 +52,10 @@ export async function getAdmin(): Promise<AdminUser | null> {
   return null;
 }
 
-/** For pages: the signed-in admin; otherwise off to the login page (or a 404 for too low a role). */
+/** For pages: the signed-in admin; otherwise a 404 (also for too low a role). */
 export async function requireAdmin(min: AdminRole = "moderator"): Promise<AdminUser> {
   const a = await getAdmin();
-  if (!a) redirect("/admin/login");
+  if (!a) notFound();
   if (!atLeast(a.role, min)) notFound();
   return a;
 }

@@ -1,14 +1,15 @@
 "use client";
 
 import { useActionState } from "react";
-import { adminLogin } from "./actions";
+import { adminLogin } from "../actions";
 
 // The door to Rivaly Ops. Nothing here reveals anything about the system.
-export default function AdminLogin() {
+export function AdminLoginForm({ door }: { door: string }) {
   const [state, action, pending] = useActionState(adminLogin, { error: null });
   return (
     <main className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
       <form action={action} className="w-full max-w-sm rounded-card bg-surface p-6 edge">
+        <input type="hidden" name="door" value={door} />
         <p className="font-display text-xl font-bold tracking-tight text-foreground">Rivaly Ops</p>
         <p className="mt-1 text-label text-secondary">Internal. Sign in with the ops password.</p>
         <input

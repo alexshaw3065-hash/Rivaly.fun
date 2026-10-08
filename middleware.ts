@@ -1,8 +1,9 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { hiddenAdminResponse } from "@/lib/admin/hidden";
 
 export async function middleware(request: NextRequest) {
-  return updateSession(request);
+  return hiddenAdminResponse(request) ?? updateSession(request);
 }
 
 export const config = {

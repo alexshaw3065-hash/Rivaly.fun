@@ -17,6 +17,20 @@ function secret(): string | null {
 
 const sign = (payload: string, key: string) => createHmac("sha256", key).update(payload).digest("base64url");
 
+/**
+ * The password form lives only at /admin/login/<ADMIN_LOGIN_PATH>; every
+ * other /admin URL is a 404 to anyone who isn't already an admin, so the
+ * panel doesn't advertise itself. Unset (or under 16 characters): no
+ * password door at all — named admin accounts still get in.
+ */
+export function doorMatches(door: string | undefined): boolean {
+  const real = process.env.ADMIN_LOGIN_PATH;
+  if (!real || real.length < 16 || !door) return false;
+  const a = createHash("sha256").update(door).digest();
+  const b = createHash("sha256").update(real).digest();
+  return timingSafeEqual(a, b);
+}
+
 export function passwordConfigured(): boolean {
   return Boolean(process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.length >= 12 && secret());
 }

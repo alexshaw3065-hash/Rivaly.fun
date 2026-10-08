@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ADMIN_COOKIE, cookieOptions, newSessionValue, passwordConfigured, passwordMatches } from "@/lib/admin/session";
+import { ADMIN_COOKIE, cookieOptions, doorMatches, newSessionValue, passwordConfigured, passwordMatches } from "@/lib/admin/session";
 
 // Signing in to /admin with the ops password. Brute force is capped: 8
 // failures from one address in 15 minutes locks that address out, and 40
@@ -16,6 +16,9 @@ const PER_IP = 8;
 const GLOBAL = 40;
 
 export async function adminLogin(_: { error: string | null }, form: FormData): Promise<{ error: string | null }> {
+  // Server actions can be called directly, so the secret door is checked
+  // here too, not only by the page; a wrong door looks like a wrong password.
+  if (!doorMatches(String(form.get("door") ?? ""))) return { error: "Wrong password." };
   if (!passwordConfigured()) return { error: "Password sign-in isn't set up on this deployment (ADMIN_PASSWORD / ADMIN_SESSION_SECRET)." };
   const h = await headers();
   const ip = (h.get("x-forwarded-for") ?? h.get("x-real-ip") ?? "unknown").split(",")[0].trim();
@@ -42,5 +45,5 @@ export async function adminLogin(_: { error: string | null }, form: FormData): P
 
 export async function adminLogout(): Promise<void> {
   (await cookies()).set(ADMIN_COOKIE, "", { ...cookieOptions, maxAge: 0 });
-  redirect("/admin/login");
+  redirect("/");
 }

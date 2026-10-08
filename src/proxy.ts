@@ -1,7 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { hiddenAdminResponse } from "@/lib/admin/hidden";
 
 export async function proxy(request: NextRequest) {
+  const hidden = hiddenAdminResponse(request);
+  if (hidden) return hidden;
+
   let response = NextResponse.next({ request });
 
   // No Supabase project is linked yet (see .env.example) — skip the session
