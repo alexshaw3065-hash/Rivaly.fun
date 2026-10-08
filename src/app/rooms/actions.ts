@@ -16,7 +16,7 @@ import {
   sendSignedBatch,
   signPayoutBatch,
 } from "@/lib/escrow/escrow";
-import { buildProgramStakeTransaction, readChainRoom, ROOM_EXPIRY_SECONDS } from "@/lib/escrow/program";
+import { buildProgramStakeTransaction, PROGRAM_MAX_LOCK_AHEAD_SECONDS, readChainRoom, ROOM_EXPIRY_SECONDS } from "@/lib/escrow/program";
 import { programRoomOf, refundProgramStake } from "@/lib/escrow/program-recovery";
 import type { StakeArgsInput } from "@/lib/escrow/program-codec";
 import type { EntrySide } from "@/lib/types";
@@ -203,6 +203,7 @@ async function validate(req: StakeRequest): Promise<Validated | Fail> {
     if (await programForNewRoom()) {
       const feesOn = Boolean(settings?.fees_enabled);
       const lockTs = Math.floor(+new Date(match.kickoffAt) / 1000);
+      if (lockTs - Date.now() / 1000 > PROGRAM_MAX_LOCK_AHEAD_SECONDS) return { ok: false, error: "That match is too far ahead to open a room on yet." };
       chain = {
         roomId: randomUUID(),
         host: wallet,

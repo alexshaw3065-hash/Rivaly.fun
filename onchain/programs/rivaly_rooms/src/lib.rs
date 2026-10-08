@@ -8,8 +8,14 @@
 //! - The split is computed here with planSettlement's arithmetic
 //!   (src/lib/settlement/payouts.ts): winners share the pool pro rata minus
 //!   the room's fees, which are a cut of the winners' profit only.
-//! - Unresolved past its expiry, anyone can void a room: full refunds.
+//! - Unresolved past its expiry, anyone can void a room: full refunds. A
+//!   room's stakes close at most 180 days after it opens, and it expires at
+//!   most 21 days after that, so no stake can be held longer.
+//! - A room's fees together are at most 6% of the winners' profit — never of
+//!   a stake — whatever the server asks for.
 //! - Rivaly's operator key still says who won (yes / no / void).
+//! - The admin (who can rotate the operator and treasury) changes hands in
+//!   two steps: the current admin proposes, the new one accepts.
 //!
 //! Amounts are whole cents (1 cent = 10_000 USDC base units), as the app
 //! stores them, so on-chain and off-chain splits agree to the cent.
@@ -24,7 +30,14 @@ pub const UNITS_PER_CENT: u64 = 10_000;
 pub const USDC_DECIMALS: u8 = 6;
 pub const MIN_STAKE_CENTS: u64 = 100;
 pub const MAX_STAKE_CENTS: u64 = 100_000_000; // $1m: a sanity cap, not a product limit
-pub const MAX_FEE_BPS: u16 = 2_500;
+/// Rivaly's fee and the host's together, in basis points of the winners'
+/// profit. The app charges 5% (300 + 200); this is the ceiling it can't pass.
+pub const MAX_TOTAL_FEE_BPS: u16 = 600;
+/// How far ahead a room's stakes can close, from its first stake.
+pub const MAX_LOCK_AHEAD_SECS: i64 = 180 * 86_400;
+/// How long after stakes close a room can stay unresolved before anyone can
+/// void it. The app uses 14 days; this is the ceiling.
+pub const MAX_EXPIRY_AFTER_LOCK_SECS: i64 = 21 * 86_400;
 
 pub const OUTCOME_OPEN: u8 = 0;
 pub const OUTCOME_YES: u8 = 1;
@@ -58,6 +71,29 @@ pub mod rivaly_rooms {
         Ok(())
     }
 
+    /// Step one of handing over the admin (e.g. to a Squads multisig): the
+    /// current admin names the next one. Proposing again replaces the name;
+    /// nothing changes until the named key accepts.
+    pub fn propose_admin(ctx: Context<ProposeAdmin>, new_admin: Pubkey) -> Result<()> {
+        let transfer = &mut ctx.accounts.admin_transfer;
+        transfer.pending = new_admin;
+        transfer.proposer = ctx.accounts.admin.key();
+        transfer.bump = ctx.bumps.admin_transfer;
+        Ok(())
+    }
+
+    /// Step two: the named key signs to take over. Proves the new admin can
+    /// actually sign before the old one loses control.
+    pub fn accept_admin(ctx: Context<AcceptAdmin>) -> Result<()> {
+        ctx.accounts.config.admin = ctx.accounts.new_admin.key();
+        Ok(())
+    }
+
+    /// Withdraws a proposal that hasn't been accepted. Admin only.
+    pub fn cancel_admin_transfer(_ctx: Context<CancelAdminTransfer>) -> Result<()> {
+        Ok(())
+    }
+
     /// A stake: the user's USDC into the room's vault. The operator co-signs
     /// and pays the fees and rent (staking is free for the user); the server
     /// has already checked the room, side and limits. The first stake opens
@@ -68,8 +104,11 @@ pub mod rivaly_rooms {
         let room = &mut ctx.accounts.room;
 
         if room.created_at == 0 {
-            require!(args.fee_bps <= MAX_FEE_BPS && args.host_fee_bps <= MAX_FEE_BPS, RoomError::FeeTooHigh);
+            let total_fee = (args.fee_bps as u32) + (args.host_fee_bps as u32);
+            require!(total_fee <= MAX_TOTAL_FEE_BPS as u32, RoomError::FeeTooHigh);
             require!(now < args.lock_ts && args.lock_ts < args.expiry_ts, RoomError::BadTimes);
+            require!(args.lock_ts - now <= MAX_LOCK_AHEAD_SECS, RoomError::BadTimes);
+            require!(args.expiry_ts - args.lock_ts <= MAX_EXPIRY_AFTER_LOCK_SECS, RoomError::BadTimes);
             room.room_id = args.room_id;
             room.host = args.host;
             room.fee_bps = args.fee_bps;
@@ -365,6 +404,16 @@ pub struct Config {
     pub bump: u8,
 }
 
+/// A proposed admin hand-over, waiting for the new admin to accept.
+#[account]
+#[derive(InitSpace)]
+pub struct AdminTransfer {
+    pub pending: Pubkey,
+    /// Paid the rent; gets it back when the proposal is accepted or cancelled.
+    pub proposer: Pubkey,
+    pub bump: u8,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct Room {
@@ -435,6 +484,60 @@ pub struct UpdateConfig<'info> {
     pub admin: Signer<'info>,
     #[account(mut, seeds = [b"config"], bump = config.bump, has_one = admin @ RoomError::Unauthorized)]
     pub config: Account<'info, Config>,
+}
+
+#[derive(Accounts)]
+pub struct ProposeAdmin<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    #[account(seeds = [b"config"], bump = config.bump, has_one = admin @ RoomError::Unauthorized)]
+    pub config: Account<'info, Config>,
+    #[account(
+        init_if_needed,
+        payer = admin,
+        space = 8 + AdminTransfer::INIT_SPACE,
+        seeds = [b"admin_transfer"],
+        bump
+    )]
+    pub admin_transfer: Account<'info, AdminTransfer>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptAdmin<'info> {
+    pub new_admin: Signer<'info>,
+    #[account(mut, seeds = [b"config"], bump = config.bump)]
+    pub config: Account<'info, Config>,
+    #[account(
+        mut,
+        seeds = [b"admin_transfer"],
+        bump = admin_transfer.bump,
+        constraint = admin_transfer.pending == new_admin.key() @ RoomError::Unauthorized,
+        has_one = proposer @ RoomError::Unauthorized,
+        close = proposer
+    )]
+    pub admin_transfer: Account<'info, AdminTransfer>,
+    /// CHECK: gets the proposal's rent back; must match (has_one above).
+    #[account(mut)]
+    pub proposer: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CancelAdminTransfer<'info> {
+    pub admin: Signer<'info>,
+    #[account(seeds = [b"config"], bump = config.bump, has_one = admin @ RoomError::Unauthorized)]
+    pub config: Account<'info, Config>,
+    #[account(
+        mut,
+        seeds = [b"admin_transfer"],
+        bump = admin_transfer.bump,
+        has_one = proposer @ RoomError::Unauthorized,
+        close = proposer
+    )]
+    pub admin_transfer: Account<'info, AdminTransfer>,
+    /// CHECK: gets the proposal's rent back; must match (has_one above).
+    #[account(mut)]
+    pub proposer: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]
@@ -608,7 +711,7 @@ pub enum RoomError {
     WrongMint,
     #[msg("Fee too high")]
     FeeTooHigh,
-    #[msg("Stakes must close in the future and before the room expires")]
+    #[msg("Stakes must close in the future (within 180 days), and the room expire within 21 days after")]
     BadTimes,
     #[msg("This room is closed")]
     RoomClosed,

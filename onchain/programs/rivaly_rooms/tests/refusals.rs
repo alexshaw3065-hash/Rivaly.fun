@@ -154,6 +154,98 @@ fn opening_a_room_checks_its_rules() {
 }
 
 #[test]
+fn fees_together_are_capped_at_6_percent() {
+    let mut env = Env::new();
+    let alice = env.user(50_000);
+    let op = env.operator.insecure_clone();
+    // 4% + 2.01%: over the ceiling, whichever way it's split.
+    for (n, rivaly, host) in [(1u8, 400u16, 201u16), (2, 601, 0), (3, 0, 601)] {
+        let mut a = env.stake_args(room_id(n), YES, 500);
+        a.fee_bps = rivaly;
+        a.host_fee_bps = host;
+        assert_err(env.send(&[env.ix_stake(&alice.pubkey(), &op.pubkey(), a)], &op, &[&op, &alice]), "FeeTooHigh");
+    }
+    // Exactly 6% is allowed.
+    let mut a = env.stake_args(room_id(4), YES, 500);
+    a.fee_bps = 400;
+    a.host_fee_bps = 200;
+    env.send(&[env.ix_stake(&alice.pubkey(), &op.pubkey(), a)], &op, &[&op, &alice]).unwrap();
+}
+
+#[test]
+fn a_room_cant_hold_stakes_indefinitely() {
+    let mut env = Env::new();
+    let alice = env.user(50_000);
+    let op = env.operator.insecure_clone();
+    const DAY: i64 = 86_400;
+    // Stakes may close at most 180 days ahead…
+    let mut a = env.stake_args(room_id(1), YES, 500);
+    a.lock_ts = T0 + 180 * DAY + 1;
+    a.expiry_ts = a.lock_ts + DAY;
+    assert_err(env.send(&[env.ix_stake(&alice.pubkey(), &op.pubkey(), a)], &op, &[&op, &alice]), "BadTimes");
+    // …and the room must expire at most 21 days after that.
+    let mut a = env.stake_args(room_id(2), YES, 500);
+    a.expiry_ts = a.lock_ts + 21 * DAY + 1;
+    assert_err(env.send(&[env.ix_stake(&alice.pubkey(), &op.pubkey(), a)], &op, &[&op, &alice]), "BadTimes");
+    // Both limits exactly: allowed.
+    let mut a = env.stake_args(room_id(3), YES, 500);
+    a.lock_ts = T0 + 180 * DAY;
+    a.expiry_ts = a.lock_ts + 21 * DAY;
+    env.send(&[env.ix_stake(&alice.pubkey(), &op.pubkey(), a)], &op, &[&op, &alice]).unwrap();
+}
+
+// ── admin hand-over ───────────────────────────────────────────────────
+
+#[test]
+fn admin_changes_hands_only_when_the_new_admin_accepts() {
+    let mut env = Env::new();
+    let admin = env.admin.insecure_clone();
+    let next = Keypair::new();
+    let stranger = Keypair::new();
+    for k in [&next, &stranger] {
+        env.svm.airdrop(&k.pubkey(), 1_000_000_000).unwrap();
+    }
+
+    // Only the admin can propose.
+    let ix = env.ix_propose_admin(&stranger.pubkey(), stranger.pubkey());
+    assert_err(env.send(&[ix], &stranger, &[&stranger]), "Unauthorized");
+
+    env.send(&[env.ix_propose_admin(&admin.pubkey(), next.pubkey())], &admin, &[&admin]).unwrap();
+    // Proposing changes nothing yet.
+    assert_eq!(env.config().admin, admin.pubkey());
+
+    // Only the named key can accept.
+    let ix = env.ix_accept_admin(&stranger.pubkey(), &admin.pubkey());
+    assert_err(env.send(&[ix], &stranger, &[&stranger]), "Unauthorized");
+
+    env.send(&[env.ix_accept_admin(&next.pubkey(), &admin.pubkey())], &next, &[&next]).unwrap();
+    assert_eq!(env.config().admin, next.pubkey());
+    assert!(!env.exists(&admin_transfer_pda(&env.program)), "the proposal is closed");
+
+    // The old admin is out; the new one can rotate keys.
+    let (op, t) = (env.operator.pubkey(), env.treasury);
+    assert_err(env.send(&[env.ix_update_config(&admin.pubkey(), op, t)], &admin, &[&admin]), "Unauthorized");
+    env.send(&[env.ix_update_config(&next.pubkey(), op, t)], &next, &[&next]).unwrap();
+}
+
+#[test]
+fn a_cancelled_proposal_cant_be_accepted() {
+    let mut env = Env::new();
+    let admin = env.admin.insecure_clone();
+    let next = Keypair::new();
+    env.svm.airdrop(&next.pubkey(), 1_000_000_000).unwrap();
+    env.send(&[env.ix_propose_admin(&admin.pubkey(), next.pubkey())], &admin, &[&admin]).unwrap();
+
+    // Only the admin can cancel.
+    let ix = env.ix_cancel_admin_transfer(&next.pubkey(), &admin.pubkey());
+    assert_err(env.send(&[ix], &next, &[&next]), "Unauthorized");
+    env.send(&[env.ix_cancel_admin_transfer(&admin.pubkey(), &admin.pubkey())], &admin, &[&admin]).unwrap();
+
+    assert!(env.send(&[env.ix_accept_admin(&next.pubkey(), &admin.pubkey())], &next, &[&next]).is_err());
+    assert_eq!(env.config().admin, admin.pubkey());
+}
+
+#[test]
 fn later_stakes_cant_change_a_rooms_rules() {
     let mut env = Env::new();
     let (id, _, _) = two_sided(&mut env, 1);

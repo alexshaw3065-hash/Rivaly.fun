@@ -10,7 +10,7 @@ use anchor_lang::{AccountDeserialize, InstructionData, ToAccountMetas};
 use anchor_spl::associated_token::get_associated_token_address;
 use anchor_spl::token::spl_token;
 use litesvm::LiteSVM;
-use rivaly_rooms::{Position, Room, StakeArgs};
+use rivaly_rooms::{Config, Position, Room, StakeArgs};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
 use solana_signer::Signer;
@@ -38,6 +38,9 @@ fn loader_v3() -> Pubkey {
 
 pub fn config_pda(program: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(&[b"config"], program).0
+}
+pub fn admin_transfer_pda(program: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[b"admin_transfer"], program).0
 }
 pub fn room_pda(program: &Pubkey, room_id: &[u8; 16]) -> Pubkey {
     Pubkey::find_program_address(&[b"room", room_id], program).0
@@ -225,6 +228,53 @@ impl Env {
             self.program,
             &rivaly_rooms::instruction::UpdateConfig { operator, treasury }.data(),
             rivaly_rooms::accounts::UpdateConfig { admin: *admin, config: config_pda(&self.program) }.to_account_metas(None),
+        )
+    }
+
+    pub fn config(&self) -> Config {
+        let a = self.svm.get_account(&config_pda(&self.program)).expect("config exists");
+        Config::try_deserialize(&mut a.data.as_slice()).unwrap()
+    }
+
+    pub fn ix_propose_admin(&self, admin: &Pubkey, new_admin: Pubkey) -> Instruction {
+        Instruction::new_with_bytes(
+            self.program,
+            &rivaly_rooms::instruction::ProposeAdmin { new_admin }.data(),
+            rivaly_rooms::accounts::ProposeAdmin {
+                admin: *admin,
+                config: config_pda(&self.program),
+                admin_transfer: admin_transfer_pda(&self.program),
+                system_program: anchor_lang::system_program::ID,
+            }
+            .to_account_metas(None),
+        )
+    }
+
+    pub fn ix_accept_admin(&self, new_admin: &Pubkey, proposer: &Pubkey) -> Instruction {
+        Instruction::new_with_bytes(
+            self.program,
+            &rivaly_rooms::instruction::AcceptAdmin {}.data(),
+            rivaly_rooms::accounts::AcceptAdmin {
+                new_admin: *new_admin,
+                config: config_pda(&self.program),
+                admin_transfer: admin_transfer_pda(&self.program),
+                proposer: *proposer,
+            }
+            .to_account_metas(None),
+        )
+    }
+
+    pub fn ix_cancel_admin_transfer(&self, admin: &Pubkey, proposer: &Pubkey) -> Instruction {
+        Instruction::new_with_bytes(
+            self.program,
+            &rivaly_rooms::instruction::CancelAdminTransfer {}.data(),
+            rivaly_rooms::accounts::CancelAdminTransfer {
+                admin: *admin,
+                config: config_pda(&self.program),
+                admin_transfer: admin_transfer_pda(&self.program),
+                proposer: *proposer,
+            }
+            .to_account_metas(None),
         )
     }
 

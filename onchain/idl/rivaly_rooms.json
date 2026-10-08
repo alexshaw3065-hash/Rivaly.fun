@@ -8,6 +8,161 @@
   },
   "instructions": [
     {
+      "name": "accept_admin",
+      "docs": [
+        "Step two: the named key signs to take over. Proves the new admin can",
+        "actually sign before the old one loses control."
+      ],
+      "discriminator": [
+        112,
+        42,
+        45,
+        90,
+        116,
+        181,
+        13,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "new_admin",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_transfer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "proposer",
+          "writable": true,
+          "relations": [
+            "admin_transfer"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_admin_transfer",
+      "docs": [
+        "Withdraws a proposal that hasn't been accepted. Admin only."
+      ],
+      "discriminator": [
+        38,
+        131,
+        157,
+        31,
+        240,
+        137,
+        44,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_transfer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "proposer",
+          "writable": true,
+          "relations": [
+            "admin_transfer"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "close_room",
       "docs": [
         "After every position is paid: the room's fees to the treasury, the",
@@ -634,6 +789,89 @@
       "args": []
     },
     {
+      "name": "propose_admin",
+      "docs": [
+        "Step one of handing over the admin (e.g. to a Squads multisig): the",
+        "current admin names the next one. Proposing again replaces the name;",
+        "nothing changes until the named key accepts."
+      ],
+      "discriminator": [
+        121,
+        214,
+        199,
+        212,
+        87,
+        39,
+        117,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_transfer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "refund_position",
       "docs": [
         "Before a result only: the operator sends one stake straight back to its",
@@ -1149,6 +1387,19 @@
   ],
   "accounts": [
     {
+      "name": "AdminTransfer",
+      "discriminator": [
+        8,
+        226,
+        88,
+        128,
+        195,
+        48,
+        234,
+        110
+      ]
+    },
+    {
       "name": "Config",
       "discriminator": [
         155,
@@ -1207,7 +1458,7 @@
     {
       "code": 6003,
       "name": "BadTimes",
-      "msg": "Stakes must close in the future and before the room expires"
+      "msg": "Stakes must close in the future (within 180 days), and the room expire within 21 days after"
     },
     {
       "code": 6004,
@@ -1306,6 +1557,32 @@
     }
   ],
   "types": [
+    {
+      "name": "AdminTransfer",
+      "docs": [
+        "A proposed admin hand-over, waiting for the new admin to accept."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pending",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposer",
+            "docs": [
+              "Paid the rent; gets it back when the proposal is accepted or cancelled."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "Config",
       "type": {

@@ -25,9 +25,30 @@ const nextConfig: NextConfig = {
   // may still follow their links (robots.ts only blocks the machinery).
   async headers() {
     const noindex = [{ key: "X-Robots-Tag", value: "noindex, follow" }];
-    return ["/wallet", "/notifications", "/wishlist", "/rooms/create", "/login", "/signup", "/invite", "/kit", "/auth/:path*", "/admin/:path*"].map(
-      (source) => ({ source, headers: noindex }),
-    );
+    return [
+      // Every response. Rivaly is never framed by another site (clickjacking
+      // on the stake and wallet screens), never has its files sniffed into
+      // another type, never leaks full URLs (room and invite links) to other
+      // sites, and doesn't use the camera, microphone or location. The CSP
+      // only covers what can't break the app: scripts aren't restricted
+      // (Dynamic, Supabase, Solana RPC and Klipy load from many origins; a
+      // script CSP needs per-request nonces — a later step).
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+        ],
+      },
+      ...["/wallet", "/notifications", "/wishlist", "/rooms/create", "/login", "/signup", "/invite", "/kit", "/auth/:path*", "/admin/:path*"].map((source) => ({
+        source,
+        headers: noindex,
+      })),
+    ];
   },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],

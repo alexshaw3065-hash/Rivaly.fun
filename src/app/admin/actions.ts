@@ -1,5 +1,6 @@
 "use server";
 
+import { PROGRAM_MAX_TOTAL_FEE_BPS } from "@/lib/escrow/program";
 import { revalidatePath } from "next/cache";
 import { adminForAction } from "@/lib/admin/guard";
 import { recordAdminAction } from "@/lib/admin/audit";
@@ -205,8 +206,10 @@ export async function updateFees(input: { enabled: boolean; rivalyBps: number; h
   const me = await adminForAction("owner");
   if ("error" in me) return fail(me.error);
   if (needReason(input.reason)) return fail("Add a reason.");
-  const ok = (n: number) => Number.isInteger(n) && n >= 0 && n <= 2500;
-  if (!ok(input.rivalyBps) || !ok(input.hostBps)) return fail("Rates must be 0–25%.");
+  // The on-chain program refuses rooms whose fees together pass 6%.
+  const ok = (n: number) => Number.isInteger(n) && n >= 0;
+  if (!ok(input.rivalyBps) || !ok(input.hostBps) || input.rivalyBps + input.hostBps > PROGRAM_MAX_TOTAL_FEE_BPS)
+    return fail("Rivaly's and the host's fees together can be at most 6% of the winners' profit.");
   const wallet = input.wallet.trim();
   if (wallet && !SOLANA_ADDRESS.test(wallet)) return fail("That isn't a Solana address.");
   const { data: before } = await db().from("platform_settings").select("fees_enabled, rivaly_fee_bps, host_fee_bps, fee_wallet").eq("id", true).maybeSingle();

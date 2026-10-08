@@ -27,6 +27,12 @@ const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 export const PROGRAM_PAYOUTS_PER_TX = 5;
 /** After this long past kick-off an unresolved room can be voided by anyone (the program's expiry). */
 export const ROOM_EXPIRY_SECONDS = 14 * 86_400;
+// The program's own ceilings (onchain/programs/rivaly_rooms/src/lib.rs); a
+// first stake outside them is refused on-chain, so the app checks first.
+/** Rivaly's fee and the host's together, in basis points of the winners' profit. */
+export const PROGRAM_MAX_TOTAL_FEE_BPS = 600;
+/** How far ahead of a room's first stake its stakes can close (kick-off). */
+export const PROGRAM_MAX_LOCK_AHEAD_SECONDS = 180 * 86_400;
 
 export const configPda = () => PublicKey.findProgramAddressSync([Buffer.from("config")], PROGRAM)[0];
 export const roomPda = (roomId: string) => PublicKey.findProgramAddressSync([Buffer.from("room"), uuidBytes(roomId)], PROGRAM)[0];

@@ -35,8 +35,9 @@ fn random_rooms_match_plan_settlement() {
         let mut env = Env::new();
         let id = room_id((r % 250) as u8);
         let people = 1 + rng.below(12) as usize;
-        let fee_bps = [0u16, 300, 2_500, rng.below(2_501) as u16][rng.below(4) as usize];
-        let host_fee_bps = [0u16, 200, 2_500, rng.below(2_501) as u16][rng.below(4) as usize];
+        // Anything the program accepts: the two fees together at most 6%.
+        let fee_bps = [0u16, 300, 600, rng.below(601) as u16][rng.below(4) as usize];
+        let host_fee_bps = [0u16, 200, 600 - fee_bps, rng.below(601 - fee_bps as u64) as u16][rng.below(4) as usize].min(600 - fee_bps);
 
         // Stakes: sometimes everyone the same (ties), sometimes wide-ranging.
         let same = rng.below(4) == 0;
