@@ -145,7 +145,9 @@ export async function runChecks(): Promise<{ checks: Check[]; worker: WorkerHeal
       const { data } = await db().from("job_runs").select("started_at, ok").eq("job", "settle").order("started_at", { ascending: false }).limit(1).maybeSingle();
       if (!data) throw new Error("no runs recorded yet (Render must call /api/cron/settle with CRON_SECRET)");
       const ago = Math.round((Date.now() - +new Date(data.started_at)) / 60000);
-      if (ago > 5) throw new Error(`last run ${ago} minutes ago`);
+      // The worker calls it every minute while there's work and every 15
+      // minutes otherwise (worker/src/index.ts, SAFETY_HEARTBEAT_MS).
+      if (ago > 16) throw new Error(`last run ${ago} minutes ago`);
       if (!data.ok) throw new Error("last run failed — see Jobs");
       return `last run ${ago} min ago`;
     }),
