@@ -114,13 +114,13 @@ The argument, the money, the match and your people in one room, settled fairly.
 > - **AI tools:** built with Claude Code (Anthropic's AI coding agent) across design, engineering, testing and research. The product itself has no AI features yet, deliberately.
 
 **How Rivaly uses Solana**
-> Rivaly uses Solana as invisible payment rails for every room, with USDC as the currency so every pot is in stable dollars. When a user signs up with email, an embedded Solana wallet is created for them in the background. When they join a room, their USDC stake moves to Rivaly's escrow wallet on Solana. We build the transaction and pay the network fee, so users never need SOL or a crypto wallet. Our server checks each transfer on-chain before the stake counts. The pot stays in escrow until the match result is confirmed by official sports data. Then the winners' shares are paid straight to their wallets in USDC, usually within seconds. Every stake and every payout has a public on-chain receipt. We chose Solana because fast, low-cost transfers make instant payouts to many winners practical, even for small stakes.
+> Rivaly uses Solana as invisible payment rails for every room, with USDC as the currency so every pot is in stable dollars. When a user signs up with email, an embedded Solana wallet is created for them in the background. When they join a room, their USDC stake moves into that room's vault, owned by our on-chain program on Solana. We build the transaction and pay the network fee, so users never need SOL or a crypto wallet. Our server checks each transfer on-chain before the stake counts. The pot stays in the vault until the match result is confirmed by official sports data. Then the winners' shares are paid straight to their wallets in USDC, usually within seconds. Every stake and every payout has a public on-chain receipt. We chose Solana because fast, low-cost transfers make instant payouts to many winners practical, even for small stakes.
 
-If asked about the escrow: *custodial for V1 (a Rivaly-held wallet), fully verifiable on-chain, with an on-chain program on the roadmap.*
+If asked about the escrow (updated 2026-10-09): *since 7 Oct 2026, every new room's stakes sit in a vault owned by our `rivaly_rooms` program on Solana (devnet). The program only pays money back to the people who staked in that room, caps Rivaly's fee at 6% of winnings, and lets anyone refund a room after its deadline if no result was ever posted. What it doesn't do yet: decide results. Rivaly's operator posts each result from official match data, and the program pays out from it. The admin key is ready to move to a multisig. Rooms created before 7 Oct used a Rivaly-held escrow wallet.*
 
 **Category:** Consumer (a mainstream social app for sport, crypto invisible). Not SocialFi (no token) and not DeFi. Prediction markets is a fair second tag. One line: *"A consumer social app for sport, with prediction at its core, built on Solana with the crypto completely invisible to users."*
 
-**Platform:** a mobile-first web app (PWA), installable to the home screen. Not a "dApp" (users never connect a wallet, escrow is custodial). *"A mobile-first consumer web app, installable to your home screen, with payments on Solana."*
+**Platform:** a mobile-first web app (PWA), installable to the home screen. Not a "dApp" (users never connect a wallet; one is made for them). *"A mobile-first consumer web app, installable to your home screen, with payments on Solana."*
 
 ## 9. Anything else judges should know
 
@@ -149,9 +149,9 @@ If asked about the escrow: *custodial for V1 (a Rivaly-held wallet), fully verif
 
 ## 11. Rules for every public answer
 
-- **Never claim** "first", "trustless", "smart contract" (escrow is custodial) or "locked until full time" (rooms settle when the result is certain).
+- **Never claim** "first", "trustless", "audited", that the program decides results (Rivaly posts them from official data), or "locked until full time" (rooms settle when the result is certain). Say "on-chain program" or "a vault our program owns"; "smart contract" is accurate for rooms since 7 Oct 2026, but always with what it does and doesn't do (updated 2026-10-09).
 - **No country or demographics** in public answers (founder's call).
-- **Don't bring Polymarket into pitch answers** unless asked.
+- **Polymarket only as market proof** (founder, 2026-10-09): "even the giants are moving this way" (Polymarket Squads, Kalshi Social). Never "we're like Polymarket", and never claim their social features drove their growth (no data shows it).
 - Say "create a prediction", not "make your call"; keep "call" for flavour ("Called it").
 - Don't lead with "prediction market" to normal fans, with crypto, or with fees ("we never take a side" first).
 - Say "beta on devnet" plainly; don't imply real-money users.
