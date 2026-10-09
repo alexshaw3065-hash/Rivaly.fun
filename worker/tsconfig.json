@@ -33,6 +33,7 @@
     "../src/lib/txline/types.ts",
     "../src/lib/txline/normalize.ts",
     "../src/lib/txline/apply-scores.ts",
+    "../src/lib/txline/client.ts",
     "../src/lib/bigballs/logic.ts",
     "../src/lib/bigballs/client.ts",
     "../src/lib/bigballs/sync.ts"

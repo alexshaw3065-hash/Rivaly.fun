@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { applyScores } from "../../src/lib/txline/apply-scores";
+import { openSession } from "../../src/lib/txline/client";
 import type { TxLineScores } from "../../src/lib/txline/types";
 import { consumeSse, SseHttpError } from "./sse";
 import { pollLive, syncFixtures } from "../../src/lib/bigballs/sync";
@@ -376,6 +377,74 @@ if (BIGBALLS_API_KEY) {
   };
   setTimeout(liveTick, 30_000);
   console.log("[bigballs] on — fixtures every 6h, live polling for matches with rooms");
+}
+
+// TxLINE result repair. The stream can't replay what it missed, and the app's
+// /api/cron/sync-scores backstop can't run on Vercel (the TxLINE token lives
+// only here) — so a match the stream missed used to stay "scheduled" forever
+// and its rooms never settled (Saints v Falcons, 6 Oct). Every 5 minutes this
+// re-reads the full record (historical log + snapshot) of every unfinished
+// match in a competition we can read scores for, back 14 days, and applies it
+// through the same normaliser as the stream. Idempotent: status only moves
+// forward and events are de-duplicated by applyScores.
+const REPAIR_EVERY_MS = 5 * 60_000;
+const REPAIR_PAST_MS = 14 * 24 * 3600_000;
+{
+  const supabase = db();
+  const repairTick = async () => {
+    const started = Date.now();
+    try {
+      const { data: comps, error: compsError } = await supabase
+        .from("tracked_competitions")
+        .select("competition_id")
+        .eq("provider", "txline")
+        .eq("enabled", true)
+        .eq("scores_available", true);
+      if (compsError) throw new Error(`competitions: ${compsError.message}`);
+      const allowed = (comps ?? []).map((c) => c.competition_id as number);
+      if (allowed.length === 0) return;
+
+      const { data: due, error } = await supabase
+        .from("matches")
+        .select("id, sport_id, provider_fixture_id")
+        .eq("provider", "txline")
+        .in("competition_id", allowed)
+        .in("status", ["scheduled", "live"])
+        .gte("kickoff_at", new Date(started - REPAIR_PAST_MS).toISOString())
+        .lte("kickoff_at", new Date(started + 5 * 60_000).toISOString())
+        .order("kickoff_at", { ascending: false })
+        .limit(40);
+      if (error) throw new Error(`matches: ${error.message}`);
+      if (!due?.length) return;
+
+      const session = await openSession();
+      const result = { considered: due.length, withData: 0, finished: [] as number[], errors: [] as string[] };
+      for (const m of due) {
+        const fixtureId = m.provider_fixture_id as number;
+        try {
+          const records = await session.scoreRecords(fixtureId);
+          // Pre-match comments only: nothing to apply yet (or no coverage).
+          if (!records.some((r) => typeof r.StatusId === "number" || r.Action === "game_finalised")) continue;
+          result.withData += 1;
+          await applyScores(supabase, { id: m.id as string, sport_id: m.sport_id as number }, records);
+          if (records.some((r) => r.Action === "game_finalised")) result.finished.push(fixtureId);
+        } catch (e) {
+          result.errors.push(`${fixtureId}: ${(e as Error).message}`);
+        }
+      }
+      if (result.withData > 0 || result.errors.length > 0) {
+        await supabase
+          .from("job_runs")
+          .insert({ job: "txline-repair", started_at: new Date(started).toISOString(), finished_at: new Date().toISOString(), ok: result.errors.length === 0, detail: { ...result, ms: Date.now() - started } })
+          .then(() => undefined, () => undefined);
+      }
+    } catch (e) {
+      console.error("[repair]", (e as Error).message);
+    }
+  };
+  setTimeout(repairTick, 45_000);
+  setInterval(repairTick, REPAIR_EVERY_MS);
+  console.log("[repair] on — unfinished TxLINE matches re-read every 5 min");
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {

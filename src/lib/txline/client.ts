@@ -27,7 +27,7 @@ export class TxLineError extends Error {
 }
 
 async function getGuestJwt(): Promise<string> {
-  const res = await fetch(JWT_URL, { method: "POST", cache: "no-store" });
+  const res = await fetch(JWT_URL, { method: "POST", cache: "no-store" } as RequestInit);
   if (!res.ok) throw new TxLineError(`guest auth failed: ${res.status}`, res.status);
   const json = (await res.json()) as { token?: string };
   if (!json.token) throw new TxLineError("guest auth returned no token", 500);
@@ -53,7 +53,7 @@ export async function openSession(): Promise<TxLineSession> {
   };
 
   async function raw(path: string, signal?: AbortSignal): Promise<Response> {
-    const res = await fetch(`${API_BASE}${path}`, { headers, cache: "no-store", signal });
+    const res = await fetch(`${API_BASE}${path}`, { headers, cache: "no-store", signal } as RequestInit);
     if (!res.ok) {
       const body = await res.text();
       // 403 means the competition isn't in our bundle — an expected,
