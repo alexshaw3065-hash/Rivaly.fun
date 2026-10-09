@@ -152,7 +152,15 @@ export async function runChecks(): Promise<{ checks: Check[]; worker: WorkerHeal
       return `last run ${ago} min ago`;
     }),
     timed("Config", async () => {
-      const missing = ["CRON_SECRET", "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "NEXT_PUBLIC_KLIPY_API_KEY"].filter((k) => !process.env[k]);
+      // Written out in full, not process.env[k]: NEXT_PUBLIC_ values are
+      // inlined at build time only when referenced by name, so a dynamic
+      // lookup reported keys the live site was actually using as missing.
+      const present: Record<string, boolean> = {
+        CRON_SECRET: Boolean(process.env.CRON_SECRET),
+        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME),
+        NEXT_PUBLIC_KLIPY_API_KEY: Boolean(process.env.NEXT_PUBLIC_KLIPY_API_KEY),
+      };
+      const missing = Object.keys(present).filter((k) => !present[k]);
       if (missing.length) throw new Error(`missing: ${missing.join(", ")}`);
       return "all expected keys present";
     }),
