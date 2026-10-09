@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { applyScores } from "../../src/lib/txline/apply-scores";
 import { openSession } from "../../src/lib/txline/client";
+import { syncFixturesWith } from "../../src/lib/txline/sync-fixtures-core";
 import type { TxLineScores } from "../../src/lib/txline/types";
 import { consumeSse, SseHttpError } from "./sse";
 import { pollLive, syncFixtures } from "../../src/lib/bigballs/sync";
@@ -445,6 +446,26 @@ const REPAIR_PAST_MS = 14 * 24 * 3600_000;
   setTimeout(repairTick, 45_000);
   setInterval(repairTick, REPAIR_EVERY_MS);
   console.log("[repair] on — unfinished TxLINE matches re-read every 5 min");
+
+  // TxLINE fixtures: kick-off moves, postponements and new games. Same reason
+  // as above — /api/cron/sync-fixtures can't run on Vercel without the token,
+  // so nothing refreshed fixtures after the 22 Sept import, and a kick-off
+  // moved 3 h earlier (Packers v Bears, 11 Oct) would have left its rooms
+  // open long after the real start.
+  const fixturesTick = async () => {
+    const started = Date.now();
+    try {
+      const r = await syncFixturesWith(supabase);
+      await supabase
+        .from("job_runs")
+        .insert({ job: "txline-fixtures", started_at: new Date(started).toISOString(), finished_at: new Date().toISOString(), ok: r.errors.length === 0, detail: { ...r, ms: Date.now() - started } })
+        .then(() => undefined, () => undefined);
+    } catch (e) {
+      console.error("[txline-fixtures]", (e as Error).message);
+    }
+  };
+  setTimeout(fixturesTick, 2 * 60_000);
+  setInterval(fixturesTick, 6 * 60 * 60_000);
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
