@@ -238,8 +238,13 @@ export function normalizeMatch(records: TxLineScores[], sportId: number): Normal
   let wentToOvertime: boolean | null = null;
 
   if (latest) {
-    const p1 = totalFor(latest, "Participant1", sportId);
-    const p2 = totalFor(latest, "Participant2", sportId);
+    // TxLINE leaves a team's Total out until it scores. When the other side's
+    // total is there, a missing one is 0, not unknown: otherwise a 0-0 (or an
+    // away win to nil) never gets a home score and the room never settles.
+    const t1 = totalFor(latest, "Participant1", sportId);
+    const t2 = totalFor(latest, "Participant2", sportId);
+    const p1 = t1 ?? (t2 !== null ? 0 : null);
+    const p2 = t2 ?? (t1 !== null ? 0 : null);
     homeScore = latest.Participant1IsHome ? p1 : p2;
     awayScore = latest.Participant1IsHome ? p2 : p1;
 
