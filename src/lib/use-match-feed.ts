@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { collapseEvents } from "@/lib/match-feed";
@@ -26,6 +26,11 @@ interface Feed {
 }
 
 const feeds = new Map<string, Feed>();
+// The server's rows for each match, kept even when its feed is torn down: a
+// feed rebuilt later (the last listener left and another arrived) must start
+// from them, not empty, or anything that landed before the page loaded (the
+// line-ups, the first half's events) disappears from the room.
+const seeds = new Map<string, EventRow[]>();
 const EMPTY: EventRow[] = [];
 
 function rebuild(f: Feed) {
@@ -41,9 +46,11 @@ function rebuild(f: Feed) {
 }
 
 function feedFor(matchId: string, initial: EventRow[] | undefined, live: boolean): Feed {
+  if (initial) seeds.set(matchId, initial);
   let f = feeds.get(matchId);
   if (!f) {
-    f = { initial: initial ?? EMPTY, fresh: [], snapshot: initial ?? EMPTY, listeners: new Set(), channel: null, live };
+    const seed = initial ?? seeds.get(matchId) ?? EMPTY;
+    f = { initial: seed, fresh: [], snapshot: seed, listeners: new Set(), channel: null, live };
     feeds.set(matchId, f);
   }
   return f;
@@ -65,6 +72,7 @@ function connect(matchId: string, f: Feed) {
 }
 
 function adopt(matchId: string, initial: EventRow[]) {
+  seeds.set(matchId, initial);
   const f = feeds.get(matchId);
   if (!f || f.initial === initial) return;
   f.initial = initial;
@@ -105,8 +113,11 @@ export function useMatchFeed(matchId: string, initial?: EventRow[], live = true)
     if (initial) adopt(matchId, initial);
   }, [matchId, initial]);
 
+  // Stable, so React doesn't unsubscribe and resubscribe on every render: a
+  // resubscribe that briefly left no listeners tore the feed down.
+  const subscribeFeed = useCallback((listener: () => void) => subscribe(matchId, live, listener), [matchId, live]);
   return useSyncExternalStore(
-    (listener) => subscribe(matchId, live, listener),
+    subscribeFeed,
     () => read(matchId),
     () => initial ?? EMPTY,
   );
