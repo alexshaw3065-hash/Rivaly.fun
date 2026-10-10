@@ -4,15 +4,13 @@ import { useMemo, useRef, useState, type PointerEvent } from "react";
 import type { MomentumBar, MomentumMark } from "@/lib/match-stats";
 import type { MatchStory, StoryBeat } from "@/lib/match-pressure";
 import type { Match } from "@/lib/types";
-import { inkOn, teamFills } from "@/lib/team-fills";
+import { teamFills } from "@/lib/team-fills";
 import { ShareStoryButton } from "./share-story-button";
 
 // The match, read: a one-line story of who was on top (and whether the
 // scoreline agrees), the share of the pressure across the match or either
-// half, the beats that made it — spells of control, swings, goals against
-// the run of play — and the momentum chart they come from. Tap a beat to
-// light up that stretch of the chart; drag across the chart to read any
-// minute. After the whistle, the story can go out as a card.
+// half, and the momentum chart it comes from; drag across the chart to read
+// any minute. After the whistle, the story can go out as a card.
 //
 // Engagement mechanisms #9 (a match story to retell — "they battered us and
 // still lost") and #2 (live, the pressure building is the tension itself).
@@ -27,13 +25,12 @@ const MID = H / 2;
 export function MatchAnalysis({ match, data, story, roomId }: { match: Match; data: Momentum; story: MatchStory | null; roomId?: string }) {
   const { home, away, codes } = teamFills(match);
   const fill = { home: home.fill, away: away.fill };
-  const [focus, setFocus] = useState<StoryBeat | null>(null);
   const finished = match.status === "finished";
 
   return (
     <section className="overflow-hidden rounded-card bg-surface edge" aria-label="Match story">
-      {story && <Story story={story} codes={codes} fill={fill} focus={focus} onFocus={setFocus} />}
-      <Chart data={data} fill={fill} codes={codes} focus={focus} />
+      {story && <Story story={story} codes={codes} fill={fill} />}
+      <Chart data={data} fill={fill} codes={codes} focus={null} />
       {story && finished && roomId && (
         <div className="border-t border-line px-4 py-3">
           <ShareStoryButton roomId={roomId} />
@@ -49,14 +46,10 @@ function Story({
   story,
   codes,
   fill,
-  focus,
-  onFocus,
 }: {
   story: MatchStory;
   codes: Record<Side, string>;
   fill: Record<Side, string>;
-  focus: StoryBeat | null;
-  onFocus: (b: StoryBeat | null) => void;
 }) {
   const [period, setPeriod] = useState<0 | 1 | 2>(0);
   const share = period === 0 ? story.share : story.halves[period - 1];
@@ -109,68 +102,7 @@ function Story({
         <span>{codes.away}</span>
       </div>
 
-      {/* The beats */}
-      {story.beats.length > 0 && (
-        <div className="no-scrollbar -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1">
-          {story.beats.map((b, i) => {
-            const on = focus === b;
-            return (
-              <button
-                key={i}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onFocus(on ? null : b)}
-                className="enter-pop flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-3 text-caption font-semibold outline outline-1 -outline-offset-1 transition-[background-color,color,transform] duration-100 active:scale-95"
-                style={{
-                  background: on ? fill[b.side] : `color-mix(in srgb, ${fill[b.side]} 13%, transparent)`,
-                  color: on ? inkOn(fill[b.side]) : "var(--foreground)",
-                  outlineColor: `color-mix(in srgb, ${fill[b.side]} ${on ? 100 : 38}%, transparent)`,
-                  transitionDelay: `${i * 40}ms`,
-                }}
-              >
-                <BeatIcon kind={b.kind} colour={on ? inkOn(fill[b.side]) : fill[b.side]} />
-                {beatLabel(b, codes)}
-              </button>
-            );
-          })}
-        </div>
-      )}
     </div>
-  );
-}
-
-function beatLabel(b: StoryBeat, codes: Record<Side, string>): string {
-  const c = codes[b.side];
-  switch (b.kind) {
-    case "spell":
-      return `${c} on top · ${b.from}'–${b.to}'`;
-    case "swing":
-      return `Swing to ${c} · ${b.minute}'`;
-    case "late":
-      return `Late goal · ${c} ${b.minute}'`;
-    case "against-run":
-      return `Against the run · ${c} ${b.minute}'`;
-  }
-}
-
-function BeatIcon({ kind, colour }: { kind: StoryBeat["kind"]; colour: string }) {
-  if (kind === "spell")
-    return (
-      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-        <path d="M1 9h2V6H1zM5 9h2V3H5zM9 9h2V1H9z" fill={colour} />
-      </svg>
-    );
-  if (kind === "swing")
-    return (
-      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-        <path d="M2 4h7l-2-2M10 8H3l2 2" stroke={colour} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  return (
-    <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden>
-      <circle cx="7" cy="7" r="6" fill="none" stroke={colour} strokeWidth="1.4" />
-      <path d="M7 4.4 9.4 6.2 8.5 9H5.5L4.6 6.2Z" fill={colour} />
-    </svg>
   );
 }
 

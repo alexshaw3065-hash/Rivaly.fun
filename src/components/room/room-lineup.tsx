@@ -7,13 +7,14 @@ import type { Match } from "@/lib/types";
 import type { EventRow } from "@/lib/match-timeline";
 import { TeamCrest } from "../team-crest";
 
-// The line-ups the way match apps show them: a switch between the two teams,
-// both formations up top, and the chosen team laid out across a pitch —
-// keeper on the left, attack on the right — in the kit it's wearing, with
-// what every player did marked on them (goals, cards, the minute they went
-// off) and the bench underneath with who came on when. All from TxLINE's
-// line-ups and event stream (match-lineups.ts); nothing filled in. Until the
-// line-ups land (~25 minutes before kick-off) the same frame waits for them.
+// The line-ups the way match apps show them: one full pitch with both teams
+// on it, each in its own half facing the other — the away side attacking
+// down from the top, the home side up from the bottom — in the kits they're
+// wearing, with what every player did marked on them (goals, cards, the
+// minute they went off), each team's name and formation at its own end, and
+// the substitutes underneath. All from TxLINE's line-ups and event stream
+// (match-lineups.ts); nothing filled in. Until the line-ups land (~25 minutes
+// before kick-off) the same pitch waits for them.
 
 type Kit = { fill: string; ink: string };
 type Side = "home" | "away";
@@ -55,59 +56,25 @@ export function kitsFrom(rows: EventRow[]): { home?: string; away?: string } {
 }
 
 export function LineupPanel({ match, lineups, kits = {} }: { match: Match; lineups: MatchLineups | null; kits?: { home?: string; away?: string } }) {
+  // Whose substitutes are listed under the pitch.
   const [side, setSide] = useState<Side>("home");
   const fills = teamFills(match, kits);
   const teams = { home: match.homeTeam, away: match.awayTeam };
-  const team = lineups?.[side] ?? null;
+  const bench = lineups?.[side].bench ?? [];
 
   return (
     <div className="flex flex-col gap-3">
       <div className="stadium-art overflow-hidden rounded-card edge">
-        {/* Team switch */}
-        <div role="tablist" aria-label="Team" className="grid grid-cols-2 bg-surface">
-          {(["home", "away"] as const).map((s) => (
-            <button
-              key={s}
-              role="tab"
-              type="button"
-              aria-selected={side === s}
-              onClick={() => setSide(s)}
-              className={`relative flex h-12 min-w-0 items-center gap-2 px-4 text-sm font-semibold transition-colors duration-150 ${s === "away" ? "flex-row-reverse text-right" : ""}`}
-              style={{ color: side === s ? "var(--foreground)" : "var(--muted)" }}
-            >
-              <TeamCrest name={teams[s]} size={20} />
-              <span className="min-w-0 truncate">{teams[s]}</span>
-              <span
-                aria-hidden
-                className="absolute bottom-0 h-[2px] rounded-full transition-[opacity,transform] duration-200"
-                style={{
-                  background: "var(--foreground)",
-                  opacity: side === s ? 1 : 0,
-                  transform: side === s ? "scaleX(1)" : "scaleX(0.4)",
-                  [s === "home" ? "left" : "right"]: 16,
-                  width: "calc(100% - 32px)",
-                }}
-              />
-            </button>
-          ))}
-        </div>
-
-        {/* Both formations */}
-        <div className="flex items-end justify-between border-t border-line bg-surface px-4 py-2">
-          {(["home", "away"] as const).map((s) => (
-            <div key={s} className={s === "away" ? "text-right" : ""}>
-              <p className="text-label font-bold tabular-nums text-foreground">{lineups?.[s].formation || "–"}</p>
-              <p className="text-caption text-secondary">Formation</p>
-            </div>
-          ))}
-        </div>
-
-        {/* The pitch, sideways: keeper left, attack right */}
+        <TeamBar name={teams.away} formation={lineups?.away.formation} kit={fills.away} />
+        {/* The full pitch: away team in the top half, home team in the bottom half */}
         <div style={{ background: STRIPES }}>
-          <div className="relative mx-auto aspect-[4/3] w-full max-w-[560px]">
+          <div className="relative mx-auto aspect-[68/105] w-full max-w-[420px]">
             <PitchLines />
-            {team ? (
-              <Shape key={side} team={team} kit={fills[side]} />
+            {lineups ? (
+              <>
+                <Half team={lineups.away} kit={fills.away} end="top" />
+                <Half team={lineups.home} kit={fills.home} end="bottom" />
+              </>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center p-6">
                 <p className="max-w-[16rem] rounded-xl bg-black/55 px-4 py-3 text-center text-[13px] font-medium leading-snug text-white backdrop-blur-sm">
@@ -117,15 +84,45 @@ export function LineupPanel({ match, lineups, kits = {} }: { match: Match; lineu
             )}
           </div>
         </div>
+        <TeamBar name={teams.home} formation={lineups?.home.formation} kit={fills.home} />
       </div>
 
-      {team && team.bench.length > 0 && (
+      {lineups && (lineups.home.bench.length > 0 || lineups.away.bench.length > 0) && (
         <div className="rounded-card bg-surface px-4 py-3 edge">
-          <p className="pb-2 text-label font-semibold text-secondary">Substitutes</p>
-          <Bench team={team} />
+          <div className="flex items-center justify-between pb-2">
+            <p className="text-label font-semibold text-secondary">Substitutes</p>
+            <div role="tablist" aria-label="Team" className="flex gap-0.5 rounded-control bg-background p-0.5">
+              {(["home", "away"] as const).map((s) => (
+                <button
+                  key={s}
+                  role="tab"
+                  type="button"
+                  aria-selected={side === s}
+                  onClick={() => setSide(s)}
+                  className={`flex h-7 max-w-[9rem] items-center gap-1.5 rounded-tag px-2 text-caption font-semibold transition-colors duration-100 ${side === s ? "bg-surface-elevated text-foreground" : "text-secondary"}`}
+                >
+                  <TeamCrest name={teams[s]} size={14} />
+                  <span className="truncate">{teams[s]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <Bench bench={bench} />
         </div>
       )}
-      {team && <p className="text-center text-caption text-tertiary">Official line-ups from the match feed</p>}
+      {lineups && <p className="text-center text-caption text-tertiary">Official line-ups from the match feed</p>}
+    </div>
+  );
+}
+
+/** A team's name, kit and formation, at its own end of the pitch. */
+function TeamBar({ name, formation, kit }: { name: string; formation?: string; kit: Kit }) {
+  return (
+    <div className="flex h-12 items-center gap-2 bg-surface px-4">
+      <TeamCrest name={name} size={20} />
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{name}</span>
+      <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-white/40" style={{ background: kit.fill }} />
+      <span className="text-label font-bold tabular-nums text-foreground">{formation || "–"}</span>
     </div>
   );
 }
@@ -133,33 +130,40 @@ export function LineupPanel({ match, lineups, kits = {} }: { match: Match; lineu
 // Mown stripes across the pitch, from the stadium's own grass colours (they
 // follow light/dark with the stadium — see .stadium-art in globals.css).
 const STRIPES =
-  "repeating-linear-gradient(90deg, var(--st-pitch-2) 0 10%, color-mix(in srgb, var(--st-pitch-2) 86%, #000) 10% 20%)";
+  "repeating-linear-gradient(180deg, var(--st-pitch-2) 0 6.25%, color-mix(in srgb, var(--st-pitch-2) 86%, #000) 6.25% 12.5%)";
 
+/** A full pitch, end to end (68 x 105, the real proportions). */
 function PitchLines() {
   return (
-    <svg viewBox="0 0 120 90" className="absolute inset-0 h-full w-full" fill="none" stroke="rgba(255,255,255,0.38)" strokeWidth="0.45" aria-hidden>
-      <rect x="2.5" y="2.5" width="115" height="85" />
-      <line x1="60" y1="2.5" x2="60" y2="87.5" />
-      <circle cx="60" cy="45" r="9" />
-      <circle cx="60" cy="45" r="0.7" fill="rgba(255,255,255,0.38)" stroke="none" />
-      <rect x="2.5" y="24" width="16" height="42" />
-      <rect x="2.5" y="35" width="6" height="20" />
-      <path d="M18.5 38a8 8 0 0 1 0 14" />
-      <rect x="101.5" y="24" width="16" height="42" />
-      <rect x="111.5" y="35" width="6" height="20" />
-      <path d="M101.5 38a8 8 0 0 0 0 14" />
+    <svg viewBox="0 0 68 105" className="absolute inset-0 h-full w-full" fill="none" stroke="rgba(255,255,255,0.38)" strokeWidth="0.4" aria-hidden>
+      <rect x="2" y="2" width="64" height="101" />
+      <line x1="2" y1="52.5" x2="66" y2="52.5" />
+      <circle cx="34" cy="52.5" r="9.15" />
+      <circle cx="34" cy="52.5" r="0.6" fill="rgba(255,255,255,0.38)" stroke="none" />
+      {/* top end */}
+      <rect x="13.85" y="2" width="40.3" height="16.5" />
+      <rect x="24.85" y="2" width="18.3" height="5.5" />
+      <circle cx="34" cy="13" r="0.5" fill="rgba(255,255,255,0.38)" stroke="none" />
+      <path d="M26.69 18.5A9.15 9.15 0 0 0 41.31 18.5" />
+      {/* bottom end */}
+      <rect x="13.85" y="86.5" width="40.3" height="16.5" />
+      <rect x="24.85" y="97.5" width="18.3" height="5.5" />
+      <circle cx="34" cy="92" r="0.5" fill="rgba(255,255,255,0.38)" stroke="none" />
+      <path d="M26.69 86.5A9.15 9.15 0 0 1 41.31 86.5" />
     </svg>
   );
 }
 
-/** One team across the pitch: each line a column, keeper nearest the left goal. */
-function Shape({ team, kit }: { team: TeamLineup; kit: Kit }) {
+/** One team in its own half: keeper by its goal, each line further up towards halfway. */
+function Half({ team, kit, end }: { team: TeamLineup; kit: Kit; end: "top" | "bottom" }) {
   const n = team.lines.length;
   return (
     <>
       {team.lines.map((line, i) => {
-        const left = n > 1 ? 8 + (i * 80) / (n - 1) : 8;
-        return line.map((p, j) => <PlayerToken key={p.id} player={p} kit={kit} left={left} top={9 + ((j + 0.5) / line.length) * 82} />);
+        // Keeper at 7% from its own goal line, the most advanced line at 43%.
+        const fromGoal = n > 1 ? 7 + (i * 36) / (n - 1) : 7;
+        const top = end === "top" ? fromGoal : 100 - fromGoal;
+        return line.map((p, j) => <PlayerToken key={p.id} player={p} kit={kit} left={8 + ((j + 0.5) / line.length) * 84} top={top} />);
       })}
     </>
   );
@@ -195,10 +199,10 @@ function PlayerToken({ player: p, kit, left, top }: { player: LineupPlayer; kit:
   );
 }
 
-function Bench({ team }: { team: TeamLineup }) {
+function Bench({ bench }: { bench: LineupPlayer[] }) {
   return (
     <ul className="grid grid-cols-1 gap-x-4 min-[420px]:grid-cols-2">
-      {team.bench.map((p) => (
+      {bench.map((p) => (
         <li key={p.id} className={`flex items-center gap-2 py-1 text-label ${p.on === null ? "text-secondary" : "text-foreground"}`}>
           <span className="w-5 shrink-0 text-right text-caption tabular-nums text-tertiary">{p.number}</span>
           <span className="min-w-0 flex-1 truncate" title={p.name}>
