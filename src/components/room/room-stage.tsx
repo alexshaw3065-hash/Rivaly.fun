@@ -174,7 +174,9 @@ export function RoomStage({
             </span>
           </Link>
           <span className="ml-auto flex h-9 min-w-0 items-center truncate rounded-full bg-black/70 px-3 text-micro font-bold uppercase ring-1 ring-white/20 backdrop-blur-sm">
-            {live ? (
+            {live && match.provider === "txline" && match.sportId === 1 && match.providerStatusId === 3 ? (
+              <span className="text-white">Half-time</span>
+            ) : live ? (
               <LiveBadge />
             ) : finished ? (
               <span className="text-white">Full time</span>

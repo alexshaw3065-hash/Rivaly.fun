@@ -14,6 +14,7 @@ import { RivalCharacter } from "../rival-character";
 import { LineupPanel, kitsFrom } from "./room-lineup";
 import { teamFills } from "@/lib/team-fills";
 import { feedClock, matchStory } from "@/lib/match-pressure";
+import { SOCCER_HALFTIME, currentStatus, footballMinute } from "@/lib/football-minute";
 import { LiveBadge } from "../live-badge";
 import { MatchAnalysis } from "./match-analysis";
 import { CHAT_ACTIVITY_EVENT, ROOM_TAB_EVENT, type ChatActivity } from "./room-tabs-event";
@@ -178,10 +179,15 @@ export function RoomTabs({
     document.documentElement.toggleAttribute("data-room-stuck", stuck);
     return () => document.documentElement.removeAttribute("data-room-stuck");
   }, [stuck]);
+  // The match clock as football writes it: HT through the break, 45+3' in stoppage.
   const minute = useMemo(() => {
+    const status = sport === "soccer" ? currentStatus(rows) : null;
+    if (status === SOCCER_HALFTIME) return "HT";
     const c = feedClock(rows);
-    return c > 0 ? Math.floor(c / 60) + 1 : null;
-  }, [rows]);
+    if (c <= 0) return null;
+    const m = Math.floor(c / 60) + 1;
+    return sport === "soccer" ? `${footballMinute(m, status)}’` : `${m}’`;
+  }, [rows, sport]);
 
   // The pressure ticker (inside the chat) can ask for the momentum chart.
   useEffect(() => {
@@ -283,7 +289,7 @@ const FLOAT = "bg-surface/85 backdrop-blur-md backdrop-saturate-150 shadow-pop";
 
 // The score while you're down in the tabs: both sides, the score (or the
 // kick-off time), and the live minute. Tap it to go back up to the stadium.
-function MiniScoreboard({ match, minute }: { match: Match; minute: number | null }) {
+function MiniScoreboard({ match, minute }: { match: Match; minute: string | null }) {
   const home = teamIdentity(match.homeTeam);
   const away = teamIdentity(match.awayTeam);
   const live = match.status === "live";
@@ -313,7 +319,7 @@ function MiniScoreboard({ match, minute }: { match: Match; minute: number | null
           {live ? (
             <span className="flex items-center gap-1.5">
               <LiveBadge />
-              {minute !== null && <span className="text-foreground">{minute}&rsquo;</span>}
+              {minute !== null && <span className="text-foreground">{minute}</span>}
             </span>
           ) : finished ? (
             "FT"

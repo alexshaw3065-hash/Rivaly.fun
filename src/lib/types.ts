@@ -83,6 +83,8 @@ export interface Match {
   sportId?: number;
   /** Who scores it: "txline" (Premier League, NFL) or "bigballs" (UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS). */
   provider?: string;
+  /** TxLINE's period code for the match right now (soccer: 3 = half-time). */
+  providerStatusId?: number | null;
   // NFL-only stats, same "absent until the ingester extracts them" rule.
   homeTouchdowns?: number | null;
   awayTouchdowns?: number | null;

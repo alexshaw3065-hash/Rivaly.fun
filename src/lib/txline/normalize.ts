@@ -360,6 +360,9 @@ export function normalizeEvents(records: TxLineScores[], sportId: number): Norma
     // and an amend finds its event by clock — see collapseEvents().
     if (typeof r.Id === "number") snapshot._eid = r.Id;
     if (typeof r.Clock?.Seconds === "number") snapshot._clock = r.Clock.Seconds;
+    // The period (soccer: 2 first half, 4 second): the clock alone can't tell
+    // first-half stoppage (45+3) from the second half's 48th minute.
+    if (typeof r.StatusId === "number") snapshot._st = r.StatusId;
     if (r.Action === "lineups" && Array.isArray(r.Lineups)) snapshot.teams = compactLineups(r.Lineups);
 
     events.push({

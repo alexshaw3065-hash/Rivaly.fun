@@ -11,6 +11,7 @@
 
 import { kickoffKind } from "./match-feed.ts";
 import { nflClockLabel, nflGameMinute, nflTick, type NflClock } from "./nfl-clock.ts";
+import { footballMinute } from "./football-minute.ts";
 
 export type TimelineKind = "goal" | "penalty" | "yellow" | "red" | "var" | "var-end" | "kickoff" | "halftime" | "fulltime";
 
@@ -21,6 +22,8 @@ export interface TimelineEvent {
   minute: number;
   /** NFL: the game clock at the moment, e.g. "Q2 8:26". */
   clock?: string | null;
+  /** Soccer: the minute as football writes it, "45+3" in first-half stoppage. */
+  label?: string | null;
   side: "home" | "away" | null;
   /** The scorer / booked player, from the line-ups. */
   player: string | null;
@@ -47,6 +50,8 @@ export interface TimelineData {
   heat: number[];
   kickoffAt: number;
   halftimeAt: number | null;
+  /** Soccer: when the second half kicked off (the feed's status turning to the 2nd half). */
+  secondHalfAt?: number | null;
   /** Player id → name, so live moments can be named too. */
   players?: Record<number, string>;
   /** NFL: the quarter state after the last row, so live events carry on counting. */
@@ -70,13 +75,14 @@ const GOAL_TYPES: Record<string, string> = {
 };
 
 /** Wall-clock time → match minute, allowing for the half-time break. */
-export function wallToMinute(at: number, kickoffAt: number, halftimeAt: number | null): number {
+export function wallToMinute(at: number, kickoffAt: number, halftimeAt: number | null, secondHalfAt: number | null = null): number {
   const elapsed = (at - kickoffAt) / 60_000;
   if (halftimeAt === null || at <= halftimeAt) return Math.max(0, elapsed);
-  const firstHalf = (halftimeAt - kickoffAt) / 60_000;
-  const secondHalfStart = halftimeAt + HALFTIME_BREAK_MIN * 60_000;
-  if (at <= secondHalfStart) return Math.max(45, firstHalf);
-  return Math.max(45, firstHalf) + (at - secondHalfStart) / 60_000;
+  // The second half starts again from 45', however much stoppage time the
+  // first one had (that was 45+N, not minutes the second half gets to keep).
+  const secondHalfStart = secondHalfAt ?? halftimeAt + HALFTIME_BREAK_MIN * 60_000;
+  if (at <= secondHalfStart) return 45;
+  return 45 + (at - secondHalfStart) / 60_000;
 }
 
 function describeNfl(
@@ -145,7 +151,7 @@ function describe(action: string, p: Record<string, unknown>): { kind: TimelineK
 /** One stored event → a marker (null for the actions the timeline skips). */
 export function eventFromRow(
   row: EventRow,
-  ctx: { sport: "soccer" | "nfl"; kickoffAt: number; halftimeAt: number | null; players?: Record<number, string>; nfl?: NflClock },
+  ctx: { sport: "soccer" | "nfl"; kickoffAt: number; halftimeAt: number | null; secondHalfAt?: number | null; players?: Record<number, string>; nfl?: NflClock },
 ): TimelineEvent | null {
   const p = row.payload ?? {};
   // NFL: every row advances the quarter count, even the ones with no marker.
@@ -162,7 +168,7 @@ export function eventFromRow(
           ? d.title === "Kick-off" ? 0 : 45
           : d.kind === "halftime"
             ? 45
-            : wallToMinute(at, ctx.kickoffAt, ctx.halftimeAt)
+            : wallToMinute(at, ctx.kickoffAt, ctx.halftimeAt, ctx.secondHalfAt ?? null)
       : nflPos
         ? nflGameMinute(nflPos.quarter, nflPos.clock)
         : d.kind === "fulltime"
@@ -175,7 +181,10 @@ export function eventFromRow(
   // detail share an event id, so live updates replace rather than stack.
   const id = typeof p._eid === "number" ? `${row.action}:${p._eid}` : row.id;
   const clock = ctx.sport === "nfl" && nflPos && d.kind !== "fulltime" ? nflClockLabel(nflPos.quarter, nflPos.clock) : null;
-  return { id, kind: d.kind, minute, clock, side, player, title: d.title, detail: d.detail, score, at, reactions: null };
+  // The period: stored on the event (_st), else before half-time means the first half.
+  const period = typeof p._st === "number" ? p._st : ctx.halftimeAt === null || at <= ctx.halftimeAt ? 2 : 4;
+  const label = ctx.sport === "soccer" ? footballMinute(Math.max(0, Math.floor(minute)), period) : null;
+  return { id, kind: d.kind, minute, clock, label, side, player, title: d.title, detail: d.detail, score, at, reactions: null };
 }
 
 /** Which team a goal was for, from the score before and after it. */
@@ -196,8 +205,11 @@ export function buildTimeline(input: {
   const { sport, kickoffAt, players } = input;
   const ht = input.rows.find((r) => r.action === "halftime_finalised");
   const halftimeAt = ht ? +new Date(ht.occurredAt) : null;
+  // The second half's real kick-off: the first record after half-time in the 2nd-half period.
+  const sh = halftimeAt === null ? undefined : input.rows.find((r) => +new Date(r.occurredAt) > halftimeAt && (r.payload?.StatusId === 4 || r.payload?._st === 4));
+  const secondHalfAt = sh ? +new Date(sh.occurredAt) : null;
   const nfl: NflClock | undefined = sport === "nfl" ? { quarter: 1, last: null } : undefined;
-  const ctx = { sport, kickoffAt, halftimeAt, players, nfl };
+  const ctx = { sport, kickoffAt, halftimeAt, secondHalfAt, players, nfl };
 
   // NFL: wall time -> game minute, sampled at every row, to place the chat's pulse.
   const clockPoints: [number, number][] = [];
@@ -216,7 +228,7 @@ export function buildTimeline(input: {
         : sport === "soccer"
           ? typeof r.minute === "number" && r.minute > 0
             ? r.minute
-            : wallToMinute(at, kickoffAt, halftimeAt)
+            : wallToMinute(at, kickoffAt, halftimeAt, secondHalfAt)
           : nfl && nfl.last !== null
             ? nflGameMinute(nfl.quarter, nfl.last)
             : 0;
@@ -266,12 +278,12 @@ export function buildTimeline(input: {
   const heat = new Array<number>(HEAT_BUCKETS).fill(0);
   for (const t of times) {
     if (t < kickoffAt) continue;
-    const m = sport === "soccer" ? wallToMinute(t, kickoffAt, halftimeAt) : gameMinuteAt(clockPoints, t);
+    const m = sport === "soccer" ? wallToMinute(t, kickoffAt, halftimeAt, secondHalfAt) : gameMinuteAt(clockPoints, t);
     const i = Math.floor((m / domain) * HEAT_BUCKETS);
     if (i >= 0 && i < HEAT_BUCKETS) heat[i]++;
   }
 
-  return { sport, domain, events, heat, kickoffAt, halftimeAt, players, nfl, scores };
+  return { sport, domain, events, heat, kickoffAt, halftimeAt, secondHalfAt, players, nfl, scores };
 }
 
 /** The score at a point on the track, for the scoreboard rewind: the latest snapshot at or before it (0–0 before the first). */
@@ -291,14 +303,16 @@ function lastPoint(scores: [number, number, number][] | undefined): number {
 }
 
 /** The label for a point on the track: "30'" · "45+'" · "Q2 8:26". */
-export function minuteLabel(sport: "soccer" | "nfl", minute: number): string {
+export function minuteLabel(sport: "soccer" | "nfl", minute: number, data?: Pick<TimelineData, "halftimeAt">): string {
   if (sport === "nfl") {
     // Regulation is Q1–Q4 up to and including 60:00 (Q4 0:00); beyond it, overtime.
     const quarter = minute <= 60 ? Math.min(4, Math.floor(minute / 15) + 1) : 5 + Math.floor((minute - 60) / 15);
     const into = minute - (quarter - 1) * 15;
     return nflClockLabel(quarter, Math.max(0, Math.round((15 - into) * 60)));
   }
-  return `${Math.max(0, Math.floor(minute))}\u2019`;
+  // Past 45 before half-time is first-half stoppage; after it, the second half.
+  const m = Math.max(0, Math.floor(minute));
+  return `${footballMinute(m, !data || data.halftimeAt === null || m <= 45 ? 2 : 4)}\u2019`;
 }
 
 /** NFL: the game minute at a wall-clock time, from the last sampled point at or before it. */
@@ -329,7 +343,9 @@ export function scoreAt(events: TimelineEvent[], minute: number): { home: number
 export function liveMinute(data: TimelineData, now: number): number {
   // NFL has no wall-clock mapping (its clock stops constantly): the game clock's last reading is live.
   const clock =
-    data.sport === "soccer" ? wallToMinute(now, data.kickoffAt, data.halftimeAt) : data.nfl && data.nfl.last !== null ? nflGameMinute(data.nfl.quarter, data.nfl.last) : 0;
-  const last = data.events.reduce((m, e) => Math.max(m, e.minute), 0);
+    data.sport === "soccer" ? wallToMinute(now, data.kickoffAt, data.halftimeAt, data.secondHalfAt ?? null) : data.nfl && data.nfl.last !== null ? nflGameMinute(data.nfl.quarter, data.nfl.last) : 0;
+  // After half-time the first half's stoppage minutes (46'-49') don't hold the playhead back.
+  const ht = data.sport === "soccer" && data.halftimeAt !== null && now > data.halftimeAt ? data.halftimeAt : null;
+  const last = data.events.reduce((m, e) => (ht !== null && e.at <= ht ? m : Math.max(m, e.minute)), 0);
   return Math.min(data.domain, Math.max(last, clock));
 }

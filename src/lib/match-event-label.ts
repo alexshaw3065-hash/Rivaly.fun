@@ -6,6 +6,7 @@
 
 import { kickoffKind } from "./match-feed.ts";
 import { nflClockLabel, nflTick, type NflClock } from "./nfl-clock.ts";
+import { footballMinute } from "./football-minute.ts";
 
 export type EventTone = "goal" | "card" | "var" | "whistle" | "takeover-yes" | "takeover-no";
 
@@ -14,7 +15,7 @@ export interface MatchMoment {
   tone: EventTone;
 }
 
-const at = (minute: number | null | undefined) => (typeof minute === "number" && minute > 0 ? ` ${minute}'` : "");
+const at = (minute: number | null | undefined, status?: unknown) => (typeof minute === "number" && minute > 0 ? ` ${footballMinute(minute, status)}'` : "");
 
 /**
  * " · Cunha" when the feed named the player and the line-ups say who that is,
@@ -96,7 +97,7 @@ export function matchMoment(
     case "game_finalised":
       return { label: "Full time", tone: "whistle" };
     case "goal":
-      return { label: `⚽ GOAL${at(minute)}${who(p, names, p.GoalType === "Own" || p.GoalType === "OwnGoal" ? " (OG)" : "")}`, tone: "goal" };
+      return { label: `⚽ GOAL${at(minute, p._st)}${who(p, names, p.GoalType === "Own" || p.GoalType === "OwnGoal" ? " (OG)" : "")}`, tone: "goal" };
     default:
       return null;
   }

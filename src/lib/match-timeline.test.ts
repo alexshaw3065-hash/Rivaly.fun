@@ -16,10 +16,16 @@ describe("wallToMinute", () => {
   it("counts straight through the first half", () => {
     assert.equal(wallToMinute(min(30), KO, null), 30);
   });
-  it("freezes at 45' through the half-time break, then carries on", () => {
-    const ht = min(47); // 45 + stoppage
-    assert.equal(wallToMinute(min(55), KO, ht), 47);
-    assert.equal(wallToMinute(min(47 + 15 + 10), KO, ht), 57);
+  it("holds at 45' through the half-time break, then restarts the second half from 45'", () => {
+    const ht = min(47); // 45 + 2 of stoppage
+    assert.equal(wallToMinute(min(55), KO, ht), 45);
+    assert.equal(wallToMinute(min(47 + 15 + 10), KO, ht), 55);
+    // the real second-half kick-off, when the feed gives it
+    assert.equal(wallToMinute(min(47 + 18 + 10), KO, ht, min(47 + 18)), 55);
+  });
+  it("writes stoppage time the football way", () => {
+    assert.equal(minuteLabel("soccer", 47.4, { halftimeAt: null }), "45+2\u2019");
+    assert.equal(minuteLabel("soccer", 47.4, { halftimeAt: min(49) }), "47\u2019");
   });
 });
 

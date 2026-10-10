@@ -214,7 +214,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
   // While you drag back or replay, the stadium's scoreboard shows the score
   // and minute at the playhead (replay-store.ts); following live, it's live.
   useEffect(() => {
-    setReplay(match.id, showMinute ? { score: scoreAtMinute(data, head), label: minuteLabel(data.sport, head) } : null);
+    setReplay(match.id, showMinute ? { score: scoreAtMinute(data, head), label: minuteLabel(data.sport, head, data) } : null);
   }, [match.id, showMinute, data, head]);
   useEffect(() => () => setReplay(match.id, null), [match.id]);
 
@@ -298,7 +298,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
                 type="button"
                 data-moment
                 onClick={() => setSelected(selected === e.id ? null : e.id)}
-                aria-label={`${e.title}, ${e.clock ?? `${Math.floor(e.minute)} minutes`}`}
+                aria-label={`${e.title}, ${e.clock ?? `${e.label ?? Math.floor(e.minute)} minutes`}`}
                 className="absolute top-1/2 transition-[opacity,transform] duration-300 ease-out"
                 style={{
                   left: pct(e.minute),
@@ -318,7 +318,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
               <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#050806] bg-white" />
               {showMinute && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-tag bg-white px-1 text-micro font-bold tabular-nums text-black">
-                  {minuteLabel(data.sport, head)}
+                  {minuteLabel(data.sport, head, data)}
                 </span>
               )}
             </div>
@@ -410,7 +410,7 @@ function MomentCard({ event, left, home, away, sport }: { event: TimelineEvent; 
           {event.title}
           {event.player && <span className="font-semibold text-foreground/80"> · {event.player}</span>}
         </p>
-        <span className="text-caption font-semibold tabular-nums text-secondary">{event.clock ?? `${Math.floor(event.minute)}’`}</span>
+        <span className="text-caption font-semibold tabular-nums text-secondary">{event.clock ?? `${event.label ?? Math.floor(event.minute)}’`}</span>
       </div>
       {event.detail && <p className="mt-2 text-caption text-foreground/85">{event.detail}</p>}
       {team && (
