@@ -19,7 +19,7 @@ import { track } from "@/lib/analytics/track";
 // its numbers are what the app would really pay: $10 each side, the winner
 // gets $19.50 (their $10 back plus the $10 they won, minus 5% of that $10 —
 // planSettlement in lib/settlement/payouts.ts). The fee itself isn't named
-// here (founder's call): it's on the stake panel before anyone plays, on
+// here (product decision): it's on the stake panel before anyone plays, on
 // results and receipts, and in the full guide.
 //
 // Engagement mechanisms (rivaly-engagement-psychology): #2 anticipation — the

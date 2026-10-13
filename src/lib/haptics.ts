@@ -1,5 +1,5 @@
 // One vocabulary for touch feedback, from the emotion spec
-// (docs/masterplan/06-emotion-design.md, "Haptics"): not every tap vibrates —
+// Not every tap vibrates —
 // only the moments that mean something, and never as punishment. Android
 // Chrome only (iOS Safari has no Vibration API); a no-op everywhere else.
 //

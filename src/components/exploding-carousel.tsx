@@ -58,8 +58,8 @@ function Slide({ slide }: { slide: ExplodingSlide }) {
 // advances it, so the timer and the progress can never disagree. A round
 // play/pause sits beside the pill.
 //
-// Engagement mechanism #2 (anticipation — .claude/skills/rivaly-engagement-
-// psychology): the filling bar is a small, honest "next one's coming" beat;
+// Engagement mechanism #2 (anticipation):
+// the filling bar is a small, honest "next one's coming" beat;
 // the rooms themselves carry real kickoff countdowns.
 //
 // Pauses while a finger is on it and when the tab is hidden; starts paused

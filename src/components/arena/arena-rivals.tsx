@@ -40,7 +40,7 @@ interface Person {
 // Arena's right-hand column on wide screens (like X's) — same faces, same
 // Challenge / Follow action; the first 8 so the column stays short.
 // In the feed the row shows once per session, like Facebook's "People you
-// may know" (founder, 2026-09-30): the first Arena visit of a session gets
+// may know" (product decision, 2026-09-30): the first Arena visit of a session gets
 // it, later visits don't. The wide-screen side column is a sidebar, so it
 // always shows. If storage is blocked it just shows every time.
 const SHOWN_KEY = "rivaly-rivals-shown";

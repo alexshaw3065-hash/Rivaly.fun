@@ -24,7 +24,7 @@ export default function CompleteProfilePage() {
 
   // Live, not just on submit — the same USERNAME_RE the server-side check
   // already enforces, just surfaced the moment it'd fail rather than only
-  // after tapping Continue. Empty and untouched shows nothing; the founder
+  // after tapping Continue. Empty and untouched shows nothing; the team
   // shouldn't see red before they've typed a single character.
   const isValidFormat = USERNAME_RE.test(username);
   const showFormatHint = touched && username.length > 0 && !isValidFormat;

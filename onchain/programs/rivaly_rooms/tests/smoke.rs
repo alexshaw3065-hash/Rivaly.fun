@@ -1,5 +1,5 @@
 //! Phase 1 smoke run: one room, start to finish, with fees on.
-//! The full test and attack suite is Phase 5 (docs/plans/onchain-escrow.md).
+//! The full test and attack suite is Phase 5.
 
 mod common;
 use common::*;

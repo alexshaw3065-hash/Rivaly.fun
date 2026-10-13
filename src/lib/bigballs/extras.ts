@@ -4,7 +4,7 @@
 // read the score; corner and card markets stay hidden for these leagues).
 // Shared by the Render worker and the app, like sync.ts.
 //
-// Budget (500 calls a day on the free plan, docs/plans/match-data-providers.md):
+// Budget (500 calls a day on the free plan,):
 // one events call per tick that saw a goal, plus one events and one statistics
 // call at full time — matches with rooms first. Matches without rooms get the
 // full-time pair only while the day is comfortably under budget.

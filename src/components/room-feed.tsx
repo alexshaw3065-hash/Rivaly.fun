@@ -11,7 +11,7 @@ import { Chip } from "./ui/controls";
 import { Button } from "./ui/button";
 import type { Match } from "@/lib/types";
 
-// Six, not five — matches the founder's Polymarket reference (their Browse
+// Six, not five — matches our Polymarket reference (their Browse
 // row is New/Trending/Popular/Liquid/Ending Soon/Competitive), but every
 // label and signal here is Rivaly's own rather than a straight port: no
 // "Liquid" (that's a trading-pair concept, not a prediction-room one).

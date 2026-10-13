@@ -7,7 +7,7 @@ import { siteUrl } from "@/lib/site";
 // Sends the match-story card (rooms/[roomId]/card) out: the phone's own share
 // sheet with the image attached where it can, a download where it can't.
 // The room link goes with it, so the card brings people back to argue
-// (masterplan principle #10 — great products grow through people).
+//
 
 export function ShareStoryButton({ roomId }: { roomId: string }) {
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");

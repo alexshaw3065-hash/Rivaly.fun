@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
-// The one button. Variants and sizes are fixed (docs/plans/design-system-rebuild.md §5):
+// The one button. Variants and sizes are fixed:
 //   primary  — Rivaly blue: the ONE main action on a screen
 //   inverse  — white on black: secondary emphasis ("Continue", "Confirm")
 //   secondary— surface + edge: everything else that's a real button

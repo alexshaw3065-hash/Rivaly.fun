@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { filters, type FilterTab } from "./room-feed";
 import { ChevronDownIcon } from "./icons";
 
-// The founder's pump.fun reference: the active filter shows as its own
+// Our pump.fun reference: the active filter shows as its own
 // pill, and everything else lives behind a "More" dropdown instead of a
 // six-wide horizontal scroll — single-select, one at a time. Discover-only;
 // Search/Home keep RoomFeed's own chip row untouched (see room-feed.tsx's

@@ -11,7 +11,7 @@ import { abbreviateClaim, competitionShort } from "@/lib/team-identity";
 // teams' colours, the room's call and who called it, the one-line story, and
 // the momentum curve with the goals on it. Portrait, sized for stories and
 // chats. "Screenshots → people share → new users" is the growth loop in the
-// masterplan (05-growth.md); this is the screenshot, made properly.
+// growth plan; this is the screenshot, made properly.
 //
 // Rendered by next/og (Satori): flexbox only, every multi-child box says
 // display:flex, and the chart goes in as an SVG image.

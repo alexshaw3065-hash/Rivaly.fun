@@ -2,7 +2,7 @@
 -- image itself (that lives on Cloudinary): { type, ref, w, h, lqip }, where
 -- ref is a Cloudinary public_id (the app builds the delivery URL from our own
 -- cloud name, so a ref can't point anywhere else) and lqip is a tiny blurred
--- preview (a few hundred bytes). Capped at 2 KB. See docs/plans/chat-media.md.
+-- preview (a few hundred bytes). Capped at 2 KB.
 alter table public.messages add column attachment jsonb;
 
 -- A photo can go without a caption; everything else still needs text.

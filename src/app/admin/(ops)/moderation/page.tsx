@@ -5,7 +5,7 @@ import { DataTable, PageHeader, Section, StatePill, Tabs, num, when, type Column
 import { ActionButton } from "@/components/admin/admin-forms";
 import { resolveReport, restoreContent } from "@/app/admin/actions";
 
-// Reports come here — nothing is taken down automatically (founder decision
+// Reports come here — nothing is taken down automatically (product decision
 // 2026-09-27). Each reported item appears once, with every report on it,
 // the content itself and its author; a moderator removes it (hidden for
 // everyone) or keeps it (reports closed). All reversible from "Removed".

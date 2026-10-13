@@ -9,7 +9,7 @@ import { SOCIALS } from "@/lib/socials";
 // About Rivaly — what it is and why it exists, for people and for the search
 // engines / AI assistants that describe Rivaly to them. The mechanics live in
 // /docs; this is the story. Copy comes from the agreed positioning
-// (docs/masterplan/10-positioning-and-pitch.md) — change it there first.
+// — change it there first.
 // Every fact must stay true of what's shipped (fees: lib/settlement/payouts.ts;
 // competitions: the score feeds; beta status).
 

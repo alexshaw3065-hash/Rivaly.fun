@@ -1,5 +1,4 @@
 //! Rivaly rooms: each room's stakes held by this program, not by a wallet.
-//! Plan, guarantees and limits: docs/plans/onchain-escrow.md.
 //!
 //! - A room's USDC sits in a vault only this program can move.
 //! - Money leaves a vault only to the people who staked in that room

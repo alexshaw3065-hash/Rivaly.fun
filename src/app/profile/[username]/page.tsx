@@ -7,7 +7,7 @@ import { ProfileView } from "@/components/profile-view";
 
 // Reddit-inspired header + a trading-app-style PNL block (self-only,
 // real balance history — see profile-pnl.tsx) + Position/Replies/Activity,
-// all built per the founder's approved redesign plan. See ProfileView for
+// all built per our approved redesign plan. See ProfileView for
 // the actual layout; this file is just the data fetch + not-found state.
 // Title and description for shared links (the image is opengraph-image.tsx).
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {

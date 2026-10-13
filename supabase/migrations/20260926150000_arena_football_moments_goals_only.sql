@@ -1,4 +1,4 @@
--- Moments: football shows only goals and full time (founder's call,
+-- Moments: football shows only goals and full time (product decision,
 -- 2026-09-26) — penalties, red cards and VAR decisions no longer get a card.
 -- NFL keeps touchdowns, field goals and full time.
 create or replace function public.arena_moments(p_match uuid default null)

@@ -1,4 +1,4 @@
--- On-chain escrow, phase 3 (docs/plans/onchain-escrow.md): every room
+-- On-chain escrow, phase 3: every room
 -- records who holds its stakes — the escrow wallet ('wallet', every room so
 -- far) or the rivaly_rooms program ('program'). It's decided when the room
 -- is created and never changes, so a room always finishes the way it started.

@@ -10,7 +10,7 @@ import { EmptyRooms } from "@/components/empty-rooms";
 import { FeatureCardShape } from "@/components/loading-shapes";
 import { SectionHeader } from "@/components/ui";
 
-// Redesigned against the founder's sketch (2026-08-15): search pill, an
+// Redesigned against our sketch (2026-08-15): search pill, an
 // "Exploding Now" carousel (Apple-style — see exploding-carousel.tsx), Top
 // rivals (the five biggest real wins and the rooms that paid them — see
 // top-rivals.tsx), then the same [filter icon][Rooms][Matches]

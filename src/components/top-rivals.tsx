@@ -20,7 +20,7 @@ import { Card, Skeleton } from "./ui/surfaces";
 // first room. Never sample people. FOMO-style cards;
 // tapping one pauses the row and opens the story beneath it.
 //
-// Engagement mechanisms (.claude/skills/rivaly-engagement-psychology):
+// Engagement mechanisms:
 // #5 social identity/rivalry — named people, not an anonymous ranking;
 // #6 streaks — Goated makes a hot run visible; #9 social proof — specific,
 // recent wins by people like you.

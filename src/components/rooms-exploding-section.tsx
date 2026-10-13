@@ -2,7 +2,7 @@
 
 import { ExplodingCarousel, useExplodingSlides } from "./exploding-carousel";
 
-// Rooms' own Exploding Now — the same carousel as Home, per founder direction
+// Rooms' own Exploding Now — the same carousel as Home, by design
 // (2026-09-24): the hottest real rooms, topped up with upcoming fixtures.
 export function RoomsExplodingSection() {
   const { slides } = useExplodingSlides();

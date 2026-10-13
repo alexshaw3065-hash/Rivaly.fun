@@ -10,7 +10,7 @@ import { formatMoney } from "@/lib/mock-data";
 // The maths is the settlement's own (planSettlement) at the room's frozen fee
 // rates, so "to win" is what would actually be paid if the room settled now —
 // an estimate only because more people can still join. It sits docked above
-// the chat input (the founder picked this over a card beneath the chat,
+// the chat input (the team picked this over a card beneath the chat,
 // 2026-09-29): one line, tap for the details.
 //
 // Engagement mechanisms (rivaly-engagement-psychology): #2 anticipation —

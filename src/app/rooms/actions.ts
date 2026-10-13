@@ -22,7 +22,7 @@ import type { StakeArgsInput } from "@/lib/escrow/program-codec";
 import type { EntrySide } from "@/lib/types";
 
 // Every stake is a gasless on-chain transfer from the user's own embedded
-// wallet into Rivaly's escrow, in two steps (docs/plans/escrow-wallet-build.md):
+// wallet into Rivaly's escrow, in two steps:
 //
 //   prepareStake — validate everything, then build the exact transfer (the
 //                  escrow pays the fee) and remember it as a stake intent.
@@ -107,7 +107,7 @@ interface Validated {
   side: EntrySide;
   roomId: string | null;
   payload: Record<string, unknown>;
-  /** Set when the room's stakes are held by the on-chain program (docs/plans/onchain-escrow.md). */
+  /** Set when the room's stakes are held by the on-chain program. */
   chain: Omit<StakeArgsInput, "side" | "amountCents"> | null;
 }
 

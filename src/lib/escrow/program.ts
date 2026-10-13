@@ -3,7 +3,7 @@
 // rules can move them — winnings and refunds to the people who staked, fees
 // to the treasury. This module builds those instructions; the escrow key
 // signs them as the program's operator and fee payer.
-// docs/plans/onchain-escrow.md.
+//
 
 import {
   ComputeBudgetProgram,

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BottomSheet } from "./bottom-sheet";
 import { KeyIcon } from "./icons";
 
-// "Join private room" per the founder's direction — a one-off action (enter
+// "Join private room" by design — a one-off action (enter
 // a code, land in a room), not a browsing surface, so it doesn't get a fifth
 // peer tab. Bare icon, no pill/label/fill — it sits on the same line as the
 // Discover/Live/Following/My Rooms tabs rather than owning its own row above

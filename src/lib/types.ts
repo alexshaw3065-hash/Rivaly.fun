@@ -1,7 +1,7 @@
 /**
  * Core domain types for Rivaly's V1 scope.
- * See docs/masterplan/08-v1-scope.md for what V1 actually includes, and
- * docs/masterplan/07-product-blueprint.md for the full long-term surface area.
+ * what V1 actually includes, and
+ * for the full long-term surface area.
  *
  * These mirror the Supabase schema once it exists — update both together.
  */
@@ -130,7 +130,7 @@ export type RoomStatus = "open" | "live" | "settled" | "cancelled" | "refunded";
 // total. anytime_scorer (Premier League) settles by the scorer's PlayerId,
 // matched against the player picked from the match's own line-up. Tier 3 (custom)
 // is a free-text claim the creator confirms after the match; the
-// create-room UI no longer offers it (founder's call), but existing rooms
+// create-room UI no longer offers it (product decision), but existing rooms
 // (including the seeded demo roster) still use it, so it stays supported
 // here. See the create-room plan for the full tiering — settlementMode
 // below is the queryable fact of which one a given room is.
@@ -194,7 +194,7 @@ export interface MarketSideDefinition {
 
 /**
  * The resolution condition and source must always be known to users before
- * they enter a room. See docs/masterplan/09-competitive-research.md#5.12.
+ * they enter a room.
  */
 export interface Room {
   id: RoomId;
@@ -266,7 +266,7 @@ export interface Follow {
 
 /**
  * A "pack" bundles 2-4 individual predictions (each tied to its own match)
- * into a single conviction ticket — per masterplan 07-product-blueprint.md
+ * into a single conviction ticket
  * §5.8 "Express Predictions." Framed as "I have conviction across these
  * events," not a sportsbook bet-slip builder: no odds math shown per leg,
  * just the combined payout multiplier if every leg hits.
@@ -300,11 +300,11 @@ export interface ChatMessage {
 }
 
 /**
- * Arena's banter/thesis content — see docs/masterplan/07-product-blueprint.md
+ * Arena's banter/thesis content.
  * §4.13 (Arena, formerly "Following"). `roomId` is set for thesis posts (a
  * conviction argument attached to a real room) and null for plain banter.
  * Replies are user-generated peer roasting, not system copy — the platform's
- * own voice never mocks anyone (docs/masterplan/06-emotion-design.md's
+ * own voice never mocks anyone ('s
  * Losing rule).
  */
 export interface PostReply {
@@ -363,7 +363,7 @@ export type ArenaFeedItem =
 
 /**
  * Points-only (no entry fee, no prize pool) FPL-style league — see
- * docs/masterplan/08-v1-scope.md. Joined the same way private rooms are:
+ * Joined the same way private rooms are:
  * an invite code.
  */
 export interface PredictionLeague {

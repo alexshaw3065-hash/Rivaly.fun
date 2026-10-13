@@ -16,7 +16,7 @@ const TEXT_BOX = { x: 290, y: 144, w: 367, h: 46 };
 
 // The wordmark's on-screen size is pinned to what already shipped (a
 // 65px-tall full logo implies this scale) — "the text is okay," per the
-// founder, so it must not shift when the icon grows.
+// team, so it must not shift when the icon grows.
 const TEXT_SCALE = 65 / NATIVE_H;
 // The icon gets real visual weight instead of riding along at the text's
 // tiny relative scale — sized down across several passes to land natural.

@@ -13,8 +13,8 @@ import { FilterIcon } from "./icons";
 import type { Room, Match } from "@/lib/types";
 
 // The [filter icon][Rooms][Matches] content-type switcher, per the
-// founder's FOMO reference (their filter-icon-leading Tokens/Perps row).
-// Home-only (per founder direction — Search stays a plain search, see
+// our FOMO reference (their filter-icon-leading Tokens/Perps row).
+// Home-only (by design — Search stays a plain search, see
 // search/page.tsx) so the league-filtering behavior only lives in one
 // place. `selectedLeagues` is still owned by the parent rather than this
 // component, matching Home's plain useState for it.
@@ -24,7 +24,7 @@ import type { Room, Match } from "@/lib/types";
 // other — an empty array means "All leagues."
 type Tab = "rooms" | "matches" | "packs";
 
-// Home's own filter-chip set — per founder direction, Home shows a
+// Home's own filter-chip set — by design, Home shows a
 // shorter, differently-ordered row than Search's full 7-tab default
 // (see `filters` in room-feed.tsx), with "Live" deliberately the 3rd of
 // 5 (dead center) and "Most rivals" (sort by real participantCount) new

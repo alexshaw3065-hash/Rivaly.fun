@@ -115,7 +115,7 @@ export function profileByUsername(username: string): Profile | undefined {
 // Who you follow (self only, for now — see SELF_USER_ID). Powers Rooms >
 // Following (rooms created/joined by people you follow) and Arena's Feed >
 // Following toggle (arenaItemSubjectId below) — two different lenses on the
-// same graph, per the founder's own reasoning for keeping "Following"
+// same graph, per our own reasoning for keeping "Following"
 // scoped multiple ways rather than one shared page.
 export const follows: Follow[] = [
   { followerId: SELF_USER_ID, followingId: "u1", createdAt: "2025-11-10T00:00:00Z" },
@@ -201,7 +201,7 @@ export function goatedRivals(count: number): Profile[] {
 export const leagues = [...new Set(matches.map((m) => m.competition)), "World Cup", "Friendlies"];
 
 // Curated shortcuts for the Search page's idle "rollup" state — the
-// "Discussions" row (per the founder's hand sketch: UCL night, Live now,
+// "Discussions" row (per our hand sketch: UCL night, Live now,
 // EPL weekend, LaLiga, efc…). These read as moments people are already
 // talking about, not a dry league picklist — a jump straight into that
 // moment, not a real query. `id` is what gets stored if the user bookmarks
@@ -243,7 +243,7 @@ export interface NotificationItem {
   read: boolean;
 }
 
-// Per docs/masterplan/07-product-blueprint.md#410-notifications.
+//
 export const notifications: NotificationItem[] = [
   { id: "n5", kind: "new_follower", actorId: "u7", roomId: null, body: "Chioma started following you", createdAt: "2026-08-15T15:10:00Z", read: true },
   { id: "n8", kind: "new_follower", actorId: "u8", roomId: null, body: "Marcus started following you", createdAt: "2026-08-14T09:00:00Z", read: true },
@@ -251,7 +251,7 @@ export const notifications: NotificationItem[] = [
 
 // ============================================================================
 // Arena — the fourth nav tab (formerly "Following"). See
-// docs/masterplan/07-product-blueprint.md §4.13 and the Arena implementation
+// §4.13 and the Arena implementation
 // plan for the full research/scope rationale. Every social-proof/urgency
 // number surfaced from this section must trace back to a real field here —
 // never a fabricated count.
@@ -363,7 +363,7 @@ export function postById(id: string): Post | undefined {
 }
 
 // Points-only leagues (no entry fee, no prize pool — see the Arena
-// implementation plan's masterplan-scope resolution). Global auto-includes
+// product scope). Global auto-includes
 // every profile; the rest are joined by code, same pattern as private rooms.
 export const predictionLeagues: PredictionLeague[] = [
   {
@@ -466,7 +466,7 @@ export function buildArenaFeed(): ArenaFeedItem[] {
 // Home's "Top rivals" row: people you actually follow, sorted by career
 // winnings so the biggest results surface first. Engagement-psychology
 // mechanism #5 (social identity/rivalry — see
-// .claude/skills/rivaly-engagement-psychology): in-group favoritism
+// our engagement design notes): in-group favoritism
 // (rooting for people you actually follow) is a stronger, more consistent
 // pull than an anonymous global ranking. Empty on purpose for accounts
 // that follow no one — no fabricated filler profiles.
@@ -492,10 +492,10 @@ export function currentStreak(profileId: string): number {
 
 // Home's "Goated rivals" row: the platform's actual hottest streaks right
 // now (3+ in a row) — deliberately global, not scoped to who you follow,
-// per founder direction ("Goated" is a hall-of-fame moment worth seeing
+// by design ("Goated" is a hall-of-fame moment worth seeing
 // regardless of your follow list, unlike Top Rivals' in-group framing).
 // Engagement-psychology mechanism #6 (loss aversion & streaks — see
-// .claude/skills/rivaly-engagement-psychology): a visible hot streak is
+// our engagement design notes): a visible hot streak is
 // what makes someone worth watching or challenging right now. Real,
 // derived from settled entries — empty when nobody clears the bar.
 const GOATED_STREAK_THRESHOLD = 3;

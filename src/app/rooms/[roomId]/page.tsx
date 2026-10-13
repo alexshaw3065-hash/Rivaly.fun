@@ -38,7 +38,7 @@ import { LockedChat } from "@/components/room/locked-chat";
 import { PositionBar, type PositionProps } from "@/components/room/your-position";
 
 // The heart of the product: a digital viewing centre, not a form. Per
-// docs/masterplan/07-product-blueprint.md#45-room and the 2026-09-24 room
+// and the 2026-09-24 room
 // redesign brief — the stadium is the atmosphere (room-stage.tsx), the UI is
 // the structure, and the crowd (chat + real match moments + reactions)
 // makes the noise. Follows the app theme: a floodlit night game in dark

@@ -1,7 +1,7 @@
 // Server-only settlement engine. Runs every minute (see /api/cron/settle)
 // and opportunistically when a room is viewed. Every step is idempotent: it
 // can run twice, crash half-way, or race another run, and nobody is paid
-// twice or skipped. See docs/plans/escrow-wallet-build.md.
+// twice or skipped.
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import {

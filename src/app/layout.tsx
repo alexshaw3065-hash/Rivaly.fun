@@ -64,7 +64,7 @@ export const viewport: Viewport = {
 // Search and link-preview defaults. Pages add their own title (shown as
 // "Title · Rivaly"), description and canonical URL — never here, or every
 // page would inherit the home page's canonical. Search Console / Bing
-// ownership tags come from env vars the founder sets in Vercel.
+// ownership tags come from env vars the team sets in Vercel.
 export const metadata: Metadata = {
   // Absolute URLs in link previews (og:image etc.) always point at rivaly.fun.
   metadataBase: new URL(SITE_URL),

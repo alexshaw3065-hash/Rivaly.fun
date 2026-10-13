@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Design-system drift check (docs/plans/design-system-rebuild.md).
+// Design-system drift check.
 //
 //   npm run lint:design            report, exit 0
 //   npm run lint:design -- --strict   exit 1 if anything is found
@@ -81,7 +81,7 @@ for (const file of walk(SRC)) {
 }
 
 let grand = 0;
-console.log("\nDesign-system drift (docs/plans/design-system-rebuild.md)\n");
+console.log("\nDesign-system drift\n");
 for (const rule of RULES) {
   const r = results[rule.id];
   grand += r.total;

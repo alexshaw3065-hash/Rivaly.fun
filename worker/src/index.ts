@@ -326,7 +326,7 @@ if (SETTLE_URL && CRON_SECRET) {
 // Big Balls: UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS. Fixtures every
 // 6 hours (one call per league); live scores only for matches with a room,
 // paced by the daily-budget governor in src/lib/bigballs/logic.ts. Off
-// without BIGBALLS_API_KEY. Plan: docs/plans/match-data-providers.md.
+// without BIGBALLS_API_KEY.
 const BIGBALLS_API_KEY = process.env.BIGBALLS_API_KEY?.trim();
 if (BIGBALLS_API_KEY) {
   const supabase = db();

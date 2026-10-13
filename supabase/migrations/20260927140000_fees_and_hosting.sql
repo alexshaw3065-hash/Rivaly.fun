@@ -1,4 +1,4 @@
--- Fees and host earnings (founder decision 2026-09-27; overrides the V1
+-- Fees and host earnings (product decision 2026-09-27; overrides the V1
 -- scope's "creator monetization is V2").
 --
 --   · 5% of the winners' PROFIT (the losing side's money they take) — never

@@ -47,7 +47,7 @@ export function planPayouts(entries: StakeEntry[], outcome: Outcome | "void"): P
   );
 }
 
-// ── Fees (founder decision 2026-09-27) ───────────────────────────────
+// ── Fees (product decision 2026-09-27) ───────────────────────────────
 
 /** A room's fee rates, fixed when the room is created (basis points: 100 = 1%). */
 export interface FeeRates {

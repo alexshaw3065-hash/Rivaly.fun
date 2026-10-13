@@ -1,4 +1,4 @@
--- Real team and league logos. Source: TheSportsDB (founder checked their
+-- Real team and league logos. Source: TheSportsDB (we checked their
 -- terms, 2026-09-27) — credited on /terms, used as-is (resized only, never
 -- altered). Each badge is fetched once, resized to a 128px WebP and stored in
 -- our own public `crests` bucket (CDN, cached a year), so the app never

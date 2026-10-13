@@ -1,6 +1,5 @@
 // Big Balls → Rivaly: the decisions, kept pure (tested in logic.test.ts).
 // Only type imports, so Node runs this directly under `node --test`.
-// Plan and limits: docs/plans/match-data-providers.md.
 
 export type BbStatus = "scheduled" | "in_progress" | "finished" | "postponed" | "cancelled" | "suspended";
 export type OurStatus = "scheduled" | "live" | "finished" | "postponed" | "cancelled";

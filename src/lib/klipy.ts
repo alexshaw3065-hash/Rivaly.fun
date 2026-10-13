@@ -2,7 +2,7 @@
 // and media loads to come from the user's own device (no proxying through
 // our server), and results shown in the order returned — so this is a thin
 // client with a small in-memory cache, nothing more. The key is public by
-// design, like every GIF keyboard's. See docs/plans/chat-media.md.
+// design, like every GIF keyboard's.
 const KEY = process.env.NEXT_PUBLIC_KLIPY_API_KEY;
 const API = "https://api.klipy.com/api/v1";
 

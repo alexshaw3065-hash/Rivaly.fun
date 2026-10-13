@@ -94,7 +94,7 @@ export function ListRow({
 
 /**
  * Tiny status badge — the only place UPPERCASE is used. The live dot pulses
- * a crisp ring (founder's call, 2026-09-28; .live-dot in globals.css).
+ * a crisp ring (product decision, 2026-09-28; .live-dot in globals.css).
  */
 export function Badge({ tone = "neutral", children, className = "" }: { tone?: "neutral" | "live" | "yes" | "no" | "money"; children: ReactNode; className?: string }) {
   const color = { neutral: "text-secondary", live: "text-live", yes: "text-yes-ink", no: "text-no-ink", money: "text-money-ink" }[tone];

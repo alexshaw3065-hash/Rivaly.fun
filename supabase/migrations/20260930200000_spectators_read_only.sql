@@ -1,4 +1,4 @@
--- Spectators read, rivals talk (founder, 2026-09-30). Chat, reactions and the
+-- Spectators read, rivals talk (product decision, 2026-09-30). Chat, reactions and the
 -- room's live broadcast lane (messages, typing) are for the host and anyone
 -- with a stake in the room. Spectators in a public room that allows them can
 -- still read and be counted as watching (select + presence are unchanged);

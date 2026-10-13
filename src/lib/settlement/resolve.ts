@@ -1,13 +1,13 @@
 // Deciding who won a room — pure functions, no I/O, so every market's rules
 // are unit-tested (resolve.test.ts, `npm test`) before real USDC depends on
-// them. See docs/plans/escrow-wallet-build.md §4 "Early resolution".
+// them. §4 "Early resolution".
 //
 // Two layers:
 //   1. resolveMarket(): what the match data says *right now* — final
 //      (a whistle decided it), locked (it can no longer change, e.g. Over 2.5
 //      at 3 goals), void (match cancelled/postponed), open, or manual.
 //   2. decideSettlement(): whether it's safe to pay. A locked result only
-//      settles after it has held for the safety window (10 min, founder's
+//      settles after it has held for the safety window (10 min, team's
 //      call) with no review open and no discarded/amended action since —
 //      VAR can still take a goal away after it first appears in the feed.
 // Only type imports here: Node runs this file directly under `node --test`.
@@ -231,7 +231,7 @@ function resolveRaw(def: MarketSideDefinition | null, match: MatchFacts, events:
       if (scored) return { kind: "locked", outcome: "yes" };
       if (!fullTime) return { kind: "open" };
       // Full time without their goal is "No" — including a player who never
-      // got on the pitch (founder's call, 2026-10-07: no goal is no goal).
+      // got on the pitch (product decision, 2026-10-07: no goal is no goal).
       return { kind: "final", outcome: "no" };
     }
   }

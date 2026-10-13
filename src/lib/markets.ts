@@ -83,7 +83,7 @@ export function marketFitsMatch(market: CreateRoomMarket, match: { sportId?: num
 /**
  * Anytime goalscorer needs line-ups with player ids and goals naming the
  * scorer by the same id: TxLINE's football feed has both. Premier League only
- * for now (founder's call).
+ * for now (product decision).
  */
 export function scorerMarketsFor(match: { sportId?: number; provider?: string; competition?: string }): boolean {
   return sportOf(match) === "soccer" && !goalsOnly(match) && (match.competition ?? "").trim().toLowerCase() === "premier league";

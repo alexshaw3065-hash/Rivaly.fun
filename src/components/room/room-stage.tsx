@@ -26,7 +26,7 @@ const MAX_FLOATS = 14;
 // it. The stadium is the atmosphere; this is the structure over it.
 //
 // A goal is the one loud moment (engagement mechanism #3, goal euphoria —
-// .claude/skills/rivaly-engagement-psychology): when the score goes up, the
+// our engagement design notes): when the score goes up, the
 // scoring side's stand floods with light, a GOAL banner sweeps across and
 // the phone buzzes. Reactions sent in chat float up over the stadium
 // (mechanism #4, collective effervescence) — only ever real ones.

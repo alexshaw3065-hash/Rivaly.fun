@@ -9,7 +9,7 @@ import { Button, ButtonLink } from "./ui/button";
 // Desktop-only (hidden md:flex) top bar, offset by the sidebar's current
 // width (see .header-shell in globals.css) — fixed positioned, not a flex
 // sibling of <main>, for the same reason as sidebar.tsx. Search bar is a
-// real inline combobox (DesktopSearchBox) styled after the founder's
+// real inline combobox (DesktopSearchBox) styled after the team's
 // Polymarket reference: dark rounded pill, leading glass icon, trailing
 // "/" keybind hint, dropdown with live results — not just a Link into
 // /search. Suppressed on /search itself, where the same search experience

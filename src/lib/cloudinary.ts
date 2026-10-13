@@ -1,4 +1,4 @@
-// Real avatar uploads — see docs/masterplan and CLAUDE.md's Tech Stack
+// Real avatar uploads
 // note ("planned, not yet wired up"). Client uploads straight to
 // Cloudinary via its unsigned-upload API (no secret key involved, no
 // Vercel function proxying the binary) — the upload_preset itself
@@ -63,7 +63,7 @@ export function isCloudinaryUrl(url: string): boolean {
 // 3–5 MB camera photo becomes ~150–300 KB), with a tiny blurred preview the
 // room sees instantly while the real one uploads. The database keeps only
 // the Cloudinary public_id; delivery URLs are built here from our own cloud
-// name, sized per use. See docs/plans/chat-media.md.
+// name, sized per use.
 
 const PHOTO_MAX = 1600;
 

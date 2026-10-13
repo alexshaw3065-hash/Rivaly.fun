@@ -1,5 +1,5 @@
 -- Report-and-remove: the safety net for chat and the Arena (no paid image
--- moderation — docs/plans/chat-media.md).
+-- moderation —).
 --
 --   · Anyone signed in can report a chat message or an Arena post (not their
 --     own), with one reason.

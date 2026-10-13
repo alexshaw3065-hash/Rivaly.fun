@@ -9,7 +9,7 @@ export const metadata = pageMeta({ title: "Search", description: "Search Rivaly 
 // visit/refresh (normal mobile use never lands here — the bottom tab's
 // Search button and Home's search bar open mobile-search-overlay.tsx
 // instead, a true overlay on top of whatever page you were on, not a
-// navigation. See docs/masterplan/07-product-blueprint.md#411-search for
+// navigation.
 // scope, and search-body.tsx for the actual idle/browse/query states.
 export default function SearchPage() {
   return (

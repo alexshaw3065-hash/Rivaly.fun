@@ -25,14 +25,14 @@ import { useEffect } from "react";
 import { useLinkStatus } from "next/link";
 import { joinOnline } from "@/lib/online-presence";
 
-// V1 sitemap only — see docs/masterplan/08-v1-scope.md. Do not add links for
+// V1 sitemap only — Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
 //
 // Two physically different navs, not one responsive one: 95% of the target
-// audience is mobile (docs/masterplan/09-competitive-research.md#1), so
+// audience is mobile, so
 // mobile keeps its own top bar + bottom tab bar (the one-handed pattern the
 // research calls for) untouched, while desktop gets a collapsible left
-// sidebar + top header (sidebar.tsx, desktop-header.tsx) per the founder's
+// sidebar + top header (sidebar.tsx, desktop-header.tsx) per the team's
 // Polymarket-style direction — not a squeezed-down version of the mobile bar.
 
 // Wallet's balance/deposit/withdraw now lives on Profile too (see
@@ -182,7 +182,7 @@ export function Nav({ children }: { children: ReactNode }) {
         </button>
       )}
       {/* Not in rooms (the chat box lives there), Arena (its own post button),
-          profiles (founder, 2026-09-30: it sat over the stats and the
+          profiles (product decision, 2026-09-30: it sat over the stats and the
           wallet's Deposit/Withdraw) or the company and legal pages, which
           are for reading. */}
       {!pathname.startsWith("/rooms/") && pathname !== "/arena" && !pathname.startsWith("/profile") && !COMPANY_TABS.some((t) => t.href === pathname) && (

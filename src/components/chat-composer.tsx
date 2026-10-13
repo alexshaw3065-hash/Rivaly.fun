@@ -39,7 +39,7 @@ import { SidePill } from "./ui/controls";
 // anything. It fills the screen under the room's floating bar (room-tabs).
 //
 // Engagement mechanism #4 (collective effervescence / social facilitation —
-// .claude/skills/rivaly-engagement-psychology): the live "watching" count
+// our engagement design notes): the live "watching" count
 // is real presence, the heat count is real messages, and reactions float
 // over the stadium only when someone actually sends one. No simulated chatter.
 const HISTORY_PAGE = 50;

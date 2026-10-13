@@ -8,7 +8,7 @@ export const COMPANY = {
   email: "support@rivaly.fun",
   /**
    * The registered company that operates Rivaly, and the law its terms are
-   * governed by. Not incorporated yet (founder, 2026-10-08): while these are
+   * governed by. Not incorporated yet (product decision, 2026-10-08): while these are
    * null the Terms say nothing about either — set both once it exists and
    * the governing-law clause appears.
    */

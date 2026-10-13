@@ -1,4 +1,4 @@
--- Host fees become a claimable balance (founder decision 2026-09-27):
+-- Host fees become a claimable balance (product decision 2026-09-27):
 -- instead of paying each room's fee on-chain at settlement, it's recorded;
 -- hosts see Pending (live rooms) → Claimable (settled) and claim everything
 -- in one transfer ($1 minimum). Rivaly's 3% accrues in escrow the same way,

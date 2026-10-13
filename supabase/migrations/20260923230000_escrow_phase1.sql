@@ -1,4 +1,4 @@
--- Escrow build, phase 1 — see docs/plans/escrow-wallet-build.md.
+-- Escrow build, phase 1.
 -- Additive except the two functions, which gain the kickoff lock.
 
 -- Red cards as the feed counts them (the count drops back when VAR rescinds
@@ -47,7 +47,7 @@ create index stake_intents_user_idx on public.stake_intents (user_id, created_at
 create index stake_intents_status_idx on public.stake_intents (status) where status in ('prepared', 'submitted');
 alter table public.stake_intents enable row level security;
 
--- Stakes close at kickoff (founder's call): after it, someone could back
+-- Stakes close at kickoff (product decision): after it, someone could back
 -- "Over 2.5" already knowing it's 2-0. Enforced here, where the entry is
 -- written, not just in the UI.
 create or replace function public.create_room_with_stake(

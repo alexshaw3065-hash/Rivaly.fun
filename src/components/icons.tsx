@@ -446,7 +446,7 @@ export function ArenaIcon() {
 }
 
 // Small glyphs for Search's Browse chips and Discussions topics (per
-// founder direction — icons on our own existing tabs, not a copy of any
+// product direction — icons on our own existing tabs, not a copy of any
 // other product's category list). Same bare hand-drawn stroke convention
 // as every icon above.
 

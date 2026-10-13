@@ -1,5 +1,5 @@
 -- Escrow build, phase 2 — gasless on-chain stakes. See
--- docs/plans/escrow-wallet-build.md.
+--
 --
 -- From here an entry may only exist after the server has verified its USDC
 -- transfer into escrow on-chain, so the create/join functions stop being

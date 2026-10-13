@@ -79,7 +79,7 @@ function useTopicTiles(): TopicTile[] {
 //
 // The full page keeps Recents/Browse/Discussions. The compact dropdown
 // (Home's search bar, desktop's header combobox) instead mirrors
-// Polymarket's own mobile search exactly, per founder direction: Recents
+// Polymarket's own mobile search exactly, by design: Recents
 // (if any) then a plain "Trending" list — a term, a trend arrow, nothing
 // else. Trending terms are real (team names from matches that are live
 // right now, then the next kickoffs — see useTrendingTerms), not an invented

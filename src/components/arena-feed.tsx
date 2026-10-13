@@ -42,7 +42,7 @@ interface Face {
 // rivals, your rooms, what's catching fire, live matches first); Following
 // and a single match's thread stay newest-first. New things don't shove the
 // list around; they wait behind a "3 new · 1 goal" pill. It ends ("caught
-// up") rather than looping. See docs/plans/arena-redesign.md.
+// up") rather than looping.
 //
 // Engagement mechanisms (rivaly-engagement-psychology): #1 variable reward —
 // the ranked mix never lands in a predictable order, and each session

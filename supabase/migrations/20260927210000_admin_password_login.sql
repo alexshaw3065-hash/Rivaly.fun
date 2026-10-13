@@ -1,4 +1,4 @@
--- Password sign-in to /admin (founder decision 2026-09-27): brute-force
+-- Password sign-in to /admin (product decision 2026-09-27): brute-force
 -- protection needs a record of attempts. Only a hash of the IP is kept.
 create table if not exists public.admin_login_attempts (
   id bigint generated always as identity primary key,

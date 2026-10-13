@@ -33,7 +33,7 @@ const tabs: { id: RoomsTab; label: string }[] = [
 // the social payoff (rooms from people you actually follow), and My Rooms
 // is the personal ledger (Created/Joined/Completed). Join Private Room
 // sits apart from these four as a one-off action, not a browsing surface.
-// No per-tab hint copy — the founder's call: the tabs and their content
+// No per-tab hint copy — the product decision: the tabs and their content
 // speak for themselves.
 // useSearchParams needs a Suspense boundary around whatever reads it (Next
 // bails out of static rendering otherwise) — split into a thin wrapper so

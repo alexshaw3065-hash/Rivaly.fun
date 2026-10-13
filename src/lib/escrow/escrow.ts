@@ -1,6 +1,6 @@
 // Server-only. The ONLY module that touches the escrow's secret key — every
 // stake co-signature, payout and refund goes through here. Never import it
-// from a client component. See docs/plans/escrow-wallet-build.md.
+// from a client component.
 //
 // Fails closed: without a key, or with a key that doesn't match the public
 // address the app advertises, nothing that moves money will run.
@@ -72,7 +72,7 @@ export function escrowAddress(): string {
 /**
  * The escrow key as the on-chain program's operator and fee payer — only
  * for src/lib/escrow/program.ts, which can move money only where the
- * program's rules allow (docs/plans/onchain-escrow.md).
+ * program's rules allow.
  */
 export function escrowSigner(): { keypair: Keypair; connection: Connection } {
   return escrow();

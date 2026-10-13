@@ -3,7 +3,7 @@
 // so the server and every phone fold the same message log the same way and
 // agree on who holds the stadium. Unit-tested in room-race.test.ts.
 //
-// Rules (founder, 2026-09-24):
+// Rules (product decision, 2026-09-24):
 // - Energy comes from backers' messages and reactions; spectators don't count.
 // - Distinct people count most: each message's weight falls with how many
 //   that same person sent in the last minute, so one person hammering the

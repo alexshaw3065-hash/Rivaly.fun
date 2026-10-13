@@ -5,7 +5,7 @@ import { RoomCard } from "./room-card";
 import { LiveBadge } from "./live-badge";
 import { EmptyRooms } from "./empty-rooms";
 
-// Live now, then a taste of what's coming — per the founder's direction,
+// Live now, then a taste of what's coming — by design,
 // this tab should "subtly introduce upcoming rooms" rather than being a
 // dead end once the live list runs dry.
 export function RoomsLiveFeed() {

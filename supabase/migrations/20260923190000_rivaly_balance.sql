@@ -1,5 +1,5 @@
 -- Rivaly balance: deposit once, stake instantly. See
--- docs/plans/fast-deposit-and-create.md.
+--
 --
 -- Both tables are written only by the SECURITY DEFINER functions below —
 -- the browser can read its own rows, never write them — and every money

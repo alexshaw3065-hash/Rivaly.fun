@@ -1,4 +1,4 @@
--- Reports no longer take anything down on their own (founder decision,
+-- Reports no longer take anything down on their own (product decision,
 -- 2026-09-27): no "3 reports hides it" rule. A report hides the content for
 -- the person who reported it, and lands in content_reports for review — an
 -- admin page will read that queue and decide. hidden_at stays: it's what

@@ -1,4 +1,4 @@
--- Two production bugs found 2026-09-30 from the founder's phone test.
+-- Two production bugs found 2026-09-30 from a phone test.
 --
 -- 1. Edit Profile failed with "permission denied for table profiles".
 --    authenticated has column-level UPDATE on profiles, and the columns added

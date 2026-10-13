@@ -10,7 +10,7 @@ import { foldMessage, levelsAt, newRace, type RaceSide, type RaceState, type Tak
 // holds the same race and agrees on who holds the stadium.
 //
 // Engagement mechanisms #4 (collective effervescence) and #5 (social
-// identity/rivalry) — .claude/skills/rivaly-engagement-psychology.
+// identity/rivalry).
 
 const TICK_MS = 1000;
 

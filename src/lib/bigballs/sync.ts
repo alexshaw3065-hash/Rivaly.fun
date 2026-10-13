@@ -2,7 +2,7 @@
 // for matches with a room on them). Shared by the Render worker and the
 // app's cron route; the database client is injected so one copy of this
 // logic serves both (same pattern as src/lib/txline/apply-scores.ts).
-// Limits, timing and why: docs/plans/match-data-providers.md.
+// Limits, timing and why:
 
 import { bbGet, syncUsage, usedToday } from "./client";
 import { BACKFILL_BUDGET, fetchBoxScore, nameGoals } from "./extras";

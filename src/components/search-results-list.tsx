@@ -35,7 +35,7 @@ export function SearchResultsList({
       {/* "N results for X" + a bookmark for the search itself — not a
           result, the query. Saving a topic you don't already have a
           curated shortcut for (see mock-data.ts's searchTopics) still
-          belongs on the Wishlist, per the founder's reference. Prefixed
+          belongs on the Wishlist, by design. Prefixed
           so an ad-hoc save of e.g. "live" can never collide with the
           curated "Live now" topic, which uses the bare id "live". */}
       <div className="flex items-center justify-between">

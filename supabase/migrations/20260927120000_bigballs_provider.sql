@@ -1,7 +1,7 @@
 -- Big Balls Data: the one provider for UCL, La Liga, Bundesliga, Serie A,
--- Ligue 1 and MLS (founder decision 2026-09-27 — Big Balls only, no second
+-- Ligue 1 and MLS (product decision 2026-09-27 — Big Balls only, no second
 -- provider). TxLINE keeps the Premier League and the NFL.
--- Plan: docs/plans/match-data-providers.md.
+--
 
 -- Big Balls identifies matches by UUID, not a number.
 alter table public.matches alter column provider_fixture_id drop not null;

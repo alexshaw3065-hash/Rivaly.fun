@@ -1,5 +1,5 @@
 // Server-only. Paying a room whose stakes are held by the on-chain program
-// (custody 'program'; docs/plans/onchain-escrow.md). The decision (who won)
+// (custody 'program';). The decision (who won)
 // is the same as for wallet rooms (settle.ts → decide); only the paying
 // differs, and here the chain is the record of who's been paid:
 //

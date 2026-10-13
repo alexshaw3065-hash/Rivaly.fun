@@ -6,9 +6,9 @@ import { getCurrentProfile } from "@/lib/supabase/current-user";
 
 export const metadata = { title: "Wallet" };
 
-// Per docs/masterplan/07-product-blueprint.md#48-wallet — often overlooked
+// often overlooked
 // but critical to trust. The user should never wonder "where is my money?"
-// See docs/masterplan/09-competitive-research.md#5.2c. Signed out, there's no
+// Signed out, there's no
 // money to show, so the page is just the way in.
 export default async function WalletPage() {
   const me = await getCurrentProfile();

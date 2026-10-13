@@ -11,7 +11,7 @@ import { SearchRollup } from "./search-rollup";
 import { SearchResultsList } from "./search-results-list";
 
 // Home's search pill is a real inline combobox now, not a shortcut into
-// the full-screen mobile overlay — per founder direction, referencing
+// the full-screen mobile overlay — by design, referencing
 // Polymarket's own mobile search: tapping it drops down a compact panel
 // right under the bar (idle: SearchRollup; typing: live grouped results),
 // so results appear in place instead of taking over the screen. Same

@@ -8,7 +8,7 @@ import { openAuthModal } from "@/lib/auth-modal-store";
 import { siteUrl } from "@/lib/site";
 
 // The gift icon's destination. Rivaly doesn't do bonus/promo-driven
-// retention (see docs/masterplan/09-competitive-research.md#5.3 — "social
+// retention ("social
 // investment," not free money), and there's no referral system yet — so
 // this is honest: your real profile link, to send to someone who thinks
 // differently. No invented code, no invented "joined" count.

@@ -1,4 +1,4 @@
--- Arena v2 (docs/plans/arena-redesign.md): everything real, nothing seeded.
+-- Arena v2: everything real, nothing seeded.
 --   1. posts grow up: 500 characters, a photo or GIF, a match tag, a moment
 --      it answers, a call (a room + the side the author actually staked),
 --      and one level of replies.
