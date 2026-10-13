@@ -51,3 +51,13 @@ next-env.d.ts
 # TxLINE worker (separate deployable — see worker/README.md)
 worker/node_modules/
 worker/dist/
+
+# Internal planning & AI tooling (kept locally, not published)
+CLAUDE.md
+docs/masterplan/
+docs/plans/
+docs/design-references/
+docs/hackathon/
+.claude/
+.agents/
+skills-lock.json
