@@ -14,6 +14,7 @@ Make a call on a match, someone takes the other side, you watch it together, and
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Realtime-3ECF8E?logo=supabase&logoColor=white)
 ![Status](https://img.shields.io/badge/status-live%20beta-3D6BFF)
+![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20program%20MIT-blue)
 
 </div>
 
@@ -164,4 +165,7 @@ Secrets (the database service key, escrow and welcome-wallet keys, API tokens) l
 
 ## Licence
 
-© Rivaly. All rights reserved. The code is public to read; it is not licensed for reuse.
+- **The on-chain program** ([`onchain/`](onchain/)) is **MIT** ([onchain/LICENSE](onchain/LICENSE)), so anyone can read, verify, reuse and build on the contract that holds the money.
+- **The app** (everything else) is **AGPL-3.0** ([LICENSE](LICENSE)): open source, and anyone who runs a modified copy as a service must publish their changes too.
+
+"Rivaly" and the Rivaly logo are not covered by these licences.

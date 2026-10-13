@@ -2,6 +2,7 @@
 name = "rivaly_rooms"
 version = "0.1.0"
 description = "Rivaly rooms: each room's stakes held by a program, not a wallet"
+license = "MIT"
 edition.workspace = true
 rust-version.workspace = true
 
