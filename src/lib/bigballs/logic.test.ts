@@ -56,14 +56,14 @@ describe("budget governor", () => {
       now,
       eod,
     );
-    assert.equal(n, MATCH_WINDOW_MS / 60_000);
+    assert.equal(n, Math.ceil(MATCH_WINDOW_MS / 40_000));
   });
-  it("60s when the day can afford it, 45s when urgent and affordable", () => {
-    assert.equal(nextDelay({ usedToday: 50, ticksNeeded: 135, urgent: false }), 60_000);
-    assert.equal(nextDelay({ usedToday: 50, ticksNeeded: 135, urgent: true }), 45_000);
+  it("40s when the day can afford it, 30s when urgent and affordable", () => {
+    assert.equal(nextDelay({ usedToday: 50, ticksNeeded: 135, urgent: false }), 40_000);
+    assert.equal(nextDelay({ usedToday: 50, ticksNeeded: 135, urgent: true }), 30_000);
   });
   it("stretches when the calls left wouldn't last, never past 5 minutes", () => {
-    assert.equal(nextDelay({ usedToday: 370, ticksNeeded: 200, urgent: false }), 120_000);
+    assert.equal(nextDelay({ usedToday: 370, ticksNeeded: 200, urgent: false }), 80_000);
     assert.equal(nextDelay({ usedToday: 470, ticksNeeded: 200, urgent: false }), MAX_MS);
   });
 });

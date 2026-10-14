@@ -94,8 +94,8 @@ export function confirmFinal(
 export const DAILY_LIMIT = 500;
 /** Held back for the day's last confirmations — never spent on routine ticks. */
 export const RESERVE = 30;
-export const BASE_MS = 60_000;
-export const FAST_MS = 45_000;
+export const BASE_MS = 40_000;
+export const FAST_MS = 30_000;
 export const MAX_MS = 5 * 60_000;
 /** How long after kickoff a match can still need polling (90' + stoppage + half-time + a delayed start). */
 export const MATCH_WINDOW_MS = 135 * 60_000;
@@ -126,9 +126,9 @@ export function ticksStillNeeded(windows: Window[], now: number, endOfDay: numbe
 }
 
 /**
- * Wait before the next poll. 60s normally; 45s near the end of a match or
+ * Wait before the next poll. 40s normally; 30s near the end of a match or
  * when one goal would decide a room — if the day's budget can afford it;
- * stretched (up to 5 min) when the calls left today wouldn't last at 60s.
+ * stretched (up to 5 min) when the calls left today wouldn't last at 40s.
  */
 export function nextDelay(opts: { usedToday: number; ticksNeeded: number; urgent: boolean }): number {
   const spare = DAILY_LIMIT - RESERVE - opts.usedToday;

@@ -204,10 +204,13 @@ export function buildTimeline(input: {
 }): TimelineData {
   const { sport, kickoffAt, players } = input;
   const ht = input.rows.find((r) => r.action === "halftime_finalised");
-  const halftimeAt = ht ? +new Date(ht.occurredAt) : null;
+  // Big Balls sends no half-time record: assume the usual 45+2 and a 15-minute break, so second-half
+  // moments without their own minute aren't placed a quarter of an hour late.
+  const bigballs = !ht && input.rows.some((r) => r.payload?.source === "bigballs");
+  const halftimeAt = ht ? +new Date(ht.occurredAt) : bigballs ? kickoffAt + 47 * 60_000 : null;
   // The second half's real kick-off: the first record after half-time in the 2nd-half period.
   const sh = halftimeAt === null ? undefined : input.rows.find((r) => +new Date(r.occurredAt) > halftimeAt && (r.payload?.StatusId === 4 || r.payload?._st === 4));
-  const secondHalfAt = sh ? +new Date(sh.occurredAt) : null;
+  const secondHalfAt = sh ? +new Date(sh.occurredAt) : bigballs ? kickoffAt + 64 * 60_000 : null;
   const nfl: NflClock | undefined = sport === "nfl" ? { quarter: 1, last: null } : undefined;
   const ctx = { sport, kickoffAt, halftimeAt, secondHalfAt, players, nfl };
 

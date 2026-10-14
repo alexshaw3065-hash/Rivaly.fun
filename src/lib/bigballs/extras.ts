@@ -31,6 +31,9 @@ interface BbEvent {
 export interface ScorerFact {
   side: "home" | "away";
   minute: number | null;
+  /** The clock minute and added time, kept apart so 45+2 isn't read as the 47th minute. */
+  elapsed: number | null;
+  extra: number | null;
   player: string;
   assist: string | null;
   ownGoal: boolean;
@@ -60,6 +63,8 @@ export function scorersFrom(events: BbEvent[], homeTeam: string, awayTeam: strin
     out.push({
       side,
       minute: e.elapsed != null ? e.elapsed + (e.elapsed_extra ?? 0) : null,
+      elapsed: e.elapsed,
+      extra: e.elapsed_extra,
       player: e.player_name,
       assist: e.assist_name ?? null,
       ownGoal: /own/i.test(e.event_detail ?? ""),
@@ -118,10 +123,12 @@ export async function nameGoals(db: Db, key: string, match: MatchRef): Promise<n
     for (let i = 0; i < Math.min(theirs.length, mine.length); i++) {
       const g = theirs[i];
       const p = mine[i].payload ?? {};
-      if (p._player === g.player && p._assist === g.assist) continue;
+      // The half it was scored in (2 first, 4 second, as TxLINE's StatusId), so the timeline writes 45+2, not 47.
+      const st = g.elapsed == null ? undefined : g.elapsed <= 45 ? 2 : 4;
+      if (p._player === g.player && p._assist === g.assist && p._min === g.minute && p._st === st) continue;
       await db
         .from("match_events")
-        .update({ minute: g.minute, payload: { ...p, _player: g.player, _assist: g.assist, _own: g.ownGoal, _penalty: g.penalty } })
+        .update({ minute: g.minute, payload: { ...p, _player: g.player, _assist: g.assist, _own: g.ownGoal, _penalty: g.penalty, _min: g.minute, _st: st } })
         .eq("id", mine[i].id);
       named += 1;
     }

@@ -297,6 +297,13 @@ export async function pollLive(db: Db, key: string, now = Date.now()): Promise<L
   return out;
 }
 
+const namedAt = new Map<string, number>();
+async function needsNaming(db: Db, matchId: string, now: number): Promise<boolean> {
+  if (now - (namedAt.get(matchId) ?? 0) < 3 * 60_000) return false;
+  const { count } = await db.from("match_events").select("id", { count: "exact", head: true }).eq("match_id", matchId).eq("action", "goal").is("minute", null);
+  return (count ?? 0) > 0;
+}
+
 async function applyLive(db: Db, key: string, match: HotMatch, seen: BbMatch, now: number, twins: BbMatch[] = []): Promise<{ goals: number; confirmed: boolean }> {
   const status = mapStatus(seen.status);
   const nowIso = new Date(now).toISOString();
@@ -314,7 +321,9 @@ async function applyLive(db: Db, key: string, match: HotMatch, seen: BbMatch, no
   if (status === "live" || status === "finished") {
     const events: Record<string, unknown>[] = [];
     if (match.status === "scheduled") {
-      events.push({ match_id: match.id, provider_seq: 0, action: "kickoff", payload: { _eid: 0, source: "bigballs" }, occurred_at: nowIso });
+      // Big Balls has no kick-off event; the scheduled time is far closer than our first poll after it.
+      const ko = match.kickoff_at && +new Date(match.kickoff_at) <= now ? new Date(match.kickoff_at).toISOString() : nowIso;
+      events.push({ match_id: match.id, provider_seq: 0, action: "kickoff", payload: { _eid: 0, source: "bigballs" }, occurred_at: ko });
     }
     for (const g of goalsBetween(prev, next)) {
       events.push({
@@ -337,7 +346,12 @@ async function applyLive(db: Db, key: string, match: HotMatch, seen: BbMatch, no
       await db.from("match_events").upsert(events, { onConflict: "match_id,provider_seq,action", ignoreDuplicates: false });
     }
     // A goal went in: one call names the scorer (display only; never blocks the score).
-    if (goals > 0) await nameGoals(db, key, match).catch(() => undefined);
+    // Name each goal and give it its real minute. The provider's events can lag the score, so a goal
+    // still missing its minute is re-checked on later ticks (at most every 3 minutes, within the extras budget).
+    if (goals > 0 || (await needsNaming(db, match.id, now))) {
+      namedAt.set(match.id, now);
+      await nameGoals(db, key, match).catch(() => undefined);
+    }
     const changed = next.home !== prev.home || next.away !== prev.away || match.home_score === null;
     if (changed || match.status === "scheduled") {
       await db
