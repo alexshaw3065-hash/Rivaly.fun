@@ -106,6 +106,14 @@
 :root.sidebar-collapsed {
   --sidebar-width: var(--sidebar-width-collapsed);
 }
+/* Sidebar contents per state, in CSS so they're right before hydration. */
+:root.sidebar-collapsed .sb-full,
+:root:not(.sidebar-collapsed) .sb-mini {
+  display: none !important;
+}
+:root.sidebar-collapsed .sb-chevron {
+  transform: rotate(180deg);
+}
 
 :root.light {
   color-scheme: light;

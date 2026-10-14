@@ -15,7 +15,9 @@ import { useSidebarCollapsed, setSidebarCollapsed } from "@/lib/use-sidebar-coll
 // the body-flex overflow bug documented in layout.tsx. Expanded by default;
 // state lives in the `.sidebar-collapsed` class on <html> (see
 // use-sidebar-collapsed.ts) so width, icons-vs-labels, and the collapse
-// arrow all read off one source of truth.
+// arrow all read off one source of truth. What shows in each state is pure
+// CSS (.sb-full / .sb-mini in globals.css), not React, so the first paint
+// is right before hydration: the server can't know the saved state.
 //
 // Wallet's balance/deposit/withdraw now lives on Profile too (see
 // profile-pnl.tsx), so this last slot points at Profile instead of the
@@ -55,7 +57,8 @@ export function Sidebar() {
           the logo PNG has wide empty margins, so drawing the whole file at
           h-8 left the actual artwork tiny. Collapsed, the mark alone. */}
       <Link href="/" aria-label="Rivaly home" className="flex h-16 shrink-0 items-center px-5">
-        {collapsed ? <RivalyMark height={20} /> : <RivalyWordmark />}
+        <span className="sb-mini"><RivalyMark height={20} /></span>
+        <span className="sb-full"><RivalyWordmark /></span>
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 px-3">
@@ -79,42 +82,38 @@ export function Sidebar() {
                   <Avatar name={currentUser.displayName} size={18} imageUrl={currentUser.avatarUrl} />
                 ) : null}
               </span>
-              {!collapsed && <span className="truncate">{label}</span>}
+              <span className="sb-full truncate">{label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {!collapsed && (
-        <nav aria-label="Company" className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 px-5 pb-3 text-caption text-tertiary">
-          {COMPANY_TABS.map((l) => (
-            <Link key={l.href} href={l.href} className="transition-colors duration-100 hover:text-secondary">
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-      )}
+      <nav aria-label="Company" className="sb-full flex shrink-0 flex-wrap gap-x-3 gap-y-1 px-5 pb-3 text-caption text-tertiary">
+        {COMPANY_TABS.map((l) => (
+          <Link key={l.href} href={l.href} className="transition-colors duration-100 hover:text-secondary">
+            {l.label}
+          </Link>
+        ))}
+      </nav>
 
-      {!collapsed && (
-        <div className="flex shrink-0 items-center gap-1 px-4 pb-2">
-          {SOCIALS.map(({ key, label, href }) => {
-            const SocialIcon = SOCIAL_ICONS[key];
-            return (
-              <a
-                key={key}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Rivaly on ${label}`}
-                title={`Rivaly on ${label}`}
-                className="flex h-9 w-9 items-center justify-center rounded-control text-secondary transition-colors duration-100 hover:bg-overlay-1 hover:text-foreground [&>svg]:h-[18px] [&>svg]:w-[18px]"
-              >
-                <SocialIcon />
-              </a>
-            );
-          })}
-        </div>
-      )}
+      <div className="sb-full flex shrink-0 items-center gap-1 px-4 pb-2">
+        {SOCIALS.map(({ key, label, href }) => {
+          const SocialIcon = SOCIAL_ICONS[key];
+          return (
+            <a
+              key={key}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Rivaly on ${label}`}
+              title={`Rivaly on ${label}`}
+              className="flex h-9 w-9 items-center justify-center rounded-control text-secondary transition-colors duration-100 hover:bg-overlay-1 hover:text-foreground [&>svg]:h-[18px] [&>svg]:w-[18px]"
+            >
+              <SocialIcon />
+            </a>
+          );
+        })}
+      </div>
 
       <div className="shrink-0 px-3 pb-5">
         <button
@@ -122,10 +121,10 @@ export function Sidebar() {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="flex h-10 w-full items-center gap-3 rounded-control px-3 text-secondary transition-colors duration-100 hover:text-foreground"
         >
-          <span className="shrink-0" style={{ transform: collapsed ? "rotate(180deg)" : "none" }}>
+          <span className="sb-chevron shrink-0">
             <ChevronIcon />
           </span>
-          {!collapsed && <span className="truncate text-label">Collapse</span>}
+          <span className="sb-full truncate text-label">Collapse</span>
         </button>
       </div>
     </aside>
