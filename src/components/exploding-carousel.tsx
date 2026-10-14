@@ -20,6 +20,9 @@ export interface ExplodingSlide {
 }
 
 const nowMs = () => Date.now();
+/** A match still "scheduled" this long after kick-off has a stuck feed: not something to show off. */
+const STALE_MS = 3 * 60 * 60_000;
+const isStale = (m: Match) => m.status === "scheduled" && +new Date(m.kickoffAt) < nowMs() - STALE_MS;
 
 /**
  * The hottest public rooms, topped up with the soonest upcoming fixtures that
@@ -31,7 +34,7 @@ export function useExplodingSlides(): { slides: ExplodingSlide[]; isLoading: boo
   const { items, isLoading } = usePublicRooms();
   const { matches, isReal, isLoading: matchesLoading } = useRealMatches();
   return useMemo(() => {
-    const hot: ExplodingSlide[] = [...items].sort(byHeat).slice(0, 6).map(({ room, match }) => ({ key: room.id, room, match }));
+    const hot: ExplodingSlide[] = items.filter((i) => !isStale(i.match)).sort(byHeat).slice(0, 6).map(({ room, match }) => ({ key: room.id, room, match }));
     if (hot.length >= MIN_SLIDES) return { slides: hot, isLoading };
     // Too few rooms: the fixtures fill the rest, so it's still loading until
     // they've landed too — otherwise "No rooms yet" flashes before them.
