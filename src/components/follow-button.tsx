@@ -63,7 +63,7 @@ export function FollowButton({
       onClick={handleClick}
       disabled={pending}
       className={`rounded-control font-semibold transition-transform duration-100 ease-out active:scale-[0.97] disabled:opacity-70 ${variant === "compact" ? "h-8 w-full text-caption" : "h-9 px-4 text-label"} ${
-        following ? "text-foreground edge-strong" : "bg-yes text-white"
+        following ? "text-foreground edge-strong" : variant === "compact" ? "bg-yes-tint text-yes-ink hover:bg-yes-tint-strong" : "bg-yes text-white"
       }`}
     >
       {following ? "Following" : "Follow"}

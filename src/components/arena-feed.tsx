@@ -291,57 +291,61 @@ export function ArenaFeed() {
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-line">
-        <div className="flex gap-5">
+      {/* One filter row: whose posts (a quiet switch, not a second row of
+          underlined tabs), then the live and upcoming matches. Scrolls sideways on phones. */}
+      <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+        <div role="radiogroup" aria-label="Whose posts" className="inline-flex shrink-0 rounded-control bg-surface p-1 edge">
           {(["global", "following"] as const).map((s) => (
             <button
               key={s}
+              type="button"
+              role="radio"
+              aria-checked={scope === s}
               onClick={() => (s === "following" && !me ? openAuthModal({ next: "/arena" }) : setScope(s))}
-              className="-mb-px border-b-2 pb-3 text-body font-medium transition-colors duration-150"
-              style={{ borderColor: scope === s ? "var(--foreground)" : "transparent", color: scope === s ? "var(--foreground)" : "var(--text-secondary)" }}
+              className={`h-7 rounded-tag px-3 text-label font-medium transition-[background-color,color] duration-150 ease-out ${scope === s ? "bg-surface-3 text-foreground" : "text-secondary hover:text-foreground"}`}
             >
-              {s === "global" ? "Global" : "Following"}
+              {s === "global" ? "Everyone" : "Following"}
             </button>
           ))}
         </div>
-        {here.count >= PRESENCE_MIN && (
-          <div className="flex items-center gap-2 pb-3 text-label text-secondary" aria-live="polite">
-            <span className="flex -space-x-1.5">
-              {here.faces.slice(0, 3).map((f, i) => (
-                <span key={i} className="rounded-full ring-2 ring-background">
-                  <RivalCharacter name={f.name} imageUrl={f.avatar} size={20} />
+        {chips.length > 0 && (
+          <>
+            <MatchChipButton active={!matchId} onClick={() => setMatchId(null)}>
+              All matches
+            </MatchChipButton>
+            {chips.map((m) => (
+              <MatchChipButton key={m.id} active={matchId === m.id} onClick={() => setMatchId(matchId === m.id ? null : m.id)}>
+                <TeamCrest name={m.homeTeam} size={16} />
+                <span className="max-w-[9rem] truncate">
+                  {m.homeTeam} v {m.awayTeam}
                 </span>
-              ))}
-            </span>
-            <span>
-              <span className="font-semibold text-foreground">{here.count}</span> here now
-            </span>
-          </div>
+                {m.status === "live" ? (
+                  <span className="tabular-nums text-caption font-bold text-money-ink">
+                    {m.homeScore ?? 0}–{m.awayScore ?? 0}
+                  </span>
+                ) : (
+                  <span className="tabular-nums text-caption text-secondary">{new Date(m.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                )}
+              </MatchChipButton>
+            ))}
+          </>
         )}
       </div>
-
-      {chips.length > 0 && (
-        <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
-          <MatchChipButton active={!matchId} onClick={() => setMatchId(null)}>
-            Everything
-          </MatchChipButton>
-          {chips.map((m) => (
-            <MatchChipButton key={m.id} active={matchId === m.id} onClick={() => setMatchId(matchId === m.id ? null : m.id)}>
-              <TeamCrest name={m.homeTeam} size={16} />
-              <span className="max-w-[9rem] truncate">
-                {m.homeTeam} v {m.awayTeam}
+      {here.count >= PRESENCE_MIN && (
+        <div className="mt-3 flex items-center gap-2 text-label text-secondary" aria-live="polite">
+          <span className="flex -space-x-1.5">
+            {here.faces.slice(0, 3).map((f, i) => (
+              <span key={i} className="rounded-full ring-2 ring-background">
+                <RivalCharacter name={f.name} imageUrl={f.avatar} size={20} />
               </span>
-              {m.status === "live" ? (
-                <span className="tabular-nums text-caption font-bold  text-money-ink">
-                  {m.homeScore ?? 0}–{m.awayScore ?? 0}
-                </span>
-              ) : (
-                <span className="tabular-nums text-caption text-secondary">{new Date(m.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
-              )}
-            </MatchChipButton>
-          ))}
+            ))}
+          </span>
+          <span>
+            <span className="font-semibold text-foreground">{here.count}</span> here now
+          </span>
         </div>
       )}
+
       {filtered === undefined && matchId && (
         <button type="button" onClick={() => setMatchId(null)} className="mt-3 text-label text-secondary underline">
           Showing one match · show everything
@@ -350,18 +354,6 @@ export function ArenaFeed() {
 
       {/* On wide screens the same rivals sit in Arena's right-hand column instead (arena-screen.tsx). */}
       {!wide && <ArenaRivals />}
-
-      <button
-        type="button"
-        onClick={() => openComposer(null)}
-        className="mt-4 flex w-full items-center gap-3 rounded-card bg-surface px-4 py-3 text-left edge transition-colors "
-      >
-        {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={32} /> : <span className="h-8 w-8 rounded-full bg-foreground/10" />}
-        <span className="flex-1 text-body text-secondary">{me ? "What's your call?" : "Sign in to post your call"}</span>
-        <span className="rounded-full px-4 py-1.5 text-label font-bold text-white" style={{ background: "var(--yes)" }}>
-          Post
-        </span>
-      </button>
 
       {notice && <p className={`mt-3 text-center text-label font-semibold ${notice.tone === "error" ? "text-no-ink" : "text-secondary"}`}>{notice.text}</p>}
 
@@ -379,6 +371,16 @@ export function ArenaFeed() {
       )}
 
       <div className="-mx-4 mt-4 border-y border-divider md:mx-0 md:overflow-hidden md:rounded-card md:border">
+        {/* The composer is the feed's first row, like X: one surface, not a box above a box. */}
+        <button
+          type="button"
+          onClick={() => openComposer(null)}
+          className="flex w-full items-center gap-3 border-b border-divider px-4 py-4 text-left transition-colors hover:bg-foreground/[0.02]"
+        >
+          {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={40} /> : <span className="h-10 w-10 shrink-0 rounded-full bg-foreground/10" />}
+          <span className="flex-1 text-body-lg text-tertiary">{me ? "What's your call?" : "Sign in to make a call"}</span>
+          <span className="rounded-full bg-yes px-4 py-1.5 text-label font-semibold text-white">Post</span>
+        </button>
         {state === "loading" && <Skeleton />}
         {state === "error" && <p className="px-4 py-14 text-center text-body text-secondary">Couldn&apos;t load the Arena. Pull to refresh or try again in a moment.</p>}
         {state === "ready" && items.length === 0 && (
@@ -425,7 +427,7 @@ function MatchChipButton({ active, onClick, children }: { active: boolean; onCli
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-label transition-[transform,background-color,color] duration-100 active:scale-[0.97] ${active ? "bg-foreground text-background" : "bg-surface text-foreground edge"}`}
+      className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-label font-medium transition-[transform,background-color,color] duration-100 active:scale-[0.97] ${active ? "bg-foreground text-background" : "text-secondary edge hover:text-foreground"}`}
     >
       {children}
     </button>

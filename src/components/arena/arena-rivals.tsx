@@ -158,7 +158,7 @@ export function ArenaRivals({ variant = "row" }: { variant?: "row" | "rail" } = 
   return (
     <section className="mt-4" aria-label="Rivals">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-label font-semibold text-foreground">Rivals</h2>
+        <h2 className="text-label font-semibold text-secondary">Rivals to follow</h2>
         {onlineCount > 0 && (
           <span className="flex items-center gap-1.5 text-caption text-secondary">
             <span className="h-1.5 w-1.5 rounded-full bg-rival-green" aria-hidden />
@@ -168,18 +168,17 @@ export function ArenaRivals({ variant = "row" }: { variant?: "row" | "rail" } = 
       </div>
       <div className="no-scrollbar -mx-4 mt-2 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
         {people.map((p) => (
-          <div key={p.id} className="flex w-[132px] shrink-0 flex-col items-center gap-2 rounded-card bg-surface edge px-3 pb-3 pt-4 text-center">
-            <Link href={`/profile/${p.username}`} className="flex w-full min-w-0 flex-col items-center gap-1.5">
+          <div key={p.id} className="flex w-[116px] shrink-0 flex-col items-center gap-2 rounded-card bg-surface edge px-3 pb-3 pt-3 text-center">
+            <Link href={`/profile/${p.username}`} className="flex w-full min-w-0 flex-col items-center gap-1">
               <span className="relative">
-                <RivalCharacter name={p.username} imageUrl={p.avatar} size={44} />
+                <RivalCharacter name={p.username} imageUrl={p.avatar} size={36} />
                 {p.online && (
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-rival-green ring-2 ring-surface" aria-label="Online now" />
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-rival-green ring-2 ring-surface" aria-label="Online now" />
                 )}
               </span>
-              <span className="w-full truncate text-label font-semibold text-foreground">{p.name}</span>
-              <span className="-mt-1 w-full truncate tabular-nums text-caption text-secondary">@{p.username}</span>
+              <span className="mt-0.5 w-full truncate text-label font-semibold text-foreground">{p.name}</span>
+              <span className="w-full truncate text-caption text-secondary">{p.reason}</span>
             </Link>
-            <span className="w-full truncate text-caption text-secondary">{p.reason}</span>
             {action(p)}
           </div>
         ))}

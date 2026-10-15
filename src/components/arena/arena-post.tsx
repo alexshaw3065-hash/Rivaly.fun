@@ -111,7 +111,7 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
             <path d="M12.5 4 6.5 10l6 6" stroke="currentColor" strokeWidth="1.9" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="font-display text-lg font-bold text-foreground">Post</h1>
+        <h1 className="text-title-3 font-display text-foreground">Post</h1>
       </div>
 
       <div className="-mx-4 mt-3 border-y border-divider md:mx-0 md:overflow-hidden md:rounded-card md:border">
@@ -128,13 +128,11 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
             <button
               type="button"
               onClick={() => actions.onReply?.(post)}
-              className="flex w-full items-center gap-3 border-t border-divider px-4 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
+              className="flex w-full items-center gap-3 border-t border-line px-4 py-4 text-left transition-colors hover:bg-foreground/[0.02]"
             >
-              {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={32} /> : <span className="h-8 w-8 rounded-full bg-foreground/10" />}
-              <span className="flex-1 text-body text-secondary">{me ? "Post your reply" : "Sign in to reply"}</span>
-              <span className="rounded-full px-4 py-1.5 text-label font-bold text-white" style={{ background: "var(--yes)" }}>
-                Reply
-              </span>
+              {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={40} /> : <span className="h-10 w-10 shrink-0 rounded-full bg-foreground/10" />}
+              <span className="flex-1 text-body-lg text-tertiary">{me ? "Post your reply" : "Sign in to reply"}</span>
+              <span className="rounded-full bg-yes px-4 py-1.5 text-label font-semibold text-white">Reply</span>
             </button>
             <div className="divide-y divide-divider border-t border-divider">
               {replies === null && <div className="h-20 skeleton" />}
@@ -143,7 +141,12 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
                   <PostCard item={r} actions={actions} variant="reply" replyingTo={handle(post)} />
                 </div>
               ))}
-              {replies?.length === 0 && <p className="px-4 py-8 text-center text-body text-secondary">No replies yet. Start it.</p>}
+              {replies?.length === 0 && (
+                <div className="px-6 py-12 text-center">
+                  <p className="text-body font-semibold text-foreground">No replies yet</p>
+                  <p className="mt-1 text-label text-secondary">Back it, fade it, or tell them why they&apos;re wrong.</p>
+                </div>
+              )}
             </div>
           </>
         )}

@@ -85,7 +85,7 @@ function Who({ author, at, extra }: { author: ArenaAuthor; at: string; extra?: R
     <span className="truncate font-semibold text-foreground">{author.name}</span>
   );
   return (
-    <div className="flex min-w-0 items-baseline gap-1.5 text-body">
+    <div className="flex min-w-0 items-baseline gap-1.5 text-body leading-tight">
       {author.username ? (
         <Link href={`/profile/${author.username}`} className="min-w-0 truncate hover:underline">
           {name}
@@ -196,17 +196,24 @@ function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom;
   const open = room.status === "open";
   const own = viewerId === authorId;
   return (
-    <div className="mt-2 overflow-hidden rounded-card edge">
-      <Link href={`/rooms/${room.id}`} className="block px-4 pb-3 pt-3 transition-colors hover:bg-foreground/[0.03]">
-        <div className="flex items-center gap-2 text-caption font-bold uppercase">
-          {side ? <span style={{ color: SIDE_COLOR[side] }}>Backing {side}</span> : <span className="text-secondary">Room</span>}
-          {amount !== undefined && <span className="tabular-nums text-secondary">{formatMoney(amount)}</span>}
-          <span className="ml-auto tabular-nums font-medium normal-case tracking-normal text-secondary">{formatMoney(room.pool)} pot · {room.participants}</span>
+    <div className="mt-3 overflow-hidden rounded-card edge">
+      <Link href={`/rooms/${room.id}`} className="block px-4 pb-4 pt-3 transition-colors hover:bg-foreground/[0.03]">
+        <div className="flex items-center gap-2 text-caption">
+          {side ? (
+            <span className="font-semibold" style={{ color: SIDE_COLOR[side] }}>
+              Backing {side.toUpperCase()}
+              {amount !== undefined && <span className="tabular-nums"> · {formatMoney(amount)}</span>}
+            </span>
+          ) : (
+            <span className="font-semibold text-secondary">Open room</span>
+          )}
+          <span className="ml-auto tabular-nums text-secondary">
+            {formatMoney(room.pool)} pool · {room.participants} in
+          </span>
         </div>
-        <p className="mt-1.5 text-body font-semibold leading-snug text-foreground">{room.prediction}</p>
-        {/* The app's own split bar — solid YES blue against NO red. */}
-        <div className="mt-3" aria-hidden>
-          <SplitBar leftPct={Math.round(yesShare * 100)} leftLabel="Yes" rightLabel="No" showLabels={false} />
+        <p className="mt-1 text-body-lg font-semibold leading-snug text-foreground">{room.prediction}</p>
+        <div className="mt-3">
+          <SplitBar leftPct={Math.round(yesShare * 100)} leftLabel="Yes" rightLabel="No" />
         </div>
       </Link>
       {open && side && !own && (
@@ -245,7 +252,25 @@ function CallSlip({ room, side, amount, authorId, viewerId }: { room: ArenaRoom;
   );
 }
 
-function Row({ face, children, onOpen, rowRef }: { face: React.ReactNode; children: React.ReactNode; onOpen?: () => void; rowRef?: (el: HTMLElement | null) => void }) {
+/**
+ * Every feed row shares one grid: a 40px gutter (face, or a bare glyph for
+ * system rows) and a text column, so everything in the feed lines up on the
+ * same left edge. `context` is the small line above, X's "reposted" slot:
+ * what kind of row this is, as a glyph in the gutter and secondary text.
+ */
+function Row({
+  face,
+  children,
+  onOpen,
+  rowRef,
+  context,
+}: {
+  face: React.ReactNode;
+  children: React.ReactNode;
+  onOpen?: () => void;
+  rowRef?: (el: HTMLElement | null) => void;
+  context?: React.ReactNode;
+}) {
   return (
     <article
       ref={rowRef}
@@ -259,13 +284,40 @@ function Row({ face, children, onOpen, rowRef }: { face: React.ReactNode; childr
             }
           : undefined
       }
-      className={`flex gap-3 px-4 py-3 ${onOpen ? "cursor-pointer transition-colors hover:bg-foreground/[0.02]" : ""}`}
+      className={`px-4 py-4 ${onOpen ? "cursor-pointer transition-colors hover:bg-foreground/[0.02]" : ""}`}
     >
-      {face}
-      <div className="min-w-0 flex-1">{children}</div>
+      {context}
+      <div className="flex gap-3">
+        {face}
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
     </article>
   );
 }
+
+const GLYPH = {
+  check: "M4.5 10.5 8 14l7.5-8",
+  miss: "M6 6l8 8M14 6l-8 8",
+  trophy: "M6.5 3.5h7v3.5a3.5 3.5 0 0 1-7 0V3.5ZM10 10.5V14M7 16.5h6M6.5 5H4a2.5 2.5 0 0 0 2.6 3M13.5 5H16a2.5 2.5 0 0 1-2.6 3",
+  flame: "M10 17a5 5 0 0 0 5-5c0-3.2-2.6-4.6-3.2-8.2C9.6 5.4 8.3 7.4 8.3 9.6 7.2 9 6.8 8 6.8 7 5.6 8.4 5 10 5 12a5 5 0 0 0 5 5Z",
+};
+
+/** The context line: a bare glyph right-aligned in the 40px gutter, then the words. */
+function Context({ glyph, color, children }: { glyph: keyof typeof GLYPH; color?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-1.5 flex items-center gap-3 text-label text-secondary">
+      <span className="flex w-10 shrink-0 justify-end" style={{ color: color ?? "var(--text-secondary)" }}>
+        <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden>
+          <path d={GLYPH[glyph]} stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <span className="min-w-0 truncate">{children}</span>
+    </div>
+  );
+}
+
+/** An empty 40px gutter, for system rows whose glyph sits on the context line. */
+const Gutter = () => <span className="w-10 shrink-0" aria-hidden />;
 
 // ── The ⋯ menu on a post: Delete yours, Report anyone else's ──────────
 
@@ -332,7 +384,7 @@ function Glyph({ d }: { d: string }) {
 
 function PostActions({ item, actions, showViews = true }: { item: PostItem | ReceiptItem; actions: CardActions; showViews?: boolean }) {
   return (
-    <div className="-ml-2 mt-1.5 flex max-w-md items-center justify-between text-secondary">
+    <div className="-ml-2 mt-2 flex max-w-md items-center justify-between text-secondary">
       <button
         type="button"
         onClick={() => actions.onReply?.(item)}
@@ -446,8 +498,57 @@ export function PostCard({
   const viewRef = useViewOnScreen(item.id);
   const own = actions.viewerId === item.author.id;
   const detail = variant === "detail";
+  if (detail) {
+    // The post on its own page, X-style: the author on top, then the post at
+    // full width and a size up, the exact time, and the actions between rules.
+    const at = new Date(item.at);
+    return (
+      <article ref={viewRef} className="px-4 pt-4">
+        <div className="flex items-center gap-3">
+          <Face author={item.author} size={44} />
+          <div className="min-w-0 flex-1 leading-tight">
+            {item.author.username ? (
+              <Link href={`/profile/${item.author.username}`} className="block truncate text-body font-semibold text-foreground hover:underline">
+                {item.author.name}
+              </Link>
+            ) : (
+              <span className="block truncate text-body font-semibold text-foreground">{item.author.name}</span>
+            )}
+            {item.author.username && <span className="block truncate text-label text-secondary">@{item.author.username}</span>}
+          </div>
+          <PostMenu item={item} own={own} actions={actions} />
+        </div>
+        {item.body && <p className="mt-4 whitespace-pre-wrap break-words text-title-3 font-normal leading-snug text-foreground">{item.body}</p>}
+        {item.attachment && (
+          <div className="mt-3">
+            <Photo attachment={item.attachment} />
+          </div>
+        )}
+        {item.room && <CallSlip room={item.room} side={item.side} authorId={item.author.id} viewerId={actions.viewerId} />}
+        {item.match && !item.room && (
+          <div className="mt-3">
+            <MatchTag match={item.match} onMatch={actions.onMatch} />
+          </div>
+        )}
+        <p className="mt-4 text-label text-secondary">
+          <time dateTime={item.at}>
+            {at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} · {at.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </time>
+          {item.views > 0 && (
+            <>
+              {" · "}
+              <span className="font-semibold text-foreground">{compactCount(item.views)}</span> {item.views === 1 ? "view" : "views"}
+            </>
+          )}
+        </p>
+        <div className="mt-3 border-t border-line py-1">
+          <PostActions item={item} actions={actions} showViews={false} />
+        </div>
+      </article>
+    );
+  }
   return (
-    <Row face={<Face author={item.author} size={detail ? 44 : 40} />} onOpen={variant === "feed" ? () => router.push(`/arena/p/${item.id}`) : undefined} rowRef={viewRef}>
+    <Row face={<Face author={item.author} />} onOpen={variant === "feed" ? () => router.push(`/arena/p/${item.id}`) : undefined} rowRef={viewRef}>
       <Who
         author={item.author}
         at={item.at}
@@ -458,7 +559,7 @@ export function PostCard({
           Replying to <span className="text-yes-ink">{replyingTo}</span>
         </p>
       )}
-      {item.body && <p className={`mt-0.5 whitespace-pre-wrap break-words text-foreground/90 ${detail ? "text-body-lg" : "text-body"}`}>{item.body}</p>}
+      {item.body && <p className="mt-1 whitespace-pre-wrap break-words text-body leading-relaxed text-foreground">{item.body}</p>}
       {item.attachment && (
         <div className="mt-2">
           <Photo attachment={item.attachment} />
@@ -470,18 +571,7 @@ export function PostCard({
           <MatchTag match={item.match} onMatch={actions.onMatch} />
         </div>
       )}
-      {detail && (
-        <p className="mt-3 border-b border-line pb-3 text-body text-secondary">
-          {new Date(item.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} · {new Date(item.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-          {item.views > 0 && (
-            <>
-              {" · "}
-              <span className="font-semibold text-foreground">{compactCount(item.views)}</span> {item.views === 1 ? "View" : "Views"}
-            </>
-          )}
-        </p>
-      )}
-      <PostActions item={item} actions={actions} showViews={!detail} />
+      <PostActions item={item} actions={actions} />
     </Row>
   );
 }
@@ -490,33 +580,32 @@ function ReceiptCard({ item, actions }: { item: ReceiptItem; actions: CardAction
   const router = useRouter();
   const viewRef = useViewOnScreen(item.id);
   const score = item.match && item.match.homeScore !== null ? `${item.match.home} ${item.match.homeScore}–${item.match.awayScore} ${item.match.away}` : null;
+  const outcome = (item.room.outcome as Side) ?? "yes";
   return (
-    <Row face={<Face author={item.author} />} onOpen={() => router.push(`/arena/p/${item.id}`)} rowRef={viewRef}>
-      <div className="flex items-center gap-2">
-        <span
-          className="rounded-control px-1.5 py-0.5 tabular-nums text-micro font-bold uppercase"
-          style={{ background: item.won ? "var(--money-tint)" : "var(--surface-elevated)", color: item.won ? "var(--rival-green)" : "var(--text-secondary)" }}
-        >
-          {item.won ? "Receipt · called it" : "Receipt · missed"}
-        </span>
-        <span className="text-caption text-secondary">called {ago(item.calledAt)} ago</span>
-      </div>
+    <Row
+      face={<Face author={item.author} />}
+      onOpen={() => router.push(`/arena/p/${item.id}`)}
+      rowRef={viewRef}
+      context={
+        <Context glyph={item.won ? "check" : "miss"} color={item.won ? "var(--rival-green)" : undefined}>
+          <span className={item.won ? "font-semibold text-money-ink" : "font-semibold"}>{item.won ? "Called it" : "Missed it"}</span> · called {ago(item.calledAt)} ago
+        </Context>
+      }
+    >
       <Who author={item.author} at={item.at} />
-      <blockquote className="mt-2 rounded-control bg-overlay-1 px-3 py-2 text-body text-foreground/90">
-        {item.body || item.room.prediction}
-      </blockquote>
-      <div className="mt-3 flex items-center gap-3 rounded-card px-4 py-3 edge">
-        <div className="min-w-0 flex-1">
-          <p className="text-label font-semibold text-foreground">{item.room.prediction}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-body leading-relaxed text-foreground">{item.body || item.room.prediction}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3 rounded-card px-4 py-3 edge">
+        <div className="min-w-48 flex-1">
+          <p className="text-body font-semibold leading-snug text-foreground">{item.room.prediction}</p>
           <p className="mt-0.5 text-label text-secondary">
-            <span className="font-bold uppercase" style={{ color: SIDE_COLOR[(item.room.outcome as Side) ?? "yes"] }}>
-              {item.room.outcome}
-            </span>{" "}
-            won{score ? ` · ${score}` : ""} · {formatMoney(item.room.pool)} pot
+            <span className="font-semibold" style={{ color: SIDE_COLOR[outcome] }}>
+              {outcome.toUpperCase()} won
+            </span>
+            {score ? ` · ${score}` : ""} · {formatMoney(item.room.pool)} pool
           </p>
         </div>
         {!item.won && item.rematchMatchId && (
-          <Link href={`/rooms/create?matchId=${item.rematchMatchId}`} className="shrink-0 rounded-full px-4 py-1.5 text-label font-bold text-white" style={{ background: "var(--yes)" }}>
+          <Link href={`/rooms/create?matchId=${item.rematchMatchId}`} className="shrink-0 rounded-full bg-yes px-4 py-1.5 text-label font-semibold text-white">
             Rematch
           </Link>
         )}
@@ -553,7 +642,7 @@ function EntryCard({ item, actions }: { item: EntryItem; actions: CardActions })
   return (
     <Row face={<Face author={item.author} />}>
       <Who author={item.author} at={item.at} />
-      <p className="mt-0.5 text-body text-foreground/90">
+      <p className="mt-1 text-body text-secondary">
         backed <span className="font-bold uppercase" style={{ color: SIDE_COLOR[item.side] }}>{item.side}</span> with {formatMoney(item.amount)}
       </p>
       <CallSlip room={item.room} side={item.side} amount={item.amount} authorId={item.author.id} viewerId={actions.viewerId} />
@@ -565,44 +654,54 @@ function EntryCard({ item, actions }: { item: EntryItem; actions: CardActions })
 }
 
 function SettledCard({ item }: { item: SettledItem }) {
+  const router = useRouter();
   const outcome = (item.room.outcome as Side) ?? "yes";
   const shown = item.winners.slice(0, 3);
   return (
-    <Link href={`/rooms/${item.room.id}`} className="block px-4 py-3 transition-colors hover:bg-foreground/[0.02]">
-      <p className="tabular-nums text-micro font-bold uppercase text-secondary">Room settled · {ago(item.at)}</p>
-      <p className="mt-1 text-body font-semibold leading-snug text-foreground">{item.room.prediction}</p>
-      <div className="mt-2 flex items-center gap-2">
-        <span className="shrink-0 whitespace-nowrap font-bold uppercase" style={{ color: SIDE_COLOR[outcome] }}>
-          {outcome} won
+    <Row face={<Gutter />} onOpen={() => router.push(`/rooms/${item.room.id}`)} context={<Context glyph="trophy">Room settled · {ago(item.at)}</Context>}>
+      <Link href={`/rooms/${item.room.id}`} className="block text-body-lg font-semibold leading-snug text-foreground hover:underline">
+        {item.room.prediction}
+      </Link>
+      <div className="mt-2 flex min-w-0 items-center gap-2 text-label">
+        <span className="shrink-0 whitespace-nowrap font-semibold" style={{ color: SIDE_COLOR[outcome] }}>
+          {outcome.toUpperCase()} won
         </span>
-        <span className="text-secondary">·</span>
-        <span className="flex shrink-0 -space-x-1.5">
-          {shown.map((w) => (
-            <span key={w.author.id} className="rounded-full ring-2 ring-surface">
-              <RivalCharacter name={w.author.name} imageUrl={w.author.avatar} size={20} />
-            </span>
-          ))}
-        </span>
-        <span className="min-w-0 truncate text-label text-secondary">
+        {shown.length > 0 && (
+          <span className="flex shrink-0 -space-x-1.5">
+            {shown.map((w) => (
+              <span key={w.author.id} className="rounded-full ring-2 ring-background">
+                <RivalCharacter name={w.author.name} imageUrl={w.author.avatar} size={20} />
+              </span>
+            ))}
+          </span>
+        )}
+        <span className="min-w-0 truncate text-secondary">
           {item.winners.length === 0 ? "no winners" : `${shown.map((w) => w.author.name).join(", ")}${item.winners.length > 3 ? ` +${item.winners.length - 3}` : ""} split ${formatMoney(item.room.pool)}`}
         </span>
       </div>
-    </Link>
+    </Row>
   );
 }
 
 function HotCard({ item }: { item: HotItem }) {
+  const router = useRouter();
   return (
-    <Link href={`/rooms/${item.room.id}`} className="block px-4 py-3 transition-colors hover:bg-foreground/[0.02]">
-      <div className="flex items-center gap-2">
-        <span className="tabular-nums text-micro font-bold uppercase text-yes-ink">Heating up</span>
-        <span className="text-caption text-secondary">{item.recent} joined in the last 30 min</span>
-      </div>
-      <p className="mt-1 text-body font-semibold leading-snug text-foreground">{item.room.prediction}</p>
-      <p className="mt-1 tabular-nums text-caption text-secondary">
-        {formatMoney(item.room.pool)} pot · {item.room.participants} in
+    <Row
+      face={<Gutter />}
+      onOpen={() => router.push(`/rooms/${item.room.id}`)}
+      context={
+        <Context glyph="flame" color="var(--yes-ink)">
+          <span className="font-semibold text-yes-ink">Heating up</span> · {item.recent} joined in the last 30 min
+        </Context>
+      }
+    >
+      <Link href={`/rooms/${item.room.id}`} className="block text-body-lg font-semibold leading-snug text-foreground hover:underline">
+        {item.room.prediction}
+      </Link>
+      <p className="mt-1 tabular-nums text-label text-secondary">
+        {formatMoney(item.room.pool)} pool · {item.room.participants} in
       </p>
-    </Link>
+    </Row>
   );
 }
 
