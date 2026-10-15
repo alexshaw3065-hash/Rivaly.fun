@@ -57,8 +57,12 @@ export function HomeScreen({ footer }: { footer?: React.ReactNode }) {
           </div>
         </section>
 
-        <aside className="mt-6 hidden min-w-0 xl:block" aria-label="Top rivals">
-          <TopRivals variant="rail" />
+        {/* As tall as Exploding now and no taller: the list scrolls inside, so a
+            long board never leaves a gap above the rooms. */}
+        <aside className="relative mt-6 hidden min-w-0 self-stretch xl:block" aria-label="Top rivals">
+          <div className="absolute inset-0 overflow-y-auto overscroll-contain">
+            <TopRivals variant="rail" />
+          </div>
         </aside>
       </div>
 
