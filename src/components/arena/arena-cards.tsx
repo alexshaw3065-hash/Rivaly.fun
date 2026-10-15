@@ -579,7 +579,6 @@ export function PostCard({
 function ReceiptCard({ item, actions }: { item: ReceiptItem; actions: CardActions }) {
   const router = useRouter();
   const viewRef = useViewOnScreen(item.id);
-  const score = item.match && item.match.homeScore !== null ? `${item.match.home} ${item.match.homeScore}–${item.match.awayScore} ${item.match.away}` : null;
   const outcome = (item.room.outcome as Side) ?? "yes";
   return (
     <Row
@@ -594,21 +593,34 @@ function ReceiptCard({ item, actions }: { item: ReceiptItem; actions: CardAction
     >
       <Who author={item.author} at={item.at} />
       <p className="mt-1 whitespace-pre-wrap break-words text-body leading-relaxed text-foreground">{item.body || item.room.prediction}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-3 rounded-card px-4 py-3 edge">
-        <div className="min-w-48 flex-1">
-          <p className="text-body font-semibold leading-snug text-foreground">{item.room.prediction}</p>
-          <p className="mt-0.5 text-label text-secondary">
-            <span className="font-semibold" style={{ color: SIDE_COLOR[outcome] }}>
-              {outcome.toUpperCase()} won
-            </span>
-            {score ? ` · ${score}` : ""} · {formatMoney(item.room.pool)} pool
-          </p>
+      {/* The result, in three calm lines: the call and how it went, the
+          scoreline, then the pool and the rematch. */}
+      <div className="mt-3 rounded-card px-4 py-3 edge">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="min-w-0 text-body font-semibold leading-snug text-foreground">{item.room.prediction}</p>
+          <span className="shrink-0 text-label font-semibold" style={{ color: SIDE_COLOR[outcome] }}>
+            {outcome.toUpperCase()} won
+          </span>
         </div>
-        {!item.won && item.rematchMatchId && (
-          <Link href={`/rooms/create?matchId=${item.rematchMatchId}`} className="shrink-0 rounded-full bg-yes px-4 py-1.5 text-label font-semibold text-white">
-            Rematch
-          </Link>
+        {item.match && item.match.homeScore !== null && (
+          <div className="mt-2 flex min-w-0 items-center gap-2 text-label text-secondary">
+            <TeamCrest name={item.match.home} size={16} />
+            <span className="min-w-0 truncate">{item.match.home}</span>
+            <span className="shrink-0 tabular-nums font-semibold text-foreground">
+              {item.match.homeScore}–{item.match.awayScore}
+            </span>
+            <span className="min-w-0 truncate">{item.match.away}</span>
+            <TeamCrest name={item.match.away} size={16} />
+          </div>
         )}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="tabular-nums text-label text-secondary">{formatMoney(item.room.pool)} pool</span>
+          {!item.won && item.rematchMatchId && (
+            <Link href={`/rooms/create?matchId=${item.rematchMatchId}`} className="shrink-0 rounded-full bg-yes px-4 py-1.5 text-label font-semibold text-white">
+              Rematch
+            </Link>
+          )}
+        </div>
       </div>
       <PostActions item={item} actions={actions} />
     </Row>
