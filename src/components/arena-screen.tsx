@@ -7,6 +7,7 @@ import { ArenaLeaderboard } from "@/components/arena-leaderboard";
 import { Tabs } from "@/components/ui/controls";
 import { ArenaRivals } from "@/components/arena/arena-rivals";
 import { useWideScreen } from "@/lib/use-wide-screen";
+import { PinnedHeader } from "@/components/arena/pinned-header";
 
 export type ArenaTab = "feed" | "leagues" | "leaderboard";
 
@@ -46,10 +47,16 @@ export function ArenaScreen({ initialTab }: { initialTab: ArenaTab }) {
     <main className="mx-auto min-w-0 max-w-5xl px-4 pb-6 pt-3 md:px-6 md:py-12 lg:max-w-[648px] xl:max-w-[1000px]">
       <div className="xl:grid xl:grid-cols-[600px_320px] xl:justify-center xl:gap-8">
         <div className="min-w-0">
-          <Tabs tabs={tabs} value={tab} onChange={setTab} />
+          {/* The tabs ride in a pinned header that hides on scroll (pinned-header.tsx);
+              on Feed it also carries the feed's filter row. */}
+          {tab !== "feed" && (
+            <PinnedHeader>
+              <Tabs tabs={tabs} value={tab} onChange={setTab} />
+            </PinnedHeader>
+          )}
 
-          <div className="mt-6">
-            {tab === "feed" && <ArenaFeed />}
+          <div className={tab === "feed" ? "" : "mt-3"}>
+            {tab === "feed" && <ArenaFeed tabs={<Tabs tabs={tabs} value={tab} onChange={setTab} />} />}
             {tab === "leagues" && <ArenaLeagues />}
             {tab === "leaderboard" && <ArenaLeaderboard />}
           </div>

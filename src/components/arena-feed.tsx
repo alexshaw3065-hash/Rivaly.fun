@@ -14,6 +14,7 @@ import { ArenaMatchRooms } from "./arena/arena-match-rooms";
 import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, fetchRanked, newRankedSession, setReaction, type FeedScope, type RankedSession } from "@/lib/arena/data";
 import { ArenaRivals } from "./arena/arena-rivals";
 import { useWideScreen } from "@/lib/use-wide-screen";
+import { PinnedHeader } from "./arena/pinned-header";
 import {
   appendPage,
   cursorOf,
@@ -48,7 +49,8 @@ interface Face {
 // the ranked mix never lands in a predictable order, and each session
 // reshuffles; #5 rivalry — head-to-head rivals rank highest; #9 social
 // proof — what's drawing reactions right now rises.
-export function ArenaFeed() {
+/** `tabs`: the Arena's tab row, drawn at the top of the feed's pinned header. */
+export function ArenaFeed({ tabs }: { tabs?: React.ReactNode } = {}) {
   const me = useCurrentUser();
   const wide = useWideScreen();
   const viewerId = me?.id ?? null;
@@ -291,46 +293,49 @@ export function ArenaFeed() {
 
   return (
     <div>
-      {/* One filter row: whose posts (a quiet switch, not a second row of
-          underlined tabs), then the live and upcoming matches. Scrolls sideways on phones. */}
-      <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <div role="radiogroup" aria-label="Whose posts" className="inline-flex shrink-0 rounded-control bg-surface p-1 edge">
-          {(["global", "following"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              role="radio"
-              aria-checked={scope === s}
-              onClick={() => (s === "following" && !me ? openAuthModal({ next: "/arena" }) : setScope(s))}
-              className={`h-7 rounded-tag px-3 text-label font-medium transition-[background-color,color] duration-150 ease-out ${scope === s ? "bg-surface-3 text-foreground" : "text-secondary hover:text-foreground"}`}
-            >
-              {s === "global" ? "Everyone" : "Following"}
-            </button>
-          ))}
-        </div>
-        {chips.length > 0 && (
-          <>
-            <MatchChipButton active={!matchId} onClick={() => setMatchId(null)}>
-              All matches
-            </MatchChipButton>
-            {chips.map((m) => (
-              <MatchChipButton key={m.id} active={matchId === m.id} onClick={() => setMatchId(matchId === m.id ? null : m.id)}>
-                <TeamCrest name={m.homeTeam} size={16} />
-                <span className="max-w-[9rem] truncate">
-                  {m.homeTeam} v {m.awayTeam}
-                </span>
-                {m.status === "live" ? (
-                  <span className="tabular-nums text-caption font-bold text-money-ink">
-                    {m.homeScore ?? 0}–{m.awayScore ?? 0}
-                  </span>
-                ) : (
-                  <span className="tabular-nums text-caption text-secondary">{new Date(m.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
-                )}
-              </MatchChipButton>
+      <PinnedHeader>
+        {tabs}
+        {/* One filter row: whose posts (a quiet switch, not a second row of
+            underlined tabs), then the live and upcoming matches. Scrolls sideways on phones. */}
+        <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <div role="radiogroup" aria-label="Whose posts" className="inline-flex shrink-0 rounded-control bg-surface p-1 edge">
+            {(["global", "following"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                role="radio"
+                aria-checked={scope === s}
+                onClick={() => (s === "following" && !me ? openAuthModal({ next: "/arena" }) : setScope(s))}
+                className={`h-7 rounded-tag px-3 text-label font-medium transition-[background-color,color] duration-150 ease-out ${scope === s ? "bg-surface-3 text-foreground" : "text-secondary hover:text-foreground"}`}
+              >
+                {s === "global" ? "Everyone" : "Following"}
+              </button>
             ))}
-          </>
-        )}
-      </div>
+          </div>
+          {chips.length > 0 && (
+            <>
+              <MatchChipButton active={!matchId} onClick={() => setMatchId(null)}>
+                All matches
+              </MatchChipButton>
+              {chips.map((m) => (
+                <MatchChipButton key={m.id} active={matchId === m.id} onClick={() => setMatchId(matchId === m.id ? null : m.id)}>
+                  <TeamCrest name={m.homeTeam} size={16} />
+                  <span className="max-w-[9rem] truncate">
+                    {m.homeTeam} v {m.awayTeam}
+                  </span>
+                  {m.status === "live" ? (
+                    <span className="tabular-nums text-caption font-bold text-money-ink">
+                      {m.homeScore ?? 0}–{m.awayScore ?? 0}
+                    </span>
+                  ) : (
+                    <span className="tabular-nums text-caption text-secondary">{new Date(m.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                  )}
+                </MatchChipButton>
+              ))}
+            </>
+          )}
+        </div>
+      </PinnedHeader>
       {here.count >= PRESENCE_MIN && (
         <div className="mt-3 flex items-center gap-2 text-label text-secondary" aria-live="polite">
           <span className="flex -space-x-1.5">
@@ -449,3 +454,4 @@ function Skeleton() {
     </div>
   );
 }
+
