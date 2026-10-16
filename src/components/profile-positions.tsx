@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchRoomsForProfile, type RoomWithMatch } from "@/lib/use-real-rooms";
-import { planSettlement } from "@/lib/settlement/payouts";
+import { isClosedRoom as isClosed, positionOf } from "@/lib/position";
+import { SharePositionButton } from "./room/share-position";
 import { formatMoney } from "@/lib/mock-data";
 import type { EntrySide } from "@/lib/types";
 import { RoomCard } from "./room-card";
@@ -52,59 +53,38 @@ export function useProfilePositions(profileId: string): { items: RoomWithMatch[]
   return { items: mine ? state.items : [], stakes: mine ? state.stakes : {}, isLoading: !mine };
 }
 
-const isClosed = (status: string) => status === "settled" || status === "refunded" || status === "cancelled";
 
 // Open: what the stake would pay if its side won, from the room's pot as it
 // stands (the settlement's own maths and the room's own fee). Closed: how it
 // actually ended.
-function StakeLine({ item, stake }: { item: RoomWithMatch; stake: ProfileStake }) {
+function StakeLine({ item, stake, shareAs }: { item: RoomWithMatch; stake: ProfileStake; shareAs?: string }) {
   const { room } = item;
+  const pos = positionOf(room, stake);
   const side = <span className={`font-bold ${stake.side === "yes" ? "text-yes-ink" : "text-no-ink"}`}>{stake.side.toUpperCase()}</span>;
-  let result: React.ReactNode;
-  if (isClosed(room.status)) {
-    result =
-      room.status === "refunded" || stake.isWinner === null ? (
-        <span className="text-secondary">refunded</span>
-      ) : stake.isWinner && (stake.payoutCents ?? 0) <= stake.amountCents ? (
-        // Won, but nobody was on the other side: just the stake back.
-        <span className="text-secondary">stake back</span>
-      ) : stake.isWinner ? (
-        <span className="font-semibold text-money-ink">won +{formatMoney(Math.max(0, (stake.payoutCents ?? 0) - stake.amountCents))}</span>
-      ) : (
-        <span className="text-secondary">lost {formatMoney(stake.amountCents)}</span>
-      );
-  } else {
-    const yes = room.yesTotalCents ?? 0;
-    const no = room.noTotalCents ?? 0;
-    const mine = Math.max(stake.side === "yes" ? yes : no, stake.amountCents);
-    const theirs = stake.side === "yes" ? no : yes;
-    if (theirs === 0) {
-      result = <span className="text-secondary">waiting for a rival</span>;
-    } else {
-      const other: EntrySide = stake.side === "yes" ? "no" : "yes";
-      const plan = planSettlement(
-        [
-          { id: "me", side: stake.side, amountCents: stake.amountCents },
-          ...(mine > stake.amountCents ? [{ id: "rest", side: stake.side, amountCents: mine - stake.amountCents }] : []),
-          { id: "them", side: other, amountCents: theirs },
-        ],
-        stake.side,
-        { rivalyBps: room.feeBps ?? 0, hostBps: room.hostFeeBps ?? 0 },
-      );
-      const payout = plan.payouts.find((p) => p.entryId === "me")?.cents ?? stake.amountCents;
-      result = (
-        <>
-          <span className="text-secondary">to win</span> <span className="font-semibold text-money-ink">+{formatMoney(payout - stake.amountCents)}</span>
-        </>
-      );
-    }
-  }
+  const result: Record<typeof pos.state, React.ReactNode> = {
+    refunded: <span className="text-secondary">refunded</span>,
+    // Won, but nobody was on the other side: just the stake back.
+    "stake-back": <span className="text-secondary">stake back</span>,
+    won: <span className="font-semibold text-money-ink">won +{formatMoney(pos.profitCents)}</span>,
+    lost: <span className="text-secondary">lost {formatMoney(stake.amountCents)}</span>,
+    waiting: <span className="text-secondary">waiting for a rival</span>,
+    open: (
+      <>
+        <span className="text-secondary">to win</span> <span className="font-semibold text-money-ink">+{formatMoney(pos.profitCents)}</span>
+      </>
+    ),
+  };
   return (
     <p className="mb-2 flex flex-wrap items-center gap-x-1.5 px-1 text-label tabular-nums">
       {side}
       <span className="text-foreground">{formatMoney(stake.amountCents)} staked</span>
       <span aria-hidden className="text-tertiary">·</span>
-      {result}
+      {result[pos.state]}
+      {shareAs && room.visibility === "public" && (
+        <span className="ml-auto">
+          <SharePositionButton roomId={room.id} username={shareAs} variant="link" />
+        </span>
+      )}
     </p>
   );
 }
@@ -114,7 +94,10 @@ export function ProfilePositions({
   stakes = {},
   isLoading,
   filter,
+  shareAs,
 }: {
+  /** Your own profile: each position gets a Share link (as this username). */
+  shareAs?: string;
   items: RoomWithMatch[];
   stakes?: Record<string, ProfileStake>;
   isLoading: boolean;
@@ -135,7 +118,7 @@ export function ProfilePositions({
       {rows.map((item) => (
         <div key={item.room.id}>
           {/* Their stake reads as the card's caption, above it — not floating under it into the next one. */}
-          {stakes[item.room.id] && <StakeLine item={item} stake={stakes[item.room.id]} />}
+          {stakes[item.room.id] && <StakeLine item={item} stake={stakes[item.room.id]} shareAs={shareAs} />}
           <RoomCard room={item.room} match={item.match} />
         </div>
       ))}

@@ -10,6 +10,7 @@ import { LiveBadge as TodayLiveBadge } from "@/components/live-badge";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { TeamCrest } from "@/components/team-crest";
 import { HeadToHeadView } from "@/components/profile/head-to-head";
+import { SharePositionButton } from "@/components/room/share-position";
 import { Amount, Badge, Button, Card, Chip, EmptyState, IconButton, ListGroup, ListRow, LiveBadge, SectionHeader, Segmented, Sheet, SidePill, Skeleton, Tabs } from "@/components/ui";
 
 function Row({ label, today, kit }: { label: string; today: ReactNode; kit: ReactNode }) {
@@ -383,6 +384,11 @@ export function KitPreview() {
           h={{ mine: 2, theirs: 1, live: 1, rematchMatchId: null, last: { roomId: "x", prediction: "Barcelona to win", mySide: "no", iWon: true, at: "2026-10-12T19:00:00Z", home: "PSG", away: "Barcelona" } }}
         />
         <HeadToHeadView me={{ displayName: "You", avatarUrl: null }} other={{ name: "Philippus", username: "philippus", avatarUrl: null }} h={{ mine: 0, theirs: 0, live: 0, rematchMatchId: null, last: null }} />
+      </div>
+
+      <SectionHeader title="Share my position" className="mt-8" />
+      <div id="kit-share" className="max-w-sm">
+        <SharePositionButton roomId="afc235fe-5960-4756-8a2d-36ea697f48fc" username="chief" />
       </div>
     </main>
   );

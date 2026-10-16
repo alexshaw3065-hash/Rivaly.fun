@@ -23,6 +23,7 @@ import { RoomResultReveal } from "@/components/room/room-result-reveal";
 import { RoomLive } from "@/components/room-live";
 import { RoomStage } from "@/components/room/room-stage";
 import { SideStands } from "@/components/room/side-stands";
+import { SharePositionButton } from "@/components/room/share-position";
 import { RoomTakeSide } from "@/components/room/room-take-side";
 import { RoomArenaCta } from "@/components/arena/arena-room-buttons";
 import { settleRoom } from "@/lib/settlement/settle";
@@ -268,6 +269,9 @@ export default async function RoomPage({
               sharePath={sharePath}
               claim={claim}
             />
+
+            {/* Your stake as a card to share, at any stage (public rooms). */}
+            {myEntry && viewer && room.visibility === "public" && <SharePositionButton roomId={room.id} username={viewer.username} />}
 
             {room.visibility === "public" && (room.status === "open" || room.status === "live") && (
               <RoomArenaCta
