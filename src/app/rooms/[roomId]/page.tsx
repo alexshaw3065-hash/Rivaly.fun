@@ -23,7 +23,6 @@ import { RoomResultReveal } from "@/components/room/room-result-reveal";
 import { RoomLive } from "@/components/room-live";
 import { RoomStage } from "@/components/room/room-stage";
 import { SideStands } from "@/components/room/side-stands";
-import { SharePositionButton } from "@/components/room/share-position";
 import { RoomTakeSide } from "@/components/room/room-take-side";
 import { RoomArenaCta } from "@/components/arena/arena-room-buttons";
 import { settleRoom } from "@/lib/settlement/settle";
@@ -190,6 +189,8 @@ export default async function RoomPage({
     ...(outcome ? [{ id: "result", at: room.settledAt ? +new Date(room.settledAt) : +new Date(match.kickoffAt) + 1, kind: "result" as const, outcome }] : []),
   ];
   const sharePath = `/rooms/${room.id}${room.visibility === "private" ? `?code=${room.inviteCode}` : ""}`;
+  // Your stake as a card to share (public rooms): on the position bar, the win moment and the result.
+  const shareAs = myEntry && viewer && room.visibility === "public" ? { roomId: room.id, username: viewer.username } : undefined;
   // Your stake and what it'd win, live — only while the room is undecided.
   const position: PositionProps | null =
     myEntry && !outcome
@@ -201,6 +202,7 @@ export default async function RoomPage({
           rivalyBps: room.feeBps ?? 0,
           hostBps: room.hostFeeBps ?? 0,
           locked: stakesClosed,
+          shareAs,
         }
       : null;
   const feeTotalBps = (room.feeBps ?? 0) + (room.hostFeeBps ?? 0);
@@ -243,6 +245,7 @@ export default async function RoomPage({
                 noCents={room.noTotalCents ?? 0}
                 recent={decidedRecently(room.settledAt ?? match.kickoffAt)}
                 sharePath={sharePath}
+                shareAs={shareAs?.username}
                 feeBps={(room.feeBps ?? 0) + (room.hostFeeBps ?? 0)}
               />
             )}
@@ -254,6 +257,7 @@ export default async function RoomPage({
                 matchStillLive={match.status === "live"}
                 entry={myEntry}
                 feeBps={(room.feeBps ?? 0) + (room.hostFeeBps ?? 0)}
+                shareAs={shareAs}
               />
             )}
 
@@ -269,9 +273,6 @@ export default async function RoomPage({
               sharePath={sharePath}
               claim={claim}
             />
-
-            {/* Your stake as a card to share, at any stage (public rooms). */}
-            {myEntry && viewer && room.visibility === "public" && <SharePositionButton roomId={room.id} username={viewer.username} />}
 
             {room.visibility === "public" && (room.status === "open" || room.status === "live") && (
               <RoomArenaCta

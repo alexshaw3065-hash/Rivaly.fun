@@ -15,11 +15,21 @@ import { siteUrl } from "@/lib/site";
 // Engagement mechanisms: #5 social identity (my call, out loud) and #10
 // growth through people — the card carries a QR to the room with your referral.
 
-export function SharePositionButton({ roomId, username, variant = "button" }: { roomId: string; username: string; variant?: "button" | "link" }) {
+export function SharePositionButton({ roomId, username, variant = "button" }: { roomId: string; username: string; variant?: "button" | "link" | "icon" }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      {variant === "link" ? (
+      {variant === "icon" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Share your position"
+          title="Share your position"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-secondary transition-colors hover:bg-overlay-1 hover:text-foreground"
+        >
+          <ShareGlyph />
+        </button>
+      ) : variant === "link" ? (
         <button type="button" onClick={() => setOpen(true)} className="font-semibold text-yes-ink hover:underline">
           Share
         </button>
@@ -33,7 +43,7 @@ export function SharePositionButton({ roomId, username, variant = "button" }: { 
   );
 }
 
-function SharePositionSheet({ open, onOpenChange, roomId, username }: { open: boolean; onOpenChange: (o: boolean) => void; roomId: string; username: string }) {
+export function SharePositionSheet({ open, onOpenChange, roomId, username }: { open: boolean; onOpenChange: (o: boolean) => void; roomId: string; username: string }) {
   const [amounts, setAmounts] = useState<"show" | "hide">("show");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   // New numbers each time the sheet opens (the pool moves while a room is open).

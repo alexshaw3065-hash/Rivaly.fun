@@ -24,6 +24,7 @@ import { ArenaComposerHost } from "./arena/arena-composer-host";
 import { useEffect } from "react";
 import { useLinkStatus } from "next/link";
 import { joinOnline } from "@/lib/online-presence";
+import { useScrollBar } from "@/lib/use-scroll-bar";
 
 // V1 sitemap only — Do not add links for
 // Communities, Streaming, Tournaments, etc. until V1 scope changes.
@@ -91,6 +92,11 @@ export function Nav({ children }: { children: ReactNode }) {
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
   }, [pathname]);
+
+  // Phones: the top bar slides away as you scroll down and back on any scroll
+  // up, on every screen except inside a room (which hides it its own way once
+  // the score bar sticks) and the create flow.
+  useScrollBar(!isAdmin && !/^\/rooms\/[^/]+/.test(pathname));
 
   const tabs = [
     ...baseTabs,

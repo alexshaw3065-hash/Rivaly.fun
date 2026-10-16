@@ -7,7 +7,6 @@ import { ArenaLeaderboard } from "@/components/arena-leaderboard";
 import { Tabs } from "@/components/ui/controls";
 import { ArenaRivals } from "@/components/arena/arena-rivals";
 import { useWideScreen } from "@/lib/use-wide-screen";
-import { useScrollBar } from "@/lib/use-scroll-bar";
 
 export type ArenaTab = "feed" | "leagues" | "leaderboard";
 
@@ -30,8 +29,6 @@ export function ArenaScreen({ initialTab }: { initialTab: ArenaTab }) {
   // waits on it while the screen loads.
   const [tab, setTab] = useState<ArenaTab>(initialTab);
   const wide = useWideScreen();
-  // Phones: the app bar slides away on scroll down and back on scroll up.
-  useScrollBar();
 
   // The floating "post a take" button (nav.tsx) belongs to the Feed only —
   // Leagues and Leaderboard have their own one primary action.

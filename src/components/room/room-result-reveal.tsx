@@ -10,6 +10,7 @@ import { pct } from "@/lib/fees";
 import { siteUrl } from "@/lib/site";
 import { haptic } from "@/lib/haptics";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { SharePositionSheet } from "./share-position";
 
 // The first time you open a room after it's decided, the result comes to
 // you instead of waiting below the stadium: what you won, the close call
@@ -64,6 +65,7 @@ export function RoomResultReveal({
   noCents,
   recent,
   sharePath,
+  shareAs,
   feeBps = 0,
 }: {
   roomId: string;
@@ -79,6 +81,8 @@ export function RoomResultReveal({
   /** Decided in the last week — old rooms don't pop "you missed this". */
   recent: boolean;
   sharePath: string;
+  /** Public rooms: "Share the win" sends your position card, as this username. */
+  shareAs?: string;
   /** The room's total fee on winnings (Rivaly + host), in basis points. */
   feeBps?: number;
 }) {
@@ -117,7 +121,7 @@ export function RoomResultReveal({
         {refunded || outcome === "void" ? (
           <Refund entry={entry} settled={settled} oneSided={outcome !== "void"} onClose={close} />
         ) : entry && won ? (
-          <Win entry={entry} settled={settled} sharePath={sharePath} feeBps={feeBps} onClose={close} />
+          <Win entry={entry} settled={settled} sharePath={sharePath} feeBps={feeBps} onClose={close} card={shareAs ? { roomId, username: shareAs } : undefined} />
         ) : entry ? (
           <Loss entry={entry} outcome={outcome} onClose={close} />
         ) : (
@@ -128,12 +132,14 @@ export function RoomResultReveal({
   );
 }
 
-function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; settled: boolean; sharePath: string; feeBps: number; onClose: () => void }) {
+function Win({ entry, settled, sharePath, feeBps, onClose, card }: { entry: MyEntry; settled: boolean; sharePath: string; feeBps: number; onClose: () => void; card?: { roomId: string; username: string } }) {
   const payout = useCountUp(entry.payoutCents ?? 0, 1100);
   const profit = (entry.payoutCents ?? 0) - entry.amountCents;
   const [copied, setCopied] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
 
   async function share() {
+    if (card) return setCardOpen(true);
     const url = withRef(siteUrl(sharePath));
     try {
       if (navigator.share) await navigator.share({ title: "Called it on Rivaly", url });
@@ -169,6 +175,7 @@ function Win({ entry, settled, sharePath, feeBps, onClose }: { entry: MyEntry; s
           Done
         </Button>
       </div>
+      {card && <SharePositionSheet open={cardOpen} onOpenChange={setCardOpen} roomId={card.roomId} username={card.username} />}
     </>
   );
 }

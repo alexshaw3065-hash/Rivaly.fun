@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { EntrySide } from "@/lib/types";
 import { planSettlement } from "@/lib/settlement/payouts";
 import { formatMoney } from "@/lib/mock-data";
+import { SharePositionButton } from "./share-position";
 
 // Your stake in a room and what it would pay, live: as people join either
 // side the room re-renders (room-live.tsx) and these numbers move with it.
@@ -25,6 +26,8 @@ export interface PositionProps {
   hostBps: number;
   /** Kicked off (or stakes otherwise closed): the numbers are final unless the result voids it. */
   locked: boolean;
+  /** Public rooms: share this position as a card (share-position.tsx), as this username. */
+  shareAs?: { roomId: string; username: string };
 }
 
 interface Numbers {
@@ -128,7 +131,8 @@ export function PositionBar(p: PositionProps) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mb-2 rounded-control bg-background px-3 py-2 edge">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full min-w-0 items-center gap-2 text-left text-label">
+      <div className="flex min-w-0 items-center gap-1">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-2 text-left text-label">
         <span className={`font-bold ${SIDE_INK[p.side]}`}>{p.side.toUpperCase()}</span>
         <span className="tabular-nums text-foreground">{formatMoney(p.stakeCents)}</span>
         <span aria-hidden className="text-tertiary">→</span>
@@ -138,6 +142,9 @@ export function PositionBar(p: PositionProps) {
           <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
+      {/* Like a trading app's share on a position: right where the numbers are. */}
+      {p.shareAs && <SharePositionButton roomId={p.shareAs.roomId} username={p.shareAs.username} variant="icon" />}
+      </div>
       {open && (
         <div className="mt-2 [animation:fade-in-up_180ms_ease-out_both]">
           <Details p={p} n={n} />

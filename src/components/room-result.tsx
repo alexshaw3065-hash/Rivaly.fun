@@ -6,6 +6,7 @@ import { explorerTxUrl } from "@/lib/wallet/constants";
 import { pct } from "@/lib/fees";
 import type { MyEntry } from "@/lib/supabase/entries";
 import { ButtonLink } from "./ui/button";
+import { SharePositionButton } from "./room/share-position";
 
 // The room's resolution, from the viewer's side. Per the emotion design: a
 // win is the one loud moment (green, the payout counting up) but premium,
@@ -49,7 +50,10 @@ export function RoomResult({
   matchStillLive,
   entry,
   feeBps = 0,
+  shareAs,
 }: {
+  /** Public rooms: a Share link for your position card, as this username. */
+  shareAs?: { roomId: string; username: string };
   outcome: "yes" | "no" | "void";
   /** Payouts confirmed (room settled/refunded) vs. still being sent. */
   settled: boolean;
@@ -98,6 +102,11 @@ export function RoomResult({
           <div className="mt-2 flex flex-wrap gap-3">
             <Receipt signature={entry.payoutTxSignature} label="Verify payout on Solana" />
             <Receipt signature={entry.stakeTxSignature} label="Your stake" />
+            {shareAs && (
+              <span className="ml-auto text-label">
+                <SharePositionButton roomId={shareAs.roomId} username={shareAs.username} variant="link" />
+              </span>
+            )}
           </div>
         </div>
       ) : entry ? (
@@ -113,6 +122,11 @@ export function RoomResult({
               Rematch →
             </ButtonLink>
             <Receipt signature={entry.stakeTxSignature} label="Your stake" />
+            {shareAs && (
+              <span className="ml-auto text-label">
+                <SharePositionButton roomId={shareAs.roomId} username={shareAs.username} variant="link" />
+              </span>
+            )}
           </div>
         </div>
       ) : (
