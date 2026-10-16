@@ -902,24 +902,6 @@ html[data-room-stuck] .mobile-topbar {
   transform: translateY(-100%);
 }
 
-/* Scroll bar (use-scroll-bar.ts): on phones the top bar follows the finger
-   up and away on scroll down, comes back on scroll up, and snaps open or
-   closed when the scroll settles. */
-@media (max-width: 767px) {
-  html[data-scrollbar] .mobile-topbar {
-    transform: translateY(var(--bar-shift, 0px));
-    transition: border-color 160ms var(--ease-out);
-  }
-  html[data-scrollbar][data-bar-snap] .mobile-topbar {
-    transition: transform 240ms var(--ease-out), border-color 160ms var(--ease-out);
-  }
-}
-@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
-  html[data-scrollbar][data-bar-snap] .mobile-topbar {
-    transition: none;
-  }
-}
-
 /* "… is typing" dots. */
 @keyframes typing-dot {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
