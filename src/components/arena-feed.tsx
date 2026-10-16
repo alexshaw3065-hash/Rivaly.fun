@@ -15,9 +15,6 @@ import { deletePost, fetchFeed, fetchMatchRooms, fetchPlayerNames, fetchRanked, 
 import { ArenaRivals } from "./arena/arena-rivals";
 import { useWideScreen } from "@/lib/use-wide-screen";
 import { PinnedHeader } from "./arena/pinned-header";
-import Link from "next/link";
-import { Sheet } from "@/components/ui";
-import { FollowButton } from "./follow-button";
 import {
   appendPage,
   cursorOf,
@@ -39,9 +36,6 @@ const PRESENCE_MIN = 3; // "N here now" only when it's a real crowd
 interface Face {
   name: string;
   avatar: string | null;
-  /** Signed-in people only: for their profile link and Follow. */
-  id?: string;
-  username?: string;
 }
 
 // The Arena's feed: everything real — big match moments, takes, calls,
@@ -73,7 +67,6 @@ export function ArenaFeed({ tabs }: { tabs?: React.ReactNode } = {}) {
   const [notice, setNotice] = useState<{ text: string; tone: "error" | "info" } | null>(null);
   const [now] = useState(() => Date.now());
   const [here, setHere] = useState<{ count: number; faces: Face[] }>({ count: 0, faces: [] });
-  const [hereOpen, setHereOpen] = useState(false);
   const itemsRef = useRef(items);
   const sentinel = useRef<HTMLDivElement>(null);
   const loadingMore = useRef(false);
@@ -152,16 +145,16 @@ export function ArenaFeed({ tabs }: { tabs?: React.ReactNode } = {}) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "match_events", filter: "action=in.(goal,game_finalised,touchdown,field_goal)" }, soon)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: "status=eq.settled" }, soon)
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<{ name?: string; avatar?: string | null; id?: string; username?: string }>();
+        const state = channel.presenceState<{ name?: string; avatar?: string | null }>();
         const faces: Face[] = [];
         for (const metas of Object.values(state)) {
           const m = metas[0];
-          if (m?.name) faces.push({ name: m.name, avatar: m.avatar ?? null, id: m.id, username: m.username });
+          if (m?.name) faces.push({ name: m.name, avatar: m.avatar ?? null });
         }
         setHere({ count: Object.keys(state).length, faces });
       });
     channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") void channel.track(me ? { name: me.displayName, avatar: me.avatarUrl, id: me.id, username: me.username } : {});
+      if (status === "SUBSCRIBED") void channel.track(me ? { name: me.displayName, avatar: me.avatarUrl } : {});
     });
     return () => {
       if (nudge) clearTimeout(nudge);
@@ -321,6 +314,9 @@ export function ArenaFeed({ tabs }: { tabs?: React.ReactNode } = {}) {
           </div>
           {chips.length > 0 && (
             <>
+              <MatchChipButton active={!matchId} onClick={() => setMatchId(null)}>
+                All matches
+              </MatchChipButton>
               {chips.map((m) => (
                 <MatchChipButton key={m.id} active={matchId === m.id} onClick={() => setMatchId(matchId === m.id ? null : m.id)}>
                   <TeamCrest name={m.homeTeam} size={16} />
@@ -341,7 +337,7 @@ export function ArenaFeed({ tabs }: { tabs?: React.ReactNode } = {}) {
         </div>
       </PinnedHeader>
       {here.count >= PRESENCE_MIN && (
-        <button type="button" onClick={() => setHereOpen(true)} className="mt-3 flex items-center gap-2 text-label text-secondary transition-colors hover:text-foreground" aria-live="polite">
+        <div className="mt-3 flex items-center gap-2 text-label text-secondary" aria-live="polite">
           <span className="flex -space-x-1.5">
             {here.faces.slice(0, 3).map((f, i) => (
               <span key={i} className="rounded-full ring-2 ring-background">
@@ -352,12 +348,8 @@ export function ArenaFeed({ tabs }: { tabs?: React.ReactNode } = {}) {
           <span>
             <span className="font-semibold text-foreground">{here.count}</span> here now
           </span>
-          <svg aria-hidden width="12" height="12" viewBox="0 0 12 12" className="text-tertiary">
-            <path d="M4.5 3 7.5 6l-3 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        </div>
       )}
-      <HereNowSheet open={hereOpen} onOpenChange={setHereOpen} faces={here.faces} count={here.count} meId={me?.id ?? null} />
 
       {filtered === undefined && matchId && (
         <button type="button" onClick={() => setMatchId(null)} className="mt-3 text-label text-secondary underline">
@@ -463,40 +455,3 @@ function Skeleton() {
   );
 }
 
-
-/** Who's in the Arena right now: the signed-in people (to follow or open), and a count of everyone else watching. */
-function HereNowSheet({ open, onOpenChange, faces, count, meId }: { open: boolean; onOpenChange: (o: boolean) => void; faces: Face[]; count: number; meId: string | null }) {
-  const people = faces.filter((f) => f.id !== meId);
-  const others = Math.max(0, count - faces.length);
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange} title={`${count} here now`} description="In the Arena right now">
-      <div className="flex flex-col gap-1">
-        {people.map((f, i) => (
-          <div key={f.id ?? i} className="flex min-w-0 items-center gap-3 rounded-control px-2 py-2">
-            {f.username ? (
-              <Link href={`/profile/${f.username}`} onClick={() => onOpenChange(false)} className="flex min-w-0 flex-1 items-center gap-3">
-                <RivalCharacter name={f.name} imageUrl={f.avatar} size={40} />
-                <span className="min-w-0">
-                  <span className="block truncate text-body font-semibold text-foreground">{f.name}</span>
-                  <span className="block truncate text-label text-secondary">@{f.username}</span>
-                </span>
-              </Link>
-            ) : (
-              <span className="flex min-w-0 flex-1 items-center gap-3">
-                <RivalCharacter name={f.name} imageUrl={f.avatar} size={40} />
-                <span className="truncate text-body font-semibold text-foreground">{f.name}</span>
-              </span>
-            )}
-            {f.id && <FollowButton profileId={f.id} />}
-          </div>
-        ))}
-        {others > 0 && (
-          <p className="px-2 pt-2 text-label text-secondary">
-            {people.length > 0 ? "+ " : ""}
-            {others} {others === 1 ? "visitor" : "visitors"} watching without an account
-          </p>
-        )}
-      </div>
-    </Sheet>
-  );
-}
