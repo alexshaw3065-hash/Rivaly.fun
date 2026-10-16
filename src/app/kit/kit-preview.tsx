@@ -9,6 +9,7 @@ import { useState, type ReactNode } from "react";
 import { LiveBadge as TodayLiveBadge } from "@/components/live-badge";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { TeamCrest } from "@/components/team-crest";
+import { HeadToHeadView } from "@/components/profile/head-to-head";
 import { Amount, Badge, Button, Card, Chip, EmptyState, IconButton, ListGroup, ListRow, LiveBadge, SectionHeader, Segmented, Sheet, SidePill, Skeleton, Tabs } from "@/components/ui";
 
 function Row({ label, today, kit }: { label: string; today: ReactNode; kit: ReactNode }) {
@@ -372,6 +373,16 @@ export function KitPreview() {
         <p className="text-label">Label · buttons, chips, tabs</p>
         <p className="text-caption text-secondary">Caption · 2h ago · helper text</p>
         <p className="text-micro uppercase text-tertiary">Micro · badges only</p>
+      </div>
+
+      <SectionHeader title="You vs them (profile)" className="mt-8" />
+      <div id="kit-h2h" className="flex max-w-xl flex-col gap-4">
+        <HeadToHeadView
+          me={{ displayName: "You", avatarUrl: null }}
+          other={{ name: "declantrafford32", username: "ujj", avatarUrl: null }}
+          h={{ mine: 2, theirs: 1, live: 1, rematchMatchId: null, last: { roomId: "x", prediction: "Barcelona to win", mySide: "no", iWon: true, at: "2026-10-12T19:00:00Z", home: "PSG", away: "Barcelona" } }}
+        />
+        <HeadToHeadView me={{ displayName: "You", avatarUrl: null }} other={{ name: "Philippus", username: "philippus", avatarUrl: null }} h={{ mine: 0, theirs: 0, live: 0, rematchMatchId: null, last: null }} />
       </div>
     </main>
   );

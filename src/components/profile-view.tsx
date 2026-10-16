@@ -4,7 +4,7 @@ import { withRef } from "@/lib/referral";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import type { Profile, SocialLink } from "@/lib/types";
-import { formatMoney, formatMoneyCompact, formatSignedMoney } from "@/lib/mock-data";
+import { formatMoneyCompact, formatSignedMoney } from "@/lib/mock-data";
 import { fetchCardNumbers, type CardNumbers } from "@/lib/player-card-client";
 import { HeadToHead } from "./profile/head-to-head";
 import { FollowListSheet } from "./profile/follow-list-sheet";
@@ -155,7 +155,7 @@ function ProfileHeader({
           </div>
         </div>
 
-        <div className="relative -mt-12 px-5 pb-5">
+        <div className="relative -mt-12 px-5 pb-6 md:px-6">
           <div className="flex items-end justify-between gap-3">
             <div
               className="flex h-[92px] w-[92px] shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -168,7 +168,7 @@ function ProfileHeader({
                 <RivalCharacter name={displayName} size={70} />
               )}
             </div>
-            <div className="flex items-center gap-2 pb-1">
+            <div className="flex items-center gap-2">
               {isSelf ? (
                 <button
                   type="button"
@@ -202,7 +202,7 @@ function ProfileHeader({
             </p>
           )}
           {bio ? (
-            <p className="mt-1 max-w-md text-body text-foreground/80">{bio}</p>
+            <p className="mt-1 max-w-md text-body text-secondary">{bio}</p>
           ) : isSelf ? (
             <button onClick={() => setEditOpen(true)} className="hover-link mt-1 text-body text-secondary transition-colors">
               + Add a bio
@@ -251,7 +251,7 @@ function ProfileHeader({
             )}
           </div>
 
-          <div className="mt-3 flex gap-4 text-body text-secondary">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-body text-secondary">
             <button type="button" onClick={() => setListTab("following")} className="hover:underline">
               <span className="font-semibold text-foreground">{profile.followingCount.toLocaleString()}</span> Following
             </button>
@@ -368,61 +368,61 @@ export function ProfileView({
         }}
       />
 
-      {!isSelf && <HeadToHead other={{ id: profile.id, name: profile.displayName, username: profile.username, avatarUrl: profile.avatarUrl }} />}
-
-      <div className="mt-8 grid grid-cols-3 gap-3">
-        <div className="min-w-0 rounded-card bg-surface p-4 edge">
-          <p className="truncate text-title-3 font-display tabular-nums text-foreground md:text-title-2">{card ? `${card.wins}–${card.losses}` : "–"}</p>
-          <p className="mt-1 text-caption text-secondary">Record</p>
-        </div>
-        <div className="min-w-0 rounded-card bg-surface p-4 edge">
-          <p className="truncate text-title-3 font-display tabular-nums text-foreground md:text-title-2">
-            {card && card.played > 0 ? `${Math.round((card.wins / card.played) * 100)}%` : "–"}
-          </p>
-          <p className="mt-1 text-caption text-secondary">Accuracy</p>
-        </div>
-        <div className="min-w-0 rounded-card bg-surface p-4 edge" title={card ? formatMoney(Math.abs(card.profit)) : undefined}>
-          <p
-            className={`truncate text-title-3 font-display tabular-nums md:text-title-2 ${
-              !card || card.profit === 0 ? "text-foreground" : card.profit > 0 ? "text-money-ink" : "text-no-ink"
-            }`}
-          >
-            {card ? (card.profit === 0 ? "$0" : Math.abs(card.profit) >= 100_000 ? `${card.profit > 0 ? "+" : "−"}${formatMoneyCompact(Math.abs(card.profit))}` : formatSignedMoney(card.profit)) : "–"}
-          </p>
-          <p className="mt-1 text-caption text-secondary">Winnings</p>
-        </div>
-      </div>
-
-      {card && (
-        <div className="mt-4 flex items-center gap-3 text-label text-secondary">
-          <span className="font-semibold">Form</span>
-          <span className="flex gap-1.5">
-            {Array.from({ length: 5 }, (_, i) => card.form[i] ?? null).map((r, i) => (
-              <span
-                key={i}
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-micro font-bold ${
-                  r ? `text-white ${r === "W" ? "bg-money" : "bg-no"}` : "text-transparent outline outline-[1.5px] -outline-offset-[1.5px] outline-line-strong"
-                }`}
-                aria-label={r === "W" ? "Win" : r === "L" ? "Loss" : "No result"}
-              >
-                {r ?? ""}
-              </span>
-            ))}
-          </span>
-          {card.played === 0 ? (
-            <span>No settled rooms yet</span>
-          ) : (
-            card.rank !== null && (
-              <Link href="/arena?tab=leaderboard" className="ml-auto font-semibold text-foreground hover:underline">
-                #{card.rank} on the Leaderboard
-              </Link>
-            )
-          )}
+      {!isSelf && (
+        <div className="mt-4">
+          <HeadToHead other={{ id: profile.id, name: profile.displayName, username: profile.username, avatarUrl: profile.avatarUrl }} />
         </div>
       )}
 
+      {/* The record: one card, three numbers, then form and rank underneath. */}
+      <section className="mt-4 overflow-hidden rounded-card bg-surface edge" aria-label="Record">
+        <div className="grid grid-cols-3 divide-x divide-line">
+          {[
+            { label: "Record", value: card ? `${card.wins}–${card.losses}` : "–", tone: "text-foreground" },
+            { label: "Accuracy", value: card && card.played > 0 ? `${Math.round((card.wins / card.played) * 100)}%` : "–", tone: "text-foreground" },
+            {
+              label: "Winnings",
+              value: card ? (card.profit === 0 ? "$0" : Math.abs(card.profit) >= 100_000 ? `${card.profit > 0 ? "+" : "−"}${formatMoneyCompact(Math.abs(card.profit))}` : formatSignedMoney(card.profit)) : "–",
+              tone: !card || card.profit === 0 ? "text-foreground" : card.profit > 0 ? "text-money-ink" : "text-no-ink",
+            },
+          ].map((s) => (
+            <div key={s.label} className="min-w-0 px-4 py-4">
+              <p className={`truncate text-title-3 font-display tabular-nums md:text-title-2 ${s.tone}`}>{s.value}</p>
+              <p className="mt-1 text-caption text-secondary">{s.label}</p>
+            </div>
+          ))}
+        </div>
+        {card && (
+          <div className="flex items-center gap-3 border-t border-line px-4 py-3 text-label text-secondary">
+            <span>Form</span>
+            <span className="flex gap-1">
+              {Array.from({ length: 5 }, (_, i) => card.form[i] ?? null).map((r, i) => (
+                <span
+                  key={i}
+                  className={`flex h-5 w-5 items-center justify-center rounded-full text-micro font-bold ${
+                    r ? `text-white ${r === "W" ? "bg-money" : "bg-no"}` : "text-transparent outline outline-1 -outline-offset-1 outline-line-strong"
+                  }`}
+                  aria-label={r === "W" ? "Win" : r === "L" ? "Loss" : "No result"}
+                >
+                  {r ?? ""}
+                </span>
+              ))}
+            </span>
+            {card.played === 0 ? (
+              <span className="ml-auto">No settled rooms yet</span>
+            ) : (
+              card.rank !== null && (
+                <Link href="/arena?tab=leaderboard" className="ml-auto font-semibold text-foreground hover:underline">
+                  #{card.rank} on the Leaderboard
+                </Link>
+              )
+            )}
+          </div>
+        )}
+      </section>
+
       {isSelf && (
-        <div className="mt-6">
+        <div className="mt-4">
           <ProfilePnl />
         </div>
       )}

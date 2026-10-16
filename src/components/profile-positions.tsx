@@ -100,7 +100,7 @@ function StakeLine({ item, stake }: { item: RoomWithMatch; stake: ProfileStake }
     }
   }
   return (
-    <p className="mt-2 flex flex-wrap items-center gap-x-1.5 px-1 text-caption tabular-nums">
+    <p className="mb-2 flex flex-wrap items-center gap-x-1.5 px-1 text-label tabular-nums">
       {side}
       <span className="text-foreground">{formatMoney(stake.amountCents)} staked</span>
       <span aria-hidden className="text-tertiary">·</span>
@@ -131,11 +131,12 @@ export function ProfilePositions({
     );
   if (rows.length === 0) return <p className="py-12 text-center text-body text-secondary">No {filter} positions yet.</p>;
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-x-3 gap-y-6 md:grid-cols-2">
       {rows.map((item) => (
         <div key={item.room.id}>
-          <RoomCard room={item.room} match={item.match} />
+          {/* Their stake reads as the card's caption, above it — not floating under it into the next one. */}
           {stakes[item.room.id] && <StakeLine item={item} stake={stakes[item.room.id]} />}
+          <RoomCard room={item.room} match={item.match} />
         </div>
       ))}
     </div>
