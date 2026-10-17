@@ -110,15 +110,9 @@ export function PnlChart({ points, now }: { points: PnlPoint[] | null; now: numb
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-display font-display tabular-nums text-foreground" aria-live="polite">
-            {value.sign && <span className={shown && shown.v < 0 ? "text-no-ink" : "text-money-ink"}>{value.sign}</span>}
-            {value.whole}
-            <span className="text-tertiary">{value.frac}</span>
-          </p>
-          <p className="mt-1 text-label text-secondary">{sub}</p>
-        </div>
+      {/* The period on its own line, so the number always has the full width (it was cut to "−$50…" beside it on phones). */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-label font-semibold text-secondary">Profit &amp; loss</p>
         <div role="radiogroup" aria-label="Period" className="flex shrink-0 gap-1">
           {PERIODS.map((p) => (
             <button
@@ -134,6 +128,12 @@ export function PnlChart({ points, now }: { points: PnlPoint[] | null; now: numb
           ))}
         </div>
       </div>
+      <p className="mt-2 whitespace-nowrap text-display font-display tabular-nums text-foreground" aria-live="polite">
+        {value.sign && <span className={shown && shown.v < 0 ? "text-no-ink" : "text-money-ink"}>{value.sign}</span>}
+        {value.whole}
+        <span className="text-tertiary">{value.frac}</span>
+      </p>
+      <p className="mt-1 text-label text-secondary">{sub}</p>
 
       <div
         ref={box}
