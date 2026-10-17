@@ -174,7 +174,7 @@ export function Nav({ children }: { children: ReactNode }) {
           type="button"
           onClick={() => (currentUser ? openArenaComposer() : openAuthModal({ next: "/arena" }))}
           aria-label="Post a take"
-          className="arena-fab fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-yes text-white shadow-fab transition-transform duration-100 ease-out active:scale-[0.94] md:hidden"
+          className="arena-fab fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-[35] flex h-14 w-14 items-center justify-center rounded-full bg-yes text-white shadow-fab transition-transform duration-100 ease-out active:scale-[0.94] md:hidden"
         >
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
             <path d="M4 18l1-4L14.5 4.5a2.1 2.1 0 0 1 3 3L8 17l-4 1Z" stroke="currentColor" strokeWidth="1.9" fill="none" strokeLinejoin="round" />
@@ -190,7 +190,7 @@ export function Nav({ children }: { children: ReactNode }) {
           href="/rooms/create"
           prefetch
           aria-label="Create room"
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-yes text-white shadow-fab transition-transform duration-100 ease-out active:scale-[0.94] md:hidden"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-[35] flex h-14 w-14 items-center justify-center rounded-full bg-yes text-white shadow-fab transition-transform duration-100 ease-out active:scale-[0.94] md:hidden"
         >
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
             <path d="M11 4v14M4 11h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -198,9 +198,10 @@ export function Nav({ children }: { children: ReactNode }) {
         </Link>
       )}
 
+      {/* Layer 35: above anything sticky in a page (a room's tab bar is 30), below sheets and dialogs (40+). */}
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-background/95 backdrop-blur-sm md:hidden"
+        className="fixed inset-x-0 bottom-0 z-[35] border-t border-line bg-background/95 backdrop-blur-sm md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="mx-auto flex max-w-5xl items-stretch justify-around">

@@ -12,8 +12,10 @@ import { Badge } from "../ui/surfaces";
 // The match on one slim strip attached to the bottom of the stadium: every
 // goal, card, VAR call and whistle on a rail from kick-off to full time, with
 // the room's own pulse — how hard the chat went, minute by minute — faint
-// behind it. Follows the match live; play replays it (a full match in ~18s),
-// drag to any minute, tap a moment for what happened and how the room reacted.
+// behind it. Follows the match live (the button shows pause: tap to freeze at
+// a minute, play to run forward and catch back up to live); after full time,
+// play replays it (a full match in ~18s). Drag anywhere on the strip, moments
+// included, to any minute; tap a moment for what happened and how the room reacted.
 //
 // Engagement mechanism #9 (a story you can retell — "look how the room went
 // off at 67'") and #2 (anticipation: the live playhead creeping toward 90').
@@ -116,11 +118,20 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
       setPlaying(false);
       return;
     }
+    // Live and following: the match is "playing" — pause freezes it at this minute.
+    if (live && following) {
+      setManual(liveAt);
+      setFollowing(false);
+      return;
+    }
     const stopAt = live ? liveAt : data.domain;
-    setManual(following || head >= stopAt - 0.5 ? 0 : head);
+    // Paused during a live match: run forward from here and rejoin live. After
+    // full time: replay from kick-off (or from where you paused).
+    setManual(!live && (following || head >= stopAt - 0.5) ? 0 : head);
     setFollowing(false);
     setPlaying(true);
   }
+  const showPause = playing || (live && following);
 
   // Scrubbing
   const track = useRef<HTMLDivElement>(null);
@@ -135,18 +146,33 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
     [live, liveAt, finished, data.domain],
   );
   const dragging = useRef(false);
-  function onPointerDown(e: React.PointerEvent) {
-    if (!started || (e.target as HTMLElement).closest("button")) return;
+  // A press that starts on a moment is a tap (opens it) unless it moves: then it seeks too.
+  const pending = useRef<{ x: number; id: number } | null>(null);
+  const startDrag = (e: React.PointerEvent) => {
     dragging.current = true;
+    pending.current = null;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setPlaying(false);
     setFollowing(false);
     setManual(minuteAtX(e.clientX));
     setSelected(null);
+  };
+  function onPointerDown(e: React.PointerEvent) {
+    if (!started) return;
+    if ((e.target as HTMLElement).closest("button")) {
+      pending.current = { x: e.clientX, id: e.pointerId };
+      return;
+    }
+    startDrag(e);
   }
   function onPointerMove(e: React.PointerEvent) {
-    if (dragging.current) setManual(minuteAtX(e.clientX));
+    if (pending.current && Math.abs(e.clientX - pending.current.x) > 6) startDrag(e);
+    else if (dragging.current) setManual(minuteAtX(e.clientX));
   }
+  const endDrag = () => {
+    dragging.current = false;
+    pending.current = null;
+  };
   function onKey(e: React.KeyboardEvent) {
     const cap = live ? liveAt : data.domain;
     const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
@@ -210,6 +236,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
   }, [events, data.domain]);
   const heatMax = Math.max(1, ...data.heat);
   const showMinute = started && (!following || playing);
+  const showLabel = started && (showMinute || live);
 
   // While you drag back or replay, the stadium's scoreboard shows the score
   // and minute at the playhead (replay-store.ts); following live, it's live.
@@ -230,10 +257,10 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
           type="button"
           onClick={togglePlay}
           disabled={!started}
-          aria-label={playing ? "Pause replay" : "Replay the match"}
+          aria-label={showPause ? (playing ? "Pause replay" : "Pause at this minute") : live ? "Play to live" : "Replay the match"}
           className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black transition-[transform,opacity] duration-100 before:absolute before:-inset-1.5 active:scale-90 disabled:opacity-25"
         >
-          {playing ? (
+          {showPause ? (
             <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
               <rect x="2" y="1.5" width="2.6" height="9" rx="0.8" fill="currentColor" />
               <rect x="7.4" y="1.5" width="2.6" height="9" rx="0.8" fill="currentColor" />
@@ -258,8 +285,8 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
           aria-valuetext={`${Math.floor(head)} minutes`}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={() => (dragging.current = false)}
-          onPointerCancel={() => (dragging.current = false)}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
           onKeyDown={onKey}
           className="relative h-10 min-w-0 flex-1 cursor-pointer touch-pan-y select-none rounded-tag outline-none focus-visible:ring-2 focus-visible:ring-yes"
         >
@@ -312,11 +339,11 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
             );
           })}
 
-          {/* Playhead, with the minute while you drag or replay */}
+          {/* Playhead: a knob you can grab, with the minute (live, or where you've dragged) */}
           {started && (
             <div className="pointer-events-none absolute inset-y-0 w-0" style={{ left: pct(head) }} aria-hidden>
-              <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#050806] bg-white" />
-              {showMinute && (
+              <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#050806] bg-white shadow-pop" />
+              {showLabel && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-tag bg-white px-1 text-micro font-bold tabular-nums text-black">
                   {minuteLabel(data.sport, head, data)}
                 </span>

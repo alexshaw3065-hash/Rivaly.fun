@@ -38,7 +38,8 @@ export function MatchChip({ match }: { match: Match }) {
         ].map(([team, score]) => (
           <div key={String(team)} className="flex items-center justify-between gap-3 text-body font-semibold text-foreground">
             <span className="truncate">{team}</span>
-            <span className="tabular-nums text-secondary">{score ?? "–"}</span>
+            {/* Kicked off with no goal yet: the feed only sends a score at the first goal, so that's 0, not blank. */}
+            <span className="tabular-nums text-secondary">{score ?? (match.status === "scheduled" ? "–" : 0)}</span>
           </div>
         ))}
       </div>
