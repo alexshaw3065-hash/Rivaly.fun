@@ -10,6 +10,7 @@ import { RoomsFollowingFeed } from "@/components/rooms-following-feed";
 import { RoomsMineFeed } from "@/components/rooms-mine-feed";
 import { JoinPrivateRoomButton } from "@/components/join-private-room-button";
 import Link from "next/link";
+import { LeagueMark } from "@/components/league-mark";
 import { MatchBanner } from "@/components/create-room/match-hero";
 import { useRealMatches } from "@/lib/use-real-matches";
 import { createClient } from "@/lib/supabase/client";
@@ -58,6 +59,8 @@ function RoomsPageContent() {
 
   // ?match=<id> (from a match on Home): every room on that one match.
   const matchId = searchParams.get("match");
+  // ?league=<competition> (the site footer's "Rooms by competition"): Discover, that league only.
+  const league = searchParams.get("league");
   if (matchId) return <MatchRooms matchId={matchId} />;
 
   return (
@@ -88,9 +91,20 @@ function RoomsPageContent() {
           <div className="flex flex-col gap-10">
             <RoomsExplodingSection />
             <section>
+              {league && (
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <p className="flex min-w-0 items-center gap-2 text-title-3 font-display text-foreground">
+                    <LeagueMark name={league} size={20} />
+                    <span className="truncate">{league} rooms</span>
+                  </p>
+                  <Link href="/rooms" className="shrink-0 text-label text-secondary hover:text-foreground">
+                    All rooms
+                  </Link>
+                </div>
+              )}
               <DiscoverFilterMenu selected={discoverTab} onSelect={setDiscoverTab} />
               <div className="mt-6">
-                <RoomFeed tab={discoverTab} onTabChange={setDiscoverTab} hideChips />
+                <RoomFeed tab={discoverTab} onTabChange={setDiscoverTab} hideChips extraFilter={league ? (_room, match) => match.competition === league : undefined} />
               </div>
             </section>
           </div>
