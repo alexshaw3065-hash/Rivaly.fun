@@ -195,7 +195,7 @@ export function RoomStage({
           <Team name={match.homeTeam} code={home.code} />
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 rounded-control bg-black/55 px-3 py-0.5 text-title-1 font-display tabular-nums text-white ring-1 ring-white/10">
-              {replay ? (
+              {replay && !replay.live ? (
                 <>
                   {/* Rewound: the score at the playhead, bumping as each goal comes round again. */}
                   <span key={`rh${replay.score.home}`} className="score-bump">{replay.score.home}</span>

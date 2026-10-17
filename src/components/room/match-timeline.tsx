@@ -236,13 +236,20 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
   }, [events, data.domain]);
   const heatMax = Math.max(1, ...data.heat);
   const showMinute = started && (!following || playing);
-  const showLabel = started && (showMinute || live);
 
-  // While you drag back or replay, the stadium's scoreboard shows the score
-  // and minute at the playhead (replay-store.ts); following live, it's live.
+  // The stadium's scoreboard shows the minute under the score (replay-store.ts):
+  // the live minute while following a live match, and while you drag back or
+  // replay, the score and minute at the playhead.
   useEffect(() => {
-    setReplay(match.id, showMinute ? { score: scoreAtMinute(data, head), label: minuteLabel(data.sport, head, data) } : null);
-  }, [match.id, showMinute, data, head]);
+    setReplay(
+      match.id,
+      showMinute
+        ? { score: scoreAtMinute(data, head), label: minuteLabel(data.sport, head, data) }
+        : live && started
+          ? { score: scoreAtMinute(data, head), label: minuteLabel(data.sport, head, data), live: true }
+          : null,
+    );
+  }, [match.id, showMinute, live, started, data, head]);
   useEffect(() => () => setReplay(match.id, null), [match.id]);
 
   return (
@@ -343,7 +350,7 @@ export function MatchTimeline({ match, initial }: { match: Match; initial: Timel
           {started && (
             <div className="pointer-events-none absolute inset-y-0 w-0" style={{ left: pct(head) }} aria-hidden>
               <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#050806] bg-white shadow-pop" />
-              {showLabel && (
+              {showMinute && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-tag bg-white px-1 text-micro font-bold tabular-nums text-black">
                   {minuteLabel(data.sport, head, data)}
                 </span>

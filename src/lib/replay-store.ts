@@ -10,6 +10,8 @@ export interface ReplayMoment {
   score: { home: number; away: number };
   /** "30'" (soccer) · "Q2 8:26" (NFL). */
   label: string;
+  /** Following the match live: the minute is the live one and the score is the real score, not rewound. */
+  live?: boolean;
 }
 
 const moments = new Map<string, ReplayMoment | null>();
@@ -18,7 +20,7 @@ const listeners = new Set<() => void>();
 export function setReplay(matchId: string, moment: ReplayMoment | null) {
   const prev = moments.get(matchId) ?? null;
   if (prev === moment) return;
-  if (prev && moment && prev.label === moment.label && prev.score.home === moment.score.home && prev.score.away === moment.score.away) return;
+  if (prev && moment && prev.label === moment.label && prev.live === moment.live && prev.score.home === moment.score.home && prev.score.away === moment.score.away) return;
   moments.set(matchId, moment);
   listeners.forEach((l) => l());
 }
