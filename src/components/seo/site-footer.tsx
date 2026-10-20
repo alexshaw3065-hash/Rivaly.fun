@@ -52,7 +52,7 @@ export async function SiteFooter() {
         <span className="w-1/2 bg-no" />
       </div>
 
-      <div className="mt-10 grid gap-12 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="mt-8 grid gap-10 md:mt-10 md:gap-12 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div>
           <p className="text-title-1 font-display text-foreground">
             Play people,
@@ -102,7 +102,7 @@ export async function SiteFooter() {
           </nav>
 
           {rooms.length > 0 && (
-            <nav aria-label="Latest rooms">
+            <nav aria-label="Latest rooms" className="hidden md:block">
               <h2 className="text-label font-semibold text-tertiary">Latest rooms</h2>
               <ul className="mt-4 flex flex-col gap-4">
                 {rooms.map((r) => (
@@ -119,7 +119,15 @@ export async function SiteFooter() {
         </div>
       </div>
 
-      <nav aria-label="Site" className="mt-12 grid grid-cols-2 gap-8 border-t border-line pt-8 sm:grid-cols-3">
+      {/* Phones: the site links as one compact row (the grouped columns below are desktop only). */}
+      <nav aria-label="Site" className="mt-10 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-6 md:hidden">
+        {GROUPS.flatMap((g) => g.links).map((l) => (
+          <Link key={l.href} href={l.href} className="text-label text-secondary hover:text-foreground">
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+      <nav aria-label="Site sections" className="mt-12 hidden grid-cols-3 gap-8 border-t border-line pt-8 md:grid">
         {GROUPS.map((g) => (
           <div key={g.title}>
             <h2 className="text-label font-semibold text-tertiary">{g.title}</h2>
@@ -136,7 +144,7 @@ export async function SiteFooter() {
         ))}
       </nav>
 
-      <p className="mt-10 text-caption text-tertiary">
+      <p className="mt-6 text-caption text-tertiary md:mt-10">
         © {new Date().getFullYear()} Rivaly — social prediction for sport. 18+ · Beta: balances are test USDC with no cash value.
       </p>
     </footer>
