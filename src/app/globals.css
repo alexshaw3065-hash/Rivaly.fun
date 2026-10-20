@@ -318,9 +318,12 @@ body {
    gesture). Nothing in Rivaly relies on native pull-to-refresh.
    Global, not scoped to the search sheet, because the browser evaluates
    this at the point where the gesture is decided (the document's own
-   scroll boundary), not the element under the finger. */
+   scroll boundary), not the element under the finger.
+   `none`, not `contain`: contain still lets Android Chrome stretch the
+   whole page and spring it back at the top and bottom (the "bouncy" post
+   page, 2026-10-20). none stops that too, so it scrolls like a native app. */
 html {
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: none;
   /* Native feel on phones (Emil Kowalski, mobile-native): no gray flash on
      tap (every control has its own :active feedback instead) and no font
      inflation in landscape. */

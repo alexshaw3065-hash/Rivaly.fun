@@ -114,26 +114,31 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
         <h1 className="text-title-3 font-display text-foreground">Post</h1>
       </div>
 
-      <div className="-mx-4 mt-3 border-y border-divider md:mx-0 md:overflow-hidden md:rounded-card md:border">
+      {/* No box around the thread: the post sits on the page, one hairline
+          before the replies, and the replies divided only from each other. */}
+      <div className="-mx-4 mt-2 md:mx-0">
         {post === undefined && <div className="h-40 skeleton" />}
         {post === null && <p className="px-4 py-14 text-center text-body text-secondary">This post isn&apos;t here any more.</p>}
         {post && (
           <>
             {post.parentId && (
-              <Link href={`/arena/p/${post.parentId}`} className="block border-b border-divider px-4 py-3 text-label text-secondary hover:text-foreground">
+              <Link href={`/arena/p/${post.parentId}`} className="block px-4 pt-2 text-label text-secondary hover:text-foreground">
                 ↑ See the post this replies to
               </Link>
             )}
             <PostCard item={post} actions={actions} variant="detail" />
-            <button
-              type="button"
-              onClick={() => actions.onReply?.(post)}
-              className="flex w-full items-center gap-3 border-t border-line px-4 py-4 text-left transition-colors hover:bg-foreground/[0.02]"
-            >
-              {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={40} /> : <span className="h-10 w-10 shrink-0 rounded-full bg-foreground/10" />}
-              <span className="flex-1 text-body-lg text-tertiary">{me ? "Post your reply" : "Sign in to reply"}</span>
-              <span className="rounded-full bg-yes px-4 py-1.5 text-label font-semibold text-white">Reply</span>
-            </button>
+            {/* Reply: a soft field, not another ruled row. */}
+            <div className="px-4 pb-4 pt-1">
+              <button
+                type="button"
+                onClick={() => actions.onReply?.(post)}
+                className="flex w-full items-center gap-3 rounded-full bg-surface py-1.5 pl-1.5 pr-1.5 text-left transition-colors hover:bg-surface-elevated"
+              >
+                {me ? <RivalCharacter name={me.displayName} imageUrl={me.avatarUrl} size={32} /> : <span className="h-8 w-8 shrink-0 rounded-full bg-foreground/10" />}
+                <span className="flex-1 text-body text-tertiary">{me ? "Post your reply" : "Sign in to reply"}</span>
+                <span className="rounded-full bg-yes px-4 py-1.5 text-label font-semibold text-white">Reply</span>
+              </button>
+            </div>
             <div className="divide-y divide-divider border-t border-divider">
               {replies === null && <div className="h-20 skeleton" />}
               {replies?.map((r) => (
@@ -142,7 +147,7 @@ export function ArenaPost({ postId, preload }: { postId: string; /** Skip the fe
                 </div>
               ))}
               {replies?.length === 0 && (
-                <div className="px-6 py-12 text-center">
+                <div className="px-6 py-10 text-center">
                   <p className="text-body font-semibold text-foreground">No replies yet</p>
                   <p className="mt-1 text-label text-secondary">Back it, fade it, or tell them why they&apos;re wrong.</p>
                 </div>

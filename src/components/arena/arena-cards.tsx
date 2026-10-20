@@ -541,7 +541,7 @@ export function PostCard({
             </>
           )}
         </p>
-        <div className="mt-3 border-t border-line py-1">
+        <div className="mt-1 pb-1">
           <PostActions item={item} actions={actions} showViews={false} />
         </div>
       </article>
