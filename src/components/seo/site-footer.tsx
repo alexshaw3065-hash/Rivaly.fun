@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { SOCIALS } from "@/lib/socials";
 import { LeagueMark } from "@/components/league-mark";
+import { isStuckMatch } from "@/lib/stuck-match";
 import { XIcon, TiktokIcon, LinkedInIcon } from "@/components/icons";
 
 // The way out to everything a first-time visitor (or a search engine / AI
@@ -160,21 +161,28 @@ async function footerData(): Promise<{ rooms: { id: string; call: string; match:
   try {
     const db = createClient(url, key, { auth: { persistSession: false } });
     const [{ data: latest }, { data: openRooms }] = await Promise.all([
-      db.from("rooms").select("id, prediction, match_id").eq("visibility", "public").order("created_at", { ascending: false }).limit(6),
+      db.from("rooms").select("id, prediction, match_id").eq("visibility", "public").order("created_at", { ascending: false }).limit(12),
       db.from("rooms").select("match_id").eq("visibility", "public").in("status", ["open", "live"]).limit(500),
     ]);
     const list = (latest ?? []) as { id: string; prediction: string; match_id: string }[];
     const openList = (openRooms ?? []) as { match_id: string }[];
     const ids = [...new Set([...list.map((r) => r.match_id), ...openList.map((r) => r.match_id)])];
     if (ids.length === 0) return empty;
-    const { data: matches } = await db.from("matches").select("id, home_team, away_team, competition").in("id", ids);
-    const byId = new Map(((matches ?? []) as { id: string; home_team: string; away_team: string; competition: string }[]).map((m) => [m.id, m]));
+    const { data: matches } = await db.from("matches").select("id, home_team, away_team, competition, status, kickoff_at").in("id", ids);
+    const byId = new Map(((matches ?? []) as { id: string; home_team: string; away_team: string; competition: string; status: string; kickoff_at: string }[]).map((m) => [m.id, m]));
     const open: Record<string, number> = {};
     for (const r of openList) {
       const c = byId.get(r.match_id)?.competition;
       if (c) open[c] = (open[c] ?? 0) + 1;
     }
-    const rooms = list.map((r) => {
+    // Rooms on a stuck feed (still "scheduled" hours after kick-off) stay out, as in the app's lists.
+    const rooms = list
+      .filter((r) => {
+        const m = byId.get(r.match_id);
+        return !m || !isStuckMatch({ status: m.status as "scheduled", kickoffAt: m.kickoff_at });
+      })
+      .slice(0, 6)
+      .map((r) => {
       const m = byId.get(r.match_id);
       return { id: r.id, call: `${r.prediction}?`, match: m ? `${m.home_team} vs ${m.away_team}` : "" };
     });

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { byHeat, usePublicRooms, type RoomWithMatch } from "@/lib/use-real-rooms";
+import { isStuckMatch } from "@/lib/stuck-match";
 import { splitPctFromTotals } from "@/lib/supabase/room-mapper";
 import { RoomCard } from "./room-card";
 import { EmptyRooms } from "./empty-rooms";
@@ -144,7 +145,8 @@ export function RoomFeed({
   }
 
   const { items, isLoading } = usePublicRooms();
-  const base = useMemo(() => applyFilter(items, tab), [items, tab]);
+  // A stuck feed (still "scheduled" hours after kick-off) stays out of discovery until its result lands.
+  const base = useMemo(() => applyFilter(items.filter((i) => !isStuckMatch(i.match)), tab), [items, tab]);
   const filtered = useMemo(() => (extraFilter ? base.filter((i) => extraFilter(i.room, i.match)) : base), [base, extraFilter]);
   const rows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const done = visibleCount >= filtered.length;

@@ -11,6 +11,7 @@ import { Tabs } from "./ui/controls";
 import { Button } from "./ui/button";
 import { FilterIcon } from "./icons";
 import type { Room, Match } from "@/lib/types";
+import { isStuckMatch } from "@/lib/stuck-match";
 
 // The [filter icon][Rooms][Matches] content-type switcher, per the
 // our FOMO reference (their filter-icon-leading Tokens/Perps row).
@@ -150,7 +151,8 @@ export function RoomsMatchesBrowser({
     (m: Match) => selectedLeagues.length === 0 || selectedLeagues.includes(m.competition),
     [selectedLeagues],
   );
-  const browseMatches = useMemo(() => liveMatches.filter(matchMatchesLeagues), [liveMatches, matchMatchesLeagues]);
+  // Stuck feeds (still "scheduled" hours after kick-off) stay off the list until their result lands.
+  const browseMatches = useMemo(() => liveMatches.filter((m) => !isStuckMatch(m) && matchMatchesLeagues(m)), [liveMatches, matchMatchesLeagues]);
 
   // League filter options follow whatever's actually browsable, so the list
   // can't offer a league with no matches behind it.
