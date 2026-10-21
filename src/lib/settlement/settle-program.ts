@@ -8,7 +8,9 @@
 //      computes the amount and closes the position, so a re-run or a racing
 //      run can never pay anyone twice;
 //   3. close — fees to the treasury, the rounding leftover to the named
-//      winner, the vault and room closed.
+//      winner, the vault and room closed. If one payout can't complete for a
+//      day after the result (a frozen account), the fees are collected on
+//      their own (collect_fees) and the room closes whenever that payout lands.
 //
 // The database mirrors it: entries get is_winner / payout_cents from the same
 // planSettlement maths at the chain's frozen rates, fees go to room_fees, and
@@ -21,6 +23,7 @@ import {
   PROGRAM_PAYOUTS_PER_TX,
   readChainRoom,
   signCloseRoom,
+  signCollectFees,
   signExpire,
   signPayouts,
   signResolve,
@@ -41,6 +44,9 @@ interface EntryRow {
   amount_cents: number;
   profile: { dynamic_wallet_address: string | null } | null;
 }
+
+/** How long after the result a room still waiting on a payout has its fees collected on their own. */
+const STUCK_FEES_AFTER_MS = 24 * 3_600_000;
 
 export async function payProgramRoom(admin: Admin, room: ProgramRoom, decided: "yes" | "no" | "void", now = Date.now()): Promise<State> {
   const { data } = await admin
@@ -93,10 +99,20 @@ export async function payProgramRoom(admin: Admin, room: ProgramRoom, decided: "
   for (const p of settlement.payouts) {
     await admin.from("entries").update({ is_winner: p.isWinner, payout_cents: p.cents }).eq("id", p.entryId);
   }
-  // The fees, as the chain froze them (planSettlement's if the room is
-  // already closed); recorded only once they've reached the treasury, below.
-  const rivalyCents = chain && chain.outcome !== "open" ? chain.rivalyFeeCents : settlement.rivalyCents;
-  const hostCents = chain && chain.outcome !== "open" ? chain.hostFeeCents : settlement.hostCents;
+  // The fees, as the chain froze them (planSettlement's — the same numbers,
+  // parity-tested — if the room is already closed or its fees were already
+  // collected, which zeroes them on-chain); recorded only once they've
+  // reached the treasury, below.
+  const frozen = chain && chain.outcome !== "open" && chain.rivalyFeeCents + chain.hostFeeCents > 0 ? chain : null;
+  const rivalyCents = frozen ? frozen.rivalyFeeCents : settlement.rivalyCents;
+  const hostCents = frozen ? frozen.hostFeeCents : settlement.hostCents;
+  const feeRows = [
+    ...(rivalyCents > 0 ? [{ room_id: room.id, kind: "rivaly", recipient_id: null, cents: rivalyCents }] : []),
+    ...(hostCents > 0 ? [{ room_id: room.id, kind: "host", recipient_id: room.creator_id, cents: hostCents }] : []),
+  ];
+  const recordFees = async () => {
+    if (feeRows.length > 0) await admin.from("room_fees").upsert(feeRows, { onConflict: "room_id,kind", ignoreDuplicates: true });
+  };
 
   // 3. Pay every position still on-chain (winners, losers and refunds alike:
   //    paying closes the position, and the room can only close once all are).
@@ -107,23 +123,51 @@ export async function payProgramRoom(admin: Admin, room: ProgramRoom, decided: "
       const w = e.profile?.dynamic_wallet_address;
       if (w) entryIdsByWallet.set(w, [...(entryIdsByWallet.get(w) ?? []), e.id]);
     }
+    const markPaid = async (paidOwners: typeof owners, signature: string) => {
+      const ids = paidOwners.flatMap((o) => entryIdsByWallet.get(o.toBase58()) ?? []);
+      const paidIds = ids.filter((id) => (settlement.payouts.find((p) => p.entryId === id)?.cents ?? 0) > 0);
+      if (paidIds.length > 0) await admin.from("entries").update({ payout_tx_signature: signature }).in("id", paidIds);
+    };
     for (let i = 0; i < owners.length; i += PROGRAM_PAYOUTS_PER_TX) {
       const chunk = owners.slice(i, i + PROGRAM_PAYOUTS_PER_TX);
-      const batch = await signPayouts(room.id, chunk);
+      // A batch that fails is retried one person at a time, so one payout that
+      // can't land (a frozen account) doesn't hold up everyone else in it.
       try {
+        const batch = await signPayouts(room.id, chunk);
         await sendSignedBatch(batch);
+        await markPaid(chunk, batch.signature);
       } catch {
-        return "paying"; // next run re-reads the chain: paid positions are gone, the rest are retried
+        for (const one of chunk) {
+          try {
+            const batch = await signPayouts(room.id, [one]);
+            await sendSignedBatch(batch);
+            await markPaid([one], batch.signature);
+          } catch {
+            // left for the next run: the chain still has the position
+          }
+        }
       }
-      const ids = chunk.flatMap((o) => entryIdsByWallet.get(o.toBase58()) ?? []);
-      const paidIds = ids.filter((id) => (settlement.payouts.find((p) => p.entryId === id)?.cents ?? 0) > 0);
-      if (paidIds.length > 0) await admin.from("entries").update({ payout_tx_signature: batch.signature }).in("id", paidIds);
     }
 
     // 4. Close: fees to the treasury, leftover to the named winner.
     const afterPayouts = await readChainRoom(room.id);
     if (afterPayouts) {
-      if (afterPayouts.paid !== afterPayouts.positions) return "paying";
+      if (afterPayouts.paid !== afterPayouts.positions) {
+        // Still someone unpaid a day after the result: take the fees now so
+        // they aren't held by one payout that can't land; the room closes
+        // once that last payout goes through.
+        const { data: res } = await admin.from("rooms").select("resolved_at").eq("id", room.id).maybeSingle();
+        const since = res?.resolved_at ? +new Date(res.resolved_at) : null;
+        if (since !== null && now - since > STUCK_FEES_AFTER_MS && afterPayouts.rivalyFeeCents + afterPayouts.hostFeeCents > 0) {
+          try {
+            await sendSignedBatch(await signCollectFees(room.id));
+            await recordFees();
+          } catch (e) {
+            console.error(`[settlement] program room ${room.id}: collect_fees failed`, e);
+          }
+        }
+        return "paying";
+      }
       try {
         await sendSignedBatch(await signCloseRoom(room.id, afterPayouts));
       } catch {
@@ -134,11 +178,7 @@ export async function payProgramRoom(admin: Admin, room: ProgramRoom, decided: "
 
   // The room is closed on-chain, so its fees are in the treasury: now they
   // count (Rivaly's withdrawable, the host's claimable). Idempotent.
-  const feeRows = [
-    ...(rivalyCents > 0 ? [{ room_id: room.id, kind: "rivaly", recipient_id: null, cents: rivalyCents }] : []),
-    ...(hostCents > 0 ? [{ room_id: room.id, kind: "host", recipient_id: room.creator_id, cents: hostCents }] : []),
-  ];
-  if (feeRows.length > 0) await admin.from("room_fees").upsert(feeRows, { onConflict: "room_id,kind", ignoreDuplicates: true });
+  await recordFees();
 
   const final: State = outcome === "void" || settlement.payouts.every((p) => p.isWinner === null) ? "refunded" : "settled";
   await admin.from("rooms").update({ status: final, settled_at: new Date().toISOString() }).eq("id", room.id).in("status", ["open", "live"]);

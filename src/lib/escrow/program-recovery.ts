@@ -34,7 +34,8 @@ export async function refundProgramStake(admin: Admin, intent: IntentLike): Prom
   if (!roomId) return null;
   try {
     const chain = await readChainRoom(roomId);
-    if (!chain || chain.outcome !== "open") return null;
+    // The program only refunds before kick-off: after it, the stake plays and settlement pays it.
+    if (!chain || chain.outcome !== "open" || Date.now() / 1000 >= chain.lockTs) return null;
     const batch = await signRefundPosition(roomId, intent.wallet_address);
     await admin.from("stake_intents").update({ error: `refund:${batch.signature}` }).eq("id", intent.id);
     await sendSignedBatch(batch);

@@ -336,10 +336,11 @@ async function recoverStakes(admin: Admin): Promise<number> {
     const programRoom = programRoomOf(intent);
     if (stakeState === "confirmed" && programRoom) {
       // In a program room the stake sits in the room's vault: refund it from
-      // there while the room is open; once it's resolved, settlement pays the
-      // position like any other (it pays every position on-chain).
+      // there before kick-off; once the match is under way (the program
+      // refuses refunds then) or the room is resolved, the stake plays and
+      // settlement pays the position like any other (it pays every position on-chain).
       const chain = await readChainRoom(programRoom).catch(() => null);
-      if (!chain || chain.outcome !== "open") {
+      if (!chain || chain.outcome !== "open" || Date.now() / 1000 >= chain.lockTs) {
         await admin.from("stake_intents").update({ status: "failed", error: "paid_by_settlement" }).eq("id", intent.id);
       } else if (await refundProgramStake(admin, intent)) {
         handled++;

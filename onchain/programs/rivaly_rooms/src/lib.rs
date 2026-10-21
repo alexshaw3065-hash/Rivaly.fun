@@ -228,11 +228,17 @@ pub mod rivaly_rooms {
         Ok(())
     }
 
-    /// Before a result only: the operator sends one stake straight back to its
-    /// owner (the stake landed but the app couldn't record it).
+    /// Before kick-off only: the operator sends one stake straight back to its
+    /// owner (the stake landed but the app couldn't record it). Never once the
+    /// match is under way: a refund then would let a position leave the room
+    /// after seeing how the match is going, and would change everyone else's
+    /// share before the result. After kick-off an unrecorded stake simply
+    /// plays, and settlement pays it like any other position.
     pub fn refund_position(ctx: Context<RefundPosition>) -> Result<()> {
+        let now = Clock::get()?.unix_timestamp;
         let room = &ctx.accounts.room;
         require!(room.outcome == OUTCOME_OPEN, RoomError::AlreadyResolved);
+        require!(now < room.lock_ts, RoomError::RefundAfterKickoff);
         let cents = ctx.accounts.position.amount_cents;
         let side = ctx.accounts.position.side;
 
@@ -261,6 +267,50 @@ pub mod rivaly_rooms {
             room.no_cents = room.no_cents.checked_sub(cents).ok_or(RoomError::Overflow)?;
         }
         room.positions = room.positions.checked_sub(1).ok_or(RoomError::Overflow)?;
+        Ok(())
+    }
+
+    /// Once the result is in: the room's fees to the treasury, without waiting
+    /// for every payout. One payout that can't complete (a winner's USDC
+    /// account frozen by the issuer) would otherwise keep the fees in the vault
+    /// for good, since close_room needs everyone paid. Taking them never
+    /// touches a winner's money: the vault always holds the fees plus what's
+    /// still owed to winners not yet paid, and that is checked here. The fee
+    /// fields are zeroed so they can't be taken twice, and close_room then
+    /// moves no fee. Anyone may send it; the fees can only go to the treasury.
+    pub fn collect_fees(ctx: Context<CollectFees>) -> Result<()> {
+        let room = &ctx.accounts.room;
+        require!(room.outcome != OUTCOME_OPEN, RoomError::NotResolved);
+        let fees_cents = room.rivaly_fee_cents.checked_add(room.host_fee_cents).ok_or(RoomError::Overflow)?;
+        if fees_cents == 0 {
+            return Ok(()); // already collected, or a refunded room (no fee)
+        }
+        // Owed to winners still unpaid (and the rounding leftover): never touched.
+        let still_owed = room.distributable_cents.checked_sub(room.paid_out_cents).ok_or(RoomError::Overflow)?;
+        let fee_units = fees_cents.checked_mul(UNITS_PER_CENT).ok_or(RoomError::Overflow)?;
+        let reserved = still_owed.checked_mul(UNITS_PER_CENT).ok_or(RoomError::Overflow)?;
+        require!(ctx.accounts.vault.amount >= fee_units.checked_add(reserved).ok_or(RoomError::Overflow)?, RoomError::VaultShort);
+
+        let room_id = room.room_id;
+        let seeds: &[&[u8]] = &[b"room", room_id.as_ref(), &[room.bump]];
+        token::transfer_checked(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.key(),
+                TransferChecked {
+                    from: ctx.accounts.vault.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.treasury_usdc.to_account_info(),
+                    authority: ctx.accounts.room.to_account_info(),
+                },
+                &[seeds],
+            ),
+            fee_units,
+            USDC_DECIMALS,
+        )?;
+
+        let room = &mut ctx.accounts.room;
+        room.rivaly_fee_cents = 0;
+        room.host_fee_cents = 0;
         Ok(())
     }
 
@@ -702,6 +752,21 @@ pub struct CloseRoom<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct CollectFees<'info> {
+    #[account(seeds = [b"config"], bump = config.bump)]
+    pub config: Box<Account<'info, Config>>,
+    #[account(address = config.mint @ RoomError::WrongMint)]
+    pub mint: Box<Account<'info, Mint>>,
+    #[account(mut, seeds = [b"room", room.room_id.as_ref()], bump = room.bump)]
+    pub room: Box<Account<'info, Room>>,
+    #[account(mut, seeds = [b"vault", room.key().as_ref()], bump = room.vault_bump)]
+    pub vault: Box<Account<'info, TokenAccount>>,
+    #[account(mut, associated_token::mint = mint, associated_token::authority = config.treasury)]
+    pub treasury_usdc: Box<Account<'info, TokenAccount>>,
+    pub token_program: Program<'info, Token>,
+}
+
 #[error_code]
 pub enum RoomError {
     #[msg("Not allowed")]
@@ -750,4 +815,6 @@ pub enum RoomError {
     NotAllPaid,
     #[msg("The vault holds less than the fees")]
     VaultShort,
+    #[msg("Stakes can only be refunded before kick-off")]
+    RefundAfterKickoff,
 }

@@ -136,6 +136,17 @@ impl Env {
         ata
     }
 
+    /// Freeze (or thaw) someone's USDC account, as the issuer can: transfers into it then fail.
+    pub fn set_frozen(&mut self, owner: &Pubkey, frozen: bool) {
+        let ata = get_associated_token_address(owner, &self.mint);
+        let raw = self.svm.get_account(&ata).unwrap();
+        let mut state = spl_token::state::Account::unpack(&raw.data).unwrap();
+        state.state = if frozen { spl_token::state::AccountState::Frozen } else { spl_token::state::AccountState::Initialized };
+        let mut data = vec![0u8; spl_token::state::Account::LEN];
+        spl_token::state::Account::pack(state, &mut data).unwrap();
+        self.set_raw(&ata, data, spl_token::ID);
+    }
+
     fn set_raw(&mut self, address: &Pubkey, data: Vec<u8>, owner: Pubkey) {
         let lamports = self.svm.minimum_balance_for_rent_exemption(data.len());
         self.svm
@@ -421,6 +432,31 @@ impl Env {
             }
             .to_account_metas(None),
         )
+    }
+
+    pub fn ix_collect_fees(&self, room_id: &[u8; 16]) -> Instruction {
+        let room = room_pda(&self.program, room_id);
+        Instruction::new_with_bytes(
+            self.program,
+            &rivaly_rooms::instruction::CollectFees {}.data(),
+            rivaly_rooms::accounts::CollectFees {
+                config: config_pda(&self.program),
+                mint: self.mint,
+                room,
+                vault: vault_pda(&self.program, &room),
+                treasury_usdc: get_associated_token_address(&self.treasury, &self.mint),
+                token_program: spl_token::ID,
+            }
+            .to_account_metas(None),
+        )
+    }
+
+    /// Anyone can send collect_fees; a fresh keypair pays for it here.
+    pub fn collect_fees(&mut self, room_id: &[u8; 16]) -> Result<(), String> {
+        let anyone = Keypair::new();
+        self.svm.airdrop(&anyone.pubkey(), 1_000_000_000).unwrap();
+        let ix = self.ix_collect_fees(room_id);
+        self.send(&[ix], &anyone, &[&anyone])
     }
 
     pub fn close_room(&mut self, room_id: &[u8; 16], dust_owner: Option<&Pubkey>) -> Result<(), String> {

@@ -157,11 +157,37 @@ export function signPayouts(roomId: string, owners: PublicKey[]): Promise<Signed
   return signed(owners.map((o) => payoutIx(room, o, keypair.publicKey, IX.payout)), 400_000);
 }
 
-/** Before a result: send one stake back to its owner (it landed but couldn't be recorded). */
+/** Before kick-off only (the program refuses later): send one stake back to its owner (it landed but couldn't be recorded). */
 export function signRefundPosition(roomId: string, owner: string): Promise<SignedBatch> {
   const { keypair } = escrowSigner();
   // Same accounts as payout, with the operator first as signer.
   return signed([payoutIx(roomPda(roomId), new PublicKey(owner), keypair.publicKey, IX.refundPosition)]);
+}
+
+/**
+ * Once the result is in: the room's fees to the treasury without waiting for
+ * every payout (one that can't complete, e.g. a frozen account, would hold them
+ * forever). The program checks the vault still covers every unpaid winner and
+ * zeroes the fee fields, so it can't move them twice.
+ */
+export function signCollectFees(roomId: string): Promise<SignedBatch> {
+  const { keypair } = escrowSigner();
+  const room = roomPda(roomId);
+  return signed([
+    new TransactionInstruction({
+      programId: PROGRAM,
+      data: IX.collectFees,
+      keys: [
+        ro(configPda()),
+        ro(MINT),
+        rw(room),
+        rw(vaultPda(room)),
+        // The treasury is the escrow wallet (the program's config).
+        rw(getAssociatedTokenAddressSync(MINT, keypair.publicKey)),
+        ro(TOKEN_PROGRAM_ID),
+      ],
+    }),
+  ]);
 }
 
 /** After everyone is paid: fees to the treasury, the leftover to the named winner, vault and room closed. */

@@ -443,6 +443,192 @@
       "args": []
     },
     {
+      "name": "collect_fees",
+      "docs": [
+        "Once the result is in: the room's fees to the treasury, without waiting",
+        "for every payout. One payout that can't complete (a winner's USDC",
+        "account frozen by the issuer) would otherwise keep the fees in the vault",
+        "for good, since close_room needs everyone paid. Taking them never",
+        "touches a winner's money: the vault always holds the fees plus what's",
+        "still owed to winners not yet paid, and that is checked here. The fee",
+        "fields are zeroed so they can't be taken twice, and close_room then",
+        "moves no fee. Anyone may send it; the fees can only go to the treasury."
+      ],
+      "discriminator": [
+        164,
+        152,
+        207,
+        99,
+        30,
+        186,
+        19,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "room",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  111,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "room.room_id",
+                "account": "Room"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "room"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury_usdc",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "config.treasury",
+                "account": "Config"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "expire",
       "docs": [
         "Past its expiry and still unresolved: anyone can void the room, so",
@@ -874,8 +1060,12 @@
     {
       "name": "refund_position",
       "docs": [
-        "Before a result only: the operator sends one stake straight back to its",
-        "owner (the stake landed but the app couldn't record it)."
+        "Before kick-off only: the operator sends one stake straight back to its",
+        "owner (the stake landed but the app couldn't record it). Never once the",
+        "match is under way: a refund then would let a position leave the room",
+        "after seeing how the match is going, and would change everyone else's",
+        "share before the result. After kick-off an unrecorded stake simply",
+        "plays, and settlement pays it like any other position."
       ],
       "discriminator": [
         92,
@@ -1554,6 +1744,11 @@
       "code": 6022,
       "name": "VaultShort",
       "msg": "The vault holds less than the fees"
+    },
+    {
+      "code": 6023,
+      "name": "RefundAfterKickoff",
+      "msg": "Stakes can only be refunded before kick-off"
     }
   ],
   "types": [

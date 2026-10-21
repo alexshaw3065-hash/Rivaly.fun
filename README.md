@@ -121,6 +121,8 @@ Before Rivaly co-signs, it refuses anything that isn't exactly what it built ([`
 - A room's USDC can only leave its vault to **the people who staked in that room** (winnings or refunds), plus the room's fee to the treasury once everyone is paid.
 - Fees come only from winners' profit, and the program caps them at **6% in total**.
 - Stakes close at kick-off. If a room is never resolved, **anyone** can void it after its deadline (14 days after kick-off; the program allows at most 21), and everyone is refunded.
+- A stake can only be refunded **before kick-off**. Once the match is under way it plays, so no position can leave after seeing how the match is going.
+- Fees can be collected as soon as the result is in, without waiting for every payout, so one payout that can't land (a frozen account) never holds the fees. What's still owed to unpaid winners stays in the vault.
 - The admin key moves only in two steps (propose, then accept), ready to hand to a multisig.
 
 **Who holds which key:**

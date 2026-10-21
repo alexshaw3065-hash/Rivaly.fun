@@ -504,6 +504,90 @@ fn refund_position_only_by_the_operator_and_only_before_a_result() {
     assert_err(env.send(&[env.ix_refund_position(&id, &op.pubkey(), &b)], &op, &[&op]), "AlreadyResolved");
 }
 
+#[test]
+fn refund_position_is_refused_once_the_match_is_under_way() {
+    // Kick-off has passed, no result yet: a refund now would let a position
+    // leave after seeing the match, and shift everyone else's share.
+    let mut env = Env::new();
+    let (id, alice, _) = two_sided(&mut env, 1);
+    env.set_time(LOCK + 1);
+    let op = env.operator.insecure_clone();
+    let a = alice.pubkey();
+    assert_err(env.send(&[env.ix_refund_position(&id, &op.pubkey(), &a)], &op, &[&op]), "RefundAfterKickoff");
+    let room = env.room(&id);
+    assert_eq!((room.yes_cents, room.no_cents, room.positions), (1_000, 1_000, 2), "nothing moved");
+    assert_eq!(env.usdc_cents(&a), 9_000);
+}
+
+// ── collect_fees ───────────────────────────────────────────────────────
+
+#[test]
+fn collect_fees_only_after_a_result() {
+    let mut env = Env::new();
+    let (id, _, _) = two_sided(&mut env, 1);
+    assert_err(env.collect_fees(&id), "NotResolved");
+}
+
+#[test]
+fn a_frozen_winner_cant_hold_the_fees_hostage() {
+    // Alice and Carol win, Bob loses. Alice's USDC account is frozen by the
+    // issuer, so her payout can't go through: the room can't close, but the
+    // fees can still be collected, without touching what Alice is owed.
+    let mut env = Env::new();
+    let id = room_id(1);
+    let alice = env.user(5_000);
+    let carol = env.user(5_000);
+    let bob = env.user(5_000);
+    env.stake(id, &alice, YES, 1_000);
+    env.stake(id, &carol, YES, 500);
+    env.stake(id, &bob, NO, 2_000);
+    env.set_time(LOCK + 60);
+    let (a, b, c) = (alice.pubkey(), bob.pubkey(), carol.pubkey());
+    env.resolve(&id, YES, Some(&a)).unwrap();
+
+    env.set_frozen(&a, true);
+    assert!(env.payout(&id, &a).is_err(), "frozen account: payout fails");
+    env.payout(&id, &b).unwrap();
+    env.payout(&id, &c).unwrap();
+    assert_err(env.close_room(&id, Some(&a)), "NotAllPaid");
+
+    let treasury = env.treasury;
+    let before = env.usdc_cents(&treasury);
+    env.collect_fees(&id).unwrap();
+    assert_eq!(env.usdc_cents(&treasury) - before, 100, "Rivaly 3% + host 2% of $20 profit");
+    let room = env.room(&id);
+    assert_eq!((room.rivaly_fee_cents, room.host_fee_cents), (0, 0));
+    // Alice's share (2266) plus the rounding cent is still in the vault.
+    assert_eq!(env.vault_units(&id), 2_267 * UNITS);
+
+    // A second collect moves nothing.
+    env.collect_fees(&id).unwrap();
+    assert_eq!(env.usdc_cents(&treasury) - before, 100);
+
+    // Thawed later: Alice is paid in full and the room closes, with no fee twice.
+    env.set_frozen(&a, false);
+    env.payout(&id, &a).unwrap();
+    env.close_room(&id, Some(&a)).unwrap();
+    assert_eq!(env.usdc_cents(&a), 4_000 + 2_267);
+    assert_eq!(env.usdc_cents(&treasury) - before, 100);
+    let total = env.usdc_cents(&a) + env.usdc_cents(&b) + env.usdc_cents(&c) + env.usdc_cents(&treasury);
+    assert_eq!(total, 15_000, "every cent accounted for");
+}
+
+#[test]
+fn collect_fees_on_a_refunded_room_moves_nothing() {
+    let mut env = Env::new();
+    let (id, alice, bob) = two_sided(&mut env, 1);
+    env.resolve(&id, 3, None).unwrap(); // void
+    let treasury = env.treasury;
+    let before = env.usdc_cents(&treasury);
+    env.collect_fees(&id).unwrap();
+    assert_eq!(env.usdc_cents(&treasury), before);
+    env.payout(&id, &alice.pubkey()).unwrap();
+    env.payout(&id, &bob.pubkey()).unwrap();
+    env.close_room(&id, None).unwrap();
+}
+
 // ── close_room ─────────────────────────────────────────────────────────
 
 #[test]

@@ -20,6 +20,7 @@ describe("program codec matches the program's IDL", () => {
     assert.deepEqual(IX.payout, ix("payout"));
     assert.deepEqual(IX.refundPosition, ix("refund_position"));
     assert.deepEqual(IX.closeRoom, ix("close_room"));
+    assert.deepEqual(IX.collectFees, ix("collect_fees"));
     assert.deepEqual(IX.roomAccount, acct("Room"));
     assert.deepEqual(IX.positionAccount, acct("Position"));
   });
