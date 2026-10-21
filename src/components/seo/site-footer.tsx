@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { SOCIALS } from "@/lib/socials";
 import { LeagueMark } from "@/components/league-mark";
@@ -152,8 +153,10 @@ export async function SiteFooter() {
   );
 }
 
-/** The newest public rooms and open rooms per competition, read like the sitemap: anon key, no cookies. */
-async function footerData(): Promise<{ rooms: { id: string; call: string; match: string }[]; open: Record<string, number> }> {
+/** The newest public rooms and open rooms per competition, read like the sitemap: anon key, no cookies. Cached a minute, shared by every visitor. */
+const footerData = unstable_cache(footerDataUncached, ["site-footer-v1"], { revalidate: 60 });
+
+async function footerDataUncached(): Promise<{ rooms: { id: string; call: string; match: string }[]; open: Record<string, number> }> {
   const empty = { rooms: [], open: {} };
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

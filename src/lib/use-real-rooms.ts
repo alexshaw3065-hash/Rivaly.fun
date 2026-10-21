@@ -36,6 +36,16 @@ let publicCache: { at: number; promise: Promise<RoomWithMatch[]> } | null = null
 // (no empty flash, no wait on a slow network) while a fresh read runs behind it.
 let publicLast: RoomWithMatch[] | null = null;
 
+/**
+ * Home's server-read rooms (home-data.ts), so the first paint already has
+ * them. On the server every render takes the latest; in the browser only an
+ * empty cache is filled — a fresher read already there wins — and the mount
+ * still refreshes it as usual (the cache window isn't set, so it re-reads).
+ */
+export function seedPublicRooms(items: RoomWithMatch[]) {
+  if (typeof window === "undefined" || publicLast === null) publicLast = items;
+}
+
 /** Open and live public rooms, newest first. Cached briefly so a page with several room sections makes one read. */
 export function fetchPublicRooms(): Promise<RoomWithMatch[]> {
   if (publicCache && Date.now() - publicCache.at < CACHE_MS) return publicCache.promise;

@@ -9,6 +9,9 @@ import { RoomsMatchesBrowser } from "@/components/rooms-matches-browser";
 import { EmptyRooms } from "@/components/empty-rooms";
 import { FeatureCardShape } from "@/components/loading-shapes";
 import { SectionHeader } from "@/components/ui";
+import { seedPublicRooms } from "@/lib/use-real-rooms";
+import { seedMatches } from "@/lib/use-real-matches";
+import type { HomeData } from "@/lib/home-data";
 
 // Redesigned against our sketch (2026-08-15): search pill, an
 // "Exploding Now" carousel (Apple-style — see exploding-carousel.tsx), Top
@@ -19,7 +22,12 @@ import { SectionHeader } from "@/components/ui";
 // `footer` is server-rendered by app/page.tsx for signed-out visitors only:
 // links and the plain-text "what is Rivaly" that search engines and AI
 // assistants read (they don't run this component's data fetching).
-export function HomeScreen({ footer }: { footer?: React.ReactNode }) {
+export function HomeScreen({ footer, initial }: { footer?: React.ReactNode; initial?: HomeData | null }) {
+  // The server's first read (home-data.ts), handed to the data hooks before they run.
+  if (initial) {
+    seedPublicRooms(initial.rooms);
+    seedMatches(initial.matches);
+  }
   const { slides: exploding, isLoading: explodingLoading } = useExplodingSlides();
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
 

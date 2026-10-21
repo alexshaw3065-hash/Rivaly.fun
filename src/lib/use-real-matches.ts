@@ -59,6 +59,14 @@ async function fetchMatches(): Promise<Match[]> {
   return (data ?? []).map((r) => mapMatchRow(r as MatchRow));
 }
 
+/**
+ * Home's server-read matches (home-data.ts), so the first paint has them.
+ * Marked stale (at: 0), so the mount still refreshes them in the background.
+ */
+export function seedMatches(rows: Match[]) {
+  if (typeof window === "undefined" || cache === null) cache = { rows, at: 0 };
+}
+
 /** Fetch into the shared cache (deduplicated). `force` ignores freshness. */
 export function preloadMatches(force = false): Promise<Match[]> {
   if (!force && cache && Date.now() - cache.at < FRESH_MS) return Promise.resolve(cache.rows);
